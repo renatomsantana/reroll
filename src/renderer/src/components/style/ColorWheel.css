@@ -1,0 +1,65 @@
+.color-wheel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/** `width: 100%` porque é ELA que é medida pra decidir o tamanho do disco (ver `ColorWheel.tsx`). */
+.color-wheel-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/**
+ * A moldura afundada fica num `div` em volta, NÃO no próprio canvas: com `box-sizing: border-box`
+ * (global) a borda comeria 4px da área de desenho, e aí o tamanho em pixels do canvas deixaria de
+ * bater com o tamanho na tela — o disco sairia borrado e, pior, a conta de "onde o mouse clicou
+ * dentro do círculo" erraria por esses 2px de cada lado.
+ */
+.color-wheel-frame {
+  border: 2px inset var(--win-highlight);
+  /* Cinza da janela, não branco de campo: o disco é redondo e o que aparece nos cantos da moldura tem que sumir no painel. */
+  background: var(--win-face);
+  /* Canvas é inline: sem isto a linha de base deixa uma faixa de fundo embaixo dele. */
+  line-height: 0;
+}
+
+.color-wheel-disc {
+  cursor: crosshair;
+  /* Sem isto o arraste dentro do disco vira rolagem da coluna num monitor de toque. */
+  touch-action: none;
+}
+
+.color-wheel-bar {
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.color-wheel-disc:focus-visible,
+.color-wheel-bar:focus-visible {
+  outline: 1px dotted var(--win-text);
+  outline-offset: -3px;
+}
+
+.color-wheel-hex {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.color-wheel-hex input {
+  width: 84px;
+  font-family: 'Courier New', Courier, monospace;
+  text-transform: lowercase;
+}
+
+/** Retângulo com a cor escolhida, do lado do hex — o disco mostra o tom, mas não do tamanho que dá pra comparar. */
+.color-wheel-chip {
+  width: 34px;
+  height: 20px;
+  border: 2px inset var(--win-highlight);
+}

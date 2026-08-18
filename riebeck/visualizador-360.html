@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visualizador 360</title>
+<style>
+  :root {
+    --stage-top: #EDEBE6;
+    --stage-bottom: #D6D3CC;
+    --ink: #2B2A28;
+    --ink-soft: #6E6B65;
+    --line: #C3BFB6;
+    --accent: #4A6B7C;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    color: var(--ink);
+    background: #F6F5F2;
+  }
+
+  .viewer {
+    width: min(560px, 100%);
+  }
+
+  .stage {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 42%, #FFFFFF 0%, transparent 70%),
+      linear-gradient(180deg, var(--stage-top) 0%, var(--stage-bottom) 100%);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    outline-offset: 3px;
+  }
+
+  .stage:active { cursor: grabbing; }
+  .stage:focus-visible { outline: 2px solid var(--accent); }
+
+  .stage img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+
+  .shadow {
+    position: absolute;
+    left: 50%;
+    bottom: 9%;
+    width: 46%;
+    height: 5%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: rgba(43, 42, 40, 0.22);
+    filter: blur(12px);
+    pointer-events: none;
+  }
+
+  .loader {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    gap: 14px;
+    background: var(--stage-top);
+    transition: opacity 0.4s ease;
+  }
+
+  .loader.done { opacity: 0; pointer-events: none; }
+
+  .bar {
+    width: 140px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--line);
+    overflow: hidden;
+  }
+
+  .bar span {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.2s ease;
+  }
+
+  .loader p {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+  }
+
+  .hint {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--line);
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    color: var(--ink-soft);
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  .hint.hidden { opacity: 0; }
+
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .meta strong {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  .error {
+    position: absolute;
+    inset: 0;
+    display: none;
+    place-items: center;
+    padding: 32px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--stage-top);
+  }
+
+  .error.show { display: grid; }
+  .error code {
+    font-family: ui-monospace, monospace;
+    background: rgba(43, 42, 40, 0.07);
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="viewer">
+  <div class="stage" id="stage" tabindex="0" role="img"
+       aria-label="Vista 360 graus. Arraste ou use as setas do teclado para girar.">
+    <div class="shadow"></div>
+    <img id="frame" alt="">
+    <p class="hint" id="hint">Arraste para girar</p>
+    <div class="loader" id="loader">
+      <p id="loaderText">Carregando</p>
+      <div class="bar"><span id="loaderBar"></span></div>
+    </div>
+    <div class="error" id="error">
+      <p>Não achei os quadros.<br>
+      Confira se a pasta <code>frames/</code> existe e se os nomes batem com o padrão em <code>CONFIG</code>.</p>
+    </div>
+  </div>
+
+  <div class="meta">
+    <strong id="title">Pelúcia</strong>
+    <span id="counter">—</span>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  totalFrames: 24,
+  path: i => `frames/frame_${String(i).padStart(2, '0')}.jpg`,
+  autoRotate: true,
+  autoSpeed: 90,
+  reverse: false,
+  fullTurnPx: 500
+};
+
+const stage = document.getElementById('stage');
+const frameEl = document.getElementById('frame');
+const loader = document.getElementById('loader');
+const loaderBar = document.getElementById('loaderBar');
+const loaderText = document.getElementById('loaderText');
+const errorEl = document.getElementById('error');
+const hint = document.getElementById('hint');
+const counter = document.getElementById('counter');
+
+const images = [];
+let current = 0;
+let loaded = 0;
+let failed = 0;
+let dragging = false;
+let interacted = false;
+let lastX = 0;
+let accumulated = 0;
+let spinTimer = null;
+
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function show(index) {
+  const total = CONFIG.totalFrames;
+  current = ((index % total) + total) % total;
+  frameEl.src = images[current].src;
+  counter.textContent = `${current + 1} / ${total}`;
+}
+
+function preload() {
+  for (let i = 1; i <= CONFIG.totalFrames; i++) {
+    const img = new Image();
+    img.onload = () => {
+      loaded++;
+      const pct = Math.round((loaded + failed) / CONFIG.totalFrames * 100);
+      loaderBar.style.width = pct + '%';
+      loaderText.textContent = `Carregando ${pct}%`;
+      if (loaded + failed === CONFIG.totalFrames) ready();
+    };
+    img.onerror = () => {
+      failed++;
+      if (loaded + failed === CONFIG.totalFrames) ready();
+    };
+    img.src = CONFIG.path(i);
+    images.push(img);
+  }
+}
+
+function ready() {
+  if (loaded === 0) {
+    loader.classList.add('done');
+    errorEl.classList.add('show');
+    hint.classList.add('hidden');
+    return;
+  }
+  loader.classList.add('done');
+  show(0);
+  if (CONFIG.autoRotate && !reducedMotion) startSpin();
+}
+
+function startSpin() {
+  stopSpin();
+  spinTimer = setInterval(() => {
+    if (!dragging) show(current + (CONFIG.reverse ? -1 : 1));
+  }, CONFIG.autoSpeed);
+}
+
+function stopSpin() {
+  clearInterval(spinTimer);
+  spinTimer = null;
+}
+
+function markInteracted() {
+  if (interacted) return;
+  interacted = true;
+  stopSpin();
+  hint.classList.add('hidden');
+}
+
+stage.addEventListener('pointerdown', e => {
+  markInteracted();
+  dragging = true;
+  lastX = e.clientX;
+  accumulated = 0;
+  stage.setPointerCapture(e.pointerId);
+});
+
+stage.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const pxPerFrame = CONFIG.fullTurnPx / CONFIG.totalFrames;
+  accumulated += e.clientX - lastX;
+  lastX = e.clientX;
+  const steps = Math.trunc(accumulated / pxPerFrame);
+  if (steps !== 0) {
+    accumulated -= steps * pxPerFrame;
+    show(current + (CONFIG.reverse ? steps : -steps));
+  }
+});
+
+['pointerup', 'pointercancel', 'pointerleave'].forEach(evt =>
+  stage.addEventListener(evt, () => { dragging = false; })
+);
+
+stage.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  markInteracted();
+  show(current + (e.key === 'ArrowRight' ? 1 : -1));
+});
+
+preload();
+</script>
+
+</body>
+</html>

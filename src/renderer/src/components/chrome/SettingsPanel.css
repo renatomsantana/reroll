@@ -1,0 +1,114 @@
+/* `.modal-overlay` mora em `styles/global.css` — é compartilhado por todos os modais. */
+
+.settings-panel {
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-style: outset;
+}
+
+.settings-panel-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.settings-panel-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.settings-panel-field select {
+  flex: 1;
+  max-width: 180px;
+}
+
+.settings-panel-field-row {
+  align-items: flex-start;
+}
+
+.settings-panel-field-column {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/**
+ * Uma fileira só, sempre. Os ícones tinham 36px fixos com 8px de espaço: sete deles somam 300px
+ * contra os 288px úteis do painel (320px menos 16px de recuo de cada lado), então o último sobrava
+ * e caía sozinho numa segunda linha — parecia que ele era de outra categoria.
+ *
+ * Em vez de acertar um tamanho que feche a conta (que quebraria de novo no dia em que entrar um
+ * ícone novo na lista), eles DIVIDEM a largura disponível: `flex: 1 1 0` dá a mesma fatia pra cada
+ * um e `aspect-ratio` mantém o quadrado. Com os sete de hoje cada fatia dá justamente 36px, o
+ * tamanho de antes — a diferença é que agora a conta se refaz sozinha.
+ */
+.settings-panel-icon-grid {
+  display: flex;
+  gap: 6px;
+  /**
+   * Obrigatório junto com `flex: 1 1 0` abaixo, não é enfeite. O pai
+   * (`.settings-panel-field-column`) tem `align-items: flex-start`, então esta div não estica: ela
+   * encolhe até o tamanho do próprio conteúdo. E o conteúdo são botões VAZIOS (a arte é
+   * `background-image`), cuja largura natural é zero — sem esta linha a fileira inteira murchava
+   * pros ~64px das bordas e dos espaços, e os sete ícones viravam listras de 4px. Fixando a
+   * largura, as fatias do `flex` têm sobre o que se dividir.
+   */
+  width: 100%;
+}
+
+.settings-panel-icon-swatch {
+  flex: 1 1 0;
+  /* Sem isto o conteúdo de fundo impede o item de encolher abaixo do tamanho "natural" dele. */
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px outset var(--win-highlight);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+}
+
+.settings-panel-icon-swatch:active {
+  border-style: inset;
+}
+
+.settings-panel-icon-swatch-active {
+  border-color: var(--win-title-bg, #000080);
+  box-shadow: 0 0 0 1px var(--win-title-bg, #000080);
+}
+
+.settings-panel-hint {
+  color: var(--win-text-muted);
+  font-weight: normal;
+  font-size: 10px;
+}
+
+.settings-panel-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+/** Botões da linha de versão: quebram de linha porque o segundo ("Reiniciar agora") só existe às vezes. */
+.settings-panel-update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-panel-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}

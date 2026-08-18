@@ -1,0 +1,15 @@
+/**
+ * O mascote entra e sai conforme a fonte, então ele NÃO pode disputar espaço com o resto da linha:
+ * `flex: 0 0 auto` fixa o tamanho dele e deixa o rótulo absorver a diferença.
+ *
+ * A arte vem em 48px de altura e é mostrada em 24 — os 2× de folga são pra tela HiDPI, e a redução
+ * já foi feita no arquivo (com `lanczos`), não no navegador.
+ */
+.font-mascot {
+  flex: 0 0 auto;
+  height: 20px;
+  width: auto;
+  align-self: center;
+  /* Fundo transparente e traço preto: o contorno some contra o azul da linha marcada sem isto. */
+  filter: drop-shadow(0 0 1px var(--win-input-bg));
+}

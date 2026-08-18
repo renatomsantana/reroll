@@ -1,0 +1,69 @@
+.dice-roller-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dice-roller-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dice-roller-count {
+  width: 58px;
+  text-align: center;
+}
+
+.dice-roller-sides {
+  min-width: 80px;
+  cursor: pointer;
+}
+
+.dice-roller-mode {
+  display: flex;
+  gap: 6px;
+}
+
+.dice-roller-mode .btn {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.dice-roller-preview {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.dice-roller-preview-spin {
+  animation: dice-roller-spin 0.5s ease-out;
+}
+
+@keyframes dice-roller-spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  40% {
+    transform: rotate(200deg) scale(1.15);
+  }
+  70% {
+    transform: rotate(330deg) scale(0.95);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.dice-roller-modifier {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.dice-roller-modifier input {
+  width: 46px;
+  text-align: center;
+}

@@ -1,0 +1,23 @@
+/**
+ * Antes eram 140×140 fixos. Agora a prévia OCUPA a altura que sobra na coluna da esquerda depois
+ * da roda de cores (pedido do usuário: "aumentar a imagem da prévia") — na janela padrão de 800px
+ * de altura isso dá em torno de 240px de lado, quase o dobro.
+ *
+ * As duas cenas (`StylePreview` = o dado, `TrayPreview` = a bandeja) desenham num quadrado de
+ * `min(clientWidth, clientHeight)`, então a caixa não precisa ser quadrada — o `flex` centraliza o
+ * canvas na sobra. O piso de 120px é pra janela na altura mínima, onde a coluna inteira passa a
+ * rolar em vez de espremer a prévia até sumir.
+ */
+.style-preview {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.style-preview canvas {
+  display: block;
+}

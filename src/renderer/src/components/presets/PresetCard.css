@@ -1,0 +1,110 @@
+/*
+ * Cartão de UMA LINHA (pedido do usuário: "deixa os presets um pouco mais compactos e pequenos,
+ * apenas com nome e emoji e botão de X ou editar e com descrição dos dados").
+ *
+ * A altura saiu de ~70px pra ~34px, e quem pagou não foi o texto: nome e expressão são a informação
+ * que faz escolher o preset no meio de vários. O que sumiu foi a ARRUMAÇÃO — o emoji tinha uma
+ * linha só pra ele, e a barra "Editar | Excluir" tinha outra, com borda própria. Emoji ao lado do
+ * texto e ações como ícone recuperam as duas.
+ */
+.preset-card {
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+
+.preset-card-main {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 4px 4px 7px;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  /* `min-width: 0` deixa o nome comprido ser cortado com reticências em vez de esticar o cartão. */
+  flex: 1;
+  min-width: 0;
+}
+
+.preset-card-main:active {
+  background: var(--win-shadow);
+}
+
+.preset-card-icon {
+  font-size: 17px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.preset-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Nome e expressão CORTAM em vez de quebrar: numa linha só, quebrar desmancharia a altura fixa. */
+.preset-card-name,
+.preset-card-expression {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preset-card-name {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.preset-card-expression {
+  font-size: 11px;
+  color: var(--win-text-muted);
+}
+
+/* Coluna à direita, encostada na borda — fora do botão de rolar, senão clicar em editar rolaria. */
+.preset-card-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px;
+  border-left: 2px groove var(--win-shadow);
+  flex-shrink: 0;
+}
+
+.preset-card-action {
+  width: 20px;
+  height: 15px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--win-text);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.preset-card-action:hover:not(:disabled) {
+  background: var(--win-shadow);
+}
+
+.preset-card-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* O X é o único destrutivo do cartão: vermelho no hover é o aviso antes do clique. */
+.preset-card-action-delete {
+  font-weight: bold;
+}
+
+.preset-card-action-delete:hover:not(:disabled) {
+  background: #c04040;
+  color: #ffffff;
+}

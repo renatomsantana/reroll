@@ -1,0 +1,337 @@
+/**
+ * Duas partes: a coluna PARADA da esquerda (seção + prévia + roda de cores) e a GRADE rolável de
+ * opções à direita. Só a grade tem `overflow`, que é o que mantém o dado da prévia e a roda
+ * visíveis enquanto se mexe em qualquer opção.
+ */
+.style-tab {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  padding: 14px 16px;
+  overflow: hidden;
+}
+
+/**
+ * A largura daqui é o TAMANHO DA PRÉVIA, porque é ela que manda nesta coluna: o quadrado do dado
+ * vira `min(largura útil, altura útil)`, e a altura útil na janela padrão passa de 570px — ou
+ * seja, quem limita é a largura. Os 470px dão uma prévia de ~446px de lado (os fixos de antes
+ * eram 140) e ainda deixam ~750px pra grade de opções, que é o suficiente pras três colunas.
+ */
+.style-tab-preview-pane {
+  flex: 0 0 470px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  /**
+   * Obrigatório, e a razão não é óbvia: o canvas da prévia recebe largura em pixels do próprio
+   * three (`renderer.setSize`), então ele ENTRA na largura mínima automática desta coluna
+   * (`min-width: auto` de item flex). Sem esta linha a coluna nunca encolhia abaixo do canvas que
+   * o quadro ANTERIOR desenhou — medido: na janela de 900px ela continuava com 395px em vez dos
+   * 340px pedidos aqui embaixo, e a grade de opções perdia a segunda coluna por causa disso.
+   */
+  min-width: 0;
+}
+
+/**
+ * Janela apertada: a prévia cede largura pra grade. Medido — com 900px de janela (a largura
+ * mínima) sobram 836px pra dividir: com a prévia em 470 restam 427 e a grade cai pra UMA coluna,
+ * que é justamente o que estava sendo consertado; com 340 restam 482 e ela mantém duas.
+ */
+@media (max-width: 1150px) {
+  .style-tab-preview-pane {
+    flex-basis: 340px;
+  }
+}
+
+/**
+ * Grade, não coluna. Numa janela de 1300px sobram ~750px pra cá; em coluna única cada botão de
+ * "Fosco" ou "Gemas" esticava por essa largura inteira. Com `auto-fill` cabem três colunas de
+ * ~245px na janela padrão e duas na mínima, e o botão volta a ter o tamanho do rótulo.
+ *
+ * O piso de 212px é o que a roda de cores precisa pra chegar no tamanho mínimo dela (140px de
+ * disco + 26 da barra de brilho + as molduras e o recuo da caixa de grupo).
+ */
+.style-tab-options {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  align-content: start;
+  align-items: start;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+/**
+ * Janela larga: a roda ocupa duas colunas. Sobram quatro caixas de opção pra três colunas, então
+ * sem isto a terceira coluna da segunda fileira ficava vazia — e a roda, que é a peça que mais
+ * ganha com tamanho ("a paletona"), ficava do tamanho da caixa mais estreita da grade. Com o vão
+ * dobrado ela chega no teto de 300px de disco (ver `ColorWheel.tsx`).
+ *
+ * O corte em 1200px é medido, não chutado: a partir dele a grade tem pelo menos três colunas em
+ * qualquer combinação de largura de prévia, então nunca sobra um item de duas colunas numa grade
+ * de uma só.
+ */
+@media (min-width: 1200px) {
+  .style-tab-wheel-group {
+    grid-column: span 2;
+  }
+}
+
+/* Janela estreita: a coluna da prévia vira uma faixa em cima e a página inteira passa a rolar junto. */
+@media (max-width: 880px) {
+  .style-tab {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .style-tab-preview-pane {
+    flex: 0 0 auto;
+    align-self: center;
+    width: 340px;
+    max-width: 100%;
+  }
+
+  /* Sem a altura da coluna pra puxar, a prévia precisa de uma altura própria aqui. */
+  .style-tab-preview-group {
+    height: 340px;
+  }
+
+  .style-tab-options {
+    overflow: visible;
+  }
+}
+
+/** Caixa de grupo do Windows 98 (mesma da aba Rolagem) — é o que separa um assunto do outro. */
+.style-group {
+  margin: 0;
+  padding: 2px 10px 10px;
+  border: 2px groove var(--win-highlight);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.style-group > legend {
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+/** A prévia fica com TODA a altura que sobra da coluna depois dos botões de seção. */
+.style-tab-preview-group {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.style-tab-preview-caption {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/** "Dados" × "Mesa e bandeja": os dois assuntos da aba, um por vez. */
+.style-tab-sections {
+  display: flex;
+  gap: 4px;
+}
+
+.style-tab-sections .btn {
+  flex: 1;
+}
+
+/** O que a roda está editando (corpo/número, ou parede/chão/fundo) — três botões precisam caber em 272px, daí o recuo curto. */
+.style-tab-targets {
+  display: flex;
+  gap: 4px;
+}
+
+.style-tab-targets .btn {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+}
+
+.style-tab-targets .btn:active:not(:disabled),
+.style-tab-targets .btn-selected:not(:disabled) {
+  padding: 5px 5px 3px 7px;
+}
+
+/** Duas por linha: é o que cabe sem apertar "Metálico"/"Plástico" numa coluna de ~230px. */
+.style-tab-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.style-tab-grid-2 .btn {
+  min-width: 0;
+  padding: 4px 6px;
+}
+
+.style-tab-grid-2 .btn:active:not(:disabled),
+.style-tab-grid-2 .btn-selected:not(:disabled) {
+  padding: 5px 5px 3px 7px;
+}
+
+.style-tab-options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/**
+ * Lista de tipos de dado, no lugar da grade de botões que havia aqui (pedido do usuário). É a
+ * caixa de listagem do 98: fundo de campo afundado, uma linha por item, item marcado com a barra
+ * na cor de destaque. Cada linha traz as duas cores em uso, o que a grade de botões não mostrava.
+ */
+.style-tab-list {
+  border: 2px inset var(--win-highlight);
+  background: var(--win-input-bg);
+  padding: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/**
+ * Linha de lista, não botão: sem degrau, sem fundo próprio e sem o pulo de 1px do `:active` global
+ * (as regras abaixo anulam os dois) — oito botões em relevo empilhados não leem como uma lista.
+ */
+.style-tab-list-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--win-text);
+  padding: 3px 5px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.style-tab-list-item:active:not(:disabled) {
+  border: 0;
+  padding: 3px 5px;
+}
+
+.style-tab-list-item-selected,
+.style-tab-list-item-selected:active:not(:disabled) {
+  background: var(--win-accent);
+  color: var(--win-titlebar-text);
+}
+
+.style-tab-list-label {
+  flex: 1;
+}
+
+/** `*` no fim da linha = este tipo tem cor própria, não segue a padrão. */
+.style-tab-list-mark {
+  font-weight: bold;
+}
+
+.style-tab-list-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 1px solid var(--win-shadow);
+}
+
+/**
+ * Rótulo de caixa de grupo que É um botão (recolhe as cores prontas). Tem que continuar LENDO como
+ * rótulo — mesmo negrito, mesmo tamanho, sem degrau nem fundo próprio — então o que diz que dá pra
+ * clicar é a seta ao lado, não um relevo de botão em cima da borda do grupo.
+ */
+.style-tab-collapse {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: bold;
+  color: inherit;
+}
+
+.style-tab-collapse:active:not(:disabled) {
+  border: 0;
+  padding: 0;
+}
+
+.style-tab-collapse:focus-visible {
+  outline-offset: 1px;
+}
+
+/** Recolhido: sem o recuo de baixo a caixa vazia vira só o rótulo com a moldura rente, em vez de um retângulo oco. */
+.style-group:has(> legend .style-tab-collapse[aria-expanded='false']) {
+  padding-bottom: 2px;
+}
+
+/** Miúda e um pouco levantada: é sinal, não conteúdo — na altura do texto ela competiria com o título. */
+.style-tab-collapse-arrow {
+  font-size: 9px;
+  line-height: 1;
+  position: relative;
+  top: -1px;
+}
+
+.style-tab-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+  gap: 5px;
+}
+
+.style-tab-swatch {
+  height: 28px;
+  padding: 0;
+  border: 2px outset var(--win-highlight);
+  cursor: pointer;
+}
+
+.style-tab-swatch:active {
+  border-style: inset;
+}
+
+/**
+ * Amostra ativa = a cor que está aplicada agora. Fica afundada (o "ligado" de botão de barra de
+ * ferramentas do 98) com um anel escuro por fora, porque a borda sozinha some contra cores
+ * escuras — e sem marca nenhuma não dava pra saber qual das doze estava em uso.
+ */
+.style-tab-swatch-active {
+  border-style: inset;
+  box-shadow:
+    0 0 0 1px var(--win-shadow-dark),
+    inset 0 0 0 1px var(--win-highlight);
+}
+
+.style-tab-swatch-caption {
+  margin: 0;
+  min-height: 15px;
+  font-size: 12px;
+  color: var(--win-text-muted);
+}
+
+/** Quadradinho de cor dentro de um botão (alvos da roda). */
+.style-tab-type-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border: 1px solid var(--win-shadow);
+  vertical-align: middle;
+}
+
+.style-tab-error {
+  margin: 0;
+  font-size: 11px;
+  color: #800000;
+  font-weight: bold;
+}

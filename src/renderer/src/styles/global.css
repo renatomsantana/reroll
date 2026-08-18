@@ -1,0 +1,214 @@
+/**
+ * Windows 98 puro: cinza `#c0c0c0` chapado, sem nenhuma cor dentro, cantos retos e degraus de 2px.
+ *
+ * Houve uma tentativa de deslocar tudo isto pro quente (osso/pergaminho/madeira) com gradientes
+ * suaves e bordas de 3px, pra ficar "mais encorpado". Foi desfeita a pedido do usuário: o gradiente
+ * e o degradê, mesmo sem brilho de vidro, leem como MODERNO — é exatamente o vocabulário visual que
+ * o 98 não tem. O que dá a época é a chapa lisa com o degrau seco em volta, e qualquer suavização
+ * tira isso.
+ */
+
+/**
+ * As DUAS ÚNICAS fontes que não vêm no Windows, e por isso são as únicas empacotadas aqui. Todas as
+ * outras do seletor (`FONT_OPTIONS`) são fontes do sistema: o `family` só diz o nome e o Chromium
+ * procura na máquina. Com estas duas isso não funcionaria — escrever só "Montserrat" faria cair no
+ * reserva EM SILÊNCIO, que é exatamente o bug do Papyrus descrito em `SettingsContext.tsx`, onde a
+ * fonte ausente virou Comic Sans e foi relatada como erro.
+ *
+ * Arquivo VARIÁVEL (`font-weight: 400 700`): um só cobre o regular e o negrito, e a interface usa os
+ * dois. Não procurar por um "-bold.woff2" aqui, ele não existe e não falta.
+ *
+ * Só os subsets `latin` e `latin-ext`. O `latin` já cobre o português inteiro (á ã ç é õ ú vivem em
+ * U+0000-00FF); o `latin-ext` vai junto porque custa pouco e evita glifo faltando numa anotação com
+ * caractere fora do previsto. Ficaram de fora cirílico, grego e vietnamita, que só pesariam.
+ *
+ * O `unicode-range` não é enfeite: é ele que faz o Chromium usar o arquivo certo por caractere.
+ * Apagar essa linha faz o navegador baixar os dois e desenhar tudo com o primeiro que carregar.
+ */
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 400 700;
+  src: url('../assets/fonts/montserrat-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 400 700;
+  src: url('../assets/fonts/montserrat-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  src: url('../assets/fonts/jetbrains-mono-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  src: url('../assets/fonts/jetbrains-mono-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --font-family: Tahoma, 'MS Sans Serif', Geneva, sans-serif;
+
+  /* Dia — paleta clássica Windows 98 */
+  --win-face: #c0c0c0;
+  --win-highlight: #ffffff;
+  --win-shadow: #808080;
+  --win-shadow-dark: #000000;
+  --win-window-bg: #c0c0c0;
+  --win-input-bg: #ffffff;
+  --win-text: #000000;
+  --win-text-muted: #4b4b4b;
+  --win-titlebar-from: #000080;
+  --win-titlebar-to: #1084d0;
+  --win-titlebar-text: #ffffff;
+  --win-accent: #000080;
+  --win-desktop: #008080;
+}
+
+:root[data-theme='night'] {
+  --win-face: #3a3a42;
+  --win-highlight: #6a6a76;
+  --win-shadow: #1c1c22;
+  --win-shadow-dark: #000000;
+  --win-window-bg: #2b2b32;
+  --win-input-bg: #1e1e24;
+  --win-text: #e8e8f0;
+  --win-text-muted: #a4a4b4;
+  --win-titlebar-from: #10102a;
+  --win-titlebar-to: #34346a;
+  --win-titlebar-text: #e8e8ff;
+  --win-accent: #7a7aff;
+  --win-desktop: #101018;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/**
+ * Fundo escurecido de janela modal, usado por cinco telas (Preferências, histórico, editor de
+ * preset, aviso de atualização e os diálogos da cena 3D).
+ *
+ * Mora aqui porque é primitivo compartilhado. Estava DUPLICADO em `SettingsPanel.css` e
+ * `PresetEditorModal.css`, com as mesmas regras copiadas — quem só importasse um componente novo
+ * herdava o estilo por acidente, e o modal aparecia no canto superior esquerdo se por acaso nenhum
+ * dos dois arquivos entrasse no pacote.
+ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  background: var(--win-desktop);
+  color: var(--win-text);
+  overflow: hidden;
+}
+
+/**
+ * Botões e campos: acabamento Windows 98 de volta (pedido do usuário) — degrau `outset` de 2px
+ * solto, `inset` afundado no clique, cantos retos e nenhuma transição. O acabamento "moderno"
+ * (cantos arredondados, relevo por gradiente+sombra, botão subindo no hover) foi removido: ele
+ * destoava do resto da janela, que sempre foi 98 puro (barra de título, abas, painéis, estojo de
+ * presets — todos com o mesmo degrau de 2px).
+ *
+ * O `outset`/`inset` do CSS deriva claro e escuro da própria `border-color`, então a mesma regra
+ * serve pro tema dia e pro noturno — cada tema só precisa dizer qual é o `--win-highlight` dele.
+ */
+button {
+  font-family: inherit;
+  font-size: 12px;
+  background: var(--win-face);
+  color: var(--win-text);
+  border: 2px outset var(--win-highlight);
+  border-radius: 0;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+/* Afunda de verdade: a borda inverte E o rótulo anda um pixel pra baixo/direita, como no 98. */
+button:active:not(:disabled) {
+  border-style: inset;
+  padding: 5px 11px 3px 13px;
+}
+
+/*
+ * Retângulo pontilhado de foco, por DENTRO do degrau (`outline-offset` negativo) — é o desenho
+ * clássico do foco de teclado no 98. Só em `:focus-visible`, pra não piscar a cada clique.
+ */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 1px dotted var(--win-text);
+  outline-offset: -4px;
+}
+
+/* Desabilitado do 98: rótulo cinza com um "relevo" branco embaixo, sem transparência. */
+button:disabled {
+  color: var(--win-shadow);
+  text-shadow: 1px 1px 0 var(--win-highlight);
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--win-text);
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+  border-radius: 0;
+  padding: 3px 5px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--win-face);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+}

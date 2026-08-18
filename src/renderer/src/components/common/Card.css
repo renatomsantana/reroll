@@ -1,0 +1,5 @@
+.card {
+  background: var(--win-face);
+  border: 2px groove var(--win-shadow);
+  border-radius: 0;
+}

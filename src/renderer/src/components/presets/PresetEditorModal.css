@@ -1,0 +1,73 @@
+/* `.modal-overlay` mora em `styles/global.css` — é compartilhado por todos os modais. */
+
+.preset-editor {
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-style: outset;
+}
+
+.preset-editor-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.preset-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--win-text-muted);
+  position: relative;
+}
+
+.preset-editor-field input[type='text'] {
+  width: 100%;
+}
+
+.preset-editor-icon-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.preset-editor-icon-row input[type='text'] {
+  flex: 1;
+}
+
+.preset-editor-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.preset-editor-group-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.preset-editor-group-row input[type='number'] {
+  width: 56px;
+}
+
+.preset-editor-warning {
+  margin: 0;
+  font-size: 11px;
+  color: #800000;
+  font-weight: bold;
+}
+
+.preset-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}

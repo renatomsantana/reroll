@@ -1,0 +1,246 @@
+.dice-roller-3d {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+/**
+ * Os controles agora moram em duas CAIXAS DE GRUPO (o `fieldset` com legenda em relevo etched do
+ * Windows 98): à esquerda "que dado", à direita "como rolar". Antes eram três linhas soltas —
+ * tipos de dado, chips e (modo + modificador + Rolar) — todas com o mesmo peso visual, então não
+ * dava pra ver de relance onde uma coisa terminava e a outra começava. Elas ficam lado a lado
+ * quando cabe e empilham quando a janela aperta.
+ */
+.dice-roller-3d-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.dice-roller-3d-group {
+  margin: 0;
+  padding: 2px 8px 8px;
+  border: 2px groove var(--win-highlight);
+  min-width: 0;
+}
+
+.dice-roller-3d-group > legend {
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+.dice-roller-3d-group-dice {
+  flex: 0 1 auto;
+}
+
+.dice-roller-3d-group-roll {
+  flex: 1 1 340px;
+}
+
+/** Um dado por coluna, todos do mesmo tamanho — vira uma paleta, não uma fila irregular. */
+.dice-roller-3d-types {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.dice-roller-3d-types .btn {
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.dice-roller-3d-types .btn:active:not(:disabled) {
+  padding: 5px 7px 3px 9px;
+}
+
+.dice-roller-3d-roll-body {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.dice-roller-3d-roll-options {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+/** "Rolar" é a ação da tela inteira: ocupa a altura toda da caixa e fica separado do resto. */
+.dice-roller-3d-roll-btn {
+  flex: 0 0 auto;
+  min-width: 104px;
+  font-size: 14px;
+  padding: 6px 18px;
+}
+
+.dice-roller-3d-roll-btn:active:not(:disabled) {
+  padding: 7px 17px 5px 19px;
+}
+
+.dice-roller-3d-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dice-roller-3d-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/** Chip de grupo (ex.: "3×d20"): caixinha afundada, como um campo de valor do 98. */
+.dice-roller-3d-group-chip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 2px inset var(--win-highlight);
+  padding: 1px 3px;
+  background: var(--win-input-bg);
+}
+
+.dice-roller-3d-group-chip span {
+  min-width: 44px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 0 4px;
+}
+
+.dice-roller-3d-group-chip .btn {
+  font-size: 11px;
+  min-width: auto;
+}
+
+.dice-roller-3d-mode {
+  display: flex;
+  gap: 4px;
+}
+
+.dice-roller-3d-mode .btn {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.dice-roller-3d-mode .btn:active:not(:disabled),
+.dice-roller-3d-mode .btn-selected:not(:disabled) {
+  padding: 5px 7px 3px 9px;
+}
+
+.dice-roller-3d-modifier {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dice-roller-3d-modifier input {
+  width: 56px;
+}
+
+.dice-roller-3d-canvas {
+  flex: 1;
+  min-height: 420px;
+  position: relative;
+}
+
+.dice-result-popup {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 24px;
+  background: linear-gradient(180deg, rgba(20, 16, 10, 0.82), rgba(20, 16, 10, 0.68));
+  border: 2px outset var(--popup-accent, var(--win-highlight));
+  box-shadow: 0 0 20px 2px color-mix(in srgb, var(--popup-accent, #666) 55%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 0) scale(0.4);
+  /**
+   * Oito segundos na tela (eram 2,4) — pedido do usuário: o total sumia antes de dar tempo de
+   * anotar. Só a ESPERA no meio cresceu; as porcentagens dos quadros-chave foram recalculadas pra
+   * manter a entrada e a saída no mesmo tempo de relógio de antes (ver `dice-result-pop`).
+   */
+  animation: dice-result-pop 8s ease forwards;
+}
+
+.dice-result-popup-label {
+  color: var(--popup-body, #d8d8d8);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dice-result-popup-value {
+  color: #fff;
+  font-size: 42px;
+  font-weight: bold;
+  line-height: 1;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 12px color-mix(in srgb, var(--popup-accent, #666) 70%, transparent);
+}
+
+/**
+ * Os cortes são em porcentagem da duração, então esticar a animação esticaria TUDO junto — o
+ * "pop" de entrada viraria um crescimento arrastado de um segundo. Estes valores são os tempos
+ * absolutos de antes convertidos pros 8s: entrada em 0,3s (3,5%), assentado em 0,5s (6%), começo
+ * do sumiço em 7,5s (94%).
+ */
+@keyframes dice-result-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -14px) scale(0.4);
+  }
+  3.5% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.1);
+  }
+  6% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  94% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.92);
+  }
+}
+
+.dice-roller-3d-result {
+  padding: 8px 2px;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dice-roller-3d-result strong {
+  font-size: 22px;
+}
+
+/** Valor de cada dado no resultado: plaquinha em relevo, no vocabulário do 98. */
+.dice-roll-value {
+  display: inline-block;
+  padding: 1px 8px;
+  font-weight: bold;
+  border: 2px outset var(--win-highlight);
+}
+
+.dice-roller-3d-error {
+  color: #800000;
+  font-weight: bold;
+  font-size: 17px;
+}

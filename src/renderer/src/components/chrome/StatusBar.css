@@ -1,0 +1,39 @@
+.statusbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 18px;
+  padding: 0 6px;
+  background: var(--win-face);
+  border-top: 2px groove var(--win-shadow);
+}
+
+.statusbar-shortcuts,
+.statusbar-credit {
+  font-size: 10px;
+  color: var(--win-text-muted);
+  opacity: 0.75;
+}
+
+/**
+ * Aviso de versão nova. É um botão (leva pras Preferências) mas NÃO tem cara de botão: nesta barra
+ * de 18px um degrau de 2px não caberia, e o aviso não pode competir com a cena. O que diz que é
+ * clicável é o sublinhado e a cor de destaque, como um item de barra de status do 98.
+ */
+.statusbar-update {
+  border: 0;
+  background: transparent;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--win-accent);
+  text-decoration: underline;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.statusbar-update:active:not(:disabled) {
+  border: 0;
+  padding: 0 6px;
+}

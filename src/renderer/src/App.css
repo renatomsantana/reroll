@@ -1,0 +1,56 @@
+.app-window {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--win-window-bg);
+}
+
+/*
+ * Uma coluna. Era `1fr 260px`, com o histórico numa barra lateral fixa; ele virou modal (ver
+ * `HistoryModal`) e a coluna sumiu, então a cena 3D e a lista de presets ganharam esses 260px de
+ * largura — que na cena é onde mais faz diferença, porque ela é o conteúdo mais largo do app.
+ */
+.app-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+}
+
+.app-main {
+  padding: 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-window-compact .app-main {
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+/**
+ * Seção nenhuma encolhe abaixo do próprio conteúdo.
+ *
+ * BUG REAL relatado pelo usuário ("o nome dos golpes está dando conflito com os resultados"): num
+ * flex column, todo item tem `flex-shrink: 1` por padrão, então quando a janela fica curta o
+ * navegador espreme as seções. A do rolador não consegue encolher de verdade (a cena 3D tem
+ * `min-height: 420px`), mas a CAIXA dela encolhe assim mesmo — e a linha de resultado, que vem
+ * depois da cena, vaza pra fora da seção e é desenhada POR CIMA da lista de presets. O texto do
+ * resultado e o nome do preset ficavam empilhados no mesmo lugar.
+ *
+ * Com `flex-shrink: 0` o conteúdo empurra a altura e o `overflow-y: auto` de `.app-main` faz o que
+ * deveria fazer desde sempre: rolar. Vem ANTES das regras de notas/estilo de propósito — aquelas
+ * são mais específicas e continuam ganhando com o `flex: 1` que elas precisam.
+ */
+.app-section {
+  flex-shrink: 0;
+}
+
+.app-section:has(.notes-tab),
+.app-section:has(.style-tab) {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
