@@ -16,11 +16,21 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   const t = useTranslation()
   const { soundEnabled, appIconId } = useSettings()
   const [progress, setProgress] = useState(0)
+  const [version, setVersion] = useState('')
   const onFinishRef = useRef(onFinish)
   onFinishRef.current = onFinish
   // Mesmo ícone escolhido nas Preferências (ver `shared/appIcons.ts`) — era uma imagem própria
   // fixa (`icon-app.png`) antes, sem relação nenhuma com o ícone real do app/janela.
   const logoUrl = appIconImage(appIconId)
+
+  // A versão vem do main (`app.getVersion()`, que lê o `package.json` do build). Aqui era o texto
+  // fixo "v0.1.0-alpha", escrito na época da 0.1.0 e nunca mais tocado — e o splash é a primeira
+  // tela depois de uma atualização se aplicar, ou seja, era justo o lugar que dizia a quem acabou
+  // de atualizar que nada tinha mudado. Ler o `package.json` daqui não é opção: o renderer não
+  // tem acesso a arquivo.
+  useEffect(() => {
+    void window.api.update.getVersion().then(setVersion)
+  }, [])
 
   useEffect(() => {
     const start = Date.now()
@@ -87,7 +97,9 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             <img className="splash-logo" src={logoUrl} alt="" draggable={false} />
           </div>
           <div className="splash-wordmark">{t.appTitle}</div>
-          <div className="splash-version">v0.1.0-alpha</div>
+          {/* Espaço rígido enquanto o IPC não respondeu: vazio colapsaria a linha e faria a
+              barra de progresso e o crédito saltarem pra cima no primeiro quadro. */}
+          <div className="splash-version">{version ? `v${version}` : '\u00a0'}</div>
           <div className="splash-progress-track">
             <div className="splash-progress-fill" style={{ width: `${progress}%` }} />
           </div>
