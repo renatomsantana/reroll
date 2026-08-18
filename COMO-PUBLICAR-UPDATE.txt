@@ -31,6 +31,19 @@ Primeira vez (só uma vez, pelo site — não precisa de git instalado)
 O que fazer a cada versão nova
 ------------------------------
 
+0. Commitar e enviar o código. Desde a 0.1.6 o FONTE também mora no repositório, não só os
+   instaladores — e a tag da release aponta pro último commit de `main`, então enviar depois de
+   publicar deixa a tag apontando pra um código que não é o que foi compilado.
+
+       cd "D:\rolador ena de dado"
+       git add -A
+       git commit -m "o que mudou"
+       git push
+
+   O Git e o GitHub CLI já estão instalados e autenticados nesta máquina (o `gh` é quem responde
+   pela senha do `git push`, via `gh auth setup-git`). Se um dia o `git` sumir do PATH numa janela
+   nova, ele está em `C:\Program Files\Git\cmd\git.exe`.
+
 1. Mudar a versão em package.json  ->  "version": "0.1.2-alpha"
    O número TEM que subir; é comparando com ele que o app instalado decide se há novidade.
 
