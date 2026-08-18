@@ -1,0 +1,53 @@
+.emoji-picker {
+  position: relative;
+}
+
+.emoji-picker-trigger {
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  font-size: 15px;
+}
+
+.emoji-picker-popover {
+  position: absolute;
+  top: 34px;
+  right: 0;
+  z-index: 20;
+  width: 268px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  padding: 8px;
+}
+
+/*
+ * Oito colunas e rolagem: a lista passou de 40 pra 150 emojis, e nas seis colunas de antes ela
+ * viraria uma tira de 25 linhas saindo pra fora da janela. Com o teto de altura, a caixa fica do
+ * mesmo tamanho de sempre e as fileiras extras rolam dentro dela.
+ */
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  max-height: 208px;
+  overflow-y: auto;
+}
+
+.emoji-picker-option {
+  padding: 4px 0;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.emoji-picker-hint {
+  margin: 8px 0 0;
+  font-size: 10px;
+  color: var(--win-text-muted);
+  line-height: 1.4;
+}
+
+.emoji-picker-hint kbd {
+  border: 1px outset var(--win-highlight);
+  padding: 0 3px;
+  font-size: 10px;
+}

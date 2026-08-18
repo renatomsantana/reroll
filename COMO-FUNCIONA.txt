@@ -1,0 +1,441 @@
+================================================================================
+  REROLL - Rolador de dados 3D para RPG
+  Guia para explicar o projeto para outras pessoas
+================================================================================
+
+Escrito para você conseguir responder "o que é isso?" e "como você fez?" sem
+precisar abrir o código. Vai do resumo de uma frase até os detalhes técnicos —
+pare de ler na profundidade que a pessoa quiser.
+
+
+================================================================================
+  1. O RESUMO DE UMA FRASE
+================================================================================
+
+Um aplicativo de computador (Windows) que rola dados de RPG numa mesa 3D com
+física de verdade, com visual de Windows 95 e uma pelúcia do Riebeck (Outer
+Wilds) sentada na beirada da mesa.
+
+Se a pessoa quiser só mais uma frase:
+
+  Em vez de sortear um número e mostrar na tela, ele joga dados de verdade
+  numa bandeja: eles caem, batem, quicam, rolam e param — e o número que sai
+  é a face que ficou virada pra cima.
+
+
+================================================================================
+  2. O QUE TEM DENTRO
+================================================================================
+
+--------------------------------------------------------------------------------
+ABA "ROLAGEM" - a tela principal
+--------------------------------------------------------------------------------
+
+  * Sete tipos de dado: d4, d6, d8, d10, d12, d20 e d100.
+
+  * Uma mesa 3D com bandeja hexagonal de madeira, tampo de grama, um estojo de
+    dados com tampa que abre sozinha quando o app inicia, e a pelúcia do Riebeck
+    lá atrás.
+
+  * Física de verdade: cada dado tem peso, quica, colide com os outros e com a
+    parede. O resultado é lido da face que ficou pra cima quando ele para.
+
+  * Vantagem e desvantagem (regra de D&D): rola duas vezes e fica com o melhor
+    ou o pior resultado.
+
+  * Modificador: aquele "+3" que se soma ao total.
+
+  * Câmera livre: dá pra arrastar pra girar em volta da mesa, aproximar, e andar
+    com WASD. Tem três modos — andar pela mesa, travar nos dados, ou voar livre.
+
+  * Dois modos de lançamento:
+      - Bandeja: você arremessa os dados de fora pra dentro do hexágono.
+      - Torre: uma torre de castelo com rampa em espiral por dentro; os dados
+        caem pelo topo, batem nas rampas e saem embaixo.
+
+  * Presets: combinações salvas com nome e emoji ("Bola de fogo", 8d6). Um
+    clique rola tudo. Dá pra exportar e importar num arquivo, pra passar a lista
+    pra outra pessoa.
+
+--------------------------------------------------------------------------------
+ABA "ESTILO" - personalização
+--------------------------------------------------------------------------------
+
+  * Cor do corpo e dos números do dado, com prévia 3D girando ao vivo.
+
+  * Cor por TIPO de dado: o d20 pode ser roxo e o d6 verde ao mesmo tempo.
+
+  * Quatro acabamentos: fosco, metálico, plástico e vidro.
+
+  * Paletas prontas em quatro famílias (metálicas, gemas, foscas, plásticas).
+
+  * Cor da parede, do chão e do fundo da cena, com prévia da bandeja.
+
+  * Estilos de bandeja prontos: Couro, Feltro verde, Veludo real, Taverna,
+    Meia-noite, Pergaminho e três em tons de rosa.
+
+  * Imagem de fundo personalizada, se você quiser trocar o fundo por uma foto.
+
+--------------------------------------------------------------------------------
+ABA "ANOTAÇÕES"
+--------------------------------------------------------------------------------
+
+  Um bloco de notas simples que salva sozinho — pra anotar coisas da sessão sem
+  sair do app.
+
+--------------------------------------------------------------------------------
+PREFERÊNCIAS (a engrenagem no canto)
+--------------------------------------------------------------------------------
+
+  * Idioma: português e inglês.
+  * Tema dia/noite.
+  * Onze fontes (incluindo Comic Sans e Papyrus, para os corajosos). Montserrat
+    e JetBrains Mono vêm dentro do app; as outras nove são do próprio Windows.
+  * Som ligado/desligado.
+  * Modo compacto: encolhe a janela pra 280x240 e a deixa SEMPRE POR CIMA das
+    outras, pra ficar num canto do monitor durante a partida. Liga e desliga
+    pelo botão de setas na BARRA DE TÍTULO, ao lado de minimizar (a caixinha
+    aqui nas Preferências faz o mesmo). O arranjo é o do rolador do Google: um
+    dado grande girando num painel, o total no canto de baixo e, embaixo, a
+    fileira dos SEUS presets no lugar dos tipos de dado. Um clique rola (sem 3D
+    e sem física, é instantâneo), toca o som e entra no histórico igual. Com
+    preset de vários dados, o dado grande vira um punhado de dadinhos, cada um
+    com seu valor. Não dá pra criar preset nem montar rolagem na mão por ali: o
+    editor não cabe, então isso continua sendo coisa do modo normal.
+
+  * Os dados do compacto são DESENHADOS, com as cores que você escolheu para os
+    dados do estojo (aba Estilo) — triângulo é d4, quadrado é d6, losango é d8,
+    pipa é d10, pentágono é d12, hexágono é d20, círculo é d100.
+  * Popup do total por cima da bandeja, ligável.
+  * Histórico de rolagens: abre uma janela com hora, nome do golpe e os dados
+    de cada rolagem da sessão.
+  * Ícone do app: sete cores do d20 com o "R". Trocar aqui muda o ícone da
+    janela, do atalho e da barra de tarefas.
+
+--------------------------------------------------------------------------------
+DETALHES QUE AS PESSOAS COSTUMAM NOTAR
+--------------------------------------------------------------------------------
+
+  * Tela de carregamento no estilo Windows 95, com barra de progresso e música.
+  * A tampa do estojo de dados abre sozinha alguns segundos depois de abrir.
+  * O Riebeck respira (sobe e desce alguns milímetros, bem devagar).
+  * Ele está escondido atrás da tampa do estojo na vista inicial — só aparece
+    se você girar a câmera. É de propósito.
+
+
+================================================================================
+  3. COM O QUE FOI FEITO
+================================================================================
+
+A pergunta "que linguagem?" tem uma resposta curta e uma longa.
+
+CURTA:
+  TypeScript (que é JavaScript com verificação de tipos), rodando dentro do
+  Electron.
+
+LONGA - as peças e o que cada uma faz:
+
+  ELECTRON
+    O que transforma uma página web num programa de computador de verdade, com
+    janela, ícone, atalho e instalador. É o mesmo motor do Discord, do VS Code e
+    do Spotify no desktop.
+
+  TYPESCRIPT
+    A linguagem. É JavaScript com tipos: você declara que uma coisa é um número
+    ou um texto, e o computador avisa antes de rodar se você misturou. Num
+    projeto que cresce, é o que evita a metade dos erros bobos.
+
+  REACT
+    A biblioteca que desenha a interface (abas, botões, listas, janelas). Você
+    descreve como a tela deve ficar para cada estado, e ela cuida de atualizar.
+
+  THREE.JS
+    A biblioteca 3D. É ela que desenha a mesa, a bandeja, os dados, as luzes e
+    as sombras. Roda em WebGL, ou seja, usa a placa de vídeo.
+
+  RAPIER
+    O motor de física. É quem faz o dado ter peso, quicar, atritar com o feltro
+    e parar. O three.js só DESENHA; quem decide onde cada coisa está é o Rapier.
+
+  VITE / ELECTRON-VITE
+    A ferramenta de construção. Junta e otimiza o código, e durante o
+    desenvolvimento recarrega a tela sozinha quando um arquivo é salvo.
+
+  ELECTRON-BUILDER
+    Gera o instalador .exe, com atalho na área de trabalho e no menu Iniciar.
+
+  VITESTE (VITEST)
+    O que roda os testes automáticos. São 252 hoje.
+
+TAMANHO DO PROJETO (pra dar noção):
+  Cerca de 180 arquivos de código. A parte 3D sozinha é mais da metade.
+
+
+================================================================================
+  4. COMO A FÍSICA DOS DADOS FUNCIONA
+================================================================================
+
+Essa é a pergunta técnica mais comum, e a resposta surpreende:
+
+  O RESULTADO NÃO É SORTEADO. Ele é LIDO.
+
+O que acontece, em ordem:
+
+  1. O dado nasce acima da bandeja, com uma velocidade e um giro aleatórios —
+     é aqui, e só aqui, que entra sorte.
+
+  2. O motor de física simula a queda: colisão com a parede, com o chão, com os
+     outros dados, atrito, perda de energia a cada quique.
+
+  3. Quando o dado para de se mexer (velocidade abaixo de um limite por tempo
+     suficiente), o app olha qual FACE está apontando pra cima e lê o número
+     dela.
+
+Ou seja, é o mesmo processo de um dado de verdade. E, como um dado de verdade,
+ele pode encostar na parede, empilhar em cima de outro ou ficar preso numa
+quina — e o app tem código só pra isso: se um dado demora demais pra assentar,
+ele leva um empurrãozinho.
+
+Tem até um teste automático que rola 15 dados de seis lados milhares de vezes e
+confere se cada face sai perto de 1/6 das vezes. Se a física estivesse viciada,
+esse teste falharia.
+
+
+================================================================================
+  5. COMO O RIEBECK FOI DESENHADO
+================================================================================
+
+Essa é a parte que mais chama atenção, e a resposta é: ELE NÃO FOI DESENHADO.
+
+Não existe nenhuma imagem dele no projeto. Nenhum arquivo .png, nenhum modelo
+3D baixado, nada de Blender. Ele é MONTADO em código, no momento em que o app
+abre, a partir de formas geométricas básicas.
+
+--------------------------------------------------------------------------------
+A IDEIA
+--------------------------------------------------------------------------------
+
+O three.js sabe criar formas primitivas: esfera, caixa, cilindro, cone, rosca
+(torus). O boneco inteiro é feito só com essas peças, cada uma posicionada com
+coordenadas escritas à mão.
+
+Exemplo real, o corpo dele:
+
+    esfera de raio 0.56
+    achatada para 92% da altura
+    alargada para 108% da largura
+    centrada 0.60 acima do chão
+
+É uma bola achatada. A pelúcia real é bem mais larga que alta, e foi isso que
+fez ele parar de parecer boneco de neve.
+
+--------------------------------------------------------------------------------
+DO QUE ELE É FEITO, PEÇA POR PEÇA
+--------------------------------------------------------------------------------
+
+  Corpo ................ esfera achatada
+  Barriga .............. segunda esfera, mais clara, saltando um pouco à frente
+  Cabeça ............... esfera dourada
+  Faixa de tricô rosa .. um torus (rosca) em volta da base da cabeça
+  Calota do topo ....... meia-esfera
+  Antena ............... cilindros finos pretos
+  Braços ............... esferas e cilindros num grupo que gira junto
+  Punhos verdes ........ cilindros
+  Botas ................ esferas achatadas e esticadas pra frente
+  Tanque de oxigênio ... cilindro nas costas com calota e cinta
+  Lanterna ............. cilindros deitados, com um disco aceso na ponta
+  Banjo ................ disco + haste + cordas (cilindros bem finos)
+  Emblema no peito ..... um quadrado plano com uma pintura (ver adiante)
+  Sombra no chão ....... um círculo com degradê preto que some nas bordas
+
+Tudo isso somado dá umas 60 peças.
+
+--------------------------------------------------------------------------------
+OS OLHOS: O TRUQUE MAIS IMPORTANTE
+--------------------------------------------------------------------------------
+
+O Riebeck tem quatro olhos, de tamanhos diferentes e espalhados de forma
+irregular — um do lado direito e três do esquerdo.
+
+Fazer isso com bolinhas 3D não funciona: na tela ele tem uns 12 pixels de
+altura, e quatro bolinhas viram uma mancha cinza.
+
+A solução foi PINTAR os olhos numa imagem e enrolar a imagem na esfera da
+cabeça, como quem forra uma bola de praia com um adesivo. A imagem é desenhada
+em código também (círculos, sombras, brilho), num "canvas" — a mesma ferramenta
+de desenho 2D que um site usa pra fazer gráficos.
+
+A posição de cada olho não foi escolhida no olho. Foi medida na foto do
+produto e convertida com trigonometria: num rosto esférico visto de frente, um
+olho a X graus do centro aparece a sen(X) da metade da largura. Medindo o
+afastamento na foto e invertendo esse seno, saem os ângulos -35°, +14°, +26° e
++40°, que viram posição em pixels na imagem.
+
+--------------------------------------------------------------------------------
+O EMBLEMA DA OUTER WILDS VENTURES
+--------------------------------------------------------------------------------
+
+Mesmo princípio dos olhos: é uma pintura feita em código, colada num quadrado
+plano no peito. O desenho tem o triângulo de borda azul, o céu estrelado, o
+foguete decolando em diagonal com rastro de fogo, a fogueira acesa e dois
+pinheiros — tudo desenhado com linhas e curvas, uma por uma.
+
+O quadrado sobrando em volta do triângulo é transparente e o app recorta, então
+na cena a silhueta é a do triângulo.
+
+--------------------------------------------------------------------------------
+POR QUE ELE PARECE PELÚCIA E NÃO PLÁSTICO
+--------------------------------------------------------------------------------
+
+Duas coisas:
+
+  1. Uma textura de "pelinho" gerada em código, aplicada como relevo em todas as
+     peças de tecido. É a mesma textura do veludo da bandeja, repetida bem mais
+     fina.
+
+  2. Um recurso do three.js chamado "sheen", feito especificamente para tecido:
+     ele cria aquele halo suave na borda que veludo e pelúcia têm e plástico não.
+
+O capacete é a exceção: ele é metálico dourado, com brilho de superfície.
+
+--------------------------------------------------------------------------------
+COMO SE ACERTA UM DESENHO ASSIM SEM VER
+--------------------------------------------------------------------------------
+
+Esse é o ponto honesto da história: escrever coordenadas no escuro dá errado.
+As duas primeiras versões do boneco foram feitas de memória e saíram erradas —
+traje marrom, capacete oliva, um visor com uma plaquinha de rosto. Nada disso
+existe na pelúcia real.
+
+A terceira versão foi feita comparando com FOTOS do produto, que estão salvas
+numa pasta do projeto. E cada ajuste foi conferido renderizando o boneco numa
+janela invisível e salvando a imagem, em vez de abrir o app e olhar.
+
+Erros que só apareceram assim:
+
+  * O tanque de oxigênio subiu até a altura da cabeça e as duas calotas claras
+    apareceram uma de cada lado dela: o boneco ganhou ORELHAS.
+
+  * A lanterna nasceu com o vidro aceso inteiramente DENTRO do próprio corpo
+    dela, invisível de qualquer ângulo.
+
+  * O emblema afundou na barriga curva e o terço de baixo (chão, fogueira,
+    pinheiros) simplesmente não aparecia.
+
+  * Ele parecia estar FLUTUANDO. Três tentativas de conserto erraram o alvo
+    (altura, sombra, cor das botas). A causa real era outra: perto da beirada da
+    mesa, uma câmera baixa o recorta contra o fundo preto em vez do gramado, e
+    isso lê como boiando no vazio.
+
+Hoje existem testes automáticos travando exatamente essas coisas: que o tanque
+fique atrás do corpo, que não suba até a linha do gorro, que o vidro da lanterna
+fique na ponta da frente, que o emblema fique fora da barriga e que as botas
+encostem no chão. São erros que nenhum verificador de código pega — o programa
+montava perfeitamente nas versões erradas.
+
+
+================================================================================
+  6. O VISUAL DE WINDOWS 95
+================================================================================
+
+Não é uma imagem de fundo nem um tema pronto: é CSS escrito à mão imitando os
+elementos do sistema antigo.
+
+O que faz a ilusão funcionar:
+
+  * Botões com borda de 2px em "outset" (relevo pra fora) que vira "inset"
+    (afundado) quando clicado. É esse degrau que o Windows 95 tinha e o visual
+    moderno perdeu.
+
+  * Barra de título em degradê azul, com os botões minimizar/maximizar/fechar
+    desenhados como caracteres de texto.
+
+  * Cantos retos, nada de sombra difusa, nada de animação de hover.
+
+  * A fonte padrão é Tahoma, que era a fonte da época.
+
+  * Caixas de grupo com a borda "groove" e o título montado na linha da borda.
+
+A janela do app não usa a barra de título do Windows: ela é desenhada pelo
+próprio app, o que permite esse estilo e o ícone colorido escolhido nas
+preferências.
+
+
+================================================================================
+  7. ONDE AS COISAS FICAM SALVAS
+================================================================================
+
+  Presets e anotações .... arquivos .json na pasta de dados do app
+                           (%APPDATA%\Reroll)
+  Preferências ........... armazenamento local do app
+  Ícone escolhido ........ salvo também do lado do programa, porque a janela
+                           precisa saber o ícone antes da tela existir
+  Histórico .............. só na memória, some quando o app fecha
+
+Nada vai pra internet. O app funciona 100% offline e não tem conta, login nem
+telemetria.
+
+
+================================================================================
+  8. RESPOSTAS RÁPIDAS PARA PERGUNTAS COMUNS
+================================================================================
+
+"Isso é um site?"
+  Não. É um programa instalado, com instalador e atalho. Por dentro ele usa as
+  mesmas tecnologias de um site, mas roda offline e sem navegador.
+
+"O resultado é aleatório mesmo ou é fake?"
+  É a física quem decide. O que é sorteado é o arremesso (força e giro); o
+  número sai da face que fica pra cima quando o dado para. Tem teste automático
+  conferindo que as faces saem em proporções parecidas.
+
+"Quanto tempo levou?"
+  Foi feito em sessões, com muita correção baseada em ver o resultado na tela.
+  Boa parte do tempo foi em duas coisas: acertar a física (dado escapando da
+  bandeja, dado preso na torre) e acertar o boneco.
+
+"Dá pra rodar no celular / Mac / Linux?"
+  Hoje o instalador é só de Windows. A base (Electron) roda nos três, então
+  seria questão de gerar os outros instaladores. Celular não — seria outro
+  projeto.
+
+"Posso usar/ver o código?"
+  O código é seu. Uma ressalva: o Riebeck e o emblema da Outer Wilds Ventures
+  são de propriedade da Mobius Digital. Como projeto pessoal e estudo, tudo bem;
+  pra publicar ou vender, essas partes precisariam ser substituídas por arte
+  própria.
+
+"O que é aquele bicho ali atrás?"
+  É o Riebeck, personagem de Outer Wilds — um astronauta que fica sentado
+  tocando banjo numa fogueira. A pelúcia dele existe de verdade (Fangamer). No
+  app ele está sentado na beirada da mesa, de costas, olhando o horizonte.
+
+
+================================================================================
+  9. SE ALGUÉM PERGUNTAR "COMO EU FARIA UM DESSES?"
+================================================================================
+
+A ordem que funcionou aqui:
+
+  1. Comece pela física, não pelo visual. Um cubo cinza caindo e parando certo
+     já é o projeto inteiro funcionando; o resto é enfeite por cima.
+
+  2. Ler o resultado da FACE é o pulo do gato. Sorteie o arremesso, não o
+     número.
+
+  3. Interface e 3D são mundos separados. Deixe a cena 3D cuidar da cena e a
+     interface cuidar de botões; ligue as duas por poucos pontos de contato.
+
+  4. Para qualquer coisa visual, olhe o resultado. Não confie em ler o código e
+     achar que está certo — foi assim que o boneco ganhou orelhas e a lanterna
+     ficou com o vidro por dentro.
+
+  5. Guarde as referências dentro do projeto. As fotos da pelúcia estão numa
+     pasta ali; é a diferença entre "de memória" e "conferido".
+
+
+================================================================================
+  Reroll - versão 0.1.0-alpha
+  Feito por Renato (renatinm1)
+  Outer Wilds e Riebeck sao (c) Mobius Digital
+================================================================================

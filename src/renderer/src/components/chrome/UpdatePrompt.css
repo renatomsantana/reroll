@@ -1,0 +1,63 @@
+/**
+ * Acima dos outros modais: a checagem periódica pode encontrar a versão nova com as Preferências
+ * já abertas, e nesse caso é este aviso que tem de aparecer por cima (os demais ficam em 10).
+ */
+.update-prompt-overlay {
+  z-index: 20;
+}
+
+/** O fundo escurecido em si é o `.modal-overlay` de `styles/global.css`, compartilhado. */
+.update-prompt {
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-style: outset;
+}
+
+.update-prompt-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/** `pre-line` porque os textos têm quebra de linha própria (eles nasceram servindo também ao `confirm()` do sistema). */
+.update-prompt-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.update-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/**
+ * Barra de progresso do 98: blocos de 6px com 2px de vão, dentro de uma caixa afundada — nunca uma
+ * faixa contínua. Foi exatamente essa troca (faixa → blocos) que resolveu a barra do splash quando
+ * o usuário reprovou o visual "moderno".
+ */
+.update-prompt-bar {
+  height: 16px;
+  border: 2px inset var(--win-highlight);
+  background: var(--win-input-bg);
+  padding: 2px;
+  overflow: hidden;
+}
+
+.update-prompt-bar-fill {
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--win-accent) 0,
+    var(--win-accent) 6px,
+    transparent 6px,
+    transparent 8px
+  );
+}

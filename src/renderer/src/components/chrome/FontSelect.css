@@ -1,0 +1,101 @@
+/**
+ * Caixa de combinação do Windows 98: campo AFUNDADO com o valor, e o botão da seta em RELEVO
+ * encostado na borda de dentro dele. As duas peças juntas num `<button>` só — o campo inteiro é
+ * clicável, como no 98.
+ */
+.settings-panel-field .font-select {
+  flex: 1;
+  max-width: 180px;
+  display: flex;
+  min-width: 0;
+}
+
+.font-select-value {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px inset var(--win-highlight);
+  background: var(--win-input-bg);
+  color: var(--win-text);
+  padding: 2px 2px 2px 6px;
+  font-size: 12px;
+  text-align: left;
+}
+
+/* Anula o degrau/pulo do `button:active` global — este campo não afunda, ele já é afundado. */
+.font-select-value:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 2px 2px 6px;
+}
+
+.font-select-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.font-select-arrow {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px outset var(--win-highlight);
+  background: var(--win-face);
+  font-size: 7px;
+  line-height: 1;
+}
+
+/**
+ * `fixed` (e não `absolute`) de propósito — ver o comentário em `FontSelect.tsx`: o painel de
+ * Preferências rola, e uma lista `absolute` seria cortada pela borda dele.
+ */
+.font-select-list {
+  position: fixed;
+  z-index: 30;
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+  /* Cópia de `LIST_MAX_HEIGHT` em `FontSelect.tsx` — mexer nos dois juntos, ver o comentário lá. */
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--win-input-bg);
+  border: 2px outset var(--win-highlight);
+  /* Sombra dura de 2px, sem desfoque: é a sombra de menu do 98, não sombra difusa moderna. */
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+.font-select-list:focus-visible {
+  outline: none;
+}
+
+.font-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  /* Altura mínima igual pra todas: só duas linhas têm mascote, e sem isso a lista ficaria irregular. */
+  min-height: 26px;
+  border: 0;
+  background: transparent;
+  color: var(--win-text);
+  padding: 2px 6px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.font-select-option:active:not(:disabled) {
+  border: 0;
+  padding: 2px 6px;
+}
+
+/** Linha sob o teclado/mouse: a barra azul de seleção do 98. */
+.font-select-option-active {
+  background: var(--win-accent);
+  color: var(--win-titlebar-text);
+}

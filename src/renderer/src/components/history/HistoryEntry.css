@@ -1,0 +1,42 @@
+.history-entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  padding: 8px 3px;
+  border-bottom: 1px solid var(--win-shadow);
+  font-size: 11px;
+}
+
+.history-entry-time {
+  color: var(--win-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.history-entry-label {
+  font-weight: bold;
+}
+
+/* A expressão só ganha linha própria quando existe um NOME antes dela — aí ela é o detalhe. */
+.history-entry-expression {
+  color: var(--win-text-muted);
+}
+
+.history-entry-rolls {
+  color: var(--win-text-muted);
+}
+
+.history-entry-roll-value {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-weight: bold;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.history-entry-total {
+  margin-left: auto;
+  color: var(--win-accent);
+  font-weight: bold;
+  font-size: 13px;
+}

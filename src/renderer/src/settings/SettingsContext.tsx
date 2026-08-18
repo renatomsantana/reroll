@@ -1,0 +1,306 @@
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
+import { DEFAULT_APP_ICON_ID, isValidAppIconId } from '@shared/appIcons'
+
+export type ThemeMode = 'day' | 'night'
+export type Language = 'pt-BR' | 'en-US'
+export type LaunchMode = 'tray' | 'tower'
+
+/**
+ * Como o WASD dirige a câmera (pedido do usuário: "poder movimentar pela mesa inteira, ou deixar
+ * lockado no dado, ou free way"):
+ *
+ * - `table`: anda pela MESA. W/S e A/D deslizam a câmera no plano da mesa, sem sair dela.
+ * - `dice`: TRAVADA nos dados. O alvo persegue sozinho onde os dados pararam e o WASD orbita em
+ *   volta deles.
+ * - `free`: LIVRE. A câmera voa na direção pra onde está olhando, sem ficar presa a nada.
+ *
+ * Ao contrário de `launchMode`, isto NÃO entra no `key` de remount da cena: trocar de modo não
+ * reconstrói nada, só muda como as teclas são interpretadas no laço de animação.
+ */
+export type CameraMode = 'table' | 'dice' | 'free'
+
+/**
+ * ONZE fontes, e o número não é gosto: a lista do seletor (`FontSelect.tsx`) tem linhas de 26px e a
+ * conta tem que fechar com o teto dela, senão volta a barra de rolagem. Eram catorze, o usuário
+ * pediu "bota menos fontes, suficientes para tirar a barra" e caiu pra nove com teto de 260px;
+ * depois entraram Montserrat e JetBrains Mono e o teto subiu pra 300px (11 x 26 = 286, mais 8px de
+ * borda e padding = 294, com `box-sizing: border-box`). Ao mexer aqui, mexer nos DOIS lugares que
+ * guardam esse teto: `LIST_MAX_HEIGHT` em `FontSelect.tsx` e `.font-select-list` em `FontSelect.css`.
+ *
+ * O corte de catorze pra nove manteve uma de cada FAMÍLIA visual (a clássica do 98, a moderna, a
+ * serifada, a monoespaçada, a de impacto) e as duas do easter egg; saíram as que repetiam alguém que
+ * ficou — Arial e Trebuchet ao lado de Verdana/Segoe, Georgia ao lado de Times, Consolas ao lado de
+ * Courier, Century Gothic.
+ *
+ * Montserrat e JetBrains Mono são as duas ÚNICAS que não vêm no Windows: elas vêm empacotadas em
+ * `assets/fonts/` e são declaradas com `@font-face` no `global.css`. Sem aquele bloco, as duas
+ * linhas abaixo cairiam no reserva em silêncio (ver o caso do Papyrus mais adiante neste arquivo).
+ */
+export const FONT_OPTIONS = [
+  { id: 'tahoma', label: 'Tahoma (clássica)', family: "Tahoma, 'MS Sans Serif', Geneva, sans-serif" },
+  {
+    id: 'ms-sans-serif',
+    label: 'MS Sans Serif',
+    family: "'Microsoft Sans Serif', Tahoma, sans-serif"
+  },
+  { id: 'segoe', label: 'Segoe UI', family: "'Segoe UI', Tahoma, sans-serif" },
+  // Empacotada (`global.css`). O reserva atrás dela é a outra sans moderna da lista, não a Tahoma:
+  // se um dia o `@font-face` sumir, o menos pior é cair em algo do mesmo peso visual.
+  { id: 'montserrat', label: 'Montserrat', family: "Montserrat, 'Segoe UI', Tahoma, sans-serif" },
+  { id: 'verdana', label: 'Verdana', family: 'Verdana, Geneva, sans-serif' },
+  { id: 'times', label: 'Times New Roman', family: "'Times New Roman', Times, serif" },
+  { id: 'courier', label: 'Courier New', family: "'Courier New', Courier, monospace" },
+  // Empacotada (`global.css`). Reserva na Consolas e na Courier — as duas monoespaçadas que o
+  // Windows garante, pela mesma razão da linha da Montserrat.
+  {
+    id: 'jetbrains-mono',
+    label: 'JetBrains Mono',
+    family: "'JetBrains Mono', Consolas, 'Courier New', monospace"
+  },
+  { id: 'impact', label: 'Impact', family: "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif" },
+  // "MS" fora do rótulo a pedido do usuário — o nome real da fonte continua em `family`, que é o
+  // que o navegador procura no sistema.
+  { id: 'comic-sans', label: 'Comic Sans', family: "'Comic Sans MS', 'Comic Sans', cursive" },
+  /**
+   * O reserva era `'Comic Sans MS'` e isso virou bug relatado: "você errou no Papyrus, ela ficou
+   * com a fonte Comic Sans". Não era troca de nome — a Papyrus simplesmente NÃO vem com o Windows
+   * (ela vem com o Office/macOS), confirmado consultando as fontes instaladas na máquina do
+   * usuário, e a cadeia caía direto no reserva seguinte, que era justamente a outra fonte da lista.
+   * `Segoe Print` vem com o Windows e é escrita à mão irregular — não é Papyrus, mas é o parente
+   * mais próximo disponível e, principalmente, não se disfarça de outra opção do menu.
+   */
+  { id: 'papyrus', label: 'Papyrus', family: "Papyrus, 'Segoe Print', 'Ink Free', fantasy" }
+] as const
+
+export type FontId = (typeof FONT_OPTIONS)[number]['id']
+
+interface Settings {
+  theme: ThemeMode
+  fontId: FontId
+  language: Language
+  soundEnabled: boolean
+  compactMode: boolean
+  diceBodyColor: string
+  diceNumberColor: string
+  diceMaterial: DiceMaterialFinish
+  /**
+   * Cor do corpo/número por TIPO de dado (chave = lados, ex.: 6, 20, 100) — sobrepõe
+   * `diceBodyColor`/`diceNumberColor` só pro(s) tipo(s) presentes aqui; tipos ausentes usam a
+   * cor global normalmente. Pedido do usuário depois da prateleira decorativa (`DiceCanvasMulti.tsx`)
+   * mostrar todos os tipos lado a lado fora do hexágono — ver cada tipo com cor própria ali.
+   */
+  diceColorOverrides: Record<number, { bodyColor: string; numberColor: string }>
+  /** Cor da parede da bandeja (CSS hex) — substitui os temas prontos (cerca/floresta) removidos a pedido do usuário; cor livre igual à do dado. */
+  wallColor: string
+  backgroundColor: string
+  /** Cor do chão da bandeja — antes fixa (0x2b5b3f em `createScene.ts`), liberada pra customização junto do preset "Couro". */
+  floorColor: string
+  /**
+   * Id do ícone da janela/barra de tarefas (ver `shared/appIcons.ts`) — espelha o que está
+   * persistido em `settings.json` no processo main (fonte de verdade real, porque o ícone
+   * precisa ser conhecido já na criação da janela, antes do renderer existir). Guardado aqui
+   * também só pra UI mostrar qual está selecionado sem precisar de uma chamada IPC extra.
+   */
+  appIconId: string
+  /** Bandeja aberta (arremesso de fora) ou torre de castelo com rampa em espiral (`TOWER_CONFIG`). Estrutural — faz parte do `key` de remount em `DiceRoller3D.tsx`. */
+  launchMode: LaunchMode
+  /** Como o WASD dirige a câmera (ver `CameraMode`). Não é estrutural: trocar não remonta a cena. */
+  cameraMode: CameraMode
+  debugMode: boolean
+  /**
+   * Imagem de fundo da cena 3D (data URL base64, ver `registerSceneBackgroundHandlers.ts`) —
+   * `null` = usa `backgroundColor` sólida (padrão). Guardada como data URL inteira (não um
+   * caminho de arquivo) porque o arquivo escolhido pode estar em qualquer pasta do sistema —
+   * um caminho ficaria inválido se o usuário mover/apagar o arquivo original depois.
+   */
+  backgroundImage: string | null
+  /** Popup do total sobre a bandeja/torre ao assentar os dados (ver `DiceRoller3D.tsx`) — desligável porque nem todo mundo quer o efeito por cima da cena. */
+  resultPopupEnabled: boolean
+  /**
+   * As grades de cores prontas da aba Estilo (paletas de dado e estilos de bandeja) aparecem ou
+   * ficam recolhidas. Fica AQUI, e não num `useState` da aba, porque a aba desmonta a cada troca de
+   * seção/aba — recolher e voltar dois minutos depois pra tudo aberto de novo não é uma opção, é um
+   * botão que não lembra do que foi pedido.
+   */
+  palettesVisible: boolean
+}
+
+/** Mesmos padrões já hardcoded em `buildD6Visual`/`buildPolyhedronVisual`/`buildD4Visual` (0xf2ead6 / '#1a1a1a') e em `createScene.ts` (parede/fundo). */
+const DEFAULT_SETTINGS: Settings = {
+  theme: 'day',
+  fontId: 'tahoma',
+  language: 'pt-BR',
+  soundEnabled: true,
+  compactMode: false,
+  diceBodyColor: '#f2ead6',
+  diceNumberColor: '#1a1a1a',
+  diceMaterial: 'matte',
+  diceColorOverrides: {},
+  /**
+   * A bandeja de fábrica que o usuário definiu: "o padrão sempre vai ser paredes marrons cor
+   * madeira, veludo azul e fundo preto — mas todos os usuários podem mudar". Os mesmos três valores
+   * estão em `createScene.ts` (`DEFAULT_*`), pra cena montada sem preferências cair no mesmo lugar.
+   */
+  wallColor: '#6b4a2a',
+  backgroundColor: '#000000',
+  floorColor: '#243b6b',
+  appIconId: DEFAULT_APP_ICON_ID,
+  launchMode: 'tray',
+  // `table` como padrão: é o modo que mais parece com o que já existia (orbitar/aproximar em volta
+  // da mesa) e o único que nunca tira a bandeja do enquadramento sozinho.
+  cameraMode: 'table',
+  debugMode: false,
+  backgroundImage: null,
+  resultPopupEnabled: true,
+  palettesVisible: true
+}
+
+const STORAGE_KEY = 'rolador-settings'
+
+/**
+ * Espera antes de gravar as preferências no `localStorage`. Gravar é síncrono e passa pelo
+ * `JSON.stringify` do objeto INTEIRO — incluindo `backgroundImage`, que é uma imagem em base64 e
+ * pode ter vários megabytes. Os seletores de cor da aba Estilo disparam `change` continuamente
+ * enquanto o mouse arrasta, então sem espera cada pixel de arraste serializava a imagem de fundo
+ * de novo, na thread da interface. É o que fazia a aba inteira "arrastar" junto com o seletor.
+ *
+ * Só a GRAVAÇÃO espera; o estado em memória (e portanto a cena e a prévia) muda no mesmo instante.
+ */
+const PERSIST_DEBOUNCE_MS = 300
+
+interface SettingsContextValue extends Settings {
+  setTheme: (theme: ThemeMode) => void
+  toggleTheme: () => void
+  setFontId: (fontId: FontId) => void
+  setLanguage: (language: Language) => void
+  setSoundEnabled: (value: boolean) => void
+  setCompactMode: (value: boolean) => void
+  setDiceBodyColor: (value: string) => void
+  setDiceNumberColor: (value: string) => void
+  setDiceMaterial: (value: DiceMaterialFinish) => void
+  setDiceColorOverride: (sides: number, bodyColor: string, numberColor: string) => void
+  clearDiceColorOverride: (sides: number) => void
+  setWallColor: (value: string) => void
+  setBackgroundColor: (value: string) => void
+  setFloorColor: (value: string) => void
+  setAppIconId: (value: string) => void
+  setLaunchMode: (value: LaunchMode) => void
+  setCameraMode: (value: CameraMode) => void
+  setDebugMode: (value: boolean) => void
+  setBackgroundImage: (value: string | null) => void
+  setResultPopupEnabled: (value: boolean) => void
+  setPalettesVisible: (value: boolean) => void
+  resetSettings: () => void
+}
+
+const SettingsContext = createContext<SettingsContextValue | null>(null)
+
+function loadInitial(): Settings {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const merged = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+      // `appIconId` persistido de uma versão anterior pode apontar pra um id removido (ex.: o
+      // ícone branco 'rbranco') — cai pro padrão em vez de deixar a miniatura da Preferências
+      // sem seleção nenhuma ou o splash tentando carregar uma imagem que não existe mais.
+      if (!isValidAppIconId(merged.appIconId)) merged.appIconId = DEFAULT_SETTINGS.appIconId
+      // Mesma higiene pra fonte: a lista encolheu de catorze pra nove opções, então quem tinha
+      // escolhido uma das que saíram (Arial, Georgia, Trebuchet, Consolas, Century Gothic) guarda um
+      // id que não existe mais. Sem isto o app abriria em Tahoma (o fallback dos dois lugares que
+      // consultam a lista) mas continuaria gravando o id morto pra sempre.
+      if (!FONT_OPTIONS.some((font) => font.id === merged.fontId)) {
+        merged.fontId = DEFAULT_SETTINGS.fontId
+      }
+      return merged
+    }
+  } catch {
+    // localStorage indisponível ou JSON corrompido: cai no padrão
+  }
+  return DEFAULT_SETTINGS
+}
+
+export function SettingsProvider({ children }: { children: ReactNode }) {
+  const [settings, setSettings] = useState<Settings>(loadInitial)
+
+  // Tema e fonte continuam aplicados na hora: são baratos (dois atributos no `<html>`) e qualquer
+  // atraso aqui apareceria como a interface trocando de cara depois do clique.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', settings.theme)
+    const font = FONT_OPTIONS.find((f) => f.id === settings.fontId) ?? FONT_OPTIONS[0]
+    document.documentElement.style.setProperty('--font-family', font.family)
+  }, [settings.theme, settings.fontId])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)),
+      PERSIST_DEBOUNCE_MS
+    )
+    return () => window.clearTimeout(timeoutId)
+  }, [settings])
+
+  /**
+   * Fechar a janela cancela o `setTimeout` pendente sem ele nunca ter rodado — então a última
+   * mudança (a cor escolhida segundos antes de fechar, por exemplo) se perderia. `pagehide` cobre
+   * o fechamento da janela do Electron; a gravação é síncrona e cabe no tempo que o navegador dá.
+   */
+  useEffect(() => {
+    function persistNow() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    }
+    window.addEventListener('pagehide', persistNow)
+    return () => window.removeEventListener('pagehide', persistNow)
+  }, [settings])
+
+  const value = useMemo<SettingsContextValue>(
+    () => ({
+      ...settings,
+      setTheme: (theme) => setSettings((prev) => ({ ...prev, theme })),
+      toggleTheme: () =>
+        setSettings((prev) => ({ ...prev, theme: prev.theme === 'day' ? 'night' : 'day' })),
+      setFontId: (fontId) => setSettings((prev) => ({ ...prev, fontId })),
+      setLanguage: (language) => setSettings((prev) => ({ ...prev, language })),
+      setSoundEnabled: (soundEnabled) => setSettings((prev) => ({ ...prev, soundEnabled })),
+      setCompactMode: (compactMode) => setSettings((prev) => ({ ...prev, compactMode })),
+      setDiceBodyColor: (diceBodyColor) => setSettings((prev) => ({ ...prev, diceBodyColor })),
+      setDiceNumberColor: (diceNumberColor) =>
+        setSettings((prev) => ({ ...prev, diceNumberColor })),
+      setDiceMaterial: (diceMaterial) => setSettings((prev) => ({ ...prev, diceMaterial })),
+      setDiceColorOverride: (sides, bodyColor, numberColor) =>
+        setSettings((prev) => ({
+          ...prev,
+          diceColorOverrides: { ...prev.diceColorOverrides, [sides]: { bodyColor, numberColor } }
+        })),
+      clearDiceColorOverride: (sides) =>
+        setSettings((prev) => {
+          const next = { ...prev.diceColorOverrides }
+          delete next[sides]
+          return { ...prev, diceColorOverrides: next }
+        }),
+      setWallColor: (wallColor) => setSettings((prev) => ({ ...prev, wallColor })),
+      setBackgroundColor: (backgroundColor) => setSettings((prev) => ({ ...prev, backgroundColor })),
+      setFloorColor: (floorColor) => setSettings((prev) => ({ ...prev, floorColor })),
+      setAppIconId: (appIconId) => {
+        setSettings((prev) => ({ ...prev, appIconId }))
+        void window.api.windowControls.setAppIcon(appIconId)
+      },
+      setLaunchMode: (launchMode) => setSettings((prev) => ({ ...prev, launchMode })),
+      setCameraMode: (cameraMode) => setSettings((prev) => ({ ...prev, cameraMode })),
+      setDebugMode: (debugMode) => setSettings((prev) => ({ ...prev, debugMode })),
+      setBackgroundImage: (backgroundImage) => setSettings((prev) => ({ ...prev, backgroundImage })),
+      setResultPopupEnabled: (resultPopupEnabled) =>
+        setSettings((prev) => ({ ...prev, resultPopupEnabled })),
+      setPalettesVisible: (palettesVisible) => setSettings((prev) => ({ ...prev, palettesVisible })),
+      resetSettings: () => setSettings(DEFAULT_SETTINGS)
+    }),
+    [settings]
+  )
+
+  return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>
+}
+
+export function useSettings(): SettingsContextValue {
+  const ctx = useContext(SettingsContext)
+  if (!ctx) throw new Error('useSettings precisa ser usado dentro de um SettingsProvider')
+  return ctx
+}

@@ -1,0 +1,66 @@
+/*
+ * Um ícone só, no canto de cima à direita da cena, bem apagado — o usuário pediu "meio tipo
+ * opacidade 20%". Sem moldura de botão: com 20% de opacidade, o degrau de relevo do Windows 98
+ * viraria uma sujeira cinza no canto da cena em vez de um controle.
+ */
+.camera-lock {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #fff;
+  background: none;
+  border: none;
+  cursor: pointer;
+  /* 0.2 → 0.12 → 0.06 → 0.16: baixado três vezes e subido um pouco no fim, quando o usuário achou
+     que tinha sumido demais. Discreto o bastante pra não competir com a cena, visível o bastante
+     pra ser achado sem procurar — o hover ainda devolve ele inteiro. */
+  opacity: 0.16;
+  transition: opacity 0.15s ease;
+  /* Acima de tudo que a cena desenha, inclusive do HUD de debug (z-index 5). */
+  z-index: 6;
+}
+
+/*
+ * Aparece de verdade quando a mão vai nele, e quando está LIGADO. Ficar em 20% nos dois estados
+ * deixaria impossível saber se a câmera está travada sem chegar o mouse perto — e o estado
+ * travado é o que sai do padrão, então é o que merece ser notado.
+ */
+.camera-lock:hover,
+.camera-lock:focus-visible {
+  opacity: 1;
+}
+
+.camera-lock--on {
+  opacity: 0.45;
+}
+
+.camera-lock svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  /* Contorno escuro por baixo: o ícone é branco e a cena pode estar clara (grama, madeira, feltro
+     bege), então sem isto ele some justamente em metade dos cenários. */
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+
+/**
+ * Cancela o "rótulo afunda no clique" que `global.css` aplica a QUALQUER `button` (troca o padding
+ * de `4px 12px` pra `5px 11px 3px 13px`, como no Windows 98).
+ *
+ * Naquele contexto o efeito está certo; aqui não: este botão não tem moldura, tem tamanho fixo e
+ * centraliza o ícone por grid, então mexer no padding só desloca o desenho — o usuário reportou
+ * como "o olho sai do lugar quando clica". Sem degrau pra afundar, não há o que afundar.
+ */
+.camera-lock:active:not(:disabled) {
+  padding: 0;
+}
+
+.camera-lock:focus-visible {
+  outline: 1px dotted #fff;
+  outline-offset: 2px;
+}

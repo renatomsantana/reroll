@@ -1,0 +1,94 @@
+.titlebar {
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 4px 0 6px;
+  background: linear-gradient(90deg, var(--win-titlebar-from), var(--win-titlebar-to));
+  color: var(--win-titlebar-text);
+  flex-shrink: 0;
+}
+
+.titlebar-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.titlebar-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.titlebar-controls {
+  -webkit-app-region: no-drag;
+  display: flex;
+  gap: 2px;
+}
+
+.titlebar-btn {
+  width: 22px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.titlebar-btn:active {
+  border-style: inset;
+}
+
+.titlebar-btn-close:hover {
+  background: #c04040;
+  color: white;
+}
+
+/* As setas de compactar são glifos maiores que os outros ícones da barra; sem isto elas ficariam
+   com metade do peso visual do "□" ao lado. */
+.titlebar-btn-compact {
+  font-size: 14px;
+}
+
+/*
+ * Ligado = AFUNDADO com fundo xadrez, que é como o 98 mostra um botão de alternância marcado (mesma
+ * ideia do `btn-selected` em `Button.css`). Sem isto, o único jeito de saber se o modo está ligado
+ * seria olhar o tamanho da janela.
+ */
+.titlebar-btn-compact.titlebar-btn-on {
+  border-style: inset;
+  background-color: var(--win-face);
+  /* Mesmo xadrez de 2px do `.btn-selected` (`Button.css`) — paradas duras, sem degradê nenhum. */
+  background-image:
+    linear-gradient(
+      45deg,
+      var(--win-highlight) 25%,
+      transparent 25%,
+      transparent 75%,
+      var(--win-highlight) 75%
+    ),
+    linear-gradient(
+      45deg,
+      var(--win-highlight) 25%,
+      transparent 25%,
+      transparent 75%,
+      var(--win-highlight) 75%
+    );
+  background-size: 2px 2px;
+  background-position:
+    0 0,
+    1px 1px;
+}

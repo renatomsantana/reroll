@@ -1,0 +1,239 @@
+.notes-tab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+.notes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.notes-toolbar select {
+  font-size: 11px;
+  padding: 3px 4px;
+  max-width: 150px;
+}
+
+.fmt-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 12px;
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1;
+}
+
+.fmt-btn-bold {
+  font-weight: bold;
+}
+
+.fmt-btn-italic {
+  font-style: italic;
+}
+
+.fmt-btn-underline {
+  text-decoration: underline;
+}
+
+.fmt-btn.active {
+  border-style: inset;
+  background: var(--win-input-bg);
+}
+
+.notes-color-input {
+  width: 26px;
+  height: 24px;
+  padding: 2px;
+  cursor: pointer;
+  margin-left: 2px;
+}
+
+.notes-save-error {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #800000;
+  font-weight: bold;
+}
+
+/**
+ * Caixa de grupo do Windows 98 — o mesmo desenho de `.style-group` (aba Estilo). É ele que faz esta
+ * aba ler como FICHA: cada assunto num quadro com o nome escrito na borda, que é como formulário do
+ * 98 e ficha impressa se organizam.
+ *
+ * Duplicado de propósito por enquanto: unificar as duas numa classe compartilhada obrigaria a mexer
+ * na aba Estilo inteira (são dez usos lá) sem nenhum ganho pra quem usa. Se aparecer uma terceira,
+ * aí vale a extração.
+ */
+.notes-group {
+  margin: 0;
+  padding: 2px 8px 8px;
+  border: 2px groove var(--win-highlight);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-group > legend {
+  padding: 0 4px;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+/** Quem cresce pra ocupar a altura que sobra (blocos de texto e o diário). */
+.notes-group-grow {
+  flex: 1;
+  min-height: 0;
+}
+
+/**
+ * Duas colunas: a FICHA à esquerda (identidade, atributos, combate e os textos do personagem) e o
+ * DIÁRIO à direita, que é o que recebe texto novo toda sessão e por isso ganha a página inteira.
+ */
+.notes-layout {
+  flex: 1;
+  display: grid;
+  /**
+   * `minmax(0, …)` e não `3fr 2fr` puro: uma faixa `fr` tem mínimo `auto`, ou seja, ela CRESCE além
+   * da fatia dela se o conteúdo não couber. Com a linha de identidade (seis campos rotulados) a
+   * coluna da ficha estourava e comia a do diário — o "Novo dia" e o ✕ ficavam cortados fora da
+   * tela. Com o mínimo em zero, quem cede é o conteúdo, que é o que se quer aqui: campo de texto
+   * encolhe bem, botão cortado não.
+   */
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.notes-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.notes-row {
+  display: flex;
+  gap: 10px;
+  min-height: 0;
+}
+
+.notes-row > .notes-group {
+  flex: 1;
+}
+
+.notes-row-grow {
+  flex: 1;
+  min-height: 0;
+}
+
+/** Faixa do nome: não cresce, fica como cabeçalho da ficha entre a barra de formatação e os blocos. */
+.notes-group-name {
+  flex: 0 0 auto;
+}
+
+/** Campo rotulado: rótulo miúdo em maiúscula em cima, campo embaixo — como ficha impressa. */
+.notes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 10px;
+  color: var(--win-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notes-field input {
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--win-text);
+  min-width: 0;
+}
+
+/**
+ * A "lombada" do diário: setas, nome do dia, contador e as ações. Uma linha só, e os botões não
+ * encolhem — quem cede espaço é o campo do nome.
+ */
+.notes-diary-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.notes-diary-bar .btn {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+}
+
+.notes-diary-arrow {
+  /* Quadradinha: é seta, não rótulo — e as duas juntas não podem competir com "Novo dia". */
+  width: 26px;
+  padding: 3px 0;
+}
+
+.notes-diary-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.notes-diary-count {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--win-text-muted);
+  padding: 0 2px;
+}
+
+/**
+ * As linhas de caderno (fundo) precisam bater com a linha de base do texto de verdade, senão
+ * o texto flutua acima/abaixo delas (bug relatado pelo usuário) — a posição antiga (15-16px
+ * dentro de cada ciclo de 24px) era um palpite fixo que só por acaso chegava perto da baseline
+ * de uma fonte específica; com fontes diferentes (o dropdown de fonte desta aba troca a família
+ * inteira) a baseline real varia e o descompasso fica visível. A técnica robusta é desenhar a
+ * linha bem no FUNDO de cada ciclo de `line-height` (um "sublinhado" por linha) em vez de tentar
+ * acertar a posição exata da baseline — a baseline de qualquer fonte razoável fica sempre um
+ * pouco ACIMA do fundo da caixa da linha (a "descida" reservada pelas letras com rabicho),
+ * então o texto sempre fica assentado sobre a linha, não flutuando, não importa a fonte.
+ * `padding-top: 0` garante que a primeira caixa de linha comece exatamente onde o gradiente de
+ * fundo também começa (origem 0,0 da padding-box) — sem isso a primeira linha digitada já nasce
+ * desalinhada das demais.
+ */
+.notes-textarea {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  font-size: 13px;
+  line-height: 24px;
+  padding: 0 8px 6px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 23px,
+    var(--win-text-muted) 23px,
+    var(--win-text-muted) 24px
+  );
+  background-attachment: local;
+}
+
+/** Janela estreita: a ficha e o diário viram uma coluna só e a aba inteira rola. */
+@media (max-width: 1000px) {
+  .notes-layout {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .notes-group-grow {
+    min-height: 150px;
+  }
+}

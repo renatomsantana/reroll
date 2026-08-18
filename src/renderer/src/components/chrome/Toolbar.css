@@ -1,0 +1,93 @@
+.toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 0;
+  background: var(--win-face);
+  border-bottom: 2px groove var(--win-shadow);
+}
+
+.toolbar-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/**
+ * Abas de verdade do Windows 98: cada uma é uma "orelha" em relevo e a ativa sobe uns pixels,
+ * encostando na área de conteúdo. Substituiu a barrinha de acento que crescia do centro — a
+ * animação era bonita, mas nenhum outro pedaço da janela (barra de título, painéis, estojo)
+ * usa acento nem movimento, então a aba destoava.
+ */
+.toolbar-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 3px 12px 4px;
+  margin-top: 3px;
+  color: var(--win-text);
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  border-bottom-width: 0;
+}
+
+/**
+ * 18px (eram 15) e arte de 36px: o dado é um render com sombra, e abaixo disso ele deixa de ler
+ * como dado e vira um pingo colorido. 18 é o dobro exato de 36 — a redução que sobra pro navegador
+ * é 2×, a faixa em que ele filtra bem (ver `appIconImageSmall`).
+ */
+.toolbar-tab-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* A aba ativa sobe (some a margem) e fica em negrito — é a "orelha" da frente da pilha. */
+.toolbar-tab-active {
+  margin-top: 0;
+  padding: 5px 14px 5px;
+  font-weight: bold;
+}
+
+/* Aba não afunda no clique como botão comum: quem manda no estado dela é qual está ativa. */
+.toolbar-tab:active {
+  border-style: outset;
+  border-bottom-width: 0;
+  padding: 3px 12px 4px;
+}
+
+.toolbar-tab-active:active {
+  padding: 5px 14px 5px;
+}
+
+.toolbar-settings-btn {
+  position: relative;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+/**
+ * Marca de "tem versão nova" na engrenagem. Quadradinho chapado bordô, sem brilho nem animação —
+ * chamar atenção aqui é o trabalho de uma cor que não existe em mais nada da janela, não de um
+ * efeito. Fica na quina, sem empurrar o ícone.
+ */
+.toolbar-update-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  background: #c00000;
+  border: 1px solid var(--win-shadow-dark);
+}
+
+.toolbar-settings-btn:active:not(:disabled) {
+  padding: 1px 0 0 1px;
+}

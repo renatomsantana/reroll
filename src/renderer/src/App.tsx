@@ -1,0 +1,279 @@
+import { useEffect, useRef, useState } from 'react'
+import type { RollResult } from '@shared/types/dice'
+import type { Preset, PresetInput } from '@shared/types/preset'
+import { rollExpression } from '@renderer/domain/dice/diceEngine'
+import { usePresets } from '@renderer/hooks/usePresets'
+import { useRollHistory } from '@renderer/hooks/useRollHistory'
+import { useUpdateStatus } from '@renderer/hooks/useUpdateStatus'
+import { useSettings } from '@renderer/settings/SettingsContext'
+import { useTranslation } from '@renderer/i18n/useTranslation'
+import { playRollSound } from '@renderer/audio/rollSound'
+import { TitleBar } from '@renderer/components/chrome/TitleBar'
+import { Toolbar, type AppTab } from '@renderer/components/chrome/Toolbar'
+import { StatusBar } from '@renderer/components/chrome/StatusBar'
+import { SettingsPanel } from '@renderer/components/chrome/SettingsPanel'
+import { DiceRoller3D, type DiceRoller3DHandle } from '@renderer/components/roller/DiceRoller3D'
+import { CompactWidget } from '@renderer/components/compact/CompactWidget'
+import { PresetList } from '@renderer/components/presets/PresetList'
+import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModal'
+import { HistoryModal } from '@renderer/components/history/HistoryModal'
+import { NotesTab } from '@renderer/components/notes/NotesTab'
+import { StyleTab } from '@renderer/components/style/StyleTab'
+import { UpdatePrompt } from '@renderer/components/chrome/UpdatePrompt'
+import { SplashScreen } from '@renderer/components/splash/SplashScreen'
+import './App.css'
+
+export default function App() {
+  const { soundEnabled, compactMode, launchMode } = useSettings()
+  const t = useTranslation()
+  const [showSplash, setShowSplash] = useState(true)
+  const [activeTab, setActiveTab] = useState<AppTab>('roll')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  /** Histórico de rolagens, aberto pelo botão dentro das Preferências (ver `HistoryModal`). */
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [compactLastResult, setCompactLastResult] = useState<RollResult | null>(null)
+  const roller3DRef = useRef<DiceRoller3DHandle>(null)
+  const { history, addToHistory, clearHistory } = useRollHistory()
+  /**
+   * Existe versão nova? O aviso vive na barra de status e numa marca na engrenagem — sem isso ele
+   * ficaria escondido dentro das Preferências, que é onde ninguém entra sem motivo.
+   */
+  const updateStatus = useUpdateStatus()
+  /**
+   * Versão que a pessoa dispensou com "Agora não". Guardada só na memória de propósito: a pergunta
+   * não se repete nesta sessão, mas volta na próxima abertura — quem adiou não é perseguido, e quem
+   * esqueceu não fica pra trás. O aviso na barra de baixo continua visível o tempo todo.
+   */
+  const [dismissedUpdate, setDismissedUpdate] = useState<string | null>(null)
+  const { presets, createPreset, updatePreset, deletePreset, exportPresets, importPresets } =
+    usePresets()
+  const [editingPreset, setEditingPreset] = useState<Preset | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  /**
+   * Espelha `DiceRoller3D`'s `isRolling` — usado só pra desabilitar as ações de preset
+   * (rolar/editar/excluir) enquanto QUALQUER rolagem está em andamento, mesmo padrão de
+   * `disabled={isRolling}` já usado dentro do próprio `DiceRoller3D.tsx`. Existe pra fechar
+   * um bug real: editar um preset e cancelar enquanto a rolagem que ELE MESMO disparou ainda
+   * está animando podia travar a interface (achado testando ao vivo) — impedir a interação
+   * nesse período evita o cenário inteiro, independente da causa exata.
+   */
+  const [isAnyRollInProgress, setIsAnyRollInProgress] = useState(false)
+
+  useEffect(() => {
+    if (showSplash) return
+    void window.api.windowControls.setCompact(compactMode)
+    if (compactMode) setActiveTab('roll')
+  }, [compactMode, showSplash])
+
+  useEffect(() => {
+    if (showSplash) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!e.ctrlKey || e.key.toLowerCase() !== 'n') return
+      if (compactMode || activeTab !== 'roll' || isCreating || editingPreset || settingsOpen) return
+      e.preventDefault()
+      setIsCreating(true)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showSplash, compactMode, activeTab, isCreating, editingPreset, settingsOpen])
+
+  if (showSplash) {
+    return (
+      <SplashScreen
+        onFinish={() => {
+          // Redimensiona a janela ENQUANTO o splash ainda está visível, não depois — sem isso
+          // (`setShowSplash(false)` primeiro) a interface completa chegava a renderizar por um
+          // instante dentro da janela ainda pequena (360×320, tamanho do splash) antes do
+          // redimensionamento assíncrono terminar, um "flash" visível de layout espremido. O
+          // usuário só quer ver o splash mini e, na sequência, já a janela no tamanho padrão —
+          // nunca um estado intermediário quebrado no meio.
+          void window.api.windowControls.setCompact(compactMode).then(() => setShowSplash(false))
+        }}
+      />
+    )
+  }
+
+  /**
+   * Preset rolado no modo compacto. Aqui NÃO dá pra usar o `handlePresetRoll`: aquele delega pro
+   * `roller3DRef`, e no modo compacto não existe cena 3D montada — o ref é nulo e o clique não faria
+   * nada. Este resolve na hora, com `rollExpression`, que é o mesmo cálculo sem a física.
+   */
+  function handleCompactPresetRoll(preset: Preset) {
+    // `sourceName` é o que faz o histórico registrar QUAL preset foi, e não só "1d20 + 5".
+    const result = { ...rollExpression(preset.expression), sourceName: preset.name }
+    setCompactLastResult(result)
+    // Som aqui, junto com o cálculo do resultado — é o mais perto que o roller compacto
+    // (instantâneo, sem física) tem de um "início" de rolagem.
+    if (soundEnabled) {
+      const diceCount = result.groups.reduce((sum, g) => sum + g.rolls.length, 0)
+      playRollSound(diceCount)
+    }
+    addToHistory(result)
+  }
+
+  function handlePresetRoll(preset: Preset) {
+    const modifierTotal = preset.expression.modifiers.reduce((sum, m) => sum + m.value, 0)
+    // O nome vai junto só pro histórico registrar QUAL golpe foi (ver `sourceName` em `RollResult`).
+    roller3DRef.current?.rollGroups(preset.expression.groups, modifierTotal, preset.name)
+  }
+
+  async function handleSavePreset(input: PresetInput) {
+    try {
+      if (editingPreset) {
+        await updatePreset(editingPreset.id, input)
+      } else {
+        await createPreset(input)
+      }
+      setEditingPreset(null)
+      setIsCreating(false)
+    } catch (error) {
+      // Deixa o modal aberto (com os dados já digitados) em vez de fechar silenciosamente —
+      // o usuário perderia o preset sem nenhum aviso se create/update falhar (ex.: disco
+      // cheio, sem permissão em %APPDATA%).
+      alert(t.presets.saveError.replace('{error}', (error as Error).message))
+    }
+  }
+
+  function handleDeletePreset(preset: Preset) {
+    if (confirm(t.presets.deleteConfirm.replace('{name}', preset.name))) {
+      deletePreset(preset.id)
+    }
+  }
+
+  async function handleExportPresets() {
+    const path = await exportPresets()
+    if (path) alert(t.presets.exportSuccess.replace('{path}', path))
+  }
+
+  async function handleImportPresets() {
+    try {
+      const result = await importPresets()
+      if (result) alert(t.presets.importSuccess.replace('{count}', String(result.importedCount)))
+    } catch (error) {
+      alert(t.presets.importError.replace('{error}', (error as Error).message))
+    }
+  }
+
+  const isEditorOpen = isCreating || editingPreset !== null
+
+  return (
+    <div className={`app-window ${compactMode ? 'app-window-compact' : ''}`}>
+      <TitleBar />
+      <Toolbar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onOpenSettings={() => setSettingsOpen(true)}
+        showTabs={!compactMode}
+        hasUpdate={updateStatus.state === 'available'}
+      />
+
+      {/*
+        Uma coluna só. Havia uma barra lateral fixa de 260px com o histórico, ligada o tempo todo na
+        aba Rolagem; ela saiu (o histórico virou o `HistoryModal`, aberto pelas Preferências) e a
+        largura dela foi inteira pra cena 3D e pros presets — pedido do usuário: "expande mais a
+        tela principal já que agora tá sem histórico".
+      */}
+      <div className="app-layout">
+        <main className="app-main">
+          {compactMode ? (
+            <CompactWidget
+              presets={presets}
+              result={compactLastResult}
+              onRoll={handleCompactPresetRoll}
+            />
+          ) : activeTab === 'roll' ? (
+            <>
+              <section className="app-section" style={{ flex: 1, minHeight: 0 }}>
+                <DiceRoller3D
+                  ref={roller3DRef}
+                  onRoll={addToHistory}
+                  onRollingChange={setIsAnyRollInProgress}
+                />
+              </section>
+
+              <section className="app-section">
+                <PresetList
+                  presets={presets}
+                  onRoll={handlePresetRoll}
+                  onEdit={setEditingPreset}
+                  onDelete={handleDeletePreset}
+                  onCreate={() => setIsCreating(true)}
+                  onExport={handleExportPresets}
+                  onImport={handleImportPresets}
+                  disabled={isAnyRollInProgress}
+                  /**
+                   * Rolar continua liberado durante uma rolagem NA BANDEJA — pedido do usuário
+                   * ("que aconteça a qualquer momento"), possível agora que preset não remonta
+                   * mais a cena. Na TORRE segue travado: lá a rolagem é uma fila de dados e cortar
+                   * no meio deixa dados presos em espera (ver `rollGroups` em `DiceRoller3D.tsx`,
+                   * que recusa o clique nesse caso — o botão travado é só o aviso visual disso).
+                   */
+                  rollDisabled={isAnyRollInProgress && launchMode === 'tower'}
+                />
+              </section>
+            </>
+          ) : activeTab === 'style' ? (
+            <section className="app-section">
+              <StyleTab />
+            </section>
+          ) : (
+            <section className="app-section">
+              <NotesTab />
+            </section>
+          )}
+        </main>
+      </div>
+
+      {!compactMode && (
+        <StatusBar updateStatus={updateStatus} onOpenSettings={() => setSettingsOpen(true)} />
+      )}
+
+      {/*
+        O app PERGUNTA sozinho ao encontrar versão nova. Só aparece com a janela normal (no modo
+        compacto a janela tem 300×230 e não cabe diálogo nenhum) e enquanto a versão não tiver sido
+        dispensada nesta sessão.
+      */}
+      {!compactMode &&
+        (updateStatus.state === 'downloading' ||
+          (updateStatus.state === 'available' && dismissedUpdate !== updateStatus.version)) && (
+          <UpdatePrompt
+            status={updateStatus}
+            onDismiss={() =>
+              setDismissedUpdate(updateStatus.state === 'available' ? updateStatus.version : null)
+            }
+          />
+        )}
+
+      {settingsOpen && (
+        <SettingsPanel
+          onClose={() => setSettingsOpen(false)}
+          onOpenHistory={() => {
+            // Fecha as Preferências antes de abrir: dois modais empilhados dariam duas camadas de
+            // fundo escuro e dois cercos de foco brigando pelo Tab.
+            setSettingsOpen(false)
+            setHistoryOpen(true)
+          }}
+        />
+      )}
+
+      {historyOpen && (
+        <HistoryModal
+          history={history}
+          onClear={clearHistory}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
+
+      {isEditorOpen && (
+        <PresetEditorModal
+          preset={editingPreset}
+          onSave={handleSavePreset}
+          onCancel={() => {
+            setEditingPreset(null)
+            setIsCreating(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}

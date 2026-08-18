@@ -1,0 +1,93 @@
+/**
+ * Variantes de botão em cima do degrau `outset` de 2px de `global.css`. Toda a hierarquia aqui é
+ * feita com o vocabulário do próprio Windows 98 — botão padrão com moldura preta, botão marcado
+ * afundado com fundo xadrez, botão de barra de ferramentas plano até o mouse chegar — em vez de
+ * gradientes/sombras coloridas, que é o que destoava do resto da janela.
+ */
+
+.btn {
+  font-weight: normal;
+}
+
+/**
+ * Primário = o "botão padrão" do 98 (aquele que o Enter aciona): moldura preta de 1px por FORA
+ * do degrau, mais o rótulo em negrito. É o que diferencia o "Rolar" do "Vantagem" sem inventar
+ * uma cor de acento que o tema clássico não tem. A margem de 1px reserva o espaço da moldura,
+ * pra ele não empurrar os vizinhos de linha.
+ */
+.btn-primary {
+  font-weight: bold;
+  margin: 1px;
+  box-shadow: 0 0 0 1px var(--win-shadow-dark);
+}
+
+/**
+ * Marcado (ex.: um tipo de dado que já está na rolagem, o modo Normal/Vantagem ativo): o estado
+ * "pressionado" de botão de barra de ferramentas — degrau invertido + fundo xadrez de 1px, o
+ * mesmo padrão que o 98 usa em botão de alternância ligado.
+ */
+.btn-selected:not(:disabled) {
+  border-style: inset;
+  background-color: var(--win-face);
+  background-image:
+    linear-gradient(
+      45deg,
+      var(--win-highlight) 25%,
+      transparent 25%,
+      transparent 75%,
+      var(--win-highlight) 75%
+    ),
+    linear-gradient(
+      45deg,
+      var(--win-highlight) 25%,
+      transparent 25%,
+      transparent 75%,
+      var(--win-highlight) 75%
+    );
+  background-size: 2px 2px;
+  background-position:
+    0 0,
+    1px 1px;
+  font-weight: bold;
+  padding: 5px 11px 3px 13px;
+}
+
+/* O clique num botão já marcado não tem pra onde afundar — só mantém o estado. */
+.btn-selected:active:not(:disabled) {
+  border-style: inset;
+}
+
+/* Ação destrutiva: o 98 não tem botão vermelho, então o aviso vem no rótulo (bordô + negrito). */
+.btn-danger {
+  color: #800000;
+  font-weight: bold;
+}
+
+:root[data-theme='night'] .btn-danger {
+  color: #ff9a9a;
+}
+
+/**
+ * Ghost = botão de barra de ferramentas: plano enquanto o mouse está longe, ganha o degrau só ao
+ * passar por cima. Serve pros botõezinhos de -/+/✕ dentro dos chips, que em relevo permanente
+ * virariam uma parede de caixinhas.
+ */
+.btn-ghost {
+  border-color: transparent;
+  border-style: solid;
+  background: transparent;
+  padding: 3px 7px;
+  min-width: 0;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border: 2px outset var(--win-highlight);
+  background: var(--win-face);
+  padding: 3px 7px;
+}
+
+.btn-ghost:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  background: var(--win-face);
+  padding: 4px 6px 2px 8px;
+}

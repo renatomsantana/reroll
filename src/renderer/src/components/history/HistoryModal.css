@@ -1,0 +1,55 @@
+/*
+ * Bem mais largo que a coluna de 260px que ele substitui: cada linha do histórico tem hora, nome
+ * do golpe, a expressão, um quadradinho por dado e o total. Na coluna estreita isso quebrava em
+ * três linhas por rolagem; em 520 cabe tudo numa só, que é o que faz a lista ser varrível.
+ */
+.history-modal {
+  width: 520px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 80px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-style: outset;
+}
+
+.history-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.history-modal-title {
+  margin: 0;
+  font-size: 14px;
+}
+
+.history-modal-empty {
+  margin: 0;
+  color: var(--win-text-muted);
+  font-size: 12px;
+}
+
+/*
+ * Só a LISTA rola. O cabeçalho (com o "Limpar") e o botão de fechar ficam parados: com o modal
+ * inteiro rolando, quem tivesse cem rolagens teria que descer até o fim pra achar o botão.
+ */
+.history-modal-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--win-input-bg);
+  padding: 0 8px;
+  box-shadow:
+    inset -1px -1px 0 var(--win-highlight),
+    inset 1px 1px 0 var(--win-shadow),
+    inset -2px -2px 0 #dfdfdf,
+    inset 2px 2px 0 var(--win-shadow-dark);
+}
+
+.history-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+}

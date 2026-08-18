@@ -1,0 +1,192 @@
+/*
+ * Widget de canto no arranjo do rolador do Google (referência trazida pelo usuário): painel com o
+ * dado grande girando no meio, total no canto de baixo, fileira de presets embaixo.
+ *
+ * As alturas daqui foram MEDIDAS numa janela oculta no tamanho real, não escolhidas por gosto — a
+ * janela tem 280×240 e a barra de título mais a de ferramentas já comem 65px dela.
+ */
+.compact-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* `flex: 1` + `min-height: 0` (e não `height: 100%`) porque o pai é o `.app-main`, um flex column
+     com `overflow-y: auto` — mesmo par que `.app-section:has(.notes-tab)` usa no `App.css`. */
+  flex: 1;
+  min-height: 0;
+}
+
+/*
+ * O "campo" onde o dado cai. No Google é um retângulo lilás claro; aqui é a caixa afundada branca,
+ * que é o equivalente do 98 e já é o vocabulário do app — o efeito de moldura é o mesmo e não
+ * introduz cor nenhuma que a época não tivesse.
+ */
+.compact-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+  /* Vira contêiner de consulta pra o dado poder se medir CONTRA ELE — ver a regra abaixo. */
+  container-type: size;
+}
+
+/*
+ * O lado do dado sai daqui, e não de uma prop em pixel no React, porque ele precisa ENCOLHER com a
+ * janela: no tamanho padrão (280×240) o painel tem 97px de altura e cabem os 86px cheios, mas no
+ * mínimo permitido (250×210) sobram 67px, e um dado fixo de 86px vazava com barra de rolagem — foi
+ * o que a medição na janela oculta mostrou. `cqh` é a altura do painel, então o dado acompanha; o
+ * `min()` impede que ele cresça numa janela esticada.
+ *
+ * Por que 68px e não mais: o dado ASSENTA TORTO (`--end-rot`, até ±13° em `TumblingDie.css`), e um
+ * quadrado girado 13° ocupa uma caixa ~20% maior que o próprio lado. Com 86px a pegada real
+ * vazava do painel; 80px encostava na borda. 68px deixa folga também pra plaqueta de valor, que
+ * transborda um pouco em dado de arte estreita.
+ */
+.compact-stage .tumbling-die {
+  --die-size: min(68px, 70cqh);
+}
+
+/*
+ * Aqui existia um bloco de `--value-x`/`--value-y` por tipo de dado, posicionando a plaqueta de
+ * valor sobre a face impressa de cada ILUSTRAÇÃO (o "6" na face esquerda do cubo, o "8" no topo do
+ * losango...). Saiu inteiro quando o widget passou a usar a face DESENHADA (`DieFace.tsx`): face
+ * desenhada não tem número impresso pra cobrir, então não há o que posicionar.
+ */
+
+/*
+ * Vários dados: miniaturas embrulhadas, centradas, com o valor no canto de cada uma.
+ *
+ * A regra do tamanho precisa desta especificidade (`.compact-stage .tumbling-die-mini`, 0-2-0) pra
+ * ganhar da regra do dado grande logo acima. Com o `--die-size` posto só em `.tumbling-die-mini`,
+ * as miniaturas nasciam com 68px e só três cabiam, cortadas — foi o que a captura mostrou.
+ *
+ * 26px: oito dados (a Bola de fogo do teste) fecham em duas fileiras dentro dos 97px do painel,
+ * ainda sobrando a faixa de baixo pro nome e pro total.
+ */
+.compact-stage .tumbling-die-mini {
+  --die-size: 26px;
+}
+
+.compact-stage-dados {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 9px;
+  /* O padding de baixo é o que impede as miniaturas de encostarem no nome do preset e no Total,
+     que são absolutos no rodapé do painel. */
+  padding: 4px 8px 18px;
+  max-width: 100%;
+}
+
+.compact-stage-excedente {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--win-text-muted);
+}
+
+/* Canto inferior direito, como o "Total 5" da referência. */
+.compact-stage-total {
+  position: absolute;
+  right: 6px;
+  bottom: 3px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.compact-stage-total-label {
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--win-text-muted);
+}
+
+.compact-stage-total-value {
+  font-size: 26px;
+  line-height: 1;
+}
+
+/* Canto oposto ao total: o nome do preset e a conta, pequenos, sem competir com o número. */
+.compact-stage-detail {
+  position: absolute;
+  left: 6px;
+  bottom: 5px;
+  max-width: 55%;
+  font-size: 10px;
+  color: var(--win-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-stage-empty {
+  font-size: 11px;
+  color: var(--win-text-muted);
+  text-align: center;
+  padding: 0 12px;
+}
+
+.compact-widget-presets {
+  flex-shrink: 0;
+  /*
+   * Teto fixo, e a lista rola por dentro. É o que impede uma lista comprida de empurrar o dado pra
+   * fora da vista: o painel de cima é elástico, esta faixa não. 52px = duas fileiras de 24px mais o
+   * vão de 4px.
+   */
+  max-height: 52px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 4px;
+  align-content: start;
+}
+
+.compact-preset {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 2px 5px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+  /* Sem isto o nome comprido estica a coluna e quebra a grade. */
+  min-width: 0;
+}
+
+/* O degrau seco do 98 ao apertar — sem transição, que suavizar aqui lê como moderno. */
+.compact-preset:active {
+  border: 2px inset var(--win-highlight);
+  padding: 3px 4px 1px 6px;
+}
+
+.compact-preset-icon {
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.compact-preset-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-widget-empty {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 5px 8px;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+  font-size: 10px;
+  text-align: center;
+  color: var(--win-text-muted);
+}

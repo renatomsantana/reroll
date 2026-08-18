@@ -1,0 +1,57 @@
+appId: com.renato.reroll
+productName: Reroll
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+  - build/icons/**/*
+asar: true
+# Os ícones da janela ficam FORA do asar. `BrowserWindow({ icon })` e `nativeImage.createFromPath`
+# leem o arquivo pelo lado nativo, que não enxerga o conteúdo empacotado do asar — dentro dele o
+# caminho existe pro Node e não existe pro Windows, e o resultado é a janela instalada aparecendo
+# com o ícone genérico do Electron na barra de tarefas mesmo com tudo configurado. Ver
+# `resolveAppIconPath`, que aponta pra cá.
+asarUnpack:
+  - build/icons/**/*
+compression: maximum
+electronLanguages:
+  - en-US
+  - pt-BR
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  # O instalador atualiza POR CIMA de uma instalação existente — ninguém desinstala nada, e os dados
+  # (presets, anotações, preferências) ficam em %APPDATA%\Reroll, que ele não toca. É isso que faz o
+  # update automático funcionar: o `electron-updater` baixa este mesmo .exe e roda em silêncio.
+  #
+  # NOME SEM ESPAÇOS, e isso não é gosto: o `latest.yml` que o próprio electron-builder gera aponta
+  # pra `Reroll-Setup-<versão>.exe` com hífens, enquanto o padrão do arquivo é "Reroll Setup
+  # <versão>.exe" com espaços. Some-se a isso que o GitHub troca espaço por ponto no nome do anexo ao
+  # subir, e o resultado é o app instalado procurando um arquivo que não existe na release — update
+  # quebrado com 404 e nenhuma pista do motivo. Com os dois nomes iguais, o caminho fecha.
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+# De onde o app instalado pergunta se existe versão nova. O `electron-builder` grava este bloco num
+# `app-update.yml` dentro do pacote, e é dele que o `electron-updater` lê em tempo de execução —
+# trocar de hospedagem depois é mexer aqui e gerar de novo.
+#
+# O repositório precisa ser PÚBLICO: em repositório privado o download do anexo exige token, e o app
+# de quem instalou não tem nenhum.
+publish:
+  provider: github
+  owner: renatomsantana
+  repo: reroll
+  # A release publicada não é rascunho nem pré-lançamento. (Pré-lançamento em si o app aceitaria: a
+  # versão instalada tem sufixo `-alpha`, e nesse caso o `electron-updater` liga o `allowPrerelease`
+  # sozinho — mas rascunho ele não enxerga de jeito nenhum.)
+  releaseType: release

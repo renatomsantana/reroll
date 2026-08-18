@@ -1,0 +1,35 @@
+.preset-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.preset-list-title {
+  margin: 0;
+  font-size: 13px;
+}
+
+.preset-list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preset-list-empty {
+  color: var(--win-text-muted);
+  font-size: 12px;
+  max-width: 420px;
+}
+
+/*
+ * Coluna de 165 agora que o cartão é uma LINHA (emoji + texto + duas ações lado a lado, ver
+ * `PresetCard.css`). Ele chegou a ser 130 quando era uma coluna alta e estreita; nessa largura, a
+ * versão deitada corta o nome quase sempre. Como é `auto-fill`, cartões mais largos e MUITO mais
+ * baixos ainda cabem em maior número na mesma lista.
+ */
+.preset-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 6px;
+}
