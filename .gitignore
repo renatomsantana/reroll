@@ -12,3 +12,28 @@ release2/
 
 # Cache incremental do TypeScript: muda a cada build e não diz nada a ninguém.
 *.tsbuildinfo
+
+# ---------------------------------------------------------------------------------------------
+# PESSOAL — fica só na máquina, não vai pro repositório público.
+#
+# Nada aqui é necessário pra compilar o app: as artes que ele de fato usa moram em
+# `src/renderer/src/assets/` e os ícones do instalador em `build/`. O que está listado abaixo é
+# material de trabalho — referência, anotação e cópia de origem.
+# ---------------------------------------------------------------------------------------------
+
+# Referências visuais: capturas, a base hexagonal, a plataforma, e as fotos de produto da
+# Fangamer usadas pra modelar a pelúcia do Riebeck (imagens de terceiros, não redistribuir).
+ideias/
+riebeck/
+
+# Artes de origem e prints soltos. As versões que entram no build já estão em `src` e `build`.
+png/
+noFilter.png
+
+# Anotações de trabalho e manuais escritos pro próprio uso. O `COMO-PUBLICAR-UPDATE.txt` em
+# especial descreve o fluxo de publicação com caminhos desta máquina.
+COMO-FUNCIONA.txt
+COMO-PUBLICAR-UPDATE.txt
+tower.md.txt
+script.md
+dice_tower_parametric_prompt.md
