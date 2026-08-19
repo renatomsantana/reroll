@@ -3,6 +3,7 @@ import type { Preset, PresetInput } from '@shared/types/preset'
 import type { NotesData } from '@shared/types/notes'
 import type { UpdateStatus } from '@shared/types/update'
 import { IpcChannels } from '@shared/ipcChannels'
+import type { ProfilesState } from '@shared/types/profile'
 
 const api = {
   presets: {
@@ -14,6 +15,12 @@ const api = {
     delete: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannels.presetsDelete, id),
     exportToFile: (): Promise<string | null> => ipcRenderer.invoke(IpcChannels.presetsExport),
     importFromFile: (): Promise<Preset[] | null> => ipcRenderer.invoke(IpcChannels.presetsImport)
+  },
+  profiles: {
+    get: (): Promise<ProfilesState> => ipcRenderer.invoke(IpcChannels.profilesGet),
+    save: (state: ProfilesState): Promise<ProfilesState> =>
+      ipcRenderer.invoke(IpcChannels.profilesSave, state),
+    pickPhoto: (): Promise<string | null> => ipcRenderer.invoke(IpcChannels.profilesPickPhoto)
   },
   notes: {
     get: (): Promise<NotesData> => ipcRenderer.invoke(IpcChannels.notesGet),

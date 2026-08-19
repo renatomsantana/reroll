@@ -2,7 +2,7 @@ import { ipcMain, nativeImage, screen, type BrowserWindow } from 'electron'
 import { IpcChannels } from '@shared/ipcChannels'
 import { isValidAppIconId } from '@shared/appIcons'
 import { resolveAppIconPath } from '../appIconPaths'
-import { COMPACT_SIZE, FULL_SIZE } from '../windowSizes'
+import { COMPACT_SIZE, FULL_SIZE } from '@shared/windowSizes'
 import type { SettingsRepository } from '../storage/SettingsRepository'
 
 const RESIZE_ANIMATION_DURATION_MS = 280

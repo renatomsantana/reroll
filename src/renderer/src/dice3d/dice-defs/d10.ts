@@ -41,7 +41,7 @@ const BOTTOM_APEX = 11
  * (toca o ápice de cima) é antípoda da face de baixo `(i+2) mod 5`.
  * Exportado separado dos valores porque o d100 (Fase 8) reaproveita esta
  * MESMA topologia/geometria pro dado de dezenas, só trocando os números
- * impressos (0,10,...,90 em vez de 0-9).
+ * impressos (0,10,...,90 em vez de 1-10).
  */
 export const D10_TOP_FACE_VERTEX_INDICES: number[][] = Array.from({ length: 5 }, (_, i) => [
   TOP_APEX,
@@ -57,17 +57,25 @@ export const D10_BOTTOM_FACE_VERTEX_INDICES: number[][] = Array.from({ length: 5
 ])
 
 /**
- * Valores impressos são os dígitos reais 0-9 (convenção padrão de d10
- * físico) — o que "0 sozinho = 10" ou "0 nas dezenas = 00" significam é
- * interpretação de exibição (Fase 9/10 pro d10 avulso, Fase 8 pro d100),
- * não algo que a definição física do dado deva decidir.
+ * Faces numeradas de 1 A 10 — nunca 0.
  *
- * Faces de cima valem 0-4; faces de baixo valem 9,8,7,6,5 na ordem
- * correspondente — cada par antípoda soma 9 (convenção comum em d10 reais,
- * análoga ao "soma 7" do d6).
+ * Eram os dígitos 0-9, a numeração do d10 físico usado como dado de dezena, na ideia de que
+ * "0 sozinho vale 10" seria interpretação de exibição, resolvida mais pra frente. Só que essa
+ * conversão nunca existiu em lugar nenhum: nem no valor lido (`readTopFace` devolve o valor da face
+ * como está), nem no número impresso (o atlas de textura desenha esse mesmo valor). O resultado era
+ * um d10 que tirava ZERO, com um "0" desenhado na face — reportado pelo usuário: "quando for o 0 no
+ * d10 é 10, não zero; nenhum dado tira 0, apenas 1 até o máximo".
+ *
+ * A correção é somar 1 em TODAS as faces, e não trocar só a do zero por 10. Os pares antípodas
+ * somavam 9 (a convenção do d10 de dezena, análoga ao "soma 7" do d6); somando 1 nos dois lados de
+ * cada par, eles passam a somar 11 — que é exatamente a convenção dos d10 reais numerados de 1 a 10.
+ * Relabelar só o zero deixaria aquele par somando 19 e todos os outros 9: uniforme no sorteio, mas
+ * errado como objeto.
+ *
+ * Faces de cima valem 1-5; faces de baixo, 10,9,8,7,6 na ordem correspondente.
  */
-const TOP_VALUES = [0, 1, 2, 3, 4]
-const BOTTOM_VALUES_BY_INDEX = [6, 5, 9, 8, 7] // ver derivação do pareamento antípoda no chat
+const TOP_VALUES = [1, 2, 3, 4, 5]
+const BOTTOM_VALUES_BY_INDEX = [7, 6, 10, 9, 8] // ver derivação do pareamento antípoda no chat
 
 const FACE_INPUTS: PolyhedronFaceInput[] = [
   ...D10_TOP_FACE_VERTEX_INDICES.map((vertexIndices, i) => ({

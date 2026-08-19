@@ -29,7 +29,7 @@ const FLOOR_ROUGHNESS = 0.9
  * abaixo e a variação de tom por tijolo aumentada (ver `seededShade` em `createBrickTexture.ts`),
  * a argamassa lê como fenda funda de verdade sob luz direta, não uma linha de cor.
  */
-const MORTAR_COLOR = 0x100f0d
+export const MORTAR_COLOR = 0x100f0d
 /**
  * Pedra/castelo — cor fixa, não customizável junto de parede/chão/fundo (essas continuam livres,
  * ver `updateColors`): é a "estrutura" da torre, não a bandeja em si. Exportadas pra

@@ -1,16 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Preset, PresetInput } from '@shared/types/preset'
+import { useProfiles } from '@renderer/settings/ProfilesContext'
 
 export function usePresets() {
   const [presets, setPresets] = useState<Preset[]>([])
   const [loading, setLoading] = useState(true)
+  const { activeId } = useProfiles()
 
+  /**
+   * Recarrega quando o PERSONAGEM muda: anotações e presets moram na pasta do perfil aberto (ver
+   * `ProfilesRepository.activeDirectory`), então trocar de perfil sem reler deixaria a tela mostrando
+   * a ficha do personagem anterior — e, pior, a primeira digitação gravaria esse conteúdo velho por
+   * cima do arquivo do novo.
+   */
   useEffect(() => {
+    setLoading(true)
     window.api.presets
       .getAll()
       .then(setPresets)
       .finally(() => setLoading(false))
-  }, [])
+  }, [activeId])
 
   const createPreset = useCallback(async (input: PresetInput) => {
     const preset = await window.api.presets.create(input)

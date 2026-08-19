@@ -14,4 +14,10 @@ export const FULL_SIZE = { width: 1300, height: 800, minWidth: 900, minHeight: 6
  * dado começa a espremer a ilustração contra o total. Ver `CompactWidget.css`.
  */
 export const COMPACT_SIZE = { width: 280, height: 240, minWidth: 250, minHeight: 210 }
+/**
+ * Mora em `shared` (e não em `main`) porque o SPLASH também precisa deste número: a tela de
+ * carregamento trava a própria caixa neste tamanho pra não ser esticada enquanto a janela cresce
+ * (ver `SplashScreen.tsx`). Duplicar 360×320 no CSS deixaria os dois livres pra divergir, e o
+ * sintoma disso seria justamente uma tira de fundo aparecendo em volta do splash logo na abertura.
+ */
 export const SPLASH_SIZE = { width: 360, height: 320, minWidth: 360, minHeight: 320 }

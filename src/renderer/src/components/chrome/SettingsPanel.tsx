@@ -85,7 +85,8 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         */}
         <div className="settings-panel-field">
           <span>{t.settings.font}</span>
-          <FontSelect value={fontId} onChange={setFontId} />
+          {/* Sem `defaultLabel`: aqui é ONDE a fonte do app é escolhida, então "usar a do app" não existe. */}
+          <FontSelect value={fontId} onChange={(value) => value && setFontId(value)} />
         </div>
 
         <label className="settings-panel-field settings-panel-field-row">

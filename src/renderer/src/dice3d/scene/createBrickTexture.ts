@@ -105,12 +105,24 @@ export interface BrickTextures {
   normalMap: THREE.CanvasTexture
 }
 
-/** Gera as texturas + aplica `repeat` proporcional às dimensões reais da superfície (circunferência × altura), pra o tijolo não sair esticado/achatado em superfícies de tamanhos bem diferentes (casca alta vs. parede baixa da base). */
+/**
+ * Gera as texturas + aplica `repeat` proporcional às dimensões reais da superfície (largura ×
+ * altura), pra o tijolo não sair esticado/achatado em superfícies de tamanhos bem diferentes
+ * (casca alta vs. parede baixa da base).
+ *
+ * `brickWorldWidth`/`brickWorldHeight` existem pras peças PEQUENAS da torre ao lado da bandeja
+ * (ameia, pilar do portão, soleira — ver `createTowerBesideTray.ts`). Um tijolo de 1.1 × 0.55 é
+ * maior que uma ameia inteira: o `Math.max(1, ...)` abaixo cairia em 1 repetição e a peça sairia
+ * com um tijolo só esticado por cima dela, que lê como mancha, não como alvenaria. Com tijolo
+ * menor, a mesma peça mostra dois ou três de verdade.
+ */
 export function createBrickTexture(
   stoneColor: number,
   mortarColor: number,
   surfaceWidth: number,
-  surfaceHeight: number
+  surfaceHeight: number,
+  brickWorldWidth = 1.1,
+  brickWorldHeight = 0.55
 ): BrickTextures {
   const canvas = document.createElement('canvas')
   canvas.width = TILE_SIZE
@@ -142,8 +154,6 @@ export function createBrickTexture(
 
   const normalMap = buildNormalMap(buildHeightMap(rowHeight, brickWidth))
 
-  const brickWorldWidth = 1.1
-  const brickWorldHeight = 0.55
   const repeatX = Math.max(1, Math.round(surfaceWidth / brickWorldWidth))
   const repeatY = Math.max(1, Math.round(surfaceHeight / brickWorldHeight))
   for (const texture of [map, normalMap]) {

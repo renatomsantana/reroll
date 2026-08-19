@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type RAPIER from '@dimforge/rapier3d-compat'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
 import { createCamera } from './createCamera'
-import { CAMERA_CONFIG, TOWER_CAMERA_CONFIG } from '../config/sceneConfig'
+import { CAMERA_CONFIG } from '../config/sceneConfig'
 import {
   createTrayScene,
   type TraySceneHandle,
@@ -16,9 +16,14 @@ import {
   GROUND_RADIUS
 } from './createScene'
 import { createWoodTextures } from './createWoodTexture'
-import { createTowerScene, type TowerSceneHandle } from './createTowerScene'
+/**
+ * `createTowerBesideTray` (a torre DESENHADA EM CÓDIGO) continua no projeto de propósito, mesmo sem
+ * ninguém montando ela: o usuário pediu pra trocar pelo modelo 3D "e deixa a antiga pra qualquer
+ * coisa, nós só troca". Voltar atrás é trocar a chamada em `mostraTorre`, abaixo.
+ */
+import { DEFAULT_TOWER_COLORS, type TowerColors } from './createTowerBesideTray'
+import { createTowerModel } from './createTowerModel'
 import { createRiebeckPlush } from './createRiebeckPlush'
-import { TOWER_TOP_Y } from '../geometry/buildTowerBaffles'
 import type { DiceMaterialFinish } from '../materials/createDiceMaterial'
 import type { CameraMode } from '@renderer/settings/SettingsContext'
 import {
@@ -32,20 +37,16 @@ import { disposeScene, disposeMesh } from './disposeScene'
 import { ensureRapierReady } from '../physics/rapierContext'
 import { createPhysicsWorld } from '../physics/createPhysicsWorld'
 import { createBoundaryColliders } from '../physics/createBoundaryColliders'
-import { createTowerColliders } from '../physics/createTowerColliders'
 import { createPhysicsStepper } from '../physics/createPhysicsStepper'
 import { syncMeshToBody } from '../physics/syncMeshToBody'
 import { createSettleTracker, type SettleTracker } from '../physics/createSettleTracker'
-import { createDescentProgressTracker, type DescentProgressTracker } from '../physics/createDescentProgressTracker'
 import { applyNudge } from '../physics/applyNudge'
-import { applyTowerStuckNudge } from '../physics/applyTowerStuckNudge'
 import { tossDie } from '../physics/tossDie'
-import { dropDieIntoTower } from '../physics/dropDieIntoTower'
+import { tossDieFromMouth, MOUTH_RELEASE_INTERVAL_MS } from '../physics/tossDieFromMouth'
 import { randomQuaternion } from '../utils/random'
 import { regularPolygonCircumradius } from '../physics/regularPolygon'
 import {
   restoreWallCollisionIfInside,
-  exitTowerIfDescended,
   parkedCollisionGroups,
   diceEnteringCollisionGroups
 } from '../physics/collisionGroups'
@@ -55,7 +56,6 @@ import { readTopFace } from '../faceReading/readTopFace'
 import {
   MAX_SIMULTANEOUS_DICE,
   SPAWN_CONFIG,
-  TOWER_CONFIG,
   TRAY_CONFIG,
   WORLD_CONFIG,
   resolveAmbiguousMargin
@@ -153,7 +153,10 @@ function plushZBehindCase(caseZ: number): number {
  */
 const SHOW_PLUSH = true
 
-export type LaunchMode = 'tray' | 'tower'
+// Reexportado (e importado) daqui porque metade do app pede o tipo a este módulo e a outra metade
+// às Preferências. A definição, com a explicação dos três modos, mora em `SettingsContext.tsx`.
+import type { LaunchMode } from '@renderer/settings/SettingsContext'
+export type { LaunchMode }
 
 export interface DiceGroupSpec {
   sides: PhysicalDiceSides
@@ -208,6 +211,11 @@ export interface DiceCanvasMultiProps {
   backgroundColor?: number
   /** Cor do chão da bandeja (hex numérico). Mesma convenção de `wallColor`. */
   floorColor?: number
+  /**
+   * Cores da torre ao lado da bandeja (pedra, telhado, flâmula, porta). Mesma convenção de
+   * `wallColor`: aplicadas em cima da torre existente, sem remontar a cena.
+   */
+  towerColors?: TowerColors
   /** Imagem de fundo da cena (data URL) — `null`/ausente usa `backgroundColor` sólida. Mesma convenção de no-remount de `wallColor`. */
   backgroundImage?: string | null
   /**
@@ -242,15 +250,19 @@ interface DieInstance {
   body: RAPIER.RigidBody
   mesh: THREE.Mesh
   tracker: SettleTracker
-  /** Só usado no modo torre — dado ainda dentro da torre, caindo entre prateleiras. */
-  descentTracker?: DescentProgressTracker
   /**
-   * `queued`: modo torre, esperando a vez (mesh invisível, sem colisão — ver `parkDie`).
-   * `descending`: modo torre, caindo entre as prateleiras.
-   * `rolling`: assentando na bandeja/base — mesmo estado dos dois modos a partir daqui.
+   * `queued`: modo torre, esperando a vez de sair pela boca (mesh invisível, sem colisão — ver
+   *   `parkTowerDie`).
+   * `rolling`: assentando na bandeja — mesmo estado nos dois modos a partir daqui.
    * `done`: assentado com resultado lido.
    */
-  phase: 'queued' | 'descending' | 'rolling' | 'done'
+  phase: 'queued' | 'rolling' | 'done'
+  /**
+   * Instante (na régua de `sceneElapsedMsRef`) em que este dado sai da boca da torre. Os dados
+   * saem em FILA, um a cada `MOUTH_RELEASE_INTERVAL_MS`, porque todos nascem no mesmo ponto —
+   * ver o comentário de `MOUTH_RELEASE_INTERVAL_MS`. `undefined` = ainda não foi enfileirado.
+   */
+  releaseAtMs?: number
   lastValue: number | null
   spawnSlot: { x: number; z: number }
   /** Quanto tempo simulado (ms) o dado já passou na fase "entrando" (sem colidir com a parede) sem cruzar pra dentro — ver `ENTRY_FORCE_PUSH_TIMEOUT_MS` em `collisionGroups.ts`. Zerado a cada novo arremesso. */
@@ -711,15 +723,11 @@ function flattenGroups(groups: DiceGroupSpec[]): PhysicalDiceSides[] {
   return flat.slice(0, MAX_SIMULTANEOUS_DICE)
 }
 
-/** Ativa um dado da torre: sai da fila, nasce no topo, começa a cair entre as prateleiras de verdade. */
-function activateTowerDie(die: DieInstance): void {
-  die.mesh.visible = true
-  dropDieIntoTower(die.body, TOWER_TOP_Y, die.sides)
-  die.phase = 'descending'
-  die.descentTracker?.reset(TOWER_TOP_Y)
-}
 
-/** Poe um dado da torre "em espera" — invisível, sem colidir com nada (ver `parkedCollisionGroups`), até ser a vez dele. */
+/**
+ * Poe um dado "em espera" na fila da boca da torre — invisível e sem colidir com nada (ver
+ * `parkedCollisionGroups`) até chegar a vez dele de sair (ver `releaseAtMs`).
+ */
 function parkTowerDie(die: DieInstance): void {
   die.phase = 'queued'
   die.mesh.visible = false
@@ -749,6 +757,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       floorColor,
       backgroundImage,
       launchMode = 'tray',
+      towerColors = DEFAULT_TOWER_COLORS,
       debugMode,
       caseOpen = true,
       onCaseClick,
@@ -760,12 +769,17 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     const diceRef = useRef<DieInstance[]>([])
     const sceneRef = useRef<THREE.Scene | null>(null)
     const trayRef = useRef<TraySceneHandle | null>(null)
-    const towerRef = useRef<TowerSceneHandle | null>(null)
-    /** Meshes decorativos da prateleira fora do hexágono (ver `computeShelfPositions`) — vazio no modo torre. */
+/**
+     * `null` fora do modo torre — é o que deixa a roda de cor tingir a torre sem recriá-la. Tipo
+     * mínimo (só o que a tela usa) pra trocar entre a torre de código e o modelo 3D não exigir mexer
+     * aqui.
+     */
+    const towerBesideRef = useRef<{ updateColors: (colors: TowerColors) => void } | null>(null)
+    /** Meshes decorativos da prateleira fora do hexágono (ver `computeShelfPositions`). */
     const shelfMeshesRef = useRef<THREE.Mesh[]>([])
-    /** Estojo/caixinha de display sob a prateleira (ver `createShelfCaseMesh`) — pedido do usuário. `null` no modo torre. */
+    /** Estojo/caixinha de display sob a prateleira (ver `createShelfCaseMesh`) — pedido do usuário. */
     const shelfCaseMeshRef = useRef<ShelfCaseHandle | null>(null)
-    /** Mini pelúcia do Riebeck na mesa (ver `createRiebeckPlush`) — só pra animar a respiração no `tick`. `null` no modo torre. */
+    /** Mini pelúcia do Riebeck na mesa (ver `createRiebeckPlush`) — só pra animar a respiração no `tick`. */
     const plushRef = useRef<THREE.Group | null>(null)
     /**
      * Quanto tempo (ms) a cena já está montada — só alimenta a animação de abertura da tampa do
@@ -801,6 +815,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     diceColorsRef.current = diceColors
     const materialRef = useRef(material)
     materialRef.current = material
+    // Espelhado em ref pelo mesmo motivo dos de cima: o efeito de montagem roda uma vez só e
+    // congelaria a cor do primeiro render.
+    const towerColorsRef = useRef(towerColors)
+    towerColorsRef.current = towerColors
     /** Espelha `caseOpen` pro efeito de mount (que roda uma vez só) saber se deve agendar a animação de entrada da tampa. */
     const caseOpenRef = useRef(caseOpen)
     caseOpenRef.current = caseOpen
@@ -830,15 +848,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       roll: () => {
         armedRef.current = true
         if (launchMode === 'tower') {
-          // Refila tudo: só os primeiros `maxConcurrentInTower` voltam a cair imediatamente,
-          // o resto espera a vez de novo (mesmo fluxo do mount inicial, ver efeito abaixo).
+          // Refila tudo: todo dado volta pra fila e sai pela boca na sua vez, um a cada
+          // `MOUTH_RELEASE_INTERVAL_MS` (ver o comentário de lá — eles nascem todos no MESMO ponto,
+          // então o que os separa é o tempo, não a posição). O relógio é o de
+          // `sceneElapsedMsRef`, o mesmo que a tampa do estojo já usa.
           diceRef.current.forEach((die, i) => {
             die.lastValue = null
-            if (i < TOWER_CONFIG.maxConcurrentInTower) {
-              activateTowerDie(die)
-            } else {
-              parkTowerDie(die)
-            }
+            parkTowerDie(die)
+            die.releaseAtMs = sceneElapsedMsRef.current + i * MOUTH_RELEASE_INTERVAL_MS
           })
         } else {
           for (const die of diceRef.current) {
@@ -865,20 +882,44 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
       container.appendChild(renderer.domElement)
 
-      const cameraConfig = launchMode === 'tower' ? TOWER_CAMERA_CONFIG : CAMERA_CONFIG
+      /**
+       * A torre aparece em DOIS modos ('tower' e 'towerDecor'); o que muda entre eles é só de onde o
+       * dado é lançado. Daí as duas perguntas separadas abaixo: `mostraTorre` decide cena e câmera,
+       * `lancaPelaBoca` decide a física.
+       */
+      const mostraTorre = launchMode === 'tower' || launchMode === 'towerDecor'
+      const lancaPelaBoca = launchMode === 'tower'
+      /**
+       * A câmera PADRÃO volta a servir com o modelo 3D. `TOWER_BESIDE_CAMERA_CONFIG` recuava 37%
+       * pra caber a torre de código, que com telhado e flâmula chega a 9.42 de altura; o modelo
+       * termina em 5.75, abaixo dos 6.79 que a câmera padrão enquadra (medido). Na prática: a
+       * bandeja volta ao tamanho cheio no modo torre.
+       */
+      const cameraConfig = CAMERA_CONFIG
 
-      let scene: THREE.Scene
-      let camera: THREE.PerspectiveCamera
-      if (launchMode === 'tower') {
-        const tower = createTowerScene(wallColor, backgroundColor, floorColor, backgroundImage ?? null)
-        scene = tower.scene
-        towerRef.current = tower
-        camera = createCamera(container.clientWidth / container.clientHeight, cameraConfig)
-      } else {
-        const tray = createTrayScene(wallColor, backgroundColor, floorColor, backgroundImage ?? null)
-        scene = tray.scene
-        trayRef.current = tray
-        camera = createCamera(container.clientWidth / container.clientHeight, cameraConfig)
+      /**
+       * Os dois modos usam a MESMA cena de bandeja agora. A torre deixou de ser um cenário
+       * alternativo (praça de pedra, sem hexágono, dado caindo por dentro dela — `createTowerScene`)
+       * e virou uma peça ENCOSTADA no hexágono, de cuja boca o dado sai rolando pra dentro
+       * (`createTowerBesideTray` + `tossDieFromMouth`). Como a bandeja é a mesma, tudo o que vive
+       * nela — estojo, prateleira, pelúcia, colisores, gravidade — vale igual nos dois modos.
+       */
+      const tray = createTrayScene(wallColor, backgroundColor, floorColor, backgroundImage ?? null)
+      const scene = tray.scene
+      trayRef.current = tray
+      const camera = createCamera(container.clientWidth / container.clientHeight, cameraConfig)
+      if (mostraTorre) {
+        /**
+         * O modelo vem de um `.glb` e o carregador é ASSÍNCRONO, então ele entra na cena quando
+         * chegar, em vez de a montagem inteira esperar por ele. O `disposed` é a guarda de sempre:
+         * trocar de aba ou de modo antes do arquivo carregar não pode deixar uma torre pendurada
+         * numa cena que já foi descartada.
+         */
+        void createTowerModel(undefined, towerColorsRef.current).then((tower) => {
+          if (disposed) return
+          scene.add(tower.group)
+          towerBesideRef.current = tower
+        })
       }
       sceneRef.current = scene
       const environment = setupDiceEnvironment(scene, renderer)
@@ -894,9 +935,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
 
       // Prateleira decorativa: um dado de cada tipo disponível, parado do lado de FORA do
       // hexágono, só pra visualizar a cor/acabamento escolhidos sem precisar rolar — nunca tem
-      // corpo físico (não participa da simulação, não se move, não é clicável). Só faz sentido
-      // com a bandeja aberta (a torre não tem essa "borda" externa da mesma forma).
-      if (launchMode === 'tray') {
+      // corpo físico (não participa da simulação, não se move, não é clicável).
+      //
+      // Vale nos DOIS modos desde que a torre passou a encostar na bandeja em vez de substituí-la:
+      // é a mesma mesa, o mesmo hexágono e a mesma borda externa. O bloco continua existindo (em
+      // vez de virar código solto) só pra manter o escopo de `positions`/`shelfCase`, que não
+      // precisam vazar pro resto do efeito. O estojo fica em z ≈ -10 e a torre, a -30°, então um
+      // não passa na frente do outro.
+      {
         const positions = computeShelfPositions()
         const shelfCase = createShelfCaseMesh(
           positions[0].z,
@@ -1011,8 +1057,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       controls.enableDamping = true
       controls.dampingFactor = 0.08
       /**
-       * ZOOM MUITO MAIS FUNDO: 6 → 1.8 na bandeja e 2.8 → 1.2 na torre, a pedido do usuário
-       * ("aumenta a potência do zoom pra poder ver mais detalhes").
+       * ZOOM MUITO MAIS FUNDO: 6 → 1.8, a pedido do usuário ("aumenta a potência do zoom pra poder
+       * ver mais detalhes").
        *
        * O 6 antigo era mais ou menos o raio da própria bandeja (7.5): dava pra enquadrar a mesa,
        * nunca pra chegar perto de UMA peça. Um dado tem menos de 1 de lado e a pelúcia tem ~0.4 —
@@ -1021,11 +1067,17 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
        *
        * 1.8 é seguro contra o plano de corte (`CAMERA_CONFIG.near` = 0.1): mesmo colada num dado, a
        * câmera fica bem longe de começar a fatiar geometria.
+       *
+       * LIMITES IGUAIS NOS DOIS MODOS, e isso é correção de um bug real: enquanto a torre tinha
+       * cena própria (praça de pedra, escala menor), ela também tinha limites próprios — 1.2 e 19.
+       * Quando o modo torre passou a usar a bandeja, o 19 ficou: a câmera de
+       * `TOWER_BESIDE_CAMERA_CONFIG` nasce a 23.08 do alvo, e o `OrbitControls` corta a distância no
+       * teto já no primeiro `update()` — o app puxava a câmera de 23.08 pra 19 antes do primeiro
+       * quadro, entregando um enquadramento mais fechado que o medido, com o topo da torre cortado.
+       * Cena igual, limites iguais.
        */
-      controls.minDistance = launchMode === 'tower' ? 1.2 : 1.8
-      // 15.5 → 19: a base/praça ficou um pouco mais larga (`TOWER_CONFIG.baseFloorRadius`, ver
-      // `TOWER_CAMERA_CONFIG`) — o teto de zoom-out antigo não deixava enquadrar a cena inteira.
-      controls.maxDistance = launchMode === 'tower' ? 19 : 35
+      controls.minDistance = 1.8
+      controls.maxDistance = 35
       /**
        * Era exatamente `Math.PI / 2` (horizontal perfeito) — no ângulo mais baixo permitido, a
        * câmera ficava praticamente na mesma altura (y≈0) do chão "infinito" ao redor da bandeja
@@ -1122,6 +1174,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       function handleKeyDown(event: KeyboardEvent) {
         if (!CAMERA_KEYS.has(event.code) || isTypingInField()) return
         if (event.ctrlKey || event.altKey || event.metaKey) return
+        /**
+         * Com a aba de rolagem ESCONDIDA (o usuário está em Estilo ou Anotações), a cena continua
+         * montada — é o que preserva os dados e o resultado ao trocar de aba, ver `App.tsx`. Sem
+         * esta linha, um W apertado fora de um campo de texto giraria uma câmera que ninguém está
+         * vendo, e a pessoa voltaria pra aba com o enquadramento mexido sem ter tocado na cena.
+         * `isTypingInField` acima já cobre digitação; isto cobre o resto.
+         */
+        if (!container || container.clientWidth === 0) return
         pressedKeys.add(event.code)
       }
 
@@ -1213,6 +1273,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       function resize() {
         if (!container) return
         const { clientWidth, clientHeight } = container
+        /**
+         * Tamanho ZERO acontece de verdade: trocar de aba esconde a cena com `display: none` (ver
+         * `App.tsx`, que mantém a aba de rolagem montada pra não perder os dados), e nesse estado o
+         * container mede 0×0. Sem esta guarda, `aspect` viraria `0/0` = NaN, o que envenena a matriz
+         * de projeção — e o quadro seguinte, já com a aba visível de novo, sairia em branco até o
+         * próximo redimensionamento.
+         */
+        if (clientWidth === 0 || clientHeight === 0) return
         renderer.setSize(clientWidth, clientHeight)
         camera.aspect = clientWidth / clientHeight
         camera.updateProjectionMatrix()
@@ -1238,11 +1306,6 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         onResultRef.current?.({ rolls, total })
       }
 
-      /** Ativa o próximo dado da fila, se houver algum esperando. */
-      function activateNextQueuedDie() {
-        const next = diceRef.current.find((d) => d.phase === 'queued')
-        if (next) activateTowerDie(next)
-      }
 
       function updateDieDebug(die: DieInstance) {
         if (!die.debug) return
@@ -1262,28 +1325,20 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         syncMeshToBody(die.mesh, die.body)
         updateDieDebug(die)
 
-        if (die.phase === 'queued') return
-
-        if (die.phase === 'descending') {
-          exitTowerIfDescended(die.body, die.sides)
-          if (die.body.translation().y <= TOWER_CONFIG.exitY) {
-            die.phase = 'rolling'
-            die.tracker.reset()
-            activateNextQueuedDie()
-          } else if (die.descentTracker) {
-            const { state, stuckAttempts } = die.descentTracker.update(die.body, simulatedSeconds * 1000)
-            if (state === 'stuck') {
-              // `applyTowerStuckNudge` (não o `applyNudge` genérico da bandeja) — MEDIDO que
-              // dados "redondos" (D20, D100) encontram um repouso estável por atrito na
-              // inclinação rasa das prateleiras (15°) e o empurrão fraco da bandeja não os
-              // desaloja. ESCALA com `stuckAttempts` (rastreado dentro do próprio
-              // `descentTracker`, ver `createDescentProgressTracker.ts`) — um empurrão forte de
-              // mais já na primeira pausa fazia dados que só quicaram normalmente entre
-              // prateleiras "pularem" visivelmente pra baixo, em vez de escorregar como deveriam.
-              applyTowerStuckNudge(die.body, stuckAttempts)
-              die.descentTracker.softResetAfterNudge(die.body.translation().y)
-            }
-          }
+        /**
+         * Na fila da boca da torre: fica parado e invisível até chegar a vez dele, e aí SAI —
+         * visível, com colisão de volta (`tossDieFromMouth` restaura os grupos) e já rolando pra
+         * dentro do hexágono. A partir daqui ele é um dado de bandeja como qualquer outro; não
+         * existe mais fase de descida, porque ele nunca passa por dentro da torre.
+         */
+        if (die.phase === 'queued') {
+          if (die.releaseAtMs === undefined || sceneElapsedMsRef.current < die.releaseAtMs) return
+          die.mesh.visible = true
+          tossDieFromMouth(die.body, { target: die.spawnSlot })
+          die.tracker.reset()
+          die.phase = 'rolling'
+          die.enteringElapsedMs = 0
+          die.releaseAtMs = undefined
           return
         }
 
@@ -1391,7 +1446,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         // arquivo, e `applyKeyboardCamera`).
         applyKeyboardCamera(Math.min(deltaSeconds, 0.1))
         controls.update()
-        renderer.render(scene, camera)
+        /**
+         * Não desenha enquanto a aba está escondida — mas a FÍSICA acima continua rodando, e isso é
+         * de propósito: quem rola e troca de aba no meio quer voltar e encontrar o resultado pronto,
+         * não os dados congelados no ar.
+         */
+        if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+          renderer.render(scene, camera)
+        }
         frameId = requestAnimationFrame(tick)
       }
       tick()
@@ -1399,17 +1461,18 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       ensureRapierReady()
         .then(() => {
           if (disposed) return
-          world = createPhysicsWorld(launchMode === 'tower' ? TOWER_CONFIG.gravity : undefined)
+          /**
+           * Mundo IGUAL nos dois modos. `TOWER_CONFIG.gravity` (-12) e `createTowerColliders`
+           * existiam pro dado cair POR DENTRO da torre, batendo nas prateleiras; agora ele só sai
+           * pela boca e rola na bandeja de sempre, então quem manda é a gravidade da bandeja e são
+           * os colisores dela. O que muda entre os modos é só DE ONDE o dado é lançado.
+           */
+          world = createPhysicsWorld()
           worldRef.current = world
-          if (launchMode === 'tower') {
-            createTowerColliders(world)
-          } else {
-            createBoundaryColliders(world)
-          }
+          createBoundaryColliders(world)
 
           const sidesList = flattenGroups(groups)
-          const slots =
-            launchMode === 'tray' ? computeSpawnSlots(sidesList.length, SPAWN_CONFIG.slotSafeHalfExtent) : []
+          const slots = computeSpawnSlots(sidesList.length, SPAWN_CONFIG.slotSafeHalfExtent)
 
           diceRef.current = sidesList.map((sides, i) => {
             const entry = DICE_REGISTRY[sides]
@@ -1427,26 +1490,24 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
               ? { visuals: createDiceDebugVisuals(entry.definition, mesh), updateRow: hud.addDieRow() }
               : undefined
 
-            if (launchMode === 'tower') {
+            if (lancaPelaBoca) {
               const die: DieInstance = {
                 sides,
                 body,
                 mesh,
                 tracker: createSettleTracker(),
-                descentTracker: createDescentProgressTracker(),
                 phase: 'queued',
                 lastValue: null,
-                spawnSlot: { x: 0, z: 0 },
+                spawnSlot: slots[i],
                 enteringElapsedMs: 0,
                 debug
               }
-              // Só ativa a queda de verdade no mount se for uma rolagem de verdade (preset,
-              // ver `autoRoll`) — troca de tipo/cor/modo/debug remonta a cena sem que o
-              // usuário tenha pedido uma rolagem, então o dado só fica parqueado até o
-              // próximo clique em "Rolar" (ver comentário grande de `armedRef` acima e
-              // `roll()` no `useImperativeHandle`).
-              if (autoRoll && i < TOWER_CONFIG.maxConcurrentInTower) activateTowerDie(die)
-              else parkTowerDie(die)
+              parkTowerDie(die)
+              // Só enfileira pra sair de verdade se for uma rolagem de verdade (preset, ver
+              // `autoRoll`) — troca de tipo/cor/modo/debug remonta a cena sem que o usuário tenha
+              // pedido uma rolagem, então o dado fica parqueado até o próximo clique em "Rolar"
+              // (ver o comentário grande de `armedRef` acima e `roll()` no `useImperativeHandle`).
+              if (autoRoll) die.releaseAtMs = i * MOUTH_RELEASE_INTERVAL_MS
               return die
             }
 
@@ -1510,7 +1571,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         diceRef.current = []
         sceneRef.current = null
         trayRef.current = null
-        towerRef.current = null
+        towerBesideRef.current = null
         world?.free()
         worldRef.current = null
       }
@@ -1531,10 +1592,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
      * renderer já existentes (só trocar os corpos+meshes dos dados) elimina de longe a maior
      * fatia desse custo.
      *
-     * Só bandeja aberta (`launchMode === 'tray'`): a torre tem fila/parqueamento próprio
-     * (`activateTowerDie`/`parkTowerDie`) que já lida com contagem variável de um jeito bem
-     * mais específico — a torre continua remontando por completo quando `groups` muda (ver o
-     * `key` condicional em `DiceRoller3D.tsx`), sem essa otimização.
+     * Vale nos DOIS modos. Só a bandeja usava isto: a torre remontava a cena inteira a cada
+     * mudança de dado, o que custava ~55ms de reconstrução mais um pico de 290ms de compilação de
+     * shader no primeiro quadro. Como hoje os dois modos compartilham bandeja, mundo e colisores, o
+     * que muda é só de onde o dado é lançado — e isso não é motivo pra jogar a cena fora.
+     *
+     * O dado novo aparece PARADO no slot dele, nos dois modos. No modo torre ele só passa pela boca
+     * quando alguém rola de verdade; nascer voando da torre porque a pessoa clicou "+1 dado" seria
+     * uma rolagem que ninguém pediu.
      */
     const isFirstGroupsSyncRef = useRef(true)
     const groupsSignature = JSON.stringify(groups)
@@ -1543,7 +1608,6 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         isFirstGroupsSyncRef.current = false
         return
       }
-      if (launchMode !== 'tray') return
       const world = worldRef.current
       const scene = sceneRef.current
       if (!world || !scene) return
@@ -1681,7 +1745,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         const floor = floorColor ?? DEFAULT_FLOOR_COLOR
         const image = backgroundImage ?? null
         trayRef.current?.updateColors(wall, background, floor, image)
-        towerRef.current?.updateColors(wall, background, floor, image)
+        towerBesideRef.current?.updateColors(towerColorsRef.current)
 
         for (const die of diceRef.current) {
           const entry = DICE_REGISTRY[die.sides]

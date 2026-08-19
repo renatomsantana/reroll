@@ -10,6 +10,7 @@ import {
 } from '@renderer/dice3d/scene/DiceCanvasMulti'
 import { AVAILABLE_DICE_TYPES } from '@renderer/dice3d/dice-defs/registry'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
+import type { LaunchMode } from '@renderer/settings/SettingsContext'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { playRollSound } from '@renderer/audio/rollSound'
@@ -47,8 +48,31 @@ const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
  */
 const ADVANTAGE_MAX_COUNT = Math.floor(MAX_SIMULTANEOUS_DICE / 2)
 
-/** Atraso (ms) entre clicar em "Rolar"/preset e o som de rolagem tocar — pedido do usuário, pra soar junto do impacto dos dados entrando na bandeja em vez do instante do clique. */
+/**
+ * Atraso (ms) entre clicar em "Rolar"/preset e o som de rolagem tocar — pedido do usuário, pra soar
+ * junto do impacto dos dados na bandeja, em vez do instante do clique.
+ *
+ * É MENOR pela torre, a pedido: de lá o dado nasce na boca, a 0.35 acima da borda, e cai direto
+ * dentro do hexágono; no arremesso de cima ele nasce entre 6 e 8 de altura e ainda cruza a bandeja
+ * inteira antes de bater. São dois tempos de voo diferentes, e um atraso único deixava o som atrasado
+ * num dos dois casos.
+ *
+ * O valor da torre foi por OUVIDO, em duas rodadas: 800ms ainda soou tarde e o usuário pediu 400.
+ * Fica um pouco ANTES do primeiro impacto, e isso é escolha dele, não coincidência com a física: o
+ * dado sai da boca sem impulso vertical e cai de 2.15 até ~0.27 sob gravidade 13, o que dá ~0.54s
+ * até encostar. A 400ms o som começa com o primeiro dado ainda no ar — o que faz sentido, porque o
+ * ruído de uma torre de dados começa ANTES de o dado tocar a bandeja, e porque atrás dele vêm os
+ * outros da fila, um a cada 140ms.
+ *
+ * Se um dia parecer cedo demais, o piso natural é ~540ms (o impacto de verdade); abaixo disso o som
+ * antecede qualquer coisa acontecendo na tela.
+ */
 const ROLL_SOUND_DELAY_MS = 1200
+const TOWER_ROLL_SOUND_DELAY_MS = 400
+
+function rollSoundDelay(launchMode: LaunchMode): number {
+  return launchMode === 'tower' ? TOWER_ROLL_SOUND_DELAY_MS : ROLL_SOUND_DELAY_MS
+}
 
 /** Agrupa uma lista achatada de resultados individuais de volta por tipo de dado, na ordem em que cada tipo apareceu primeiro. */
 function groupRollsBySides(rolls: { sides: number; value: number }[]): DiceGroupResult[] {
@@ -98,6 +122,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     backgroundColor,
     floorColor,
     backgroundImage,
+    towerStoneColor,
+    towerRoofColor,
+    towerFlagColor,
+    towerDoorColor,
     launchMode,
     cameraMode,
     debugMode,
@@ -226,29 +254,21 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       setIsRolling(true)
       setPresetRollSeq((n) => n + 1)
 
-      if (launchMode === 'tower') {
-        // Torre: continua remontando (ver `presetRollSeq`). `autoRoll` faz o mount novo já nascer
-        // arremessando, e o `roll()` logo abaixo cobre o caso de clicar o MESMO preset duas vezes,
-        // em que os grupos não mudam, o `key` não muda e nenhum mount novo acontece.
-        setAutoRollArm(true)
-        multiRef.current?.roll()
-      } else {
-        // Bandeja: só marca. Quem arremessa é o efeito abaixo, depois que os dados novos já
-        // entraram na cena (ver `pendingPresetRollRef`).
-        pendingPresetRollRef.current = true
-      }
+      // Só marca; quem arremessa é o efeito abaixo, depois que os dados novos já entraram na cena
+      // (ver `pendingPresetRollRef`). Vale pros dois modos desde que a torre parou de remontar.
+      pendingPresetRollRef.current = true
       // Som com atraso (ver `ROLL_SOUND_DELAY_MS`) — não em `finalizeResult`, que só roda
       // quando os dados assentam segundos depois.
       if (soundEnabled) {
         if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
         const diceCount = newGroups.reduce((sum, g) => sum + g.count, 0)
-        rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(diceCount), ROLL_SOUND_DELAY_MS)
+        rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(diceCount), rollSoundDelay(launchMode))
       }
     }
   }))
 
   /**
-   * Dispara a rolagem de preset da bandeja DEPOIS que os dados novos já estão na cena.
+   * Dispara a rolagem de preset DEPOIS que os dados novos já estão na cena — nos dois modos.
    *
    * Efeitos de componente-filho rodam antes dos do pai, então quando este aqui executa o resync de
    * `DiceCanvasMulti` já trocou os dados — que é justamente por que a chamada não pode ficar
@@ -404,7 +424,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     if (soundEnabled) {
       if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
       const diceCount = canvasGroups.reduce((sum, g) => sum + g.count, 0)
-      rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(diceCount), ROLL_SOUND_DELAY_MS)
+      rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(diceCount), rollSoundDelay(launchMode))
     }
   }
 
@@ -545,15 +565,21 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           // `groups`/`canvasGroups` NÃO entram mais aqui pro modo bandeja — trocar tipo/
           // quantidade manualmente resincroniza os dados no lugar (ver o efeito de resync em
           // `DiceCanvasMulti.tsx`), sem remontar a cena/física/renderer inteiros a cada clique.
-          // A TORRE continua remontando por completo nessa troca (fila/parqueamento próprio,
-          // mais arriscado de adaptar) — `presetRollSeq` cobre a rolagem de preset nos dois
-          // modos (ela precisa nascer já arremessada, só o mount original resolve isso certo).
-          // `presetRollSeq` saiu do `key` da BANDEJA: era ele que remontava a cena a cada preset e
-          // jogava a câmera de volta pro enquadramento padrão. Na torre ele fica, junto dos grupos
-          // (ver `presetRollSeq` e `rollGroups`).
-          key={`${debugMode}-${launchMode}${
-            launchMode === 'tower' ? `-${presetRollSeq}-${JSON.stringify(canvasGroups)}` : ''
-          }`}
+          /**
+           * SÓ modo de debug e modo de lançamento remontam a cena — nem os grupos, nem o contador de
+           * preset, em modo nenhum.
+           *
+           * A torre remontava por completo a cada dado adicionado e a cada preset, porque quando ela
+           * era o mecanismo antigo (cena própria, fila de queda por dentro) adaptar a
+           * ressincronização parecia arriscado. Isso deixou de valer: hoje os dois modos usam a mesma
+           * bandeja, o mesmo mundo físico e os mesmos colisores — só muda de onde o dado é lançado.
+           *
+           * E o custo era alto. Medido: remontar refaz a cena da bandeja (20ms), a torre inteira com
+           * as texturas de tijolo (20ms) e um `WebGLRenderer` novo (15ms), e o primeiro quadro depois
+           * disso recompila os shaders — um pico de 290ms num quadro só. É o "fica meio lagado quando
+           * bota mais dados" que o usuário reportou.
+           */
+          key={`${debugMode}-${launchMode}`}
           ref={multiRef}
           groups={canvasGroups as { sides: PhysicalDiceSides; count: number }[]}
           onResult={handleMultiResult}
@@ -564,6 +590,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           wallColor={hexStringToNumber(wallColor)}
           backgroundColor={hexStringToNumber(backgroundColor)}
           floorColor={hexStringToNumber(floorColor)}
+          towerColors={{
+            stone: hexStringToNumber(towerStoneColor),
+            roof: hexStringToNumber(towerRoofColor),
+            flag: hexStringToNumber(towerFlagColor),
+            door: hexStringToNumber(towerDoorColor)
+          }}
           backgroundImage={backgroundImage}
           launchMode={launchMode}
           debugMode={debugMode}

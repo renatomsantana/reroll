@@ -5,7 +5,9 @@
  */
 .settings-panel-field .font-select {
   flex: 1;
-  max-width: 180px;
+  /* 180 → 210: o crédito ("by caio", "by xuga") divide a linha com o nome, e em 180 sobrava
+     "JetBr…". Ver `.font-select-credit`. */
+  max-width: 210px;
   display: flex;
   min-width: 0;
 }
@@ -55,6 +57,20 @@
  * `fixed` (e não `absolute`) de propósito — ver o comentário em `FontSelect.tsx`: o painel de
  * Preferências rola, e uma lista `absolute` seria cortada pela borda dele.
  */
+/**
+ * Crédito ao lado do nome da fonte. Pequeno, apagado e em itálico: é atribuição, não opção — quem
+ * está escolhendo fonte lê o nome, e o crédito só precisa estar lá pra quem for procurar.
+ */
+.font-select-credit {
+  flex: 0 0 auto;
+  margin-left: 4px;
+  font-family: var(--font-family);
+  font-style: italic;
+  font-size: 9px;
+  color: var(--win-text-muted);
+  opacity: 0.75;
+}
+
 .font-select-list {
   position: fixed;
   z-index: 30;
@@ -62,7 +78,7 @@
   padding: 2px;
   list-style: none;
   /* Cópia de `LIST_MAX_HEIGHT` em `FontSelect.tsx` — mexer nos dois juntos, ver o comentário lá. */
-  max-height: 300px;
+  max-height: 350px;
   overflow-y: auto;
   background: var(--win-input-bg);
   border: 2px outset var(--win-highlight);

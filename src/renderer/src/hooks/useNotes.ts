@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useProfiles } from '@renderer/settings/ProfilesContext'
 import {
   createNotesPage,
   DEFAULT_NOTES,
@@ -19,14 +20,22 @@ export function useNotes() {
   const [notes, setNotes] = useState<NotesData>(() => normalizeNotes(DEFAULT_NOTES))
   const [loading, setLoading] = useState(true)
   const [saveError, setSaveError] = useState(false)
+  const { activeId } = useProfiles()
 
+  /**
+   * Recarrega quando o PERSONAGEM muda: anotações e presets moram na pasta do perfil aberto (ver
+   * `ProfilesRepository.activeDirectory`), então trocar de perfil sem reler deixaria a tela mostrando
+   * a ficha do personagem anterior — e, pior, a primeira digitação gravaria esse conteúdo velho por
+   * cima do arquivo do novo.
+   */
   useEffect(() => {
+    setLoading(true)
     window.api.notes
       .get()
       .then((loaded) => setNotes(normalizeNotes({ ...DEFAULT_NOTES, ...loaded })))
       .catch((error: unknown) => console.error('Falha ao carregar anotações:', error))
       .finally(() => setLoading(false))
-  }, [])
+  }, [activeId])
 
   /** Aplica a mudança e grava. Recebe função pra sempre partir do estado ATUAL, não do que a tela viu. */
   const update = useCallback((change: (previous: NotesData) => NotesData) => {

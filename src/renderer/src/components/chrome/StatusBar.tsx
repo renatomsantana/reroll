@@ -1,5 +1,10 @@
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import type { UpdateStatus } from '@shared/types/update'
+// O CSS desta barra existia desde sempre e NÃO era importado por ninguém — nem aqui, nem no
+// `App.css`. Ou seja, a barra vinha rodando sem estilo nenhum: sem o fundo cinza, sem o degrau de
+// cima e, principalmente, sem o `justify-content: space-between` que joga o crédito pra direita. Era
+// por isso que o "made by renatinm1" aparecia grudado no fim do texto dos atalhos em vez de na quina.
+import './StatusBar.css'
 
 interface StatusBarProps {
   /** Estado da atualização (ver `useUpdateStatus`) — só aparece aqui quando há versão nova esperando. */

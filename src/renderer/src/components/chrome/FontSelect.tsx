@@ -17,14 +17,23 @@ import './FontSelect.css'
 /**
  * Teto de altura da lista — também decide se ela abre pra baixo ou pra cima, então não é só estética.
  * Tem cópia em `.font-select-list` (`FontSelect.css`) e as duas precisam andar juntas: divergindo, a
- * conta do flip usa uma altura que a lista não tem. Cabem as 11 fontes de `FONT_OPTIONS`
- * (11 x 26px + 8px de borda e padding = 294).
+ * conta do flip usa uma altura que a lista não tem. Cabem as 12 fontes de `FONT_OPTIONS` mais a
+ * linha opcional de "fonte padrão" (13 x 26px + 8px de borda e padding = 346).
  */
-const LIST_MAX_HEIGHT = 300
+const LIST_MAX_HEIGHT = 350
+
+/**
+ * `''` = "usar a fonte do app", a linha extra que só aparece quando `defaultLabel` é passado. Existe
+ * pelas ANOTAÇÕES: lá a fonte do texto pode simplesmente acompanhar a do app, o que nas Preferências
+ * não faria sentido (é lá que a fonte do app é escolhida).
+ */
+export type FontSelectValue = FontId | ''
 
 interface FontSelectProps {
-  value: FontId
-  onChange: (value: FontId) => void
+  value: FontSelectValue
+  onChange: (value: FontSelectValue) => void
+  /** Rótulo da linha "fonte padrão". Sem ele, o seletor só oferece fontes concretas. */
+  defaultLabel?: string
 }
 
 interface ListPosition {
@@ -33,7 +42,22 @@ interface ListPosition {
   width: number
 }
 
-export function FontSelect({ value, onChange }: FontSelectProps) {
+export function FontSelect({ value, onChange, defaultLabel }: FontSelectProps) {
+  /**
+   * A lista real: as fontes de `FONT_OPTIONS` e, na frente, a linha de padrão quando pedida. Todo o
+   * resto do componente trabalha por ÍNDICE (setas do teclado, item ativo, escolha), então a entrada
+   * extra precisa estar no mesmo array — tratá-la como caso especial multiplicaria os `+1`/`-1` por
+   * todo lado, que é onde esse tipo de lista costuma quebrar.
+   */
+  const options: { id: FontSelectValue; label: string; family: string; credit?: string }[] = [
+    ...(defaultLabel ? [{ id: '' as const, label: defaultLabel, family: 'inherit' }] : []),
+    ...FONT_OPTIONS.map((font) => ({
+      id: font.id as FontSelectValue,
+      label: font.label,
+      family: font.family,
+      credit: 'credit' in font ? font.credit : undefined
+    }))
+  ]
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState<ListPosition | null>(null)
   /** Linha sob o teclado (setas), que não é a mesma coisa que a fonte escolhida enquanto a lista está aberta. */
@@ -44,9 +68,9 @@ export function FontSelect({ value, onChange }: FontSelectProps) {
 
   const selectedIndex = Math.max(
     0,
-    FONT_OPTIONS.findIndex((font) => font.id === value)
+    options.findIndex((font) => font.id === value)
   )
-  const selected = FONT_OPTIONS[selectedIndex]
+  const selected = options[selectedIndex]
 
   /**
    * A lista é `position: fixed` e posicionada à mão a partir do botão. O painel de Preferências tem
@@ -67,7 +91,7 @@ export function FontSelect({ value, onChange }: FontSelectProps) {
   }
 
   function choose(index: number): void {
-    onChange(FONT_OPTIONS[index].id)
+    onChange(options[index].id)
     setOpen(false)
     buttonRef.current?.focus()
   }
@@ -112,10 +136,10 @@ export function FontSelect({ value, onChange }: FontSelectProps) {
   }, [open])
 
   function handleListKeyDown(e: React.KeyboardEvent): void {
-    if (e.key === 'ArrowDown') setActiveIndex((index) => Math.min(FONT_OPTIONS.length - 1, index + 1))
+    if (e.key === 'ArrowDown') setActiveIndex((index) => Math.min(options.length - 1, index + 1))
     else if (e.key === 'ArrowUp') setActiveIndex((index) => Math.max(0, index - 1))
     else if (e.key === 'Home') setActiveIndex(0)
-    else if (e.key === 'End') setActiveIndex(FONT_OPTIONS.length - 1)
+    else if (e.key === 'End') setActiveIndex(options.length - 1)
     else if (e.key === 'Enter' || e.key === ' ') choose(activeIndex)
     else if (e.key === 'Escape') {
       setOpen(false)
@@ -147,6 +171,7 @@ export function FontSelect({ value, onChange }: FontSelectProps) {
         <span className="font-select-label" style={{ fontFamily: selected.family }}>
           {selected.label}
         </span>
+        {selected.credit && <span className="font-select-credit">{selected.credit}</span>}
         <FontMascot fontId={selected.id} />
         <span className="font-select-arrow" aria-hidden="true">
           ▼
@@ -162,7 +187,7 @@ export function FontSelect({ value, onChange }: FontSelectProps) {
           style={{ left: position.left, top: position.top, width: position.width }}
           onKeyDown={handleListKeyDown}
         >
-          {FONT_OPTIONS.map((font, index) => (
+          {options.map((font, index) => (
             <li key={font.id}>
               <button
                 type="button"
@@ -177,6 +202,9 @@ export function FontSelect({ value, onChange }: FontSelectProps) {
                 <span className="font-select-label" style={{ fontFamily: font.family }}>
                   {font.label}
                 </span>
+                {/* Crédito de quem indicou a fonte — escrito na fonte do APP, não na da linha: em
+                    Impact ou Janda ele competiria com o próprio nome que está ali pra ser lido. */}
+                {font.credit && <span className="font-select-credit">{font.credit}</span>}
                 <FontMascot fontId={font.id} />
               </button>
             </li>

@@ -29,9 +29,29 @@ type DiceColorTarget = 'body' | 'number'
  * transparente (sem fundo nenhum), e a cor que estava escolhida era quase igual à padrão. Voltou
  * assim que ficou claro o que ele é — "o fundo é o wallpaper né? realmente ajeita".
  */
-type SceneColorTarget = 'wall' | 'floor' | 'background'
+type SceneColorTarget =
+  | 'wall'
+  | 'floor'
+  | 'background'
+  | 'towerStone'
+  | 'towerRoof'
+  | 'towerFlag'
+  | 'towerDoor'
 
 const SCENE_TARGETS: SceneColorTarget[] = ['wall', 'floor', 'background']
+/**
+ * Os alvos da torre ficam em GRUPO SEPARADO, não emendados em `SCENE_TARGETS`.
+ *
+ * Não é organização: são sete alvos no total, e a fileira de botões da roda foi dimensionada pra
+ * três ou quatro ("com as três ou quatro caixas de cada seção nada disso rola pra fora da tela na
+ * janela padrão", ver o comentário do grupo da roda). Sete numa fileira só transbordam. Os dois
+ * grupos escrevem no MESMO `sceneTarget`, então a roda continua sendo uma só, editando quem estiver
+ * marcado — em qualquer um dos dois.
+ */
+const TOWER_TARGETS: SceneColorTarget[] = ['towerStone', 'towerRoof', 'towerFlag', 'towerDoor']
+// Só o bloco segurado pra 0.1.8 consome isto. Fica declarado de propósito: quando o bloco voltar,
+// ele volta inteiro, sem precisar reconstruir a lista.
+void TOWER_TARGETS
 
 /**
  * As quatro famílias de cor prontas, com o acabamento que cada uma pressupõe. Antes elas eram
@@ -75,6 +95,11 @@ export function StyleTab() {
     wallColor,
     floorColor,
     backgroundColor,
+    launchMode,
+    towerStoneColor,
+    towerRoofColor,
+    towerFlagColor,
+    towerDoorColor,
     backgroundImage,
     palettesVisible,
     setDiceBodyColor,
@@ -85,6 +110,11 @@ export function StyleTab() {
     setWallColor,
     setFloorColor,
     setBackgroundColor,
+    setLaunchMode,
+    setTowerStoneColor,
+    setTowerRoofColor,
+    setTowerFlagColor,
+    setTowerDoorColor,
     setBackgroundImage,
     setPalettesVisible
   } = useSettings()
@@ -110,6 +140,18 @@ export function StyleTab() {
   const selectedNumberColor = selectedOverride?.numberColor ?? diceNumberColor
   const previewSides = selectedDiceType === 'default' ? 20 : selectedDiceType
 
+  /** Tipos que têm cor própria gravada — são eles que "não mudam" quando a cor padrão muda. */
+  const tiposComCorPropria = Object.keys(diceColorOverrides).map(Number)
+
+  function handleApplyDefaultToAll(): void {
+    if (!confirm(t.styleTab.applyDefaultToAllConfirm.replace('{n}', String(tiposComCorPropria.length)))) return
+    for (const sides of tiposComCorPropria) clearDiceColorOverride(sides)
+  }
+
+  // Idem: consumidos só pelo seletor de modo de lançamento, segurado pra 0.1.8.
+  void launchMode
+  void setLaunchMode
+
   const activeFamily = PALETTE_FAMILIES.find((family) => family.id === paletteFamily) ?? PALETTE_FAMILIES[0]
   const activePreset = activeFamily.presets.find((preset) => sameColor(preset.bodyColor, selectedBodyColor))
   const activeTray = TRAY_PRESETS.find(
@@ -119,12 +161,20 @@ export function StyleTab() {
   const sceneColors: Record<SceneColorTarget, string> = {
     wall: wallColor,
     floor: floorColor,
-    background: backgroundColor
+    background: backgroundColor,
+    towerStone: towerStoneColor,
+    towerRoof: towerRoofColor,
+    towerFlag: towerFlagColor,
+    towerDoor: towerDoorColor
   }
   const setSceneColors: Record<SceneColorTarget, (value: string) => void> = {
     wall: setWallColor,
     floor: setFloorColor,
-    background: setBackgroundColor
+    background: setBackgroundColor,
+    towerStone: setTowerStoneColor,
+    towerRoof: setTowerRoofColor,
+    towerFlag: setTowerFlagColor,
+    towerDoor: setTowerDoorColor
   }
 
   /**
@@ -330,6 +380,38 @@ export function StyleTab() {
           />
         </fieldset>
 
+        {/*
+          Alvos da TORRE, em grupo próprio (ver `TOWER_TARGETS`). Marcar um deles manda a mesma roda
+          acima editar aquela cor — não existe uma segunda roda aqui.
+
+          Aparece sempre que a seção Cena está aberta, mesmo com a bandeja no modo simples: a torre
+          é uma preferência gravada como qualquer outra, e esconder o controle de quem não está com
+          ela ligada foi exatamente o que já aconteceu com o seletor de modo de lançamento — que
+          sumiu e deixou a torre inalcançável.
+        */}
+{/* Também segurado pra 0.1.8: sem a torre na tela, estas quatro cores editam o invisível.
+        {section === 'scene' && (
+          <fieldset className="style-group">
+            <legend>{t.styleTab.towerColors}</legend>
+            <div className="style-tab-targets">
+              {TOWER_TARGETS.map((target) => (
+                <Button
+                  key={target}
+                  selected={sceneTarget === target}
+                  onClick={() => setSceneTarget(target)}
+                >
+                  <span
+                    className="style-tab-type-swatch"
+                    style={{ background: sceneColors[target] }}
+                  />
+                  {t.styleTab.colorTargets[target]}
+                </Button>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        */}
+
         {section === 'dice' && (
           <>
             <fieldset className="style-group">
@@ -342,6 +424,25 @@ export function StyleTab() {
                 <Button variant="ghost" onClick={() => clearDiceColorOverride(selectedDiceType)}>
                   {t.styleTab.perDieColorReset}
                 </Button>
+              )}
+              {/*
+                Só com a linha "padrão" marcada, e só quando existe algum tipo com cor própria.
+
+                É a resposta pro "mudei a cor padrão e não mudou todos os dados": não é bug, é a
+                regra — um tipo com cor própria IGNORA a padrão, e a lista acima marca esses com `*`.
+                O que faltava era um jeito de desfazer isso de uma vez; um por um dá até oito cliques.
+
+                Avisa antes: as cores individuais somem, e isso não tem como voltar.
+              */}
+              {selectedDiceType === 'default' && tiposComCorPropria.length > 0 && (
+                <>
+                  <p className="style-tab-swatch-caption">
+                    {t.styleTab.applyDefaultToAllHint.replace('{n}', String(tiposComCorPropria.length))}
+                  </p>
+                  <Button variant="secondary" onClick={handleApplyDefaultToAll}>
+                    {t.styleTab.applyDefaultToAll}
+                  </Button>
+                </>
               )}
             </fieldset>
 
@@ -408,15 +509,33 @@ export function StyleTab() {
 
         {section === 'scene' && (
           <>
-            {/*
-              NÃO devolver o seletor de "Modo de lançamento" (bandeja × torre) aqui. Ele já esteve
-              nesta seção duas vezes e saiu de novo a pedido do usuário: "tira o modo de lançamento,
-              a torre é algo escondido, não demos pra frente". A torre continua inteira no código
-              (`createTowerScene`, os colliders, a física da rampa) e `launchMode` continua sendo uma
-              preferência de verdade — o que sai é só o caminho da interface até ela.
+{/*
+              O seletor de modo de lançamento VOLTOU, e desta vez a pedido explícito: "uma opção de
+              escolher se quer que tenha a torre ou não, ou se quer que jogue por cima como é o
+              padrão, ou se quer a torre ali só por decoração". Ele já tinha saído daqui duas vezes,
+              quando a torre era o mecanismo antigo (cena separada, dado caindo por dentro) e o
+              usuário a considerou "algo escondido, não demos pra frente" — o que mudou é que agora a
+              torre convive com a bandeja em vez de substituí-la, e as três opções são combinações de
+              cena e lançamento, não modos rivais.
+            */}
+{/*
+              SEGURADO PRA 0.1.8, junto com a torre inteira — decisão do usuário ao fechar a 0.1.7:
+              "ignora a parte das torres e lança o patch 0.1.7, deixa torre e ler pdf pro 0.1.8".
 
-              Da última vez a ausência do seletor foi tratada como bug ("a torre está inalcançável")
-              e ele voltou. Desta vez é decisão: só volta se o usuário pedir.
+              O que sai é só o CAMINHO até o modo, não o modo: `launchMode` continua sendo uma
+              preferência de verdade, a torre continua montando quando ele vale `tower`, e a física
+              da boca continua testada. Devolver isto é descomentar.
+
+              <fieldset className="style-group">
+                <legend>{t.styleTab.launchMode}</legend>
+                <div className="style-tab-options-row">
+                  {(['tray', 'tower', 'towerDecor'] as const).map((mode) => (
+                    <Button key={mode} selected={launchMode === mode} onClick={() => setLaunchMode(mode)}>
+                      {t.styleTab.launchModeOptions[mode]}
+                    </Button>
+                  ))}
+                </div>
+              </fieldset>
             */}
 
             {/*

@@ -84,3 +84,31 @@ export const LIGHT_CONFIG = {
     shadowFrustum: regularPolygonCircumradius(TRAY_CONFIG.apothem, TRAY_CONFIG.wallSegments) + 2
   }
 }
+
+/**
+ * Câmera do arranjo "torre AO LADO da bandeja" (ver `createTowerBesideTray.ts`): a bandeja de
+ * sempre, com a torre encostada numa das faces do hexágono.
+ *
+ * É a `CAMERA_CONFIG` com a posição multiplicada por 1.12 e a MESMA mira — a técnica que este
+ * projeto já usa em toda mudança de tamanho de cena (escalar a distância mantém o enquadramento
+ * relativo, só muda o alcance).
+ *
+ * O 1.37 saiu de medição, não de tentativa: bisseccionando sobre a caixa real da torre
+ * (`Box3.setFromObject` — não uma fórmula do "ponto mais alto", que envelhece a cada peça nova), o
+ * topo da flâmula fica em 9.42 e é esse o recuo que o põe dentro do quadro.
+ *
+ * Era 1.12 quando a torre terminava numa tampa chata. O telhado cônico e a flâmula da versão de
+ * fantasia somam quase 4 acima da casca, e foi isso que empurrou o recuo. O preço é a bandeja
+ * aparecer menor: cada ponto de recuo encolhe a superfície de jogo junto. Se um dia a torre baixar,
+ * este número tem que baixar junto — eles são um par, não dois ajustes independentes.
+ *
+ * O aspecto da janela não entra na conta: o `fov` do three.js é VERTICAL, então o que corta em cima
+ * independe da largura.
+ */
+export const TOWER_BESIDE_CAMERA_CONFIG = {
+  fov: 45,
+  near: 0.1,
+  far: 100,
+  position: [0, 17.81, 20.07] as const,
+  lookAt: [0, 0, -1.5] as const
+}

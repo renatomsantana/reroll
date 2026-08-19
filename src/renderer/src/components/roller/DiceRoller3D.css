@@ -114,9 +114,25 @@
   padding: 0 4px;
 }
 
+/**
+ * Os botões "-" e "+" com a MESMA caixa, quadrada, e o glifo centrado por flex.
+ *
+ * Sem largura fixa cada um ficava do tamanho do próprio caractere — e "-" é bem mais estreito que
+ * "+" na Tahoma —, então os dois nunca ficavam do mesmo tamanho nem alinhados entre um grupo de
+ * dados e outro. Centralizar por `align-items`/`justify-content` em vez de confiar no padding
+ * resolve também a altura: o traço do menos e a cruz do mais têm alturas de glifo diferentes, e
+ * padding igual não produz centro igual.
+ */
 .dice-roller-3d-group-chip .btn {
   font-size: 11px;
   min-width: auto;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .dice-roller-3d-mode {

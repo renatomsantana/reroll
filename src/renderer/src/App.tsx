@@ -181,8 +181,25 @@ export default function App() {
               result={compactLastResult}
               onRoll={handleCompactPresetRoll}
             />
-          ) : activeTab === 'roll' ? (
+          ) : (
             <>
+              {/*
+                A aba de ROLAGEM fica sempre montada, só escondida — as outras duas é que entram e
+                saem.
+
+                Ela era desmontada como as outras, e desmontar leva junto TODO o estado dela: os
+                dados montados, o modificador, o resultado da última rolagem e a cena 3D inteira.
+                Voltar pra aba reconstruía tudo do zero, e o usuário viu isso como "está resetando".
+                Não era estado mal guardado: era o componente deixando de existir.
+                
+                Esconder em vez de desmontar preserva o que ele já tinha e ainda evita reconstruir a
+                cena — que custa ~55ms de geometria e um pico de compilação de shader, o mesmo custo
+                que a remontagem por troca de dados tinha (ver o `key` em `DiceRoller3D.tsx`).
+              */}
+              <div
+                className="app-tab-roll"
+                style={{ display: activeTab === 'roll' ? 'contents' : 'none' }}
+              >
               <section className="app-section" style={{ flex: 1, minHeight: 0 }}>
                 <DiceRoller3D
                   ref={roller3DRef}
@@ -211,15 +228,19 @@ export default function App() {
                   rollDisabled={isAnyRollInProgress && launchMode === 'tower'}
                 />
               </section>
+              </div>
+
+              {activeTab === 'style' && (
+                <section className="app-section">
+                  <StyleTab />
+                </section>
+              )}
+              {activeTab === 'notes' && (
+                <section className="app-section">
+                  <NotesTab />
+                </section>
+              )}
             </>
-          ) : activeTab === 'style' ? (
-            <section className="app-section">
-              <StyleTab />
-            </section>
-          ) : (
-            <section className="app-section">
-              <NotesTab />
-            </section>
           )}
         </main>
       </div>
