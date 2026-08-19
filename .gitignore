@@ -37,3 +37,13 @@ COMO-PUBLICAR-UPDATE.txt
 tower.md.txt
 script.md
 dice_tower_parametric_prompt.md
+
+# Fichas de RPG em PDF trazidas pra desenvolver o importador (0.1.8). São material das editoras
+# (a de Ordem Paranormal é da Jambô) — ler pra extrair dado é uma coisa, republicar num repositório
+# público é outra.
+Fichas RPG/
+
+# Pasta de origem do modelo 3D da torre. O que o app usa é a cópia em
+# `src/renderer/src/assets/models/`, que essa sim vai versionada; manter as duas seria duas fontes
+# do mesmo arquivo, divergindo na primeira vez que uma for atualizada sem a outra.
+torre 3D/

@@ -1,10 +1,25 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useProfiles } from './ProfilesContext'
 import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
 import { DEFAULT_APP_ICON_ID, isValidAppIconId } from '@shared/appIcons'
 
 export type ThemeMode = 'day' | 'night'
 export type Language = 'pt-BR' | 'en-US'
-export type LaunchMode = 'tray' | 'tower'
+/**
+ * Como o dado entra na bandeja, e se a torre aparece — três opções, pedido do usuário ("uma opção de
+ * escolher se quer que tenha a torre ou não, ou se quer que jogue por cima como é o padrão, ou se
+ * quer a torre ali só por decoração"):
+ *
+ * - `tray`: sem torre. O dado é arremessado de fora e de cima da bandeja (`tossDie`) — o padrão de
+ *   sempre;
+ * - `tower`: a torre encostada no hexágono E o dado saindo da boca dela (`tossDieFromMouth`);
+ * - `towerDecor`: a torre na cena, mas o dado arremessado por cima como no `tray`. É a torre como
+ *   peça de cenário, sem participar da rolagem.
+ *
+ * As duas primeiras trocam a FÍSICA e por isso entram no `key` de remontagem em `DiceRoller3D.tsx`;
+ * a terceira também, porque muda a cena.
+ */
+export type LaunchMode = 'tray' | 'tower' | 'towerDecor'
 
 /**
  * Como o WASD dirige a câmera (pedido do usuário: "poder movimentar pela mesa inteira, ou deixar
@@ -56,7 +71,13 @@ export const FONT_OPTIONS = [
   {
     id: 'jetbrains-mono',
     label: 'JetBrains Mono',
-    family: "'JetBrains Mono', Consolas, 'Courier New', monospace"
+    family: "'JetBrains Mono', Consolas, 'Courier New', monospace",
+    /**
+     * Crédito de quem indicou a fonte, mostrado ao lado do nome na lista (ver `FontSelect.tsx`).
+     * Vive AQUI, junto da fonte, e não numa tabela à parte no componente: quem acrescentar uma fonte
+     * amanhã vai mexer nesta lista, e um crédito guardado longe é um crédito que se perde.
+     */
+    credit: 'by caio'
   },
   { id: 'impact', label: 'Impact', family: "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif" },
   // "MS" fora do rótulo a pedido do usuário — o nome real da fonte continua em `family`, que é o
@@ -70,7 +91,23 @@ export const FONT_OPTIONS = [
    * `Segoe Print` vem com o Windows e é escrita à mão irregular — não é Papyrus, mas é o parente
    * mais próximo disponível e, principalmente, não se disfarça de outra opção do menu.
    */
-  { id: 'papyrus', label: 'Papyrus', family: "Papyrus, 'Segoe Print', 'Ink Free', fantasy" }
+  { id: 'papyrus', label: 'Papyrus', family: "Papyrus, 'Segoe Print', 'Ink Free', fantasy" },
+  /**
+   * NÃO É EMPACOTADA — e não pode ser. A Janda Silly Monkey é da Kimberly Geswein, gratuita só pra
+   * USO PESSOAL; pôr o `.ttf` dentro do app (que é publicado no GitHub) seria redistribuição, e pra
+   * isso o autor cobra uma licença de aplicação à parte. O que existe aqui é só o NOME da família: se
+   * a fonte estiver instalada na máquina, o Chromium a encontra; se não estiver, cai no reserva.
+   *
+   * O reserva é `Ink Free` (manuscrita que vem com o Windows 10+) e não uma das outras opções desta
+   * lista, pela lição do Papyrus logo acima: quando a cadeia de reserva termina numa fonte que também
+   * é item do menu, escolher uma dá visivelmente a outra, e isso já virou bug relatado aqui.
+   */
+  {
+    id: 'janda-silly-monkey',
+    label: 'Janda Silly Monkey',
+    family: "'Janda Silly Monkey', 'Ink Free', cursive",
+    credit: 'by xuga'
+  }
 ] as const
 
 export type FontId = (typeof FONT_OPTIONS)[number]['id']
@@ -96,6 +133,15 @@ interface Settings {
   backgroundColor: string
   /** Cor do chão da bandeja — antes fixa (0x2b5b3f em `createScene.ts`), liberada pra customização junto do preset "Couro". */
   floorColor: string
+  /**
+   * Cores da torre que fica ao lado da bandeja (ver `createTowerBesideTray.ts`) — pedra, telhado
+   * ("bico"), flâmula e porta. Só aparecem no modo torre; ficam guardadas de qualquer jeito, como
+   * qualquer outra preferência de cor.
+   */
+  towerStoneColor: string
+  towerRoofColor: string
+  towerFlagColor: string
+  towerDoorColor: string
   /**
    * Id do ícone da janela/barra de tarefas (ver `shared/appIcons.ts`) — espelha o que está
    * persistido em `settings.json` no processo main (fonte de verdade real, porque o ícone
@@ -145,6 +191,12 @@ const DEFAULT_SETTINGS: Settings = {
   wallColor: '#6b4a2a',
   backgroundColor: '#000000',
   floorColor: '#243b6b',
+  // Espelham as `DEFAULT_TOWER_*` de `createTowerBesideTray.ts`, pra cena montada sem preferências
+  // cair exatamente no mesmo lugar.
+  towerStoneColor: '#45423a',
+  towerRoofColor: '#2f3542',
+  towerFlagColor: '#b03030',
+  towerDoorColor: '#4a3520',
   appIconId: DEFAULT_APP_ICON_ID,
   launchMode: 'tray',
   // `table` como padrão: é o modo que mais parece com o que já existia (orbitar/aproximar em volta
@@ -157,6 +209,61 @@ const DEFAULT_SETTINGS: Settings = {
 }
 
 const STORAGE_KEY = 'rolador-settings'
+
+/**
+ * O que é APARÊNCIA DO PERSONAGEM e por isso é guardado por perfil (ver `shared/types/profile.ts`):
+ * "os dados são customizados para o de Rodrigo, as cores, e já fica tudo salvo... mas quando eu
+ * voltar pro profile do Rodrigo, volta como era antes".
+ *
+ * Tudo que NÃO está nesta lista é preferência de quem usa o programa — idioma, tema, fonte, som,
+ * ícone do app, modo de câmera — e continua valendo pra todos os personagens. A divisão importa:
+ * ninguém quer o app trocando de idioma porque mudou de ficha.
+ */
+const PROFILE_LOOK_KEYS = [
+  'diceBodyColor',
+  'diceNumberColor',
+  'diceMaterial',
+  'diceColorOverrides',
+  'wallColor',
+  'backgroundColor',
+  'floorColor',
+  'towerStoneColor',
+  'towerRoofColor',
+  'towerFlagColor',
+  'towerDoorColor',
+  'backgroundImage',
+  'launchMode'
+] as const
+
+type ProfileLook = Pick<Settings, (typeof PROFILE_LOOK_KEYS)[number]>
+
+/** Uma chave de `localStorage` por personagem — trocar de perfil é ler outra chave, nada mais. */
+function lookStorageKey(profileId: string): string {
+  return `rolador-look::${profileId}`
+}
+
+function pickLook(settings: Settings): ProfileLook {
+  const look = {} as ProfileLook
+  for (const key of PROFILE_LOOK_KEYS) {
+    // @ts-expect-error — cópia chave a chave da mesma união de chaves; o tipo do resultado é garantido por `ProfileLook`.
+    look[key] = settings[key]
+  }
+  return look
+}
+
+/**
+ * Aparência gravada do personagem. Ausente (perfil novo, ou o primeiro a existir) devolve `null` pra
+ * quem chama cair no que já estava valendo — assim criar um personagem não joga a cena pro padrão de
+ * fábrica, ela começa parecida com a que a pessoa estava vendo.
+ */
+function loadLook(profileId: string): ProfileLook | null {
+  try {
+    const raw = localStorage.getItem(lookStorageKey(profileId))
+    return raw ? (JSON.parse(raw) as ProfileLook) : null
+  } catch {
+    return null
+  }
+}
 
 /**
  * Espera antes de gravar as preferências no `localStorage`. Gravar é síncrono e passa pelo
@@ -184,6 +291,10 @@ interface SettingsContextValue extends Settings {
   setWallColor: (value: string) => void
   setBackgroundColor: (value: string) => void
   setFloorColor: (value: string) => void
+  setTowerStoneColor: (value: string) => void
+  setTowerRoofColor: (value: string) => void
+  setTowerFlagColor: (value: string) => void
+  setTowerDoorColor: (value: string) => void
   setAppIconId: (value: string) => void
   setLaunchMode: (value: LaunchMode) => void
   setCameraMode: (value: CameraMode) => void
@@ -222,6 +333,28 @@ function loadInitial(): Settings {
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(loadInitial)
+  const { activeId } = useProfiles()
+  /**
+   * Guarda de qual perfil é a aparência que está em `settings` neste momento. Sem ela, o efeito de
+   * troca abaixo rodaria também no primeiro render e na volta de qualquer outra mudança de estado,
+   * regravando a aparência de um perfil por cima da do outro.
+   */
+  const lookProfileRef = useRef(activeId)
+
+  /**
+   * Troca de personagem: guarda a aparência do que estava aberto e carrega a do que entrou. É isto
+   * que faz "mudar de personagem e voltar" devolver as cores exatamente como estavam.
+   */
+  useEffect(() => {
+    const anterior = lookProfileRef.current
+    if (anterior === activeId) return
+    lookProfileRef.current = activeId
+    setSettings((atual) => {
+      localStorage.setItem(lookStorageKey(anterior), JSON.stringify(pickLook(atual)))
+      const proximo = loadLook(activeId)
+      return proximo ? { ...atual, ...proximo } : atual
+    })
+  }, [activeId])
 
   // Tema e fonte continuam aplicados na hora: são baratos (dois atributos no `<html>`) e qualquer
   // atraso aqui apareceria como a interface trocando de cara depois do clique.
@@ -232,12 +365,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [settings.theme, settings.fontId])
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(
-      () => localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)),
-      PERSIST_DEBOUNCE_MS
-    )
+    const timeoutId = window.setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+      localStorage.setItem(lookStorageKey(activeId), JSON.stringify(pickLook(settings)))
+    }, PERSIST_DEBOUNCE_MS)
     return () => window.clearTimeout(timeoutId)
-  }, [settings])
+  }, [settings, activeId])
 
   /**
    * Fechar a janela cancela o `setTimeout` pendente sem ele nunca ter rodado — então a última
@@ -247,10 +380,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     function persistNow() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+      localStorage.setItem(lookStorageKey(activeId), JSON.stringify(pickLook(settings)))
     }
     window.addEventListener('pagehide', persistNow)
     return () => window.removeEventListener('pagehide', persistNow)
-  }, [settings])
+  }, [settings, activeId])
 
   const value = useMemo<SettingsContextValue>(
     () => ({
@@ -280,6 +414,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setWallColor: (wallColor) => setSettings((prev) => ({ ...prev, wallColor })),
       setBackgroundColor: (backgroundColor) => setSettings((prev) => ({ ...prev, backgroundColor })),
       setFloorColor: (floorColor) => setSettings((prev) => ({ ...prev, floorColor })),
+      setTowerStoneColor: (towerStoneColor) => setSettings((prev) => ({ ...prev, towerStoneColor })),
+      setTowerRoofColor: (towerRoofColor) => setSettings((prev) => ({ ...prev, towerRoofColor })),
+      setTowerFlagColor: (towerFlagColor) => setSettings((prev) => ({ ...prev, towerFlagColor })),
+      setTowerDoorColor: (towerDoorColor) => setSettings((prev) => ({ ...prev, towerDoorColor })),
       setAppIconId: (appIconId) => {
         setSettings((prev) => ({ ...prev, appIconId }))
         void window.api.windowControls.setAppIcon(appIconId)

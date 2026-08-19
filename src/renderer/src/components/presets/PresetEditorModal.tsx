@@ -103,16 +103,32 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
           <div className="preset-editor-groups">
             {groups.map((group, index) => (
               <div key={index} className="preset-editor-group-row">
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={group.count}
-                  onChange={(e) =>
-                    updateGroup(index, { count: Math.max(1, Number(e.target.value) || 1) })
-                  }
-                  aria-label={t.roller.quantityLabel}
-                />
+                {/*
+                  Mesma dupla "-" / "+" do rolador, no lugar do campo numérico — pedido do usuário
+                  ("muda a aumentar e diminuir dado dos presets, coloca o - e + também"). Além de
+                  ficar igual aos dois lugares, tira a digitação livre: o campo aceitava qualquer
+                  número e só corrigia depois, então dava pra ver "0" ou um valor absurdo enquanto se
+                  escrevia.
+                */}
+                <div className="preset-editor-count" aria-label={t.roller.quantityLabel}>
+                  <Button
+                    variant="ghost"
+                    aria-label="-"
+                    disabled={group.count <= 1}
+                    onClick={() => updateGroup(index, { count: Math.max(1, group.count - 1) })}
+                  >
+                    -
+                  </Button>
+                  <span>{group.count}</span>
+                  <Button
+                    variant="ghost"
+                    aria-label="+"
+                    disabled={group.count >= 100}
+                    onClick={() => updateGroup(index, { count: Math.min(100, group.count + 1) })}
+                  >
+                    +
+                  </Button>
+                </div>
                 <select
                   value={group.sides}
                   onChange={(e) => updateGroup(index, { sides: Number(e.target.value) })}

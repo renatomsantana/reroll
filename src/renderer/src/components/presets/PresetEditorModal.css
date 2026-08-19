@@ -54,8 +54,37 @@
   align-items: center;
 }
 
-.preset-editor-group-row input[type='number'] {
-  width: 56px;
+/**
+ * Contador de dados: os mesmos botões quadrados do rolador (ver `.dice-roller-3d-group-chip`), com
+ * o número no meio. A caixa em degrau para dentro é a que o campo numérico tinha — o controle mudou
+ * de mecanismo, não de aparência.
+ */
+.preset-editor-count {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 2px inset var(--win-highlight);
+  padding: 1px 3px;
+  background: var(--win-input-bg);
+}
+
+.preset-editor-count span {
+  min-width: 22px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.preset-editor-count .btn {
+  font-size: 11px;
+  min-width: auto;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .preset-editor-warning {

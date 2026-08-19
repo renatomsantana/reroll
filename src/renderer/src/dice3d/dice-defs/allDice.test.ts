@@ -12,7 +12,9 @@ const WORLD_DOWN: Vector3Tuple = [0, -1, 0]
 const OPPOSITE_FACE_SUM: Partial<Record<number, number>> = {
   6: 7,
   8: 9,
-  10: 9,
+  // 9 → 11: o d10 era numerado 0-9 (o d10 de dezena, cujos opostos somam 9) e passou a ser 1-10,
+  // cuja convenção é somar 11. Ver o comentário dos valores em `d10.ts`.
+  10: 11,
   12: 13,
   20: 21
 }
@@ -67,6 +69,22 @@ describe('DiceDefinition — geometria e leitura de todos os tipos de dado', () 
           }
         })
       }
+    })
+  }
+})
+
+/**
+ * "Nenhum dado tira 0, apenas 1 até o máximo" — a regra que o usuário enunciou ao reportar o d10
+ * numerado 0-9. Vale pra todo tipo, e é aqui que fica: um dado com uma face fora do intervalo, ou com
+ * dois valores repetidos, é um dado quebrado mesmo que a geometria e a leitura estejam perfeitas.
+ */
+describe('valores das faces — todo dado sorteia de 1 até o número de lados', () => {
+  for (const sides of AVAILABLE_DICE_TYPES) {
+    it(`d${sides} tem exatamente os valores 1..${sides}, cada um uma vez`, () => {
+      const valores = DICE_REGISTRY[sides].definition.faces.map((face) => face.value)
+      expect([...valores].sort((a, b) => a - b)).toEqual(
+        Array.from({ length: sides }, (_, i) => i + 1)
+      )
     })
   }
 })

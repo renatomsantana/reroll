@@ -106,6 +106,10 @@ export interface TranslationDict {
     numberColor: string
     perDieColor: string
     perDieColorReset: string
+    /** Botão que faz a cor PADRÃO valer pra todos os tipos, descartando as cores individuais. */
+    applyDefaultToAll: string
+    applyDefaultToAllConfirm: string
+    applyDefaultToAllHint: string
     defaultColorOption: string
     material: string
     materialOptions: { matte: string; metallic: string; plastic: string; glass: string }
@@ -132,7 +136,14 @@ export interface TranslationDict {
       wall: string
       floor: string
       background: string
+      /** As quatro da torre ao lado da bandeja (`createTowerBesideTray.ts`) — só aparecem no modo torre. */
+      towerStone: string
+      towerRoof: string
+      towerFlag: string
+      towerDoor: string
     }
+    /** Legenda do grupo com os alvos de cor da torre. */
+    towerColors: string
     trayPresets: string
     /**
      * O SELETOR de modo de lançamento saiu da aba Estilo (ver o comentário em `StyleTab.tsx`) — a
@@ -140,7 +151,7 @@ export interface TranslationDict {
      * continuam aqui porque `launchMode` continua sendo uma preferência gravada de verdade.
      */
     launchMode: string
-    launchModeOptions: { tray: string; tower: string }
+    launchModeOptions: { tray: string; tower: string; towerDecor: string }
     /** Estados do olho que trava a câmera nos dados (`CameraModeSwitch.tsx`). */
     cameraLockOn: string
     cameraLockOff: string
@@ -169,6 +180,23 @@ export interface TranslationDict {
     dayNew: string
     dayDelete: string
     dayDeleteConfirm: string
+    /** Rótulo do seletor que pula direto pra uma sessão, sem passar de uma em uma pelas setas. */
+    dayJump: string
+    /**
+     * Texto de exemplo do campo de título da sessão. É um convite ("Bote um título"), não o número da
+     * página: o número já está no contador ao lado, e um campo que mostra "Sessão 3" sozinho parece
+     * rótulo preenchido, não campo vazio esperando um nome.
+     */
+    dayTitlePlaceholder: string
+    /** Bloco do PERFIL do personagem (foto, nome, sistema) — ver `shared/types/profile.ts`. */
+    profileSystem: string
+    profilePhoto: string
+    profilePhotoEmpty: string
+    profileNew: string
+    profileDelete: string
+    profileDeleteConfirm: string
+    profileUnnamed: string
+    profileSwitch: string
     fontDefault: string
     boldLabel: string
     italicLabel: string
@@ -235,7 +263,7 @@ export const translations: Record<Language, TranslationDict> = {
       hint: 'Dica: com o campo de ícone selecionado, pressione Win + . pra abrir o seletor de emojis completo do Windows.'
     },
     statusBar: {
-      shortcutsHint: 'Enter/Espaço rola · WASD move a câmera · Esc fecha · Ctrl+N novo preset'
+      shortcutsHint: 'Enter/Espaço : ROLL! · WASD move a câmera · Esc fecha · Ctrl+N novo preset'
     },
     history: {
       title: 'Histórico',
@@ -293,7 +321,12 @@ export const translations: Record<Language, TranslationDict> = {
       bodyColor: 'Cor do dado',
       numberColor: 'Cor do número',
       perDieColor: 'Cor dos dados',
-      perDieColorReset: 'Usar cor padrão',
+      perDieColorReset: 'Usar a cor padrão neste dado',
+      applyDefaultToAll: 'Aplicar a todos os dados',
+      applyDefaultToAllConfirm:
+        'Aplicar a cor padrão a TODOS os dados?\n\nOs {n} tipo(s) com cor própria voltam pra padrão, e essas cores se perdem.',
+      applyDefaultToAllHint:
+        '{n} tipo(s) com cor própria — eles ignoram a cor padrão até você aplicar aqui.',
       defaultColorOption: 'Padrão',
       material: 'Acabamento',
       materialOptions: {
@@ -321,11 +354,16 @@ export const translations: Record<Language, TranslationDict> = {
         number: 'Número',
         wall: 'Parede',
         floor: 'Veludo',
-        background: 'Fundo'
+        background: 'Fundo',
+        towerStone: 'Torre',
+        towerRoof: 'Bico',
+        towerFlag: 'Bandeira',
+        towerDoor: 'Porta'
       },
+      towerColors: 'Cores da torre',
       trayPresets: 'Estilos de bandeja prontos',
       launchMode: 'Modo de lançamento',
-      launchModeOptions: { tray: 'Bandeja', tower: 'Torre' },
+      launchModeOptions: { tray: 'Sem torre', tower: 'Torre rolando', towerDecor: 'Torre de enfeite' },
       cameraLockOn: 'Câmera travada nos dados — clique pra soltar (WASD move, Q/E sobe e desce)',
       cameraLockOff: 'Câmera solta — clique pra travar nos dados (WASD move, Q/E sobe e desce)',
       backgroundImage: 'Imagem de fundo',
@@ -340,13 +378,24 @@ export const translations: Record<Language, TranslationDict> = {
       appearanceBlock: 'Aparência',
       backstoryBlock: 'Backstory',
       notesBlock: 'Bloco',
-      dayNumber: 'Dia {n}',
+      dayNumber: 'Sessão {n}',
       dayCounter: '{current}/{total}',
-      dayPrev: 'Dia anterior',
-      dayNext: 'Próximo dia',
-      dayNew: 'Novo dia',
-      dayDelete: 'Apagar este dia',
-      dayDeleteConfirm: 'Apagar "{day}"? O que estiver escrito nesse dia se perde.',
+      dayPrev: 'Sessão anterior',
+      dayNext: 'Próxima sessão',
+      dayNew: 'Nova sessão',
+      dayDelete: 'Apagar esta sessão',
+      dayDeleteConfirm: 'Apagar "{day}"? O que estiver escrito nessa sessão se perde.',
+      dayJump: 'Ir para a sessão',
+      dayTitlePlaceholder: 'Bote um título',
+      profileSystem: 'Sistema',
+      profilePhoto: 'Escolher foto',
+      profilePhotoEmpty: 'sem foto',
+      profileNew: 'Novo personagem',
+      profileDelete: 'Apagar personagem',
+      profileDeleteConfirm:
+        'Apagar "{name}" da lista? As anotações e os presets dele continuam no disco, mas ele some daqui.',
+      profileUnnamed: 'Personagem {n}',
+      profileSwitch: 'Trocar de personagem',
       fontDefault: 'Fonte padrão',
       boldLabel: 'Negrito',
       italicLabel: 'Itálico',
@@ -415,7 +464,7 @@ export const translations: Record<Language, TranslationDict> = {
       hint: 'Tip: with the icon field selected, press Win + . to open the full Windows emoji picker.'
     },
     statusBar: {
-      shortcutsHint: 'Enter/Space rolls · WASD moves the camera · Esc closes · Ctrl+N new preset'
+      shortcutsHint: 'Enter/Space : ROLL! · WASD moves the camera · Esc closes · Ctrl+N new preset'
     },
     history: {
       title: 'History',
@@ -473,7 +522,12 @@ export const translations: Record<Language, TranslationDict> = {
       bodyColor: 'Dice color',
       numberColor: 'Number color',
       perDieColor: 'Dice colors',
-      perDieColorReset: 'Use default color',
+      perDieColorReset: 'Use the default colour on this die',
+      applyDefaultToAll: 'Apply to every die',
+      applyDefaultToAllConfirm:
+        'Apply the default colour to EVERY die?\n\nThe {n} type(s) with their own colour go back to the default, and those colours are lost.',
+      applyDefaultToAllHint:
+        '{n} type(s) have their own colour — they ignore the default until you apply it here.',
       defaultColorOption: 'Default',
       material: 'Finish',
       materialOptions: {
@@ -501,11 +555,16 @@ export const translations: Record<Language, TranslationDict> = {
         number: 'Number',
         wall: 'Wall',
         floor: 'Velvet',
-        background: 'Background'
+        background: 'Background',
+        towerStone: 'Tower',
+        towerRoof: 'Spire',
+        towerFlag: 'Flag',
+        towerDoor: 'Door'
       },
+      towerColors: 'Tower colours',
       trayPresets: 'Ready-made tray styles',
       launchMode: 'Launch mode',
-      launchModeOptions: { tray: 'Tray', tower: 'Tower' },
+      launchModeOptions: { tray: 'No tower', tower: 'Tower rolls', towerDecor: 'Tower as decor' },
       cameraLockOn: 'Camera locked on the dice — click to release (WASD moves, Q/E up and down)',
       cameraLockOff: 'Camera free — click to lock on the dice (WASD moves, Q/E up and down)',
       backgroundImage: 'Background image',
@@ -520,13 +579,24 @@ export const translations: Record<Language, TranslationDict> = {
       appearanceBlock: 'Appearance',
       backstoryBlock: 'Backstory',
       notesBlock: 'Notepad',
-      dayNumber: 'Day {n}',
+      dayNumber: 'Session {n}',
       dayCounter: '{current}/{total}',
-      dayPrev: 'Previous day',
-      dayNext: 'Next day',
-      dayNew: 'New day',
-      dayDelete: 'Delete this day',
-      dayDeleteConfirm: 'Delete "{day}"? Anything written on that day is lost.',
+      dayPrev: 'Previous session',
+      dayNext: 'Next session',
+      dayNew: 'New session',
+      dayDelete: 'Delete this session',
+      dayDeleteConfirm: 'Delete "{day}"? Anything written in that session is lost.',
+      dayJump: 'Jump to session',
+      dayTitlePlaceholder: 'Give it a title',
+      profileSystem: 'System',
+      profilePhoto: 'Choose photo',
+      profilePhotoEmpty: 'no photo',
+      profileNew: 'New character',
+      profileDelete: 'Delete character',
+      profileDeleteConfirm:
+        'Remove "{name}" from the list? Their notes and presets stay on disk, but they disappear from here.',
+      profileUnnamed: 'Character {n}',
+      profileSwitch: 'Switch character',
       fontDefault: 'Default font',
       boldLabel: 'Bold',
       italicLabel: 'Italic',

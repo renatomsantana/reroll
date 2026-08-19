@@ -5,11 +5,13 @@ import { registerNotesHandlers } from './ipc/registerNotesHandlers'
 import { registerWindowHandlers } from './ipc/registerWindowHandlers'
 import { resolveAppIconPath } from './appIconPaths'
 import { registerSceneBackgroundHandlers } from './ipc/registerSceneBackgroundHandlers'
+import { registerProfilesHandlers } from './ipc/registerProfilesHandlers'
 import { registerUpdateHandlers } from './updater'
 import { PresetsRepository } from './storage/PresetsRepository'
 import { NotesRepository } from './storage/NotesRepository'
 import { SettingsRepository } from './storage/SettingsRepository'
-import { SPLASH_SIZE } from './windowSizes'
+import { ProfilesRepository } from './storage/ProfilesRepository'
+import { SPLASH_SIZE } from '@shared/windowSizes'
 
 /**
  * Identidade do app pro Windows. Tem que ser LITERALMENTE o mesmo texto do `appId` em
@@ -95,10 +97,20 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(async () => {
-    const presetsRepository = new PresetsRepository()
+    /**
+     * Os perfis vêm PRIMEIRO e com `await`: são eles que dizem de qual pasta saem anotações e
+     * presets (ver `ProfilesRepository.activeDirectory`). Sem o `init` concluído, a primeira leitura
+     * de anotações cairia na pasta do perfil padrão mesmo que o usuário tenha outro aberto — e o
+     * `init` é também quem migra o `notes.json`/`presets.json` soltos de quem já usava o app.
+     */
+    const profilesRepository = new ProfilesRepository()
+    await profilesRepository.init()
+    registerProfilesHandlers(profilesRepository)
+
+    const presetsRepository = new PresetsRepository(profilesRepository)
     registerPresetsHandlers(presetsRepository)
 
-    const notesRepository = new NotesRepository()
+    const notesRepository = new NotesRepository(profilesRepository)
     registerNotesHandlers(notesRepository)
 
     registerSceneBackgroundHandlers()

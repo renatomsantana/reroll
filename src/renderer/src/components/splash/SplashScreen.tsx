@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import introUrl from '../../assets/sounds/balatro-theme.mp3'
 import { appIconImage } from '../../assets/icons'
+import { SPLASH_SIZE } from '@shared/windowSizes'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import './SplashScreen.css'
@@ -17,6 +18,9 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   const { soundEnabled, appIconId } = useSettings()
   const [progress, setProgress] = useState(0)
   const [version, setVersion] = useState('')
+  const trackRef = useRef<HTMLDivElement>(null)
+  /** Quantos tijolos cabem na barra e qual o passo (tijolo + vão) — medidos do CSS na montagem. */
+  const [brickLayout, setBrickLayout] = useState({ count: 0, step: 0 })
   const onFinishRef = useRef(onFinish)
   onFinishRef.current = onFinish
   // Mesmo ícone escolhido nas Preferências (ver `shared/appIcons.ts`) — era uma imagem própria
@@ -30,6 +34,26 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   // tem acesso a arquivo.
   useEffect(() => {
     void window.api.update.getVersion().then(setVersion)
+  }, [])
+
+  /**
+   * Conta quantos tijolos INTEIROS cabem na barra, medindo o elemento de verdade — a janela do
+   * splash tem tamanho fixo, mas a largura útil depende do padding e das bordas em degrau, e chutar
+   * isso é como o bloco da ponta acabava cortado.
+   *
+   * `n` tijolos ocupam `n * tijolo + (n - 1) * vão`, porque o vão só existe ENTRE eles: daí o
+   * `(útil + vão) / passo`. Esquecer esse detalhe tira um tijolo do fim da barra.
+   */
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+    const styles = getComputedStyle(track)
+    const brick = parseFloat(styles.getPropertyValue('--splash-brick-width'))
+    const gap = parseFloat(styles.getPropertyValue('--splash-brick-gap'))
+    if (!Number.isFinite(brick) || !Number.isFinite(gap)) return
+    const step = brick + gap
+    const usable = track.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight)
+    setBrickLayout({ count: Math.max(1, Math.floor((usable + gap) / step)), step })
   }, [])
 
   useEffect(() => {
@@ -80,7 +104,23 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
   return (
     <div className="splash-screen">
-      <div className="splash-window">
+      {/*
+        TRAVADA no tamanho da janela do splash, e centralizada.
+
+        Sem isto a caixa era `100% × 100%` e crescia junto com a janela: ao terminar, o app pede o
+        redimensionamento pro tamanho cheio (1300×800) e só ESCONDE o splash quando a animação de
+        ~280ms acaba — ou seja, durante toda a animação o splash continua na tela sendo esticado de
+        360×320 até 1300×800. Era o "fica uma tela esticada" que o usuário reportou: a barra de
+        título alongando, o logo e a barra de progresso se afastando.
+
+        Com o teto, a caixa fica do tamanho que foi desenhada e o que cresce é só a área em volta.
+        No tamanho de partida ela preenche a janela inteira exatamente, então nada de fundo aparece
+        na abertura — que era o pedido original de "só a tela de carregamento, sem moldura".
+      */}
+      <div
+        className="splash-window"
+        style={{ maxWidth: SPLASH_SIZE.width, maxHeight: SPLASH_SIZE.height }}
+      >
         {/*
           O ícone do app, igual à barra de título da janela cheia (`TitleBar.tsx`). Aqui era um
           emoji 🎲 fixo — um dadinho branco de seis lados, que não é nem a arte do app nem sequer o
@@ -100,8 +140,22 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           {/* Espaço rígido enquanto o IPC não respondeu: vazio colapsaria a linha e faria a
               barra de progresso e o crédito saltarem pra cima no primeiro quadro. */}
           <div className="splash-version">{version ? `v${version}` : '\u00a0'}</div>
-          <div className="splash-progress-track">
-            <div className="splash-progress-fill" style={{ width: `${progress}%` }} />
+          {/*
+            A largura vai em MÚLTIPLOS DE UM TIJOLO, não em porcentagem — pedido do usuário: "faz ser
+            cada teco de carregamento, não apenas uma barra... tipo tijolo por tijolo".
+            A barra já era desenhada com blocos (um gradiente repetido), mas a largura era contínua, e
+            o gradiente é só pintura: ele não sabe onde a barra termina. O bloco da ponta vivia
+            cortado no meio, e um bloco pela metade lê como barra deslizando.
+            Enquanto a medição não terminou (`count` = 0) a barra fica vazia, em vez de cair na
+            porcentagem contínua por um quadro.
+          */}
+          <div className="splash-progress-track" ref={trackRef}>
+            <div
+              className="splash-progress-fill"
+              style={{
+                width: `${Math.floor((progress / 100) * brickLayout.count) * brickLayout.step}px`
+              }}
+            />
           </div>
           <div className="splash-credit">{t.credit}</div>
         </div>

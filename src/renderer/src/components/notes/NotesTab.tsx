@@ -1,18 +1,31 @@
-import type { CSSProperties } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useNotes } from '@renderer/hooks/useNotes'
+import { FONT_OPTIONS, type FontId } from '@renderer/settings/SettingsContext'
+import { FontSelect, type FontSelectValue } from '../chrome/FontSelect'
+import { ProfileSelect } from './ProfileSelect'
+import { useProfiles } from '@renderer/settings/ProfilesContext'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import './NotesTab.css'
 
-const NOTES_FONTS = [
-  { value: '', label: '' },
-  { value: 'Tahoma, "MS Sans Serif", Geneva, sans-serif', label: 'Tahoma' },
-  { value: '"Times New Roman", serif', label: 'Times New Roman' },
-  { value: '"Courier New", Courier, monospace', label: 'Courier New' },
-  { value: '"Comic Sans MS", cursive', label: 'Comic Sans' },
-  { value: 'Arial, sans-serif', label: 'Arial' }
-]
+/**
+ * O bloco guarda a fonte como FAMÍLIA CSS (`"Comic Sans MS", cursive`), e o seletor trabalha com o
+ * ID da fonte. Estas duas funções fazem a ponte.
+ *
+ * Guardar a família, e não o id, é o formato que já está gravado no `notes.json` de quem usa o app —
+ * mudar isso exigiria migrar arquivo por um ganho nenhum. O preço é este par de conversões, e um
+ * detalhe honesto: quem tiver gravada uma das cinco fontes da lista ANTIGA das anotações (ela tinha
+ * cadeias de reserva próprias, e uma Arial que nem existe nas Preferências) não vai bater com
+ * nenhuma família daqui e cai em "fonte padrão". É uma vez só, na primeira abertura.
+ */
+function familyToFontId(family: string): FontSelectValue {
+  return (FONT_OPTIONS.find((font) => font.family === family)?.id as FontId | undefined) ?? ''
+}
+
+function fontIdToFamily(id: FontSelectValue): string {
+  return FONT_OPTIONS.find((font) => font.id === id)?.family ?? ''
+}
 
 /**
  * Ficha de RPG: o nome do personagem no topo e quatro blocos — inventário, aparência, backstory e o
@@ -30,6 +43,30 @@ const NOTES_FONTS = [
 export function NotesTab() {
   const t = useTranslation()
   const { notes, saveError, updateField, updatePage, goToPage, addPage, removePage } = useNotes()
+  const profiles = useProfiles()
+
+  const nomeDoPerfil = (index: number): string =>
+    profiles.profiles[index].name || t.notesTab.profileUnnamed.replace('{n}', String(index + 1))
+
+  /**
+   * Adota UMA VEZ o nome que estava em `notes.characterName`, de quem já usava o app antes de
+   * existirem perfis. Sem isso a pessoa abriria a ficha e veria o campo de nome vazio, com o nome
+   * antigo preso dentro do arquivo de anotações e sem nenhum caminho até ele.
+   *
+   * A condição é estreita de propósito — só quando o perfil ainda não tem nome nenhum —, então isto
+   * nunca sobrescreve um nome escrito de verdade.
+   */
+  useEffect(() => {
+    if (profiles.active.name || !notes.characterName) return
+    profiles.update(profiles.activeId, { name: notes.characterName })
+  }, [notes.characterName, profiles.active.name, profiles.activeId])
+
+  function handleRemoveProfile(): void {
+    const index = profiles.profiles.findIndex((p) => p.id === profiles.activeId)
+    if (profiles.profiles.length <= 1) return
+    if (!confirm(t.notesTab.profileDeleteConfirm.replace('{name}', nomeDoPerfil(index)))) return
+    profiles.remove(profiles.activeId)
+  }
 
   const page = notes.pages[notes.currentPage]
   const dayLabel = t.notesTab.dayNumber.replace('{n}', String(notes.currentPage + 1))
@@ -65,13 +102,16 @@ export function NotesTab() {
   return (
     <Card className="notes-tab">
       <div className="notes-toolbar">
-        <select value={notes.font} onChange={(e) => updateField('font', e.target.value)}>
-          {NOTES_FONTS.map((font) => (
-            <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
-              {font.label || t.notesTab.fontDefault}
-            </option>
-          ))}
-        </select>
+{/*
+          O MESMO seletor das Preferências, e não um `<select>` nativo — que era o que faltava pras
+          caveirinhas do Sans e do Papyrus aparecerem aqui: `<option>` não desenha imagem em navegador
+          nenhum, e é por isso que aquele componente existe (ver `FontSelect.tsx`).
+        */}
+        <FontSelect
+          value={familyToFontId(notes.font)}
+          onChange={(value) => updateField('font', fontIdToFamily(value))}
+          defaultLabel={t.notesTab.fontDefault}
+        />
         <button
           type="button"
           className={`fmt-btn fmt-btn-bold ${notes.bold ? 'active' : ''}`}
@@ -116,16 +156,82 @@ export function NotesTab() {
         {saveError && <span className="notes-save-error">{t.notesTab.saveError}</span>}
       </div>
 
-      {/* Nome do personagem: faixa própria atravessando a ficha inteira, como cabeçalho de ficha impressa. */}
+{/*
+        PERFIL do personagem: foto, nome, sistema e o seletor que troca de personagem — pedido do
+        usuário ("um espaço para poder selecionar o profile do personagem, tipo nome e qual sistema
+        de rpg, e aí precisa colocar uma foto também").
+
+        Trocar aqui troca TUDO: anotações, presets e as cores da cena vêm da pasta e das preferências
+        daquele personagem (ver `ProfilesContext` e `PROFILE_LOOK_KEYS`). Fica nesta faixa, que já era
+        o cabeçalho da ficha, porque é literalmente a mesma informação — só que agora ela identifica
+        um compartimento inteiro em vez de ser um campo de texto solto.
+
+        O nome mora no PERFIL, não mais em `notes.characterName`: é ele que aparece no seletor. O
+        campo antigo continua no arquivo de anotações e é adotado uma vez, pra quem já tinha um nome
+        escrito antes de existirem perfis não achar que perdeu.
+      */}
       <fieldset className="notes-group notes-group-name">
         <legend>{t.notesTab.sheetBlock}</legend>
-        <label className="notes-field">
-          <span>{t.notesTab.name}</span>
-          <input
-            value={notes.characterName}
-            onChange={(e) => updateField('characterName', e.target.value)}
-          />
-        </label>
+        <div className="notes-profile">
+          <button
+            type="button"
+            className="notes-profile-photo"
+            title={t.notesTab.profilePhoto}
+            onClick={() => void profiles.pickPhoto(profiles.activeId)}
+          >
+            {profiles.active.photo ? (
+              <img src={profiles.active.photo} alt="" />
+            ) : (
+              <span>{t.notesTab.profilePhotoEmpty}</span>
+            )}
+          </button>
+
+          <div className="notes-profile-fields">
+            <label className="notes-field">
+              <span>{t.notesTab.name}</span>
+              <input
+                value={profiles.active.name}
+                onChange={(e) => profiles.update(profiles.activeId, { name: e.target.value })}
+              />
+            </label>
+            <label className="notes-field">
+              <span>{t.notesTab.profileSystem}</span>
+              <input
+                value={profiles.active.system}
+                placeholder="Ordem Paranormal, Kids on Bikes, Oblivio..."
+                onChange={(e) => profiles.update(profiles.activeId, { system: e.target.value })}
+              />
+            </label>
+          </div>
+
+          <div className="notes-profile-actions">
+{/*
+              Seletor PRÓPRIO, não um `<select>` nativo: a lista mostra a miniatura 3×4 de cada
+              personagem ao lado do nome, e `<option>` não desenha imagem em navegador nenhum — a
+              mesma parede que fez o seletor de fonte existir.
+            */}
+            <ProfileSelect
+              profiles={profiles.profiles}
+              activeId={profiles.activeId}
+              onSelect={profiles.select}
+              fallbackName={nomeDoPerfil}
+              label={t.notesTab.profileSwitch}
+              emptyPhotoLabel={t.notesTab.profilePhotoEmpty}
+            />
+            <Button variant="secondary" onClick={profiles.create}>
+              {t.notesTab.profileNew}
+            </Button>
+            <Button
+              variant="ghost"
+              title={t.notesTab.profileDelete}
+              aria-label={t.notesTab.profileDelete}
+              disabled={profiles.profiles.length <= 1}
+              onClick={handleRemoveProfile}
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
       </fieldset>
 
       <div className="notes-layout">
@@ -159,9 +265,28 @@ export function NotesTab() {
               <input
                 className="notes-diary-title"
                 value={page.title}
-                placeholder={dayLabel}
+                placeholder={t.notesTab.dayTitlePlaceholder}
                 onChange={(e) => updatePage({ title: e.target.value })}
               />
+              {/*
+                Salto direto pra qualquer sessão. As setas continuam, mas sozinhas elas só servem
+                pra um punhado de páginas: com vinte sessões, chegar na terceira a partir da última
+                são dezessete cliques. O seletor mostra o nome escrito pela pessoa, ou "Sessão N"
+                pela posição quando ela não escreveu nada — a mesma regra do campo de título.
+              */}
+              <select
+                className="notes-diary-jump"
+                title={t.notesTab.dayJump}
+                aria-label={t.notesTab.dayJump}
+                value={notes.currentPage}
+                onChange={(e) => goToPage(Number(e.target.value))}
+              >
+                {notes.pages.map((item, index) => (
+                  <option key={item.id} value={index}>
+                    {item.title || t.notesTab.dayNumber.replace('{n}', String(index + 1))}
+                  </option>
+                ))}
+              </select>
               <span className="notes-diary-count">
                 {t.notesTab.dayCounter
                   .replace('{current}', String(notes.currentPage + 1))

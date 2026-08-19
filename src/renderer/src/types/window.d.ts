@@ -1,6 +1,7 @@
 import type { Preset, PresetInput } from '@shared/types/preset'
 import type { NotesData } from '@shared/types/notes'
 import type { UpdateStatus } from '@shared/types/update'
+import type { ProfilesState } from '@shared/types/profile'
 
 export interface RolladorApi {
   presets: {
@@ -10,6 +11,12 @@ export interface RolladorApi {
     delete: (id: string) => Promise<void>
     exportToFile: () => Promise<string | null>
     importFromFile: () => Promise<Preset[] | null>
+  }
+  /** Perfis de personagem (ver `shared/types/profile.ts`) — lista, qual está aberto e a foto. */
+  profiles: {
+    get: () => Promise<ProfilesState>
+    save: (state: ProfilesState) => Promise<ProfilesState>
+    pickPhoto: () => Promise<string | null>
   }
   notes: {
     get: () => Promise<NotesData>

@@ -17,6 +17,38 @@
 }
 
 /**
+ * Encostado na quina de baixo à direita — pedido do usuário ("lá no cantinho"). A barra tem 6px de
+ * respiro dos dois lados; o crédito anula o da direita com margem negativa e desce 1px, pra ficar
+ * na quina de verdade em vez de flutuar perto dela. Fica também um ponto menor e mais apagado que os
+ * atalhos: é assinatura, não informação que alguém precise ler.
+ */
+.statusbar-credit {
+  /**
+   * Um respiro da borda direita. Era `-4px`, que anulava o padding da barra e colava o texto na
+   * quina — o usuário achou colado demais. `2px` deixa ele a 8px do canto (os 6px de padding da
+   * barra mais estes 2), perto o bastante pra continuar lendo como assinatura de canto, sem encostar.
+   */
+  margin-right: 2px;
+  font-size: 9px;
+  opacity: 0.6;
+}
+
+/**
+ * Os dois textos sobem 1px.
+ *
+ * O crédito tinha `align-self: flex-end` e `margin-bottom: -1px` pra encostar na quina, e o efeito
+ * foi ele ficar CORTADO na borda de baixo da barra — "está escondido", como o usuário descreveu.
+ * Encostar na quina é a posição horizontal (a margem negativa da direita, que fica); na vertical o
+ * lugar certo é centralizado, e com um pixel a mais pra cima os dois textos param de tocar o degrau
+ * inferior da barra.
+ */
+.statusbar-shortcuts,
+.statusbar-credit {
+  position: relative;
+  top: -1px;
+}
+
+/**
  * Aviso de versão nova. É um botão (leva pras Preferências) mas NÃO tem cara de botão: nesta barra
  * de 18px um degrau de 2px não caberia, e o aviso não pode competir com a cena. O que diz que é
  * clicável é o sublinhado e a cor de destaque, como um item de barra de status do 98.
