@@ -36,9 +36,34 @@ export class ProfilesRepository {
 
   /** Carrega do disco (uma vez), migra o formato antigo e deixa pronto pra uso síncrono. */
   async init(): Promise<ProfilesState> {
-    this.state = normalizeProfiles(await this.store.read())
+    const bruto = await this.store.read()
+    this.state = normalizeProfiles(bruto)
+
+    /**
+     * Se a normalização precisou TROCAR ALGUM ID, o conserto tem que ir pro disco agora.
+     *
+     * `normalizeProfiles` dá um id novo a perfil com id repetido ou impróprio (ver o comentário
+     * dela). Sem gravar de volta, esse id novo vale só pra esta execução: na abertura seguinte o
+     * arquivo ainda traz o id defeituoso e sorteia-se OUTRO id — ou seja, o personagem estreia numa
+     * pasta vazia toda vez que o app abre, e tudo o que ele escreveu na sessão anterior fica órfão
+     * numa pasta que ninguém mais procura. O conserto instável é pior que o defeito, porque o
+     * defeito ao menos era estável.
+     *
+     * Só grava quando de fato mudou: abrir o app não pode reescrever `profiles.json` à toa.
+     */
+    if (this.idsForamRemendados(bruto)) await this.store.write(this.state)
+
     await this.migrateLegacyFiles()
     return this.state
+  }
+
+  /** Os ids que saíram da normalização são os mesmos que estavam no arquivo, na mesma ordem? */
+  private idsForamRemendados(bruto: unknown): boolean {
+    const lista = (bruto as Partial<ProfilesState> | null)?.profiles
+    const originais = Array.isArray(lista) ? lista.map((p) => (p as { id?: unknown } | null)?.id) : []
+    const atuais = this.state?.profiles.map((p) => p.id) ?? []
+    if (originais.length !== atuais.length) return true
+    return atuais.some((id, i) => id !== originais[i])
   }
 
   async get(): Promise<ProfilesState> {

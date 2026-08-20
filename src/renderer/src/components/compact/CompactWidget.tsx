@@ -2,6 +2,8 @@ import type { Preset } from '@shared/types/preset'
 import type { RollResult } from '@shared/types/dice'
 import { expressionLabel } from '@renderer/domain/dice/diceEngine'
 import { useTranslation } from '@renderer/i18n/useTranslation'
+import { mantidosPorGrupo } from '@shared/dice/manterDados'
+import { rollBreakdown } from '@shared/dice/rollBreakdown'
 import { TumblingDie } from '../roller/TumblingDie'
 import './CompactWidget.css'
 
@@ -28,12 +30,6 @@ interface CompactWidgetProps {
 }
 
 /** "13+5 + 4" — os dados de cada grupo somados ao modificador, pra conferir o total de relance. */
-function rollBreakdown(result: RollResult): string {
-  const groups = result.groups.map((g) => g.rolls.join('+')).join(' + ')
-  if (result.modifierTotal === 0) return groups
-  const sinal = result.modifierTotal > 0 ? '+' : '−'
-  return `${groups} ${sinal} ${Math.abs(result.modifierTotal)}`
-}
 
 export function CompactWidget({ presets, result, onRoll }: CompactWidgetProps) {
   const t = useTranslation()
@@ -42,8 +38,16 @@ export function CompactWidget({ presets, result, onRoll }: CompactWidgetProps) {
    * Todos os dados da jogada, achatados em uma lista. Um preset pode ser 1d20+5 (um dado só) ou
    * 8d6 (oito), e os dois casos precisam caber no mesmo painel.
    */
+  const marcasDeManter = result?.keep ? mantidosPorGrupo(result.groups, result.keep) : null
   const dados =
-    result?.groups.flatMap((g) => g.rolls.map((valor) => ({ sides: g.sides, valor }))) ?? []
+    result?.groups.flatMap((g, gi) =>
+      g.rolls.map((valor, i) => ({
+        sides: g.sides,
+        valor,
+        // `null` sem regra de manter: aí não há descarte e nada deve aparecer destacado.
+        conta: marcasDeManter ? marcasDeManter[gi][i] : null
+      }))
+    ) ?? []
 
   /**
    * Um dado só é o caso do rolador do Google que serviu de referência: ilustração grande com o
@@ -86,6 +90,11 @@ export function CompactWidget({ presets, result, onRoll }: CompactWidgetProps) {
                     value={d.valor}
                     art="face"
                     className="tumbling-die-mini"
+                    /* Mesma marcação do modo normal: destaque diz QUEM CONTA, não quem é maior. */
+                    highlight={d.conta === null ? null : d.conta ? 'high' : 'low'}
+                    highlightLabelOverride={
+                      d.conta === null ? undefined : d.conta ? t.roller.keptDie : t.roller.discardedDie
+                    }
                   />
                 ))}
                 {excedente > 0 && <span className="compact-stage-excedente">+{excedente}</span>}

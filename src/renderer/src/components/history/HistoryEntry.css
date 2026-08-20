@@ -40,3 +40,15 @@
   font-weight: bold;
   font-size: 13px;
 }
+
+/*
+ * Dado que rolou mas NÃO conta pro total — regra de manter ("role 3d20 e use o maior").
+ *
+ * Riscado e apagado, e não escondido: ele caiu na bandeja e está no histórico do que aconteceu. O
+ * que muda é o peso, não a presença. O `title` diz a mesma coisa em texto, pra quem não distingue o
+ * risco num número de 11 pixels.
+ */
+.history-entry-roll-descartado {
+  opacity: 0.45;
+  text-decoration: line-through;
+}

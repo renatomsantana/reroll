@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import { dialog, ipcMain } from 'electron'
 import type { Preset, PresetInput } from '@shared/types/preset'
 import { IpcChannels } from '@shared/ipcChannels'
-import { MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
+import { DEFAULT_DICE_SIDES, MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
 import { PresetsRepository } from '../storage/PresetsRepository'
 
 /**
@@ -24,12 +24,21 @@ export function isValidPresetInput(value: unknown): value is PresetInput {
   if (!Array.isArray(expression.groups) || !Array.isArray(expression.modifiers)) return false
   if (expression.groups.length === 0) return false
 
+  /**
+   * `sides` tem que ser um dos SETE tipos que o app rola, e não só um inteiro positivo.
+   *
+   * A cena 3D faz `DICE_REGISTRY[sides]` sem guarda (`DiceCanvasMulti.tsx`) — com um `d30` ali o
+   * `entry` vem `undefined` e a montagem inteira estoura, ou seja, o preset não falha sozinho: leva
+   * a bandeja junto. Três caminhos gravam preset e todos passam por aqui: o editor, a IMPORTAÇÃO DE
+   * PRESETS POR ARQUIVO (um `.json` que a pessoa escolheu, que pode vir de qualquer lugar) e agora a
+   * importação de ficha. `> 0` protegia só do zero e do negativo.
+   */
   const groupsValid = expression.groups.every(
     (g) =>
       typeof g === 'object' &&
       g !== null &&
       Number.isInteger((g as Record<string, unknown>).sides) &&
-      ((g as Record<string, unknown>).sides as number) > 0 &&
+      DEFAULT_DICE_SIDES.includes((g as Record<string, unknown>).sides as number) &&
       Number.isInteger((g as Record<string, unknown>).count) &&
       ((g as Record<string, unknown>).count as number) > 0
   )
@@ -45,7 +54,25 @@ export function isValidPresetInput(value: unknown): value is PresetInput {
       Number.isInteger((m as Record<string, unknown>).value)
   )
 
-  return groupsValid && modifiersValid && totalDiceCount <= MAX_SIMULTANEOUS_DICE
+  return (
+    groupsValid && modifiersValid && keepValido(expression.keep) && totalDiceCount <= MAX_SIMULTANEOUS_DICE
+  )
+}
+
+/**
+ * A regra de manter ("role 3d20 e use o maior"), quando houver uma.
+ *
+ * AUSENTE é válido, e é o caso de todo preset gravado antes de a regra existir — um `presets.json`
+ * antigo não pode virar inválido de um dia pro outro. O que não passa é `keep` presente e torto:
+ * `count` zero ou negativo não deixaria dado nenhum no total, e um `mode` desconhecido faria a conta
+ * cair em silêncio no comportamento de "manter tudo", que é o oposto do que o arquivo pede.
+ */
+function keepValido(keep: unknown): boolean {
+  if (keep === undefined || keep === null) return true
+  if (typeof keep !== 'object') return false
+  const regra = keep as Record<string, unknown>
+  if (regra.mode !== 'highest' && regra.mode !== 'lowest') return false
+  return Number.isInteger(regra.count) && (regra.count as number) > 0
 }
 
 export function registerPresetsHandlers(repository: PresetsRepository): void {

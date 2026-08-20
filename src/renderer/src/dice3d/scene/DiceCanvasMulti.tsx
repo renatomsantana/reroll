@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type RAPIER from '@dimforge/rapier3d-compat'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
 import { createCamera } from './createCamera'
-import { CAMERA_CONFIG } from '../config/sceneConfig'
+import { CAMERA_CONFIG, TOWER_BESIDE_CAMERA_CONFIG } from '../config/sceneConfig'
 import {
   createTrayScene,
   type TraySceneHandle,
@@ -16,13 +16,8 @@ import {
   GROUND_RADIUS
 } from './createScene'
 import { createWoodTextures } from './createWoodTexture'
-/**
- * `createTowerBesideTray` (a torre DESENHADA EM CÓDIGO) continua no projeto de propósito, mesmo sem
- * ninguém montando ela: o usuário pediu pra trocar pelo modelo 3D "e deixa a antiga pra qualquer
- * coisa, nós só troca". Voltar atrás é trocar a chamada em `mostraTorre`, abaixo.
- */
-import { DEFAULT_TOWER_COLORS, type TowerColors } from './createTowerBesideTray'
-import { createTowerModel } from './createTowerModel'
+import { createTowerBesideTray, DEFAULT_TOWER_COLORS, type TowerColors } from './createTowerBesideTray'
+import { traySafeHalfExtent } from '../geometry/trayShape'
 import { createRiebeckPlush } from './createRiebeckPlush'
 import type { DiceMaterialFinish } from '../materials/createDiceMaterial'
 import type { CameraMode } from '@renderer/settings/SettingsContext'
@@ -224,6 +219,8 @@ export interface DiceCanvasMultiProps {
    * inteira, então precisa estar no `key` do componente pai (`DiceRoller3D.tsx`), igual `debugMode`.
    */
   launchMode?: LaunchMode
+  /** Lados da bandeja — forma escolhida pelo usuário (ver `trayShape.ts`). */
+  traySides?: number
   /** Modo debug (Seção 25 do script.md): colisores, normais de face, confiança, velocidade e FPS sobrepostos à cena. */
   debugMode?: boolean
   /**
@@ -367,6 +364,16 @@ const CASE_LID_THICKNESS = 0.08
 /** ~104° — passa da vertical o bastante pra tampa "descansar" aberta pra trás, como uma caixa de verdade, em vez de ficar equilibrada em pé. */
 const CASE_LID_OPEN_ANGLE = Math.PI * 0.58
 /** Espera antes de começar a abrir (ms) — a cena aparece com o estojo fechado por um instante, senão a animação já começa antes do usuário olhar pra ela. */
+/**
+ * Teto de quadros por segundo da cena (ver o comentário no `tick`).
+ *
+ * 60 e 30 não são números redondos escolhidos por gosto: 60 é o piso do que se lê como fluido num
+ * objeto que gira rápido, e 30 é o piso do que se lê como movimento contínuo num objeto lento — que
+ * é o caso do que continua animando com a cena parada (bandeira e pelúcia).
+ */
+const FPS_ATIVO = 60
+const FPS_PARADO = 30
+
 const CASE_LID_OPEN_DELAY_MS = 650
 const CASE_LID_OPEN_DURATION_MS = 1100
 
@@ -757,6 +764,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       floorColor,
       backgroundImage,
       launchMode = 'tray',
+      traySides = TRAY_CONFIG.wallSegments,
       towerColors = DEFAULT_TOWER_COLORS,
       debugMode,
       caseOpen = true,
@@ -774,7 +782,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
      * mínimo (só o que a tela usa) pra trocar entre a torre de código e o modelo 3D não exigir mexer
      * aqui.
      */
-    const towerBesideRef = useRef<{ updateColors: (colors: TowerColors) => void } | null>(null)
+    const towerBesideRef = useRef<{
+      updateColors: (colors: TowerColors) => void
+      update: (elapsedSeconds: number) => void
+    } | null>(null)
     /** Meshes decorativos da prateleira fora do hexágono (ver `computeShelfPositions`). */
     const shelfMeshesRef = useRef<THREE.Mesh[]>([])
     /** Estojo/caixinha de display sob a prateleira (ver `createShelfCaseMesh`) — pedido do usuário. */
@@ -859,7 +870,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           })
         } else {
           for (const die of diceRef.current) {
-            tossDie(die.body, { target: die.spawnSlot })
+            tossDie(die.body, { target: die.spawnSlot, sides: traySides })
             die.tracker.reset()
             die.phase = 'rolling'
             die.lastValue = null
@@ -890,12 +901,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       const mostraTorre = launchMode === 'tower' || launchMode === 'towerDecor'
       const lancaPelaBoca = launchMode === 'tower'
       /**
-       * A câmera PADRÃO volta a servir com o modelo 3D. `TOWER_BESIDE_CAMERA_CONFIG` recuava 37%
-       * pra caber a torre de código, que com telhado e flâmula chega a 9.42 de altura; o modelo
-       * termina em 5.75, abaixo dos 6.79 que a câmera padrão enquadra (medido). Na prática: a
-       * bandeja volta ao tamanho cheio no modo torre.
+       * No modo torre a câmera RECUA (`TOWER_BESIDE_CAMERA_CONFIG`, 37%): a torre de código chega a
+       * 9.42 de altura com telhado e flâmula, contra os 6.79 que a câmera padrão enquadra.
+       *
+       * Houve uma volta atrás aqui. O modelo `.glb` terminava em 5.75 e dispensava o recuo, o que
+       * devolvia a bandeja em tamanho cheio no modo torre — mas o modelo saiu (ver o comentário da
+       * montagem, logo abaixo) e com ele foi embora o motivo de usar a câmera padrão.
        */
-      const cameraConfig = CAMERA_CONFIG
+      const cameraConfig = mostraTorre ? TOWER_BESIDE_CAMERA_CONFIG : CAMERA_CONFIG
 
       /**
        * Os dois modos usam a MESMA cena de bandeja agora. A torre deixou de ser um cenário
@@ -904,22 +917,30 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
        * (`createTowerBesideTray` + `tossDieFromMouth`). Como a bandeja é a mesma, tudo o que vive
        * nela — estojo, prateleira, pelúcia, colisores, gravidade — vale igual nos dois modos.
        */
-      const tray = createTrayScene(wallColor, backgroundColor, floorColor, backgroundImage ?? null)
+      const tray = createTrayScene(wallColor, backgroundColor, floorColor, backgroundImage ?? null, traySides)
       const scene = tray.scene
       trayRef.current = tray
       const camera = createCamera(container.clientWidth / container.clientHeight, cameraConfig)
       if (mostraTorre) {
         /**
-         * O modelo vem de um `.glb` e o carregador é ASSÍNCRONO, então ele entra na cena quando
-         * chegar, em vez de a montagem inteira esperar por ele. O `disposed` é a guarda de sempre:
-         * trocar de aba ou de modo antes do arquivo carregar não pode deixar uma torre pendurada
-         * numa cena que já foi descartada.
+         * A torre DESENHADA EM CÓDIGO, de volta no lugar do modelo `.glb` — decisão do usuário
+         * depois de ver as duas: "acho q a torre antiga está melhor, temos textura ela ta do
+         * tamanho melhor".
+         *
+         * O motivo técnico bate com o que ele viu: a malha do `.glb` veio do SolidWorks com
+         * POSITION e NORMAL e mais nada — sem UV não há onde a textura de tijolo se apoiar, então
+         * ela era cor chapada, um material só, e as quatro cores da torre viravam uma. Aqui são
+         * tijolo com normal map e quatro peças coloríveis (pedra, telhado, flâmula, porta).
+         *
+         * De brinde some a assincronia: esta é síncrona, então a torre existe junto com a cena e
+         * não há janela em que uma rolagem aconteça sem ela na tela.
+         *
+         * `createTowerModel.ts` continua no projeto, como a torre de código já continuou quando o
+         * modelo tomou o lugar dela: trocar de volta é trocar a chamada aqui.
          */
-        void createTowerModel(undefined, towerColorsRef.current).then((tower) => {
-          if (disposed) return
-          scene.add(tower.group)
-          towerBesideRef.current = tower
-        })
+        const tower = createTowerBesideTray(towerColorsRef.current, {}, traySides)
+        scene.add(tower.group)
+        towerBesideRef.current = tower
       }
       sceneRef.current = scene
       const environment = setupDiceEnvironment(scene, renderer)
@@ -1053,6 +1074,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
        * zoom pra dentro da cena nem virar a câmera pra baixo do chão.
        */
       const controls = new OrbitControls(camera, renderer.domElement)
+      /**
+       * Instante da última mexida na câmera. Alimenta o teto de quadros logo abaixo: arrastar a cena
+       * precisa da taxa cheia, senão o arrasto fica travado na mão.
+       */
+      let ultimaInteracaoMs = performance.now()
+      controls.addEventListener('change', () => {
+        ultimaInteracaoMs = performance.now()
+      })
       controls.target.set(cameraConfig.lookAt[0], cameraConfig.lookAt[1], cameraConfig.lookAt[2])
       controls.enableDamping = true
       controls.dampingFactor = 0.08
@@ -1334,7 +1363,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         if (die.phase === 'queued') {
           if (die.releaseAtMs === undefined || sceneElapsedMsRef.current < die.releaseAtMs) return
           die.mesh.visible = true
-          tossDieFromMouth(die.body, { target: die.spawnSlot })
+          tossDieFromMouth(die.body, {
+            target: die.spawnSlot,
+            sides: traySides,
+            // Raio circunscrito DESTE tipo, pra ele nascer apoiado no tabuleiro da ponte em vez de
+            // enterrado nele até o meio (ver `MouthTossOptions.radius`).
+            radius: DICE_REGISTRY[die.sides].definition.scale * DICE_REGISTRY[die.sides].definition.boundingRadius
+          })
           die.tracker.reset()
           die.phase = 'rolling'
           die.enteringElapsedMs = 0
@@ -1349,7 +1384,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         const isEntering =
           die.body.numColliders() > 0 && die.body.collider(0).collisionGroups() === diceEnteringCollisionGroups()
         if (isEntering) die.enteringElapsedMs += simulatedSeconds * 1000
-        restoreWallCollisionIfInside(die.body, die.enteringElapsedMs)
+        restoreWallCollisionIfInside(die.body, die.enteringElapsedMs, traySides, simulatedSeconds * 1000)
         if (
           die.body.numColliders() > 0 &&
           die.body.collider(0).collisionGroups() !== diceEnteringCollisionGroups()
@@ -1378,6 +1413,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
 
       let frameId: number
       let lastFrameTime = performance.now()
+      /** Último instante em que a cena foi DESENHADA (ver o teto de quadros abaixo). */
+      let ultimoDesenhoMs = 0
       function tick() {
         const now = performance.now()
         const deltaSeconds = (now - lastFrameTime) / 1000
@@ -1433,6 +1470,16 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
          * Por isso a altura de repouso é guardada uma vez (`userData.restY`) e a respiração passa a
          * ser um deslocamento em cima dela.
          */
+        /**
+         * Bandeira da torre tremulando (ver `createFlag`). Mesmo relógio da respiração da pelúcia,
+         * logo abaixo — `sceneElapsedMsRef`, que já limita o passo de um quadro longo.
+         *
+         * Sem `if` de modo: quando o lançamento é pela bandeja a torre nem existe, e o `?.` cobre
+         * isso. E a bandeira balança nos DOIS modos com torre, inclusive no de enfeite — pano parado
+         * é o que faz cenário parecer maquete.
+         */
+        towerBesideRef.current?.update(sceneElapsedMsRef.current / 1000)
+
         const plush = plushRef.current
         if (plush) {
           const breath = sceneElapsedMsRef.current / 1000
@@ -1451,7 +1498,43 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
          * de propósito: quem rola e troca de aba no meio quer voltar e encontrar o resultado pronto,
          * não os dados congelados no ar.
          */
-        if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+        /**
+         * TETO DE QUADROS. Antes disto a cena era desenhada a CADA quadro do `requestAnimationFrame`,
+         * que é a taxa do monitor — no monitor do usuário, 164 Hz a 2560×1440. Ou seja: 164
+         * renderizações por segundo de uma cena com sombra e reflexo, sem parar, com os dados
+         * parados e ninguém mexendo em nada. Isso mantém a GPU sob carga constante, e foi assim que
+         * ele percebeu: um chiado que só existia na aba de rolagem e sumia nas outras (som do app
+         * nenhum depende de aba; a cena 3D é a única coisa que só vive aqui).
+         *
+         * Três taxas, e a diferença entre elas é o que está acontecendo na tela:
+         *
+         * - dado em movimento: taxa cheia, porque é a hora em que a suavidade importa de verdade;
+         * - mexendo na câmera: taxa cheia também, senão o arrasto fica travado na mão;
+         * - cena parada: 30, que é de sobra pro que continua se mexendo sozinho — a bandeira
+         *   tremulando e a respiração da pelúcia, as duas lentas.
+         *
+         * A FÍSICA fica de fora do teto, e isso é de propósito: ela continua sendo passada acima em
+         * todo quadro, com o `deltaSeconds` real. Limitar o desenho é economia de GPU; limitar a
+         * simulação mudaria o comportamento dos dados, que é a última coisa que se quer mexer aqui.
+         */
+        /**
+         * "Tem dado se mexendo" é `rolling`, mais o `queued` que JÁ TEM hora de sair.
+         *
+         * Não dá pra escrever `phase !== 'done'`, que era a versão óbvia: no modo torre os dados
+         * nascem `queued` e ficam PARQUEADOS — invisíveis, fora da simulação — até alguém clicar em
+         * rolar. Com aquele teste, o modo torre nunca sairia da taxa cheia, que é exatamente o
+         * cenário que este teto existe pra cobrir. O `releaseAtMs` é o que separa dado parqueado de
+         * dado na fila da boca esperando a vez.
+         */
+        const rolando = diceRef.current.some(
+          (die) => die.phase === 'rolling' || (die.phase === 'queued' && die.releaseAtMs !== undefined)
+        )
+        const mexendoNaCamera = now - ultimaInteracaoMs < 400
+        const alvoFps = rolando || mexendoNaCamera ? FPS_ATIVO : FPS_PARADO
+        const podeDesenhar = now - ultimoDesenhoMs >= 1000 / alvoFps - 1
+
+        if (podeDesenhar && container && container.clientWidth > 0 && container.clientHeight > 0) {
+          ultimoDesenhoMs = now
           renderer.render(scene, camera)
         }
         frameId = requestAnimationFrame(tick)
@@ -1469,10 +1552,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
            */
           world = createPhysicsWorld()
           worldRef.current = world
-          createBoundaryColliders(world)
+          createBoundaryColliders(world, traySides)
 
           const sidesList = flattenGroups(groups)
-          const slots = computeSpawnSlots(sidesList.length, SPAWN_CONFIG.slotSafeHalfExtent)
+          const slots = computeSpawnSlots(sidesList.length, traySafeHalfExtent(traySides, SPAWN_CONFIG.slotSafeHalfExtent))
 
           diceRef.current = sidesList.map((sides, i) => {
             const entry = DICE_REGISTRY[sides]
@@ -1513,7 +1596,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
 
             const spawnSlot = slots[i]
             if (autoRoll) {
-              tossDie(body, { target: spawnSlot })
+              tossDie(body, { target: spawnSlot, sides: traySides })
             } else {
               // Sem arremesso cosmético de intro (pedido do usuário) — o dado só aparece já
               // parado no próprio slot, caindo uma distância mínima até assentar (nunca
@@ -1620,7 +1703,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       }
 
       const sidesList = flattenGroups(groups)
-      const slots = computeSpawnSlots(sidesList.length, SPAWN_CONFIG.slotSafeHalfExtent)
+      const slots = computeSpawnSlots(sidesList.length, traySafeHalfExtent(traySides, SPAWN_CONFIG.slotSafeHalfExtent))
       const hud = hudRef.current
       const colors = diceColorsRef.current
       const currentMaterial = materialRef.current
@@ -1738,14 +1821,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         const rebuildTextureCache = getGlobalDiceTextureCache()
 
         // Parede/fundo/chão são atualizados no lugar também — mesmo motivo da cor dos dados,
-        // nunca força remount da cena física por causa de uma cor. A torre em si (pedra) não
-        // muda de cor, só a bandeja circular da base, ver `TowerSceneHandle.updateColors`.
+        // nunca força remount da cena física por causa de uma cor. A cor da TORRE não está aqui:
+        // ela tem efeito próprio, logo abaixo, e o motivo está escrito lá.
         const wall = wallColor ?? DEFAULT_WALL_COLOR
         const background = backgroundColor ?? DEFAULT_BACKGROUND_COLOR
         const floor = floorColor ?? DEFAULT_FLOOR_COLOR
         const image = backgroundImage ?? null
         trayRef.current?.updateColors(wall, background, floor, image)
-        towerBesideRef.current?.updateColors(towerColorsRef.current)
 
         for (const die of diceRef.current) {
           const entry = DICE_REGISTRY[die.sides]
@@ -1808,6 +1890,25 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       return () => window.clearTimeout(timeoutId)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [diceColors, material, wallColor, backgroundColor, floorColor, backgroundImage])
+
+    /**
+     * Cor da TORRE em efeito próprio.
+     *
+     * Ela morava dentro do efeito acima, que NÃO depende de `towerColors` — então mudar só a
+     * pedra não repintava nada até alguma OUTRA cor mudar junto. Não aparecia porque `towerStone`
+     * não tinha botão na tela; passou a ter, e aí é o caminho normal de quem escolhe a cor dela.
+     *
+     * Separado, e não resolvido acrescentando `towerColors` àquela lista, porque aquele efeito
+     * limpa o cache de textura e RECONSTRÓI todos os dados da cena; a torre só precisa de uma
+     * escrita em `material.color`. As dependências são os quatro campos, e não o objeto: ele é
+     * montado inline no `DiceRoller3D`, ou seja, é referência nova a cada render.
+     *
+     * Torre montando (o `.glb` carrega assíncrono) não é caso perdido: `createTowerModel` recebe
+     * `towerColorsRef.current` na criação, então quem chega depois já nasce com a cor de agora.
+     */
+    useEffect(() => {
+      towerBesideRef.current?.updateColors(towerColorsRef.current)
+    }, [towerColors.stone, towerColors.roof, towerColors.flag, towerColors.door])
 
     return <div ref={containerRef} className="dice-canvas-container" />
   }

@@ -5,6 +5,7 @@ import type {
   DiceGroupResult,
   RollResult
 } from '@shared/types/dice'
+import { rotuloDeManter, totalMantido, valoresDosGrupos } from '@shared/dice/manterDados'
 
 /**
  * Sorteia um inteiro uniforme em [1, sides] usando crypto.getRandomValues,
@@ -37,12 +38,23 @@ export function expressionLabel(expression: DiceExpression): string {
     .map((m) => (m.value >= 0 ? `+ ${m.value}` : `- ${Math.abs(m.value)}`))
     .join(' ')
 
-  return [groupsLabel, modifiersLabel].filter(Boolean).join(' ')
+  const base = [groupsLabel, modifiersLabel].filter(Boolean).join(' ')
+  /**
+   * A regra de manter entra NO RÓTULO, e não só na conta. É o rótulo que aparece no histórico e no
+   * cartão do preset, e "2d20" com total 14 sem nenhuma explicação parece defeito — a pessoa somou
+   * os dois dados que está vendo e deu outro número.
+   */
+  const manter = rotuloDeManter(expression.keep)
+  return manter ? `${base} (usa ${manter})` : base
 }
 
 export function rollExpression(expression: DiceExpression): RollResult {
   const groups = expression.groups.map(rollGroup)
-  const groupsTotal = groups.reduce((sum, g) => sum + g.subtotal, 0)
+  /**
+   * O total sai dos dados MANTIDOS, mas `groups` continua com todos: os descartados caíram na
+   * bandeja e a pessoa está olhando pra eles. Ver `manterDados.ts`.
+   */
+  const groupsTotal = totalMantido(valoresDosGrupos(groups), expression.keep)
   const modifierTotal = expression.modifiers.reduce((sum, m) => sum + m.value, 0)
 
   return {
@@ -51,7 +63,8 @@ export function rollExpression(expression: DiceExpression): RollResult {
     groups,
     modifierTotal,
     total: groupsTotal + modifierTotal,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    keep: expression.keep
   }
 }
 

@@ -6,7 +6,11 @@ import { createBoundaryColliders } from './createBoundaryColliders'
 import { createSettleTracker, type SettleTracker } from './createSettleTracker'
 import { applyNudge } from './applyNudge'
 import { tossDieFromMouth, MOUTH_RELEASE_INTERVAL_MS } from './tossDieFromMouth'
-import { parkedCollisionGroups, restoreWallCollisionIfInside } from './collisionGroups'
+import {
+  diceEnteringCollisionGroups,
+  parkedCollisionGroups,
+  restoreWallCollisionIfInside
+} from './collisionGroups'
 import { clampLinearVelocity } from './clampVelocity'
 import { computeSpawnSlots } from './computeSpawnSlots'
 import { isInsideRegularPolygon } from './regularPolygon'
@@ -41,6 +45,8 @@ interface TestDie {
   slot: { x: number; z: number }
   releaseStep: number
   released: boolean
+  /** Tempo em fase de ENTRADA — alimenta o resgate; ver o comentário no laço. */
+  entrandoMs: number
 }
 
 function park(body: RAPIER.RigidBody, index: number): void {
@@ -72,7 +78,10 @@ function simulate(world: RAPIER.World, dice: TestDie[], sides: PhysicalDiceSides
   for (let step = 0; step < maxSteps && settled.size < dice.length; step++) {
     dice.forEach((die) => {
       if (!die.released && step >= die.releaseStep) {
-        tossDieFromMouth(die.body, { target: die.slot })
+        tossDieFromMouth(die.body, {
+          target: die.slot,
+          radius: definition.scale * definition.boundingRadius
+        })
         die.tracker.reset()
         die.released = true
       }
@@ -82,8 +91,24 @@ function simulate(world: RAPIER.World, dice: TestDie[], sides: PhysicalDiceSides
 
     dice.forEach((die, index) => {
       if (!die.released || settled.has(index)) return
+      /**
+       * Tempo em fase de ENTRADA, contabilizado como o app faz (ver `DiceCanvasMulti`).
+       *
+       * Passar `0` aqui — o que este teste fazia — DESLIGA o resgate de
+       * `ENTRY_FORCE_PUSH_TIMEOUT_MS`. Um dado que sai e não cruza pra dentro fica com os grupos de
+       * "entrando", que não colidem com a parede, e cai pelo vazio: o diagnóstico achou um em
+       * y = -4672, com 41 cutucadas, e o teste relatando "14 de 15 assentaram".
+       *
+       * Era esta a origem da instabilidade destes testes desde 18/08 — não física indeterminada, e
+       * sim o teste desligando a rede de segurança que a produção tem.
+       */
       clampLinearVelocity(die.body, WORLD_CONFIG.maxLinearSpeed)
-      restoreWallCollisionIfInside(die.body)
+      const entrando =
+        die.body.numColliders() > 0 &&
+        die.body.collider(0).collisionGroups() === diceEnteringCollisionGroups()
+      if (entrando) die.entrandoMs += dtMs
+      restoreWallCollisionIfInside(die.body, die.entrandoMs)
+      if (!entrando) die.entrandoMs = 0
 
       const state = die.tracker.update(die.body, dtMs)
       if (state === 'settled') {
@@ -141,7 +166,14 @@ describe('lançamento pela boca da torre ao lado da bandeja', () => {
       const dice: TestDie[] = slots.map((slot, index) => {
         const body = DICE_REGISTRY[sides].createBody(world)
         park(body, index)
-        return { body, tracker: createSettleTracker(), slot, releaseStep: index * releaseSteps, released: false }
+        return {
+          body,
+          tracker: createSettleTracker(),
+          slot,
+          releaseStep: index * releaseSteps,
+          released: false,
+          entrandoMs: 0
+        }
       })
 
       const assentados = simulate(world, dice, sides, MAX_STEPS)
@@ -183,7 +215,14 @@ describe('lançamento pela boca da torre ao lado da bandeja', () => {
     const dice: TestDie[] = slots.map((slot, index) => {
       const body = DICE_REGISTRY[6].createBody(world)
       park(body, index)
-      return { body, tracker: createSettleTracker(), slot, releaseStep: index * releaseSteps, released: false }
+      return {
+        body,
+        tracker: createSettleTracker(),
+        slot,
+        releaseStep: index * releaseSteps,
+        released: false,
+        entrandoMs: 0
+      }
     })
 
     const boca = computeTowerBesideLayout().mouth

@@ -6,7 +6,7 @@ import { createBoundaryColliders } from './createBoundaryColliders'
 import { createSettleTracker, type SettleTracker } from './createSettleTracker'
 import { applyNudge } from './applyNudge'
 import { tossDie } from './tossDie'
-import { restoreWallCollisionIfInside } from './collisionGroups'
+import { diceEnteringCollisionGroups, restoreWallCollisionIfInside } from './collisionGroups'
 import { clampLinearVelocity } from './clampVelocity'
 import { computeSpawnSlots } from './computeSpawnSlots'
 import { isInsideRegularPolygon } from './regularPolygon'
@@ -45,7 +45,7 @@ import { D6_DEFINITION } from '../dice-defs/d6'
  */
 function simulateAllUntilSettled(
   world: RAPIER.World,
-  dice: { body: RAPIER.RigidBody; tracker: SettleTracker }[],
+  dice: { body: RAPIER.RigidBody; tracker: SettleTracker; entrandoMs: number }[],
   maxSteps: number
 ): void {
   const dtMs = (1 / WORLD_CONFIG.physicsStepsPerSecond) * 1000
@@ -55,8 +55,24 @@ function simulateAllUntilSettled(
     world.step()
 
     dice.forEach((die, index) => {
+      /**
+       * Tempo em fase de ENTRADA, contabilizado como o app faz (ver `DiceCanvasMulti`).
+       *
+       * Passar `0` aqui — o que este teste fazia — DESLIGA o resgate de
+       * `ENTRY_FORCE_PUSH_TIMEOUT_MS`. Um dado que sai e não cruza pra dentro fica com os grupos de
+       * "entrando", que não colidem com a parede, e cai pelo vazio: o diagnóstico achou um em
+       * y = -4672, com 41 cutucadas, e o teste relatando "14 de 15 assentaram".
+       *
+       * Era esta a origem da instabilidade destes testes desde 18/08 — não física indeterminada, e
+       * sim o teste desligando a rede de segurança que a produção tem.
+       */
       clampLinearVelocity(die.body, WORLD_CONFIG.maxLinearSpeed)
-      restoreWallCollisionIfInside(die.body)
+      const entrando =
+        die.body.numColliders() > 0 &&
+        die.body.collider(0).collisionGroups() === diceEnteringCollisionGroups()
+      if (entrando) die.entrandoMs += dtMs
+      restoreWallCollisionIfInside(die.body, die.entrandoMs)
+      if (!entrando) die.entrandoMs = 0
       if (settled.has(index)) return
 
       const state = die.tracker.update(die.body, dtMs)
@@ -97,6 +113,8 @@ describe('contenção da bandeja — dados não devem escapar por cima da parede
       const dice = slots.map((slot) => ({
         body: createD6Body(world),
         tracker: createSettleTracker(),
+        /** Tempo em fase de ENTRADA — alimenta o resgate; ver o comentário no laço. */
+        entrandoMs: 0,
         slot
       }))
 

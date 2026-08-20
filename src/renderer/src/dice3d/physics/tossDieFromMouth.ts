@@ -66,10 +66,22 @@ const MOUTH_ANGLE_SPREAD_RAD = 0.12
 export interface MouthTossOptions {
   /** Slot de destino dentro da bandeja (ver `computeSpawnSlots`) — dá a direção e a força do impulso. */
   target?: { x: number; z: number }
+  /**
+   * Raio circunscrito do dado (`scale × boundingRadius` da definição dele). É o que separa o CENTRO
+   * do corpo do piso da boca: sem ele o dado nasce enterrado até a metade na madeira do tabuleiro e
+   * atravessa o portão inteiro por dentro da pedra — que foi exatamente o "dado passando pelo portão
+   * como se fosse fantasma" reportado pelo usuário.
+   *
+   * Tem que vir de fora, e não sair de uma média aqui, porque cada tipo tem o seu: 0.56 no d20,
+   * 0.43 no d12. Um valor único deixaria metade dos tipos afundada e a outra metade flutuando.
+   */
+  radius?: number
+  /** Lados da bandeja — a boca da torre se move com a forma (ver `computeTowerBesideLayout`). */
+  sides?: number
 }
 
 export function tossDieFromMouth(body: RAPIER.RigidBody, options: MouthTossOptions = {}): void {
-  const layout = computeTowerBesideLayout()
+  const layout = computeTowerBesideLayout({}, options.sides)
   const target = options.target ?? { x: 0, z: 0 }
 
   if (body.numColliders() > 0) {
@@ -83,12 +95,17 @@ export function tossDieFromMouth(body: RAPIER.RigidBody, options: MouthTossOptio
   // Reduzido de 0.28 pra 0.18 do vão junto com o resto: quanto mais lateral o dado nasce, mais
   // atravessado ele sai em relação à direção do slot, e mais chance tem de raspar a parede vizinha.
   const lateral = randomInRange([-layout.gateArcWidth * 0.18, layout.gateArcWidth * 0.18])
-  // Um passo pra dentro do vão, pra o corpo não nascer com metade dele dentro da pedra da soleira.
+  // Um passo pra dentro do vão, pra o corpo não nascer com metade dele dentro da pedra do batente.
   const forward = 0.18
 
   const x = layout.mouth.x + tangent.x * lateral + layout.mouthDirection.x * forward
   const z = layout.mouth.z + tangent.z * lateral + layout.mouthDirection.z * forward
-  const y = layout.mouth.y + randomInRange([0, 0.08])
+  /**
+   * APOIADO no piso da boca: `mouth.y` é a superfície, e o centro do corpo fica um raio acima dela.
+   * O sorteio de 0..0.08 continua, mas agora é um saltinho a partir do apoio, não a partir do meio
+   * da pedra.
+   */
+  const y = layout.mouth.y + (options.radius ?? 0) + randomInRange([0, 0.08])
 
   body.setTranslation({ x, y, z }, true)
 

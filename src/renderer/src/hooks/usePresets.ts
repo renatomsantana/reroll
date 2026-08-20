@@ -14,11 +14,21 @@ export function usePresets() {
    * cima do arquivo do novo.
    */
   useEffect(() => {
+    // Mesma trava do `useNotes`: leitura que chega depois de já ter trocado de personagem é
+    // descartada, senão a lista de presets do anterior fica na tela como se fosse a do atual.
+    let atual = true
     setLoading(true)
     window.api.presets
       .getAll()
-      .then(setPresets)
-      .finally(() => setLoading(false))
+      .then((carregados) => {
+        if (atual) setPresets(carregados)
+      })
+      .finally(() => {
+        if (atual) setLoading(false)
+      })
+    return () => {
+      atual = false
+    }
   }, [activeId])
 
   const createPreset = useCallback(async (input: PresetInput) => {

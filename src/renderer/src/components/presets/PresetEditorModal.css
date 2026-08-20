@@ -100,3 +100,17 @@
   gap: 10px;
   margin-top: 6px;
 }
+
+/* A regra de "usar o maior": o seletor do modo e, ao lado, quantos dados contam. */
+.preset-editor-keep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preset-editor-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--win-text-muted);
+}

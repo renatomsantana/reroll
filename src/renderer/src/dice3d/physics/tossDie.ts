@@ -1,11 +1,18 @@
 import RAPIER from '@dimforge/rapier3d-compat'
 import { SPAWN_CONFIG, TRAY_CONFIG } from '../config/physicsConfig'
+import { trayApothem, trayRotation } from '../geometry/trayShape'
 import { randomInRange, randomQuaternion } from '../utils/random'
 import { diceEnteringCollisionGroups } from './collisionGroups'
+import { regularPolygonRadiusAt } from './regularPolygon'
 
 export interface TossOptions {
   /** Slot de destino (padrão: centro da bandeja) — o dado nasce a `throwDistance` dali e é arremessado de volta em direção a ele. Usado pra espalhar vários dados em slots (Fase 9). */
   target?: { x: number; z: number }
+  /**
+   * Lados da bandeja em cena — a forma é escolhida pelo usuário (ver `trayShape.ts`), e o ponto
+   * de largada tem que acompanhar. Ver o comentário de `launchRadius` no corpo.
+   */
+  sides?: number
 }
 
 /**
@@ -30,6 +37,7 @@ export interface TossOptions {
  */
 export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): void {
   const target = options.target ?? { x: 0, z: 0 }
+  const sides = options.sides ?? TRAY_CONFIG.wallSegments
 
   if (body.numColliders() > 0) {
     body.collider(0).setCollisionGroups(diceEnteringCollisionGroups())
@@ -46,10 +54,24 @@ export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): void
   const targetAngleFromCenter = Math.atan2(target.z, target.x)
   const spread = SPAWN_CONFIG.launchAngleSpreadRad
   const launchAngle = targetAngleFromCenter + randomInRange([-spread, spread])
-  // Jitter na distância (ver comentário de `launchRadiusJitter`) — evita que dois dados com
-  // ângulo de lançamento parecido nasçam sobrepostos um no outro.
+  /**
+   * Distância do centro até o ponto de largada: a borda da bandeja NA DIREÇÃO DO LANÇAMENTO, mais
+   * a folga de fora e o jitter (ver `launchRadiusJitter` — evita que dois dados com ângulo de
+   * lançamento parecido nasçam sobrepostos um no outro).
+   *
+   * Era `TRAY_CONFIG.apothem` fixo (6.5, o do hexágono) e isso quebrava nas outras formas, com
+   * número medido: no TRIÂNGULO, cujo apótema é 3.75, o dado largava de 8.5 e tinha que atravessar
+   * quase cinco unidades de vazio antes de entrar na bandeja — 72% dos dados eram desviados no
+   * caminho e precisavam do empurrão de retorno (`restoreWallCollisionIfInside`), contra 13% no
+   * hexágono. Não é que o triângulo seja difícil: é que o dado estava sendo largado num ponto
+   * calculado pra outra forma.
+   *
+   * `regularPolygonRadiusAt` e não o apótema porque a borda de um polígono não fica à mesma
+   * distância em toda direção — largar sempre no apótema deixaria o dado NASCER DENTRO da bandeja
+   * quando o ângulo cai perto de uma ponta.
+   */
   const launchRadius =
-    TRAY_CONFIG.apothem +
+    regularPolygonRadiusAt(launchAngle, trayApothem(sides), sides, trayRotation(sides)) +
     SPAWN_CONFIG.launchOutsideDistance +
     randomInRange([-SPAWN_CONFIG.launchRadiusJitter, SPAWN_CONFIG.launchRadiusJitter])
   const x = Math.cos(launchAngle) * launchRadius

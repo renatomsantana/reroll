@@ -1,10 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   createProfile,
   normalizeProfiles,
   type Profile,
   type ProfilesState
 } from '@shared/types/profile'
+import { trocarPerfil } from './trocaDePerfil'
 
 /**
  * Perfis de personagem (ver `shared/types/profile.ts`) — quem está aberto e a lista inteira.
@@ -30,6 +31,14 @@ interface ProfilesContextValue {
   remove: (id: string) => void
   /** Abre o diálogo nativo de imagem e guarda a foto escolhida no perfil. */
   pickPhoto: (id: string) => Promise<void>
+  /**
+   * Relê a lista do disco.
+   *
+   * Existe pra importação de ficha: quem cria o personagem lá é o PROCESSO PRINCIPAL, num passo só
+   * junto das anotações e dos presets (ver `registerSheetHandlers`), então o renderer tem que buscar
+   * o resultado em vez de montar uma cópia dele aqui e torcer pra bater.
+   */
+  reload: () => Promise<void>
 }
 
 const ProfilesContext = createContext<ProfilesContextValue | null>(null)
@@ -49,18 +58,59 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /**
-   * Aplica a mudança e grava. Recebe função pra sempre partir do estado ATUAL, não do que a tela viu
-   * — mesmo padrão de `useNotes`, e pelo mesmo motivo: as edições vêm de campos que disparam a cada
-   * tecla.
+   * Espelho do estado pra ler o valor ATUAL fora do React. Existe por causa de `trocarPara`, que
+   * precisa montar o estado novo ANTES de chamar `setState` (ver lá).
+   */
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  /**
+   * Aplica a mudança e grava.
+   *
+   * A gravação saiu de DENTRO do `setState`, onde estava. Uma função passada ao `setState` tem que
+   * ser pura — o React pode chamá-la mais de uma vez pelo mesmo resultado, e chamava: cada uma
+   * disparava uma gravação. Agora o novo estado é calculado a partir do espelho e a gravação
+   * acontece uma vez só, fora do render.
    */
   const update = useCallback((change: (previous: ProfilesState) => ProfilesState) => {
-    setState((previous) => {
-      const next = normalizeProfiles(change(previous))
-      window.api.profiles
-        .save(next)
-        .catch((error: unknown) => console.error('Falha ao salvar perfis:', error))
-      return next
-    })
+    const next = normalizeProfiles(change(stateRef.current))
+    stateRef.current = next
+    setState(next)
+    window.api.profiles
+      .save(next)
+      .catch((error: unknown) => console.error('Falha ao salvar perfis:', error))
+    return next
+  }, [])
+
+  /**
+   * TROCAR DE PERSONAGEM. É o único caso em que a ORDEM importa, e ela é o contrário da intuição:
+   * grava PRIMEIRO, muda a tela DEPOIS.
+   *
+   * Anotações e presets são lidos da pasta do perfil ativo, e quem sabe qual é o ativo é o processo
+   * principal (`ProfilesRepository.activeDirectory`). Se a tela trocar antes de a gravação chegar
+   * lá, os efeitos de `useNotes`/`usePresets` disparam na hora e pedem os dados do personagem NOVO
+   * enquanto o principal ainda aponta pro ANTIGO — e o que volta é a ficha errada, que na primeira
+   * digitação é gravada por cima da certa.
+   *
+   * Com o `await` antes do `setState` essa janela deixa de existir. É a mesma razão pela qual a
+   * importação de ficha virou um canal único e atômico (ver `registerSheetHandlers`).
+   *
+   * A sequência em si mora em `trocaDePerfil.ts`, fora do React, pra poder ser testada — inclusive o
+   * caso de a gravação FALHAR, em que a tela tem que ficar onde está.
+   *
+   * Vale pras TRÊS operações que mexem em quem está aberto — trocar, CRIAR e APAGAR. Criar um
+   * personagem também muda o ativo, e era por isso que criar vinha bugado: a tela abria o
+   * personagem novo enquanto o processo principal ainda apontava pro anterior, então a ficha que
+   * aparecia era a do anterior — e a primeira tecla gravava aquilo por cima do novo.
+   */
+  const aplicarComTroca = useCallback(async (change: (previous: ProfilesState) => ProfilesState) => {
+    const { estado, trocou, erro } = await trocarPerfil(stateRef.current, change, (proximo) =>
+      window.api.profiles.save(proximo)
+    )
+    if (!trocou) console.error('Falha ao salvar perfis — o personagem aberto não mudou:', erro)
+    stateRef.current = estado
+    setState(estado)
+    return estado
   }, [])
 
   const value = useMemo<ProfilesContextValue>(() => {
@@ -70,9 +120,12 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
       activeId: state.activeId,
       active,
       loading,
-      select: (id) => update((previous) => ({ ...previous, activeId: id })),
+      select: (id) => {
+        if (state.activeId === id) return
+        void aplicarComTroca((previous) => ({ ...previous, activeId: id }))
+      },
       create: () =>
-        update((previous) => {
+        void aplicarComTroca((previous) => {
           const novo = createProfile()
           return { profiles: [...previous.profiles, novo], activeId: novo.id }
         }),
@@ -86,8 +139,12 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
        * lá. É de propósito: apagar um personagem por engano é irreversível de outra forma, e um
        * `profiles.json` editado de volta traz tudo. O que some é a entrada na lista.
        */
+      reload: async () => {
+        const carregado = await window.api.profiles.get()
+        setState(normalizeProfiles(carregado))
+      },
       remove: (id) =>
-        update((previous) => {
+        void aplicarComTroca((previous) => {
           const restantes = previous.profiles.filter((p) => p.id !== id)
           if (restantes.length === 0) return previous
           return {
@@ -104,7 +161,7 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
         }))
       }
     }
-  }, [state, loading, update])
+  }, [state, loading, update, aplicarComTroca])
 
   return <ProfilesContext.Provider value={value}>{children}</ProfilesContext.Provider>
 }

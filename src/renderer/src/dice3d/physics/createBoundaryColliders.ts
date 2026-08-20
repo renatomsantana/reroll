@@ -1,5 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat'
 import { SPAWN_CONFIG, TRAY_CONFIG } from '../config/physicsConfig'
+import { trayApothem, trayRotation } from '../geometry/trayShape'
 import { FLOOR_COLLISION_GROUPS, WALL_COLLISION_GROUPS } from './collisionGroups'
 import { createRingWall } from './createRingWall'
 import { regularPolygonCircumradius } from './regularPolygon'
@@ -11,8 +12,15 @@ import { regularPolygonCircumradius } from './regularPolygon'
  * tela mudou, mas porque a função da parede física mudou (ver comentário de
  * `wallColliderHeight` em `physicsConfig.ts`).
  */
-export function createBoundaryColliders(world: RAPIER.World): void {
-  const { apothem, wallSegments, wallColliderHeight, floorThickness } = TRAY_CONFIG
+export function createBoundaryColliders(world: RAPIER.World, sides = TRAY_CONFIG.wallSegments): void {
+  const { wallColliderHeight, floorThickness } = TRAY_CONFIG
+  /**
+   * O apótema sai da FORMA escolhida, não da config: a bandeja pode ser triângulo, quadrado,
+   * hexágono ou círculo, e todas ocupam a mesma pegada (ver `trayApothem`). O collider e a malha
+   * visual leem daqui, então continuam sendo exatamente a mesma geometria.
+   */
+  const apothem = trayApothem(sides)
+  const wallSegments = sides
   const circumradius = regularPolygonCircumradius(apothem, wallSegments)
 
   const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed())
@@ -43,6 +51,7 @@ export function createBoundaryColliders(world: RAPIER.World): void {
   createRingWall(world, {
     radius: apothem,
     segments: wallSegments,
+    rotation: trayRotation(wallSegments),
     bottomY: 0,
     topY: wallColliderHeight,
     groups: WALL_COLLISION_GROUPS

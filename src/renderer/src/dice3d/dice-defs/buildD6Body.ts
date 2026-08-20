@@ -15,7 +15,7 @@ export { tossDie as tossD6 }
 export function createD6Body(world: RAPIER.World): RAPIER.RigidBody {
   const half = D6_DEFINITION.scale / 2
 
-  const body = world.createRigidBody(
+    const body = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
       .setLinearDamping(D6_DEFINITION.physics.linearDamping)
       .setAngularDamping(D6_DEFINITION.physics.angularDamping)
