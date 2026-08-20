@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { TRAY_CONFIG } from '../config/physicsConfig'
+import { trayApothem, trayRotation } from '../geometry/trayShape'
 import { LIGHT_CONFIG } from '../config/sceneConfig'
 import { regularPolygonCircumradius } from '../physics/regularPolygon'
 import { createVelvetTextures } from './createVelvetNormalMap'
@@ -62,10 +63,10 @@ export interface TraySceneHandle {
  * (UV polar/em leque) — o `normalMap` de veludo precisa de UV plana pra ladrilhar como uma
  * grade de verdade em vez de girar em espiral a partir do centro.
  */
-export function createHexShape(radius: number, segments: number): THREE.Shape {
+export function createHexShape(radius: number, segments: number, rotation = 0): THREE.Shape {
   const shape = new THREE.Shape()
   for (let i = 0; i <= segments; i++) {
-    const angle = (i / segments) * Math.PI * 2
+    const angle = (i / segments) * Math.PI * 2 + rotation
     const x = Math.cos(angle) * radius
     const y = Math.sin(angle) * radius
     if (i === 0) shape.moveTo(x, y)
@@ -155,10 +156,15 @@ export interface TrayPreviewHandle {
  * Sem mesa, sem grama, sem luz própria e sem física: quem monta decide o enquadramento e a
  * iluminação (ver `TrayPreview.tsx`).
  */
-export function createTrayPreview(wallColor: number, floorColor: number): TrayPreviewHandle {
+export function createTrayPreview(
+  wallColor: number,
+  floorColor: number,
+  /** Lados da bandeja: a forma é escolhida pelo usuário (ver `trayShape.ts`) e a prévia segue a cena. */
+  sides = TRAY_CONFIG.wallSegments
+): TrayPreviewHandle {
   const group = new THREE.Group()
 
-  const floor = createFloor(floorColor)
+  const floor = createFloor(floorColor, sides)
   group.add(floor)
   const floorMaterial = floor.material as THREE.MeshPhysicalMaterial
 
@@ -171,7 +177,7 @@ export function createTrayPreview(wallColor: number, floorColor: number): TrayPr
     roughness: 0.68,
     metalness: 0
   })
-  group.add(createArenaPlatform(platformMaterial))
+  group.add(createArenaPlatform(platformMaterial, sides))
 
   return {
     object: group,
@@ -252,9 +258,8 @@ export function createGroundPlane(edgeColor: number): TableHandle {
   }
 }
 
-function createFloor(floorColor: number): THREE.Mesh {
-  const { apothem, wallSegments } = TRAY_CONFIG
-  const circumradius = regularPolygonCircumradius(apothem, wallSegments)
+function createFloor(floorColor: number, wallSegments: number): THREE.Mesh {
+  const circumradius = regularPolygonCircumradius(trayApothem(wallSegments), wallSegments)
 
   /**
    * `ShapeGeometry` (chapa plana, sem profundidade) em vez do antigo `ExtrudeGeometry` — o
@@ -268,7 +273,17 @@ function createFloor(floorColor: number): THREE.Mesh {
    * de `repeat` em `createVelvetNormalMap.ts`, então a textura de veludo não precisou de nenhum
    * ajuste de tiling.
    */
-  const geometry = new THREE.ShapeGeometry(createHexShape(circumradius, wallSegments))
+  /**
+   * A rotação entra NEGADA aqui, e isso não é gosto: o `Shape` é desenhado no plano XY e depois
+   * deitado com `geometry.rotateX(-π/2)` (linha abaixo), e essa rotação leva o Y da forma pro -Z do
+   * mundo — ou seja, ESPELHA a figura em Z. A parede física (`createRingWall`) usa `(cos, sin)`
+   * direto como `(x, z)`, sem espelho.
+   *
+   * Com o hexágono isso nunca apareceu por acaso: espelhar um polígono regular com vértice em 0°
+   * devolve o mesmo conjunto de vértices. Girar quebra essa coincidência, e aí o triângulo desenhado
+   * apontava para um lado enquanto a parede que segura os dados apontava pro outro.
+   */
+  const geometry = new THREE.ShapeGeometry(createHexShape(circumradius, wallSegments, -trayRotation(wallSegments)))
   // Shape fica no plano XY, olhando pra +Z — gira pra ficar plano no XZ (chão), olhando pra
   // cima (+Y), na mesma altura (y=0) do topo do collider físico do chão.
   geometry.rotateX(-Math.PI / 2)
@@ -391,12 +406,14 @@ function createHexRingGeometry(
   innerCircumradius: number,
   outerCircumradius: number,
   height: number,
-  segments: number
+  segments: number,
+  rotation = 0
 ): THREE.ExtrudeGeometry {
-  const shape = createHexShape(outerCircumradius, segments)
+  const shape = createHexShape(outerCircumradius, segments, rotation)
   const hole = new THREE.Path()
   for (let i = 0; i <= segments; i++) {
-    const angle = (i / segments) * Math.PI * 2
+    // O furo gira junto com o contorno, senão a parede sai com espessura desigual em cada lado.
+    const angle = (i / segments) * Math.PI * 2 + rotation
     const x = Math.cos(angle) * innerCircumradius
     const y = Math.sin(angle) * innerCircumradius
     if (i === 0) hole.moveTo(x, y)
@@ -421,15 +438,14 @@ function createHexRingGeometry(
  * `BackSide` de propósito), então a peça toda lê como uma bandeja só e a cor escolhida na aba
  * Estilo continua mandando na madeira inteira, sem configuração nova.
  */
-function createArenaPlatform(woodMaterial: THREE.MeshStandardMaterial): THREE.Group {
-  const { apothem, wallSegments } = TRAY_CONFIG
-  const circumradius = regularPolygonCircumradius(apothem, wallSegments)
+function createArenaPlatform(woodMaterial: THREE.MeshStandardMaterial, wallSegments: number): THREE.Group {
+  const circumradius = regularPolygonCircumradius(trayApothem(wallSegments), wallSegments)
   const innerRadius = circumradius - PLATFORM_INNER_OVERLAP
   const group = new THREE.Group()
 
   function ring(inner: number, outer: number, baseY: number, topY: number): void {
     const mesh = new THREE.Mesh(
-      createHexRingGeometry(inner, outer, topY - baseY, wallSegments),
+      createHexRingGeometry(inner, outer, topY - baseY, wallSegments, -trayRotation(wallSegments)),
       woodMaterial
     )
     mesh.position.y = baseY
@@ -518,7 +534,9 @@ export function createTrayScene(
   wallColor: number = DEFAULT_WALL_COLOR,
   backgroundColor: number = DEFAULT_BACKGROUND_COLOR,
   floorColor: number = DEFAULT_FLOOR_COLOR,
-  backgroundImage: string | null = null
+  backgroundImage: string | null = null,
+  /** Lados da bandeja — triângulo, quadrado, hexágono ou círculo (ver `trayShape.ts`). */
+  sides = TRAY_CONFIG.wallSegments
 ): TraySceneHandle {
   const scene = new THREE.Scene()
   applySceneBackground(scene, backgroundColor, backgroundImage)
@@ -529,7 +547,7 @@ export function createTrayScene(
   table.object.position.y = -TABLE_DROP
   scene.add(table.object)
 
-  const floor = createFloor(floorColor)
+  const floor = createFloor(floorColor, sides)
   scene.add(floor)
   const floorMaterial = floor.material as THREE.MeshPhysicalMaterial
 
@@ -573,7 +591,7 @@ export function createTrayScene(
     roughness: 0.68,
     metalness: 0
   })
-  scene.add(createArenaPlatform(platformMaterial))
+  scene.add(createArenaPlatform(platformMaterial, sides))
 
   for (const light of createLights()) scene.add(light)
 

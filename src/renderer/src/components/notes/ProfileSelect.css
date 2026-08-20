@@ -35,8 +35,16 @@
  */
 .profile-select-photo {
   flex: 0 0 auto;
-  width: 18px;
-  height: 24px;
+  /*
+   * 27×36, era 18×24 — aumentada a pedido do usuário junto com a foto da ficha. Mantida a
+   * proporção 3×4: é a de foto de documento, e é a mesma da foto grande, então o recorte que a
+   * pessoa vê na lista é o mesmo que ela escolheu lá.
+   *
+   * Isso deixa cada linha da lista mais alta, então cabem menos personagens nos 260px de
+   * `LIST_MAX_HEIGHT` antes de rolar — troca aceita: reconhecer a foto é pra que a miniatura existe.
+   */
+  width: 27px;
+  height: 36px;
   object-fit: cover;
   display: block;
   background: var(--win-face);
@@ -49,7 +57,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 7px;
+  font-size: 8px;
   line-height: 1.05;
   text-align: center;
   color: var(--win-text-muted);

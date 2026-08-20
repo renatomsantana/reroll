@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { DiceGroup } from '@shared/types/dice'
+import type { DiceGroup, KeepRule } from '@shared/types/dice'
 import type { Preset, PresetInput } from '@shared/types/preset'
 import { DEFAULT_DICE_SIDES, MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
 import { useTranslation } from '@renderer/i18n/useTranslation'
@@ -31,6 +31,15 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
   const [modifier, setModifier] = useState(
     preset?.expression.modifiers.reduce((sum, m) => sum + m.value, 0) ?? 0
   )
+  /**
+   * A regra de manter, em dois estados separados — o MODO e QUANTOS.
+   *
+   * Separados porque a pessoa muda um sem querer perder o outro: trocar "os maiores" por "os
+   * menores" não deveria zerar o "quantos contam" que ela acabou de ajustar. `modo` em `'all'` é a
+   * ausência de regra, que é o comportamento de sempre.
+   */
+  const [keepMode, setKeepMode] = useState<KeepRule['mode'] | 'all'>(preset?.expression.keep?.mode ?? 'all')
+  const [keepCount, setKeepCount] = useState(preset?.expression.keep?.count ?? 1)
 
   const totalDiceCount = groups.reduce((sum, g) => sum + g.count, 0)
   const tooManyDice = totalDiceCount > MAX_SIMULTANEOUS_DICE
@@ -57,12 +66,28 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
     setGroups((prev) => prev.filter((_, i) => i !== index))
   }
 
+  /**
+   * A regra só é GRAVADA quando muda alguma coisa: manter todos, ou manter tantos quanto se rola, é
+   * o mesmo que não ter regra. Gravar assim mesmo encheria o rótulo do preset com "(usa os 3
+   * maiores)" numa rolagem de 3 dados, onde os três contam de qualquer jeito.
+   */
+  function regraDeManter(): KeepRule | undefined {
+    if (keepMode === 'all') return undefined
+    const quantos = Math.min(keepCount, totalDiceCount)
+    if (quantos >= totalDiceCount || quantos < 1) return undefined
+    return { mode: keepMode, count: quantos }
+  }
+
   function handleSubmit() {
     if (!isValid) return
     onSave({
       name: name.trim(),
       icon: icon.trim() || undefined,
-      expression: { groups, modifiers: modifier !== 0 ? [{ type: 'flat', value: modifier }] : [] }
+      expression: {
+        groups,
+        modifiers: modifier !== 0 ? [{ type: 'flat', value: modifier }] : [],
+        keep: regraDeManter()
+      }
     })
   }
 
@@ -157,6 +182,49 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
             </p>
           )}
         </div>
+
+        {/*
+          A regra de "usar o maior" só aparece com MAIS DE UM dado — com um só não há o que escolher,
+          e o controle seria uma pergunta sem resposta possível.
+        */}
+        {totalDiceCount > 1 && (
+          <div className="preset-editor-field">
+            <span>{t.presetEditor.keep}</span>
+            <div className="preset-editor-keep">
+              <select
+                value={keepMode}
+                onChange={(e) => setKeepMode(e.target.value as KeepRule['mode'] | 'all')}
+                aria-label={t.presetEditor.keep}
+              >
+                <option value="all">{t.presetEditor.keepAll}</option>
+                <option value="highest">{t.presetEditor.keepHighest}</option>
+                <option value="lowest">{t.presetEditor.keepLowest}</option>
+              </select>
+              {keepMode !== 'all' && (
+                <div className="preset-editor-count" aria-label={t.presetEditor.keepCount}>
+                  <Button
+                    variant="ghost"
+                    aria-label="-"
+                    disabled={keepCount <= 1}
+                    onClick={() => setKeepCount((n) => Math.max(1, n - 1))}
+                  >
+                    -
+                  </Button>
+                  <span>{Math.min(keepCount, totalDiceCount - 1)}</span>
+                  <Button
+                    variant="ghost"
+                    aria-label="+"
+                    disabled={keepCount >= totalDiceCount - 1}
+                    onClick={() => setKeepCount((n) => Math.min(totalDiceCount - 1, n + 1))}
+                  >
+                    +
+                  </Button>
+                </div>
+              )}
+            </div>
+            {keepMode !== 'all' && <p className="preset-editor-hint">{t.presetEditor.keepHint}</p>}
+          </div>
+        )}
 
         <label className="preset-editor-field">
           <span>{t.presetEditor.modifier}</span>

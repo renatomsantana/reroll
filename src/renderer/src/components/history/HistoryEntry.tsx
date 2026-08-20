@@ -1,5 +1,6 @@
 import type { RollResult } from '@shared/types/dice'
 import { colorForDice } from '@shared/diceRegistry'
+import { mantidosPorGrupo } from '@shared/dice/manterDados'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import './HistoryEntry.css'
 
@@ -12,7 +13,16 @@ function formatTime(timestamp: number, locale: string): string {
 
 export function HistoryEntry({ result }: { result: RollResult }) {
   const { language } = useSettings()
-  const allRolls = result.groups.flatMap((g) => g.rolls.map((value) => ({ sides: g.sides, value })))
+  /**
+   * Cada dado da jogada, com a marca de ter CONTADO ou não.
+   *
+   * Sem a marca, uma rolagem com regra de manter fica se contradizendo na própria linha: "[4, 17, 9]
+   * = 17". Quem lê soma os três, dá 30, e passa a desconfiar do histórico inteiro.
+   */
+  const marcas = result.keep ? mantidosPorGrupo(result.groups, result.keep) : null
+  const allRolls = result.groups.flatMap((g, gi) =>
+    g.rolls.map((value, i) => ({ sides: g.sides, value, conta: marcas ? marcas[gi][i] : true }))
+  )
 
   return (
     <div className="history-entry">
@@ -38,9 +48,9 @@ export function HistoryEntry({ result }: { result: RollResult }) {
             <span key={i}>
               {i > 0 && ', '}
               <span
-                className="history-entry-roll-value"
+                className={`history-entry-roll-value ${roll.conta ? '' : 'history-entry-roll-descartado'}`}
                 style={{ background: color.bg, color: color.text }}
-                title={`d${roll.sides}`}
+                title={roll.conta ? `d${roll.sides}` : `d${roll.sides} — não conta pro total`}
               >
                 {roll.value}
               </span>

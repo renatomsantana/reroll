@@ -48,15 +48,69 @@ export function createProfile(name = '', system = ''): Profile {
 }
 
 /**
- * Deixa qualquer conteúdo lido do disco no formato atual: garante ao menos um perfil e um `activeId`
- * que aponta pra um perfil que existe de verdade (arquivo editado à mão, ou perfil apagado numa
- * versão e reaberto em outra).
+ * Um id serve como NOME DE PASTA?
+ *
+ * A pergunta importa porque `ProfilesRepository.activeDirectory()` monta o caminho dos dados do
+ * personagem com `join(userData, 'profiles', id)` — o id não é só uma chave, é um pedaço de caminho
+ * de arquivo. Um id vazio faz as anotações caírem na pasta `profiles/` inteira, em cima do que
+ * estiver lá; um id com `..` ou com barra sai da pasta do app e vai escrever onde não devia.
+ *
+ * Nada disso acontece com id gerado pelo app (`crypto.randomUUID`). Acontece com arquivo editado à
+ * mão, restaurado de backup pela metade ou gravado por uma versão futura com outro formato — e o
+ * estrago é silencioso, que é o que o torna caro.
+ */
+function idServeComoPasta(id: string): boolean {
+  if (!id.trim()) return false
+  if (id === '.' || id === '..') return false
+  // Separadores dos dois sistemas e os dois-pontos do Windows (`C:`) — qualquer um deles faz o
+  // `join` produzir um caminho que não é mais "uma pasta dentro de profiles".
+  return !/[\\/:]/.test(id)
+}
+
+/**
+ * Deixa qualquer conteúdo lido do disco no formato atual: garante ao menos um perfil, campos com os
+ * tipos certos, um id ÚNICO e utilizável como pasta em cada perfil, e um `activeId` que aponta pra
+ * um perfil que existe de verdade (arquivo editado à mão, ou perfil apagado numa versão e reaberto
+ * em outra).
+ *
+ * A distinção entre SEM id e COM id ruim é de propósito, e não detalhe:
+ *
+ * - entrada SEM `id` nenhum é descartada. Não é um personagem que perdeu a chave, é um fragmento —
+ *   gravação interrompida no meio, ou objeto de outro formato. Mantê-la encheria a lista de
+ *   personagens fantasmas que ninguém criou.
+ * - entrada COM `id` que não serve (repetido, vazio, com `..` ou com barra) é MANTIDA, com id novo.
+ *   Aqui há um personagem de verdade: o nome e o sistema estão ali, legíveis. Descartar apagaria
+ *   alguém da lista por causa de um defeito de arquivo. Com id novo ele continua aparecendo,
+ *   apontando pra uma pasta própria e vazia — no pior caso perdem-se as anotações dele, não ele.
+ *
+ * Repetido é o caso perigoso de verdade: dois personagens com o mesmo id leem e escrevem NA MESMA
+ * PASTA (ver `ProfilesRepository.activeDirectory`). Um sobrescreve as anotações do outro a cada
+ * tecla, e da tela isso lê como "troquei de personagem e as informações sumiram".
  */
 export function normalizeProfiles(raw: unknown): ProfilesState {
   const data = raw as Partial<ProfilesState> | null
-  const profiles = Array.isArray(data?.profiles)
-    ? data.profiles.filter((p): p is Profile => typeof p?.id === 'string')
-    : []
+  const brutos = Array.isArray(data?.profiles) ? data.profiles : []
+
+  const usados = new Set<string>()
+  const profiles: Profile[] = []
+  for (const bruto of brutos) {
+    const entrada = bruto as Partial<Profile> | null
+    if (!entrada || typeof entrada !== 'object') continue
+    // SEM id: fragmento, não personagem — ver o comentário acima.
+    if (typeof entrada.id !== 'string') continue
+    const idOriginal = entrada.id
+    const id = idServeComoPasta(idOriginal) && !usados.has(idOriginal) ? idOriginal : crypto.randomUUID()
+    usados.add(id)
+    profiles.push({
+      id,
+      // Tipo errado é o mesmo que ausente: o nome vai pra tela e pro `trim()` de quem grava a ficha,
+      // e um número ali estoura longe daqui, com uma pilha que não aponta pro arquivo.
+      name: typeof entrada.name === 'string' ? entrada.name : '',
+      system: typeof entrada.system === 'string' ? entrada.system : '',
+      photo: typeof entrada.photo === 'string' ? entrada.photo : null,
+      createdAt: typeof entrada.createdAt === 'number' && Number.isFinite(entrada.createdAt) ? entrada.createdAt : 0
+    })
+  }
 
   if (profiles.length === 0) {
     profiles.push({

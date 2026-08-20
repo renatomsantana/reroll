@@ -27,7 +27,7 @@ export function createPolyhedronBody(
     )
   }
 
-  const body = world.createRigidBody(
+    const body = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
       .setLinearDamping(definition.physics.linearDamping)
       .setAngularDamping(definition.physics.angularDamping)

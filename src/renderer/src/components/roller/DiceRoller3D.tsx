@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties } from 'react'
-import type { DiceGroup, DiceGroupResult, RollResult } from '@shared/types/dice'
+import type { DiceGroup, DiceGroupResult, KeepRule, RollResult } from '@shared/types/dice'
+import { totalMantido, valoresDosGrupos } from '@shared/dice/manterDados'
 import { DEFAULT_DICE_SIDES, colorForDice } from '@shared/diceRegistry'
 import { expressionLabel, type RollMode } from '@renderer/domain/dice/diceEngine'
 import { MAX_SIMULTANEOUS_DICE } from '@renderer/dice3d/config/physicsConfig'
@@ -14,6 +15,8 @@ import type { LaunchMode } from '@renderer/settings/SettingsContext'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { playRollSound } from '@renderer/audio/rollSound'
+import { isTypingTarget } from '@renderer/utils/isTyping'
+import { TRAY_SHAPE_SIDES } from '@renderer/dice3d/geometry/trayShape'
 import { Button } from '../common/Button'
 import { CameraModeSwitch } from './CameraModeSwitch'
 import './DiceRoller3D.css'
@@ -30,13 +33,25 @@ export interface DiceRoller3DHandle {
    * `sourceName` é o nome do preset, e serve só pro histórico (ver `sourceName` em `RollResult`):
    * ele viaja daqui até o resultado que sai segundos depois, quando os dados assentam.
    */
-  rollGroups: (groups: DiceGroup[], modifier: number, sourceName?: string) => void
+  rollGroups: (
+    groups: DiceGroup[],
+    modifier: number,
+    sourceName?: string,
+    /** "Role 3 e use o maior" — ver `KeepRule`. Ausente quer dizer somar tudo, como sempre foi. */
+    keep?: KeepRule
+  ) => void
 }
 
 interface DiceRoller3DProps {
   onRoll: (result: RollResult) => void
   /** Avisa o pai sempre que `isRolling` muda — usado pra desabilitar ações de preset (editar/excluir/rolar OUTRO) enquanto qualquer rolagem está em andamento, mesmo padrão já usado pros próprios botões de tipo/quantidade de dado aqui dentro. */
   onRollingChange?: (isRolling: boolean) => void
+  /**
+   * Atalhos de teclado ligados. Falso quando a aba de rolagem não é a que está na tela — ela fica
+   * MONTADA e escondida (ver `App.tsx`), então sem isto o Espaço rolaria os dados de dentro das
+   * Anotações.
+   */
+  shortcutsEnabled?: boolean
 }
 
 const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
@@ -109,7 +124,7 @@ function groupRollsBySides(rolls: { sides: number; value: number }[]): DiceGroup
  * compacta (300×230) foi desenhada de propósito pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange },
+  { onRoll, onRollingChange, shortcutsEnabled = true },
   ref
 ) {
   const t = useTranslation()
@@ -127,6 +142,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     towerFlagColor,
     towerDoorColor,
     launchMode,
+    trayShape,
     cameraMode,
     debugMode,
     soundEnabled,
@@ -201,6 +217,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const [rollError, setRollError] = useState(false)
   /** Nome do preset da rolagem em curso — ver `rollGroups` e `finalizeResult`. */
   const sourceNameRef = useRef<string | undefined>(undefined)
+  /** Regra de manter do preset em curso — ver `rollGroups` e `handleMultiResult`. */
+  const keepRef = useRef<KeepRule | undefined>(undefined)
   /** Popup do total sobre a bandeja/torre ao assentar os dados — some sozinho no fim da animação CSS (`onAnimationEnd`), não precisa de timer em JS. `key` força reinício da animação mesmo se o total se repetir entre uma rolagem e outra. */
   const [resultPopup, setResultPopup] = useState<{ key: string; total: number } | null>(null)
 
@@ -225,7 +243,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }, [autoRollArm])
 
   useImperativeHandle(ref, () => ({
-    rollGroups: (newGroups, newModifier, sourceName) => {
+    rollGroups: (newGroups, newModifier, sourceName, keep) => {
       /**
        * A BANDEJA aceita preset a qualquer momento, inclusive por cima de uma rolagem em
        * andamento — pedido do usuário ("que aconteça a qualquer momento"). Antes havia um
@@ -243,6 +261,11 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
        * leria o valor do render em que a rolagem COMEÇOU.
        */
       sourceNameRef.current = sourceName
+      /**
+       * Mesma razão do `sourceNameRef`: a regra de manter é do preset que começou ESTA rolagem, e
+       * quem a lê é o `handleMultiResult`, segundos depois, quando os dados assentam.
+       */
+      keepRef.current = keep
       // Presets não carregam modo de vantagem/desvantagem — sempre volta a 'normal'
       // pra não herdar um modo deixado ligado de uma rolagem manual anterior.
       setMode('normal')
@@ -375,16 +398,30 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       setIsRolling(true)
       return
     }
-    const expression = { groups, modifiers: modifier !== 0 ? [{ type: 'flat' as const, value: modifier }] : [] }
+    const keep = keepRef.current
+    const expression = {
+      groups,
+      modifiers: modifier !== 0 ? [{ type: 'flat' as const, value: modifier }] : [],
+      keep
+    }
 
     if (mode === 'normal') {
+      const porSides = groupRollsBySides(result.rolls)
+      /**
+       * O total sai dos dados MANTIDOS quando o preset tem essa regra — "role 3d20 e use o maior",
+       * de Ordem Paranormal. Sem regra, `totalMantido` soma tudo e o resultado é o de sempre.
+       *
+       * `result.total` da cena não serve aqui porque ele já vem somado; a conta precisa ver dado por
+       * dado. E `porSides` continua com TODOS os dados: eles estão na bandeja, à vista.
+       */
       finalizeResult({
         id: crypto.randomUUID(),
         label: expressionLabel(expression),
-        groups: groupRollsBySides(result.rolls),
+        groups: porSides,
         modifierTotal: modifier,
-        total: result.total + modifier,
-        timestamp: Date.now()
+        total: totalMantido(valoresDosGrupos(porSides), keep) + modifier,
+        timestamp: Date.now(),
+        keep
       })
       return
     }
@@ -430,17 +467,28 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      /**
+       * DUAS guardas que faltavam, e que juntas explicam o relato "não consigo digitar em nada".
+       *
+       * 1. `shortcutsEnabled`: a aba de rolagem fica MONTADA e escondida ao trocar de aba (pra não
+       *    reconstruir a cena 3D), então este ouvinte continuava na janela inteira e rolava os dados
+       *    de dentro das Anotações;
+       * 2. foco em campo de texto: Espaço e Enter são digitação lá dentro, e o `preventDefault`
+       *    abaixo os engolia — a pessoa apertava espaço e não saía nada, só um dado rolando numa aba
+       *    que ela nem estava vendo.
+       */
+      if (!shortcutsEnabled) return
       if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return
       if (e.repeat || isRolling || document.querySelector('.modal-overlay')) return
       const active = document.activeElement
-      if (active instanceof HTMLSelectElement) return
+      if (isTypingTarget(active)) return
       if (active instanceof HTMLButtonElement && e.code === 'Space') return
       e.preventDefault()
       handleRollClick()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isRolling])
+  }, [isRolling, shortcutsEnabled])
 
   return (
     <div className="dice-roller-3d">
@@ -579,7 +627,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
            * disso recompila os shaders — um pico de 290ms num quadro só. É o "fica meio lagado quando
            * bota mais dados" que o usuário reportou.
            */
-          key={`${debugMode}-${launchMode}`}
+          /*
+            A FORMA entra no `key`: parede física, chão e plataforma são construídos na montagem da
+            cena, e trocar de hexágono pra círculo sem remontar deixaria o collider antigo contendo
+            dados dentro de uma bandeja com outro desenho.
+          */
+          key={`${debugMode}-${launchMode}-${trayShape}`}
           ref={multiRef}
           groups={canvasGroups as { sides: PhysicalDiceSides; count: number }[]}
           onResult={handleMultiResult}
@@ -598,6 +651,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           }}
           backgroundImage={backgroundImage}
           launchMode={launchMode}
+          traySides={TRAY_SHAPE_SIDES[trayShape]}
           debugMode={debugMode}
           caseOpen={caseOpen}
           onCaseClick={() => setCaseOpen((open) => !open)}

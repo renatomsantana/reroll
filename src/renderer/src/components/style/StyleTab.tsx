@@ -14,6 +14,7 @@ import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import { ColorWheel } from './ColorWheel'
 import { StylePreview } from './StylePreview'
+import { TRAY_SHAPES } from '@renderer/dice3d/geometry/trayShape'
 import { TrayPreview } from './TrayPreview'
 import './StyleTab.css'
 
@@ -40,18 +41,19 @@ type SceneColorTarget =
 
 const SCENE_TARGETS: SceneColorTarget[] = ['wall', 'floor', 'background']
 /**
- * Os alvos da torre ficam em GRUPO SEPARADO, não emendados em `SCENE_TARGETS`.
+ * Os alvos da torre ficam em GRUPO SEPARADO, não emendados em `SCENE_TARGETS`: os dois escrevem no
+ * MESMO `sceneTarget`, então a roda continua sendo uma só, editando quem estiver marcado — em
+ * qualquer um dos dois.
  *
- * Não é organização: são sete alvos no total, e a fileira de botões da roda foi dimensionada pra
- * três ou quatro ("com as três ou quatro caixas de cada seção nada disso rola pra fora da tela na
- * janela padrão", ver o comentário do grupo da roda). Sete numa fileira só transbordam. Os dois
- * grupos escrevem no MESMO `sceneTarget`, então a roda continua sendo uma só, editando quem estiver
- * marcado — em qualquer um dos dois.
+ * A razão de separar é largura, e ela foi testada nas duas direções. A fileira de botões foi
+ * dimensionada pra três ou quatro ("com as três ou quatro caixas de cada seção nada disso rola pra
+ * fora da tela na janela padrão", ver o comentário do grupo da roda), e são SETE alvos no total:
+ * numa fileira só, transbordam. Chegaram a virar quatro por um momento — enquanto a torre em cena
+ * era o modelo `.glb`, que é uma malha só e só respondia a `stone`, os outros três editavam o
+ * invisível e o grupo próprio gastava um fieldset pra segurar UM botão. Com a torre desenhada em
+ * código de volta (`createTowerBesideTray.ts`), as quatro peças existem e pintam de novo.
  */
 const TOWER_TARGETS: SceneColorTarget[] = ['towerStone', 'towerRoof', 'towerFlag', 'towerDoor']
-// Só o bloco segurado pra 0.1.8 consome isto. Fica declarado de propósito: quando o bloco voltar,
-// ele volta inteiro, sem precisar reconstruir a lista.
-void TOWER_TARGETS
 
 /**
  * As quatro famílias de cor prontas, com o acabamento que cada uma pressupõe. Antes elas eram
@@ -96,6 +98,7 @@ export function StyleTab() {
     floorColor,
     backgroundColor,
     launchMode,
+    trayShape,
     towerStoneColor,
     towerRoofColor,
     towerFlagColor,
@@ -111,6 +114,7 @@ export function StyleTab() {
     setFloorColor,
     setBackgroundColor,
     setLaunchMode,
+    setTrayShape,
     setTowerStoneColor,
     setTowerRoofColor,
     setTowerFlagColor,
@@ -143,14 +147,20 @@ export function StyleTab() {
   /** Tipos que têm cor própria gravada — são eles que "não mudam" quando a cor padrão muda. */
   const tiposComCorPropria = Object.keys(diceColorOverrides).map(Number)
 
+  /** Um botão de alvo da CENA. Vive numa função porque as duas fileiras desenham o mesmo botão. */
+  function renderSceneTarget(target: SceneColorTarget) {
+    return (
+      <Button key={target} selected={sceneTarget === target} onClick={() => setSceneTarget(target)}>
+        <span className="style-tab-type-swatch" style={{ background: sceneColors[target] }} />
+        {t.styleTab.colorTargets[target]}
+      </Button>
+    )
+  }
+
   function handleApplyDefaultToAll(): void {
     if (!confirm(t.styleTab.applyDefaultToAllConfirm.replace('{n}', String(tiposComCorPropria.length)))) return
     for (const sides of tiposComCorPropria) clearDiceColorOverride(sides)
   }
-
-  // Idem: consumidos só pelo seletor de modo de lançamento, segurado pra 0.1.8.
-  void launchMode
-  void setLaunchMode
 
   const activeFamily = PALETTE_FAMILIES.find((family) => family.id === paletteFamily) ?? PALETTE_FAMILIES[0]
   const activePreset = activeFamily.presets.find((preset) => sameColor(preset.bodyColor, selectedBodyColor))
@@ -302,7 +312,7 @@ export function StyleTab() {
           <legend>{t.styleTab.preview}</legend>
           {section === 'scene' ? (
             <>
-              <TrayPreview wallColor={wallColor} floorColor={floorColor} />
+              <TrayPreview wallColor={wallColor} floorColor={floorColor} trayShape={trayShape} />
               <p className="style-tab-preview-caption">{t.styleTab.sectionScene}</p>
             </>
           ) : (
@@ -340,37 +350,48 @@ export function StyleTab() {
         */}
         <fieldset className="style-group style-tab-wheel-group">
           <legend>{t.styleTab.colorWheel}</legend>
-          <div className="style-tab-targets">
-            {section === 'scene'
-              ? SCENE_TARGETS.map((target) => (
-                  <Button
-                    key={target}
-                    selected={sceneTarget === target}
-                    onClick={() => setSceneTarget(target)}
-                  >
-                    <span
-                      className="style-tab-type-swatch"
-                      style={{ background: sceneColors[target] }}
-                    />
-                    {t.styleTab.colorTargets[target]}
-                  </Button>
-                ))
-              : (['body', 'number'] as DiceColorTarget[]).map((target) => (
-                  <Button
-                    key={target}
-                    selected={diceTarget === target}
-                    onClick={() => setDiceTarget(target)}
-                  >
-                    <span
-                      className="style-tab-type-swatch"
-                      style={{
-                        background: target === 'body' ? selectedBodyColor : selectedNumberColor
-                      }}
-                    />
-                    {t.styleTab.colorTargets[target]}
-                  </Button>
-                ))}
-          </div>
+          {/*
+            Os alvos da CENA vêm em duas fileiras rotuladas — bandeja em cima, torre embaixo —, e não
+            mais numa fileira só aqui e um grupo separado no canto direito da tela.
+
+            Eram sete botões repartidos entre duas caixas distantes que controlam a MESMA roda, o que
+            não se adivinha olhando; e os quatro da torre, espremidos numa coluna estreita, cortavam o
+            rótulo ("Bandeira" não cabia no botão). A grade de largura igual resolve as duas coisas:
+            junta quem faz a mesma coisa e dá a todo botão o espaço do maior rótulo.
+          */}
+          {section === 'scene' ? (
+            <div className="style-tab-target-rows">
+              <div className="style-tab-target-row">
+                <span className="style-tab-target-caption">{t.styleTab.targetsTray}</span>
+                <div className="style-tab-targets style-tab-targets-grid">
+                  {SCENE_TARGETS.map((target) => renderSceneTarget(target))}
+                </div>
+              </div>
+              <div className="style-tab-target-row">
+                <span className="style-tab-target-caption">{t.styleTab.targetsTower}</span>
+                <div className="style-tab-targets style-tab-targets-grid">
+                  {TOWER_TARGETS.map((target) => renderSceneTarget(target))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="style-tab-targets">
+              {(['body', 'number'] as DiceColorTarget[]).map((target) => (
+                <Button
+                  key={target}
+                  selected={diceTarget === target}
+                  onClick={() => setDiceTarget(target)}
+                >
+                  <span
+                    className="style-tab-type-swatch"
+                    style={{ background: target === 'body' ? selectedBodyColor : selectedNumberColor }}
+                  />
+                  {t.styleTab.colorTargets[target]}
+                </Button>
+              ))}
+            </div>
+          )}
+
           <ColorWheel
             color={wheelColor}
             onChange={handleWheelChange}
@@ -379,38 +400,6 @@ export function StyleTab() {
             brightnessLabel={t.styleTab.brightness}
           />
         </fieldset>
-
-        {/*
-          Alvos da TORRE, em grupo próprio (ver `TOWER_TARGETS`). Marcar um deles manda a mesma roda
-          acima editar aquela cor — não existe uma segunda roda aqui.
-
-          Aparece sempre que a seção Cena está aberta, mesmo com a bandeja no modo simples: a torre
-          é uma preferência gravada como qualquer outra, e esconder o controle de quem não está com
-          ela ligada foi exatamente o que já aconteceu com o seletor de modo de lançamento — que
-          sumiu e deixou a torre inalcançável.
-        */}
-{/* Também segurado pra 0.1.8: sem a torre na tela, estas quatro cores editam o invisível.
-        {section === 'scene' && (
-          <fieldset className="style-group">
-            <legend>{t.styleTab.towerColors}</legend>
-            <div className="style-tab-targets">
-              {TOWER_TARGETS.map((target) => (
-                <Button
-                  key={target}
-                  selected={sceneTarget === target}
-                  onClick={() => setSceneTarget(target)}
-                >
-                  <span
-                    className="style-tab-type-swatch"
-                    style={{ background: sceneColors[target] }}
-                  />
-                  {t.styleTab.colorTargets[target]}
-                </Button>
-              ))}
-            </div>
-          </fieldset>
-        )}
-        */}
 
         {section === 'dice' && (
           <>
@@ -509,7 +498,7 @@ export function StyleTab() {
 
         {section === 'scene' && (
           <>
-{/*
+            {/*
               O seletor de modo de lançamento VOLTOU, e desta vez a pedido explícito: "uma opção de
               escolher se quer que tenha a torre ou não, ou se quer que jogue por cima como é o
               padrão, ou se quer a torre ali só por decoração". Ele já tinha saído daqui duas vezes,
@@ -518,25 +507,35 @@ export function StyleTab() {
               torre convive com a bandeja em vez de substituí-la, e as três opções são combinações de
               cena e lançamento, não modos rivais.
             */}
-{/*
-              SEGURADO PRA 0.1.8, junto com a torre inteira — decisão do usuário ao fechar a 0.1.7:
-              "ignora a parte das torres e lança o patch 0.1.7, deixa torre e ler pdf pro 0.1.8".
+            {/*
+              FORMA da bandeja — triângulo, quadrado, hexágono ou círculo, pedido do usuário.
 
-              O que sai é só o CAMINHO até o modo, não o modo: `launchMode` continua sendo uma
-              preferência de verdade, a torre continua montando quando ele vale `tower`, e a física
-              da boca continua testada. Devolver isto é descomentar.
-
-              <fieldset className="style-group">
-                <legend>{t.styleTab.launchMode}</legend>
-                <div className="style-tab-options-row">
-                  {(['tray', 'tower', 'towerDecor'] as const).map((mode) => (
-                    <Button key={mode} selected={launchMode === mode} onClick={() => setLaunchMode(mode)}>
-                      {t.styleTab.launchModeOptions[mode]}
-                    </Button>
-                  ))}
-                </div>
-              </fieldset>
+              Todas ocupam a mesma pegada na mesa (ver `trayApothem`), então trocar de forma não
+              mexe em câmera, chão em volta nem no lugar da torre. O que muda de verdade é a ÁREA DE
+              JOGO: dentro do mesmo círculo, o triângulo é o que menos aproveita espaço, e os dados
+              ficam mais amontoados nele. É geometria, não defeito.
             */}
+            <fieldset className="style-group">
+              <legend>{t.styleTab.trayShape}</legend>
+              <div className="style-tab-options-row">
+                {TRAY_SHAPES.map((forma) => (
+                  <Button key={forma} selected={trayShape === forma} onClick={() => setTrayShape(forma)}>
+                    {t.styleTab.trayShapes[forma]}
+                  </Button>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="style-group">
+              <legend>{t.styleTab.launchMode}</legend>
+              <div className="style-tab-options-row">
+                {(['tray', 'tower', 'towerDecor'] as const).map((mode) => (
+                  <Button key={mode} selected={launchMode === mode} onClick={() => setLaunchMode(mode)}>
+                    {t.styleTab.launchModeOptions[mode]}
+                  </Button>
+                ))}
+              </div>
+            </fieldset>
 
             {/*
               O modo de CÂMERA morava aqui e saiu a pedido do usuário ("não gostei de ser no

@@ -114,7 +114,13 @@ export default function App() {
   function handlePresetRoll(preset: Preset) {
     const modifierTotal = preset.expression.modifiers.reduce((sum, m) => sum + m.value, 0)
     // O nome vai junto só pro histórico registrar QUAL golpe foi (ver `sourceName` em `RollResult`).
-    roller3DRef.current?.rollGroups(preset.expression.groups, modifierTotal, preset.name)
+    // A regra de manter ("role 3d20 e use o maior") vai junto porque quem soma o total é a cena.
+    roller3DRef.current?.rollGroups(
+      preset.expression.groups,
+      modifierTotal,
+      preset.name,
+      preset.expression.keep
+    )
   }
 
   async function handleSavePreset(input: PresetInput) {
@@ -205,6 +211,12 @@ export default function App() {
                   ref={roller3DRef}
                   onRoll={addToHistory}
                   onRollingChange={setIsAnyRollInProgress}
+                  /*
+                    Atalhos SÓ com a aba de rolagem na tela. Ela fica montada e escondida nas outras
+                    (ver o comentário do `display` acima), e sem isto o Espaço rolava os dados
+                    enquanto a pessoa escrevia nas Anotações.
+                  */
+                  shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen}
                 />
               </section>
 

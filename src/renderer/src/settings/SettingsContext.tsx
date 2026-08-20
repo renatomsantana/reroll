@@ -1,10 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useProfiles } from './ProfilesContext'
 import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
+import type { TrayShape } from '@renderer/dice3d/geometry/trayShape'
+import { sanearPreferencias } from './sanearSettings'
 import { DEFAULT_APP_ICON_ID, isValidAppIconId } from '@shared/appIcons'
+import type { Language } from '@shared/types/idioma'
 
 export type ThemeMode = 'day' | 'night'
-export type Language = 'pt-BR' | 'en-US'
+// Reexportado pra não quebrar quem já importava daqui; a definição mora em `shared` porque os
+// leitores de ficha também precisam dela. Ver `shared/types/idioma.ts`.
+export type { Language }
 /**
  * Como o dado entra na bandeja, e se a torre aparece — três opções, pedido do usuário ("uma opção de
  * escolher se quer que tenha a torre ou não, ou se quer que jogue por cima como é o padrão, ou se
@@ -151,6 +156,11 @@ interface Settings {
   appIconId: string
   /** Bandeja aberta (arremesso de fora) ou torre de castelo com rampa em espiral (`TOWER_CONFIG`). Estrutural — faz parte do `key` de remount em `DiceRoller3D.tsx`. */
   launchMode: LaunchMode
+  /**
+   * FORMA da bandeja — triângulo, quadrado, hexágono ou círculo, pedido do usuário. Vive por
+   * PERSONAGEM (está em `PROFILE_LOOK_KEYS`), como o resto da aparência: a mesa de cada um é a dele.
+   */
+  trayShape: TrayShape
   /** Como o WASD dirige a câmera (ver `CameraMode`). Não é estrutural: trocar não remonta a cena. */
   cameraMode: CameraMode
   debugMode: boolean
@@ -199,6 +209,7 @@ const DEFAULT_SETTINGS: Settings = {
   towerDoorColor: '#4a3520',
   appIconId: DEFAULT_APP_ICON_ID,
   launchMode: 'tray',
+  trayShape: 'hexagon',
   // `table` como padrão: é o modo que mais parece com o que já existia (orbitar/aproximar em volta
   // da mesa) e o único que nunca tira a bandeja do enquadramento sozinho.
   cameraMode: 'table',
@@ -232,7 +243,8 @@ const PROFILE_LOOK_KEYS = [
   'towerFlagColor',
   'towerDoorColor',
   'backgroundImage',
-  'launchMode'
+  'launchMode',
+  'trayShape'
 ] as const
 
 type ProfileLook = Pick<Settings, (typeof PROFILE_LOOK_KEYS)[number]>
@@ -256,10 +268,12 @@ function pickLook(settings: Settings): ProfileLook {
  * quem chama cair no que já estava valendo — assim criar um personagem não joga a cena pro padrão de
  * fábrica, ela começa parecida com a que a pessoa estava vendo.
  */
-function loadLook(profileId: string): ProfileLook | null {
+function loadLook(profileId: string): Partial<ProfileLook> | null {
   try {
     const raw = localStorage.getItem(lookStorageKey(profileId))
-    return raw ? (JSON.parse(raw) as ProfileLook) : null
+    // Mesma higiene do `loadInitial`: aqui moram `trayShape`, `launchMode` e `diceMaterial`, que são
+    // os três campos de valor fechado da APARÊNCIA — e é por esta porta que eles chegam.
+    return raw ? sanearPreferencias(JSON.parse(raw) as ProfileLook) : null
   } catch {
     return null
   }
@@ -297,6 +311,7 @@ interface SettingsContextValue extends Settings {
   setTowerDoorColor: (value: string) => void
   setAppIconId: (value: string) => void
   setLaunchMode: (value: LaunchMode) => void
+  setTrayShape: (value: TrayShape) => void
   setCameraMode: (value: CameraMode) => void
   setDebugMode: (value: boolean) => void
   setBackgroundImage: (value: string | null) => void
@@ -311,7 +326,13 @@ function loadInitial(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      const merged = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+      /**
+       * `sanearPreferencias` tira os campos de VALOR FECHADO que não são reconhecidos, pra eles
+       * caírem no padrão em vez de entrar torto. Sem isso um `trayShape` desconhecido — de uma
+       * versão em que a lista era outra — leva a cena inteira a NaN e mata a página de rolagem, sem
+       * jeito de consertar de dentro do app. Ver `sanearSettings.ts`.
+       */
+      const merged = { ...DEFAULT_SETTINGS, ...sanearPreferencias(JSON.parse(raw)) }
       // `appIconId` persistido de uma versão anterior pode apontar pra um id removido (ex.: o
       // ícone branco 'rbranco') — cai pro padrão em vez de deixar a miniatura da Preferências
       // sem seleção nenhuma ou o splash tentando carregar uma imagem que não existe mais.
@@ -423,6 +444,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         void window.api.windowControls.setAppIcon(appIconId)
       },
       setLaunchMode: (launchMode) => setSettings((prev) => ({ ...prev, launchMode })),
+      setTrayShape: (trayShape) => setSettings((prev) => ({ ...prev, trayShape })),
       setCameraMode: (cameraMode) => setSettings((prev) => ({ ...prev, cameraMode })),
       setDebugMode: (debugMode) => setSettings((prev) => ({ ...prev, debugMode })),
       setBackgroundImage: (backgroundImage) => setSettings((prev) => ({ ...prev, backgroundImage })),

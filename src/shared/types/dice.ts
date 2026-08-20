@@ -8,9 +8,26 @@ export interface Modifier {
   value: number
 }
 
+/**
+ * "Fique com os N melhores (ou piores) dados desta rolagem."
+ *
+ * É a regra de Ordem Paranormal — teste com Agilidade 3 é "role 3d20 e use o MAIOR", não a soma — e
+ * de vários outros sistemas. Sem ela, o preset importado de uma ficha real dava um total que parecia
+ * certo e não era. Ver `manterDados.ts`, onde a conta mora.
+ *
+ * É OPCIONAL, e a ausência dela quer dizer "some tudo", que é o comportamento de sempre: nenhum
+ * preset gravado antes disto muda de resultado.
+ */
+export interface KeepRule {
+  mode: 'highest' | 'lowest'
+  /** Quantos dados ficam. Maior ou igual ao total de dados equivale a não ter regra. */
+  count: number
+}
+
 export interface DiceExpression {
   groups: DiceGroup[]
   modifiers: Modifier[]
+  keep?: KeepRule
 }
 
 export interface DiceGroupResult {
@@ -38,4 +55,12 @@ export interface RollResult {
   total: number
   timestamp: number
   advantageMode?: AdvantageMode
+  /**
+   * A regra de manter que valeu nesta rolagem, quando houve uma.
+   *
+   * Vai junto do resultado porque `groups` traz TODOS os dados que caíram — inclusive os
+   * descartados, que estão lá na bandeja pra pessoa ver — e sem isto a tela não teria como dizer
+   * quais deles entraram no total.
+   */
+  keep?: KeepRule
 }

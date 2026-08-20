@@ -20,6 +20,9 @@ export interface TranslationDict {
     rollError: string
     higherDie: string
     lowerDie: string
+    /** Com regra de manter, o destaque diz QUEM CONTA — e não quem é maior. Ver `RollResultView`. */
+    keptDie: string
+    discardedDie: string
     addDieHint: string
     maxDiceReachedHint: string
   }
@@ -49,6 +52,13 @@ export interface TranslationDict {
     cancel: string
     save: string
     tooManyDice: string
+    /** "Role N e use o maior" — a regra de Ordem Paranormal e de vários outros sistemas. */
+    keep: string
+    keepAll: string
+    keepHighest: string
+    keepLowest: string
+    keepCount: string
+    keepHint: string
   }
   emojiPicker: { hint: string }
   statusBar: { shortcutsHint: string }
@@ -136,20 +146,20 @@ export interface TranslationDict {
       wall: string
       floor: string
       background: string
-      /** As quatro da torre ao lado da bandeja (`createTowerBesideTray.ts`) — só aparecem no modo torre. */
+      /** As quatro peças da torre ao lado da bandeja (`createTowerBesideTray.ts`). */
       towerStone: string
       towerRoof: string
       towerFlag: string
       towerDoor: string
     }
-    /** Legenda do grupo com os alvos de cor da torre. */
-    towerColors: string
+    /** Legendas das duas fileiras de alvos de cor da cena — bandeja e torre, ver `StyleTab`. */
+    targetsTray: string
+    targetsTower: string
     trayPresets: string
-    /**
-     * O SELETOR de modo de lançamento saiu da aba Estilo (ver o comentário em `StyleTab.tsx`) — a
-     * torre é coisa que ficou pelo caminho e o usuário não quer oferecendo na interface. Os rótulos
-     * continuam aqui porque `launchMode` continua sendo uma preferência gravada de verdade.
-     */
+    /** Rótulos do seletor de modo de lançamento, na aba Estilo (`StyleTab.tsx`). */
+    /** Forma da bandeja e os nomes das quatro. */
+    trayShape: string
+    trayShapes: { triangle: string; square: string; hexagon: string; circle: string }
     launchMode: string
     launchModeOptions: { tray: string; tower: string; towerDecor: string }
     /** Estados do olho que trava a câmera nos dados (`CameraModeSwitch.tsx`). */
@@ -229,6 +239,8 @@ export const translations: Record<Language, TranslationDict> = {
       rollError: 'Não foi possível iniciar a rolagem 3D. Tente novamente.',
       higherDie: 'Maior',
       lowerDie: 'Menor',
+      keptDie: 'Conta pro total',
+      discardedDie: 'Não conta pro total',
       addDieHint: 'Adiciona um dado deste tipo à rolagem',
       maxDiceReachedHint: 'Limite de {max} dados por rolagem atingido'
     },
@@ -257,7 +269,13 @@ export const translations: Record<Language, TranslationDict> = {
       modifier: 'Modificador (+/-)',
       cancel: 'Cancelar',
       save: 'Salvar',
-      tooManyDice: 'Máximo de {max} dados no total (soma de todos os grupos).'
+      tooManyDice: 'Máximo de {max} dados no total (soma de todos os grupos).',
+      keep: 'No total, usar',
+      keepAll: 'todos os dados (somar)',
+      keepHighest: 'os maiores',
+      keepLowest: 'os menores',
+      keepCount: 'Quantos dados contam',
+      keepHint: 'Os outros dados continuam sendo rolados e aparecem na bandeja — só não entram na conta.'
     },
     emojiPicker: {
       hint: 'Dica: com o campo de ícone selecionado, pressione Win + . pra abrir o seletor de emojis completo do Windows.'
@@ -355,13 +373,16 @@ export const translations: Record<Language, TranslationDict> = {
         wall: 'Parede',
         floor: 'Veludo',
         background: 'Fundo',
-        towerStone: 'Torre',
+        towerStone: 'Pedra',
         towerRoof: 'Bico',
         towerFlag: 'Bandeira',
         towerDoor: 'Porta'
       },
-      towerColors: 'Cores da torre',
+      targetsTray: 'Bandeja',
+      targetsTower: 'Torre',
       trayPresets: 'Estilos de bandeja prontos',
+      trayShape: 'Formato da bandeja',
+      trayShapes: { triangle: 'Triângulo', square: 'Quadrado', hexagon: 'Hexágono', circle: 'Círculo' },
       launchMode: 'Modo de lançamento',
       launchModeOptions: { tray: 'Sem torre', tower: 'Torre rolando', towerDecor: 'Torre de enfeite' },
       cameraLockOn: 'Câmera travada nos dados — clique pra soltar (WASD move, Q/E sobe e desce)',
@@ -430,6 +451,8 @@ export const translations: Record<Language, TranslationDict> = {
       rollError: 'Could not start the 3D roll. Please try again.',
       higherDie: 'Higher',
       lowerDie: 'Lower',
+      keptDie: 'Counts toward the total',
+      discardedDie: 'Does not count',
       addDieHint: 'Adds one die of this type to the roll',
       maxDiceReachedHint: 'Limit of {max} dice per roll reached'
     },
@@ -458,7 +481,13 @@ export const translations: Record<Language, TranslationDict> = {
       modifier: 'Modifier (+/-)',
       cancel: 'Cancel',
       save: 'Save',
-      tooManyDice: 'Maximum of {max} dice total (sum of all groups).'
+      tooManyDice: 'Maximum of {max} dice total (sum of all groups).',
+      keep: 'For the total, use',
+      keepAll: 'every die (sum them)',
+      keepHighest: 'the highest',
+      keepLowest: 'the lowest',
+      keepCount: 'How many dice count',
+      keepHint: 'The other dice are still rolled and land on the tray — they just do not count.'
     },
     emojiPicker: {
       hint: 'Tip: with the icon field selected, press Win + . to open the full Windows emoji picker.'
@@ -556,13 +585,16 @@ export const translations: Record<Language, TranslationDict> = {
         wall: 'Wall',
         floor: 'Velvet',
         background: 'Background',
-        towerStone: 'Tower',
+        towerStone: 'Stone',
         towerRoof: 'Spire',
         towerFlag: 'Flag',
         towerDoor: 'Door'
       },
-      towerColors: 'Tower colours',
+      targetsTray: 'Tray',
+      targetsTower: 'Tower',
       trayPresets: 'Ready-made tray styles',
+      trayShape: 'Tray shape',
+      trayShapes: { triangle: 'Triangle', square: 'Square', hexagon: 'Hexagon', circle: 'Circle' },
       launchMode: 'Launch mode',
       launchModeOptions: { tray: 'No tower', tower: 'Tower rolls', towerDecor: 'Tower as decor' },
       cameraLockOn: 'Camera locked on the dice — click to release (WASD moves, Q/E up and down)',

@@ -99,6 +99,68 @@ describe('rollExpression — múltiplos dados e total', () => {
   })
 })
 
+describe('rollExpression com a regra de MANTER', () => {
+  /**
+   * "Role N dados e use o maior" — a regra de teste de Ordem Paranormal. O que se verifica aqui é o
+   * contrato que a tela depende: os dados descartados CONTINUAM no resultado (eles caíram na
+   * bandeja e a pessoa está olhando pra eles), e só o total muda.
+   */
+  it('o total é o do dado mantido, mas todos os dados continuam no resultado', () => {
+    for (let i = 0; i < 200; i++) {
+      const resultado = rollExpression({
+        groups: [{ sides: 20, count: 3 }],
+        modifiers: [],
+        keep: { mode: 'highest', count: 1 }
+      })
+      const valores = resultado.groups.flatMap((g) => g.rolls)
+      expect(valores).toHaveLength(3)
+      expect(resultado.total).toBe(Math.max(...valores))
+    }
+  })
+
+  it('mantendo o MENOR — o atributo zero de Ordem Paranormal', () => {
+    for (let i = 0; i < 200; i++) {
+      const resultado = rollExpression({
+        groups: [{ sides: 20, count: 2 }],
+        modifiers: [],
+        keep: { mode: 'lowest', count: 1 }
+      })
+      expect(resultado.total).toBe(Math.min(...resultado.groups[0].rolls))
+    }
+  })
+
+  it('o modificador entra DEPOIS de escolher o dado, e não em cada um', () => {
+    for (let i = 0; i < 100; i++) {
+      const resultado = rollExpression({
+        groups: [{ sides: 20, count: 2 }],
+        modifiers: [{ type: 'flat', value: 7 }],
+        keep: { mode: 'highest', count: 1 }
+      })
+      expect(resultado.total).toBe(Math.max(...resultado.groups[0].rolls) + 7)
+    }
+  })
+
+  it('a regra viaja junto do resultado, pra tela poder marcar o que contou', () => {
+    const keep = { mode: 'highest' as const, count: 1 }
+    expect(rollExpression({ groups: [{ sides: 6, count: 2 }], modifiers: [], keep }).keep).toEqual(keep)
+    // E sem regra, nada é anunciado: preset antigo continua exatamente como era.
+    expect(rollExpression({ groups: [{ sides: 6, count: 2 }], modifiers: [] }).keep).toBeUndefined()
+  })
+
+  it('o rótulo diz a regra — senão "2d20" com total 14 parece defeito', () => {
+    expect(
+      expressionLabel({ groups: [{ sides: 20, count: 2 }], modifiers: [], keep: { mode: 'highest', count: 1 } })
+    ).toBe('2d20 (usa o maior)')
+    expect(
+      expressionLabel({
+        groups: [{ sides: 20, count: 3 }],
+        modifiers: [{ type: 'flat', value: 2 }],
+        keep: { mode: 'lowest', count: 2 }
+      })
+    ).toBe('3d20 + 2 (usa os 2 menores)')
+  })
+})
+
 describe('singleGroupExpression', () => {
   it('sem modificador não inclui nenhum modifier na expressão', () => {
     expect(singleGroupExpression(2, 6)).toEqual({ groups: [{ count: 2, sides: 6 }], modifiers: [] })

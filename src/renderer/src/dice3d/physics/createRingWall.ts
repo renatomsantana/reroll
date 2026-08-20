@@ -6,6 +6,8 @@ export interface RingWallOptions {
   /** Apótema (raio até o meio de cada face) do polígono. */
   radius: number
   segments: number
+  /** Gira o polígono inteiro (ver `regularPolygonSegmentAngle`). A bandeja usa; a torre, não. */
+  rotation?: number
   bottomY: number
   topY: number
   groups: number
@@ -46,7 +48,7 @@ export function createRingWall(world: RAPIER.World, options: RingWallOptions): v
   const rotation = new THREE.Quaternion()
 
   for (let i = 0; i < segments; i++) {
-    const angle = regularPolygonSegmentAngle(i, segments)
+    const angle = regularPolygonSegmentAngle(i, segments, options.rotation ?? 0)
     if (gate && Math.abs(angleDelta(angle, gate.angleRad)) < gate.halfWidthRad) continue
     const x = Math.cos(angle) * radius
     const z = Math.sin(angle) * radius

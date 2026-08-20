@@ -104,7 +104,29 @@ export const TRAY_CONFIG = {
    * precisou ser reescalado por essa mudança de formato.
    */
   apothem: 6.5,
-  /** Lados do polígono da bandeja — 6 = hexágono. Usado tanto pela parede física (`createRingWall`) quanto pelo mesh visual, pra garantir que collider e visual sejam exatamente a mesma geometria. */
+  /**
+   * Raio CIRCUNSCRITO da bandeja — a distância do centro até a quina.
+   *
+   * O número é `6.5 / cos(30°)` com precisão total de ponto flutuante, de propósito: é o valor que faz o
+   * HEXÁGONO continuar com apótema exatamente 6.5, o mesmo de antes de a forma virar escolha. Com
+   * 7.5 redondo o apótema caía pra 6.495 — cinco milímetros, mas cinco milímetros numa parede cuja
+   * física foi calibrada dado a dado. Formas novas podem ser novas; a antiga não pode mudar.
+   *
+   * É ele, e não o apótema, que define o espaço que a bandeja ocupa na mesa. Trocar a forma mantendo
+   * o apótema faria o triângulo virar um monstro (com apótema 6.5 a quina dele iria a 13, quase o
+   * dobro do hexágono) e o círculo encolher. Mantendo ESTE número, todas as formas ocupam a mesma
+   * pegada e nada mais na cena precisa ser reescalado: câmera, chão em volta, estojo e o assento da
+   * torre continuam valendo.
+   */
+  circumradius: 7.505553499465134,
+  /**
+   * Lados do polígono da bandeja — 6 = hexágono. Usado tanto pela parede física (`createRingWall`)
+   * quanto pelo mesh visual, pra garantir que collider e visual sejam exatamente a mesma geometria.
+   *
+   * É o PADRÃO: a forma virou preferência do personagem (triângulo, quadrado, hexágono ou círculo,
+   * pedido do usuário), e quem monta a cena passa a escolhida. Este valor continua sendo o que vale
+   * pra quem nunca escolheu e para os testes de contenção que não estão testando forma.
+   */
   wallSegments: 6,
   /**
    * Altura VISUAL das paredes (o collider físico que de fato contém os dados é bem mais alto,

@@ -335,3 +335,50 @@
   color: #800000;
   font-weight: bold;
 }
+
+/*
+ * Alvos de cor da CENA, em duas fileiras rotuladas dentro do grupo da roda.
+ *
+ * Antes eram sete botões repartidos em duas caixas distantes na tela — três aqui e quatro num grupo
+ * no canto direito — que controlam a MESMA roda, coisa que não se adivinha olhando. E os quatro da
+ * torre, espremidos numa coluna estreita, cortavam o rótulo: "Bandeira" não cabia no botão.
+ */
+.style-tab-target-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.style-tab-target-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Largura fixa pra as duas fileiras alinharem os botões na mesma coluna. */
+.style-tab-target-caption {
+  flex: 0 0 52px;
+  font-size: 10px;
+  color: var(--win-text-muted);
+  text-align: right;
+}
+
+/*
+ * GRADE de colunas iguais, não `flex: 1` livre: com flex, cada botão fica do tamanho do próprio
+ * texto e "Bandeira" espremia os vizinhos até cortar. `1fr` dá a todos a largura do maior, e
+ * `minmax(0, 1fr)` é o que permite encolher abaixo do conteúdo sem transbordar.
+ */
+.style-tab-targets-grid {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+/* O rótulo pode faltar espaço em janela estreita: corta com reticências em vez de vazar. */
+.style-tab-targets-grid .btn {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

@@ -12,6 +12,14 @@ interface TumblingDieProps {
   value: number
   highlight?: DieHighlight
   /**
+   * Texto do destaque, quando "maior/menor" não descreve o que ele quer dizer.
+   *
+   * É o caso da regra de manter: com "role 2d20 e use o MENOR", o dado destacado é o de menor valor,
+   * e chamá-lo de "Maior" — que é o texto padrão do destaque azul — diria o oposto da verdade. O
+   * destaque ali significa "este conta pro total", não "este é o maior".
+   */
+  highlightLabelOverride?: string
+  /**
    * Onde fica a plaqueta do valor.
    *
    * - `corner` (padrão): encostada no canto inferior direito, como sempre foi.
@@ -46,6 +54,7 @@ export function TumblingDie({
   sides,
   value,
   highlight = null,
+  highlightLabelOverride,
   valuePlacement = 'corner',
   className = '',
   art = 'image'
@@ -87,7 +96,9 @@ export function TumblingDie({
   }, [])
 
   const image = DICE_IMAGES[sides]
-  const highlightLabel = highlight === 'high' ? t.roller.higherDie : highlight === 'low' ? t.roller.lowerDie : null
+  const highlightLabel =
+    highlightLabelOverride ??
+    (highlight === 'high' ? t.roller.higherDie : highlight === 'low' ? t.roller.lowerDie : null)
 
   return (
     <div

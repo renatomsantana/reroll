@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { TRAY_SHAPE_SIDES, type TrayShape } from '@renderer/dice3d/geometry/trayShape'
 import * as THREE from 'three'
 import {
   createTrayPreview,
@@ -25,6 +26,8 @@ const ROTATION_SPEED = 0.18
 interface TrayPreviewProps {
   wallColor: string
   floorColor: string
+  /** A prévia mostra a FORMA escolhida — se ela mostrasse hexágono sempre, ensinaria errado. */
+  trayShape: TrayShape
 }
 
 /**
@@ -55,7 +58,7 @@ function buildCase(stage: THREE.Group, wallColor: string, floorColor: string): S
  * madeira e veludo a cada evento travaria a interface. Por isso esta prévia não precisa do debounce
  * que a do dado usa — lá a troca de cor obriga a redesenhar a textura de cada face.
  */
-export function TrayPreview({ wallColor, floorColor }: TrayPreviewProps) {
+export function TrayPreview({ wallColor, floorColor, trayShape }: TrayPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const trayRef = useRef<TrayPreviewHandle | null>(null)
   const caseRef = useRef<ShelfCaseHandle | null>(null)
@@ -94,7 +97,7 @@ export function TrayPreview({ wallColor, floorColor }: TrayPreviewProps) {
     directional.position.set(5, 10, 5)
     scene.add(ambient, directional)
 
-    const tray = createTrayPreview(hexStringToNumber(wallColor), hexStringToNumber(floorColor))
+    const tray = createTrayPreview(hexStringToNumber(wallColor), hexStringToNumber(floorColor), TRAY_SHAPE_SIDES[trayShape])
     trayRef.current = tray
     stage.add(tray.object)
 
@@ -136,7 +139,7 @@ export function TrayPreview({ wallColor, floorColor }: TrayPreviewProps) {
     }
     // Só no mount: as cores entram pelo efeito abaixo, sem remontar a cena.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [trayShape])  // a forma reconstrói a prévia: a geometria é criada na montagem
 
   useEffect(() => {
     const wall = hexStringToNumber(wallColor)

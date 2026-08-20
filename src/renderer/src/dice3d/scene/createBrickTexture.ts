@@ -154,8 +154,23 @@ export function createBrickTexture(
 
   const normalMap = buildNormalMap(buildHeightMap(rowHeight, brickWidth))
 
-  const repeatX = Math.max(1, Math.round(surfaceWidth / brickWorldWidth))
-  const repeatY = Math.max(1, Math.round(surfaceHeight / brickWorldHeight))
+  /**
+   * Quantas vezes o tile se repete na superfície. FRACIONÁRIO quando a peça é menor que um tile.
+   *
+   * Era `Math.max(1, Math.round(...))`, e esse piso de 1 é que deixava as ameias e o portão feios:
+   * numa ameia de 0.5 de largura a conta dá 0.45, o piso subia pra 1, e uma repetição INTEIRA
+   * significa o tile inteiro — quatro tijolos de largura por duas fiadas — espremido numa pedra de
+   * meio metro. O usuário viu isso duas vezes ("os tijolos do portão estão mt feios... e os tijolos
+   * dos bicos da torre lá em cima também"), e trocar o TAMANHO do tijolo não resolvia nada, porque
+   * o piso apagava a conta antes de ela chegar aqui.
+   *
+   * O arredondamento continua pra quem passa de um tile, e por um motivo: numa superfície que dá a
+   * VOLTA (a casca, o pedestal, a cornija) uma repetição fracionária corta o tijolo ao meio no
+   * ponto em que a textura fecha, e isso aparece como uma emenda vertical na pedra.
+   */
+  const inteiroOuFracao = (bruto: number): number => (bruto >= 1 ? Math.round(bruto) : bruto)
+  const repeatX = inteiroOuFracao(surfaceWidth / brickWorldWidth)
+  const repeatY = inteiroOuFracao(surfaceHeight / brickWorldHeight)
   for (const texture of [map, normalMap]) {
     texture.wrapS = THREE.RepeatWrapping
     texture.wrapT = THREE.RepeatWrapping
