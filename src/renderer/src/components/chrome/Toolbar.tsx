@@ -3,7 +3,7 @@ import { useSettings } from '@renderer/settings/SettingsContext'
 import { appIconImageSmall } from '@renderer/assets/icons'
 import './Toolbar.css'
 
-export type AppTab = 'roll' | 'style' | 'sheet' | 'notes'
+export type AppTab = 'roll' | 'style' | 'notes'
 
 interface ToolbarProps {
   activeTab: AppTab
@@ -59,18 +59,12 @@ export function Toolbar({
             {t.tabs.style}
           </button>
           {/*
-            FICHA e ANOTAÇÕES são abas separadas a pedido do usuário. A ficha vem antes porque é o
-            que o personagem É; as anotações são o que aconteceu com ele.
+            A aba FICHA não entra nesta versão. O leitor de PDF e a tela dela continuam no repo
+            (`src/renderer/src/sheets/`, `SheetTab.tsx`), sem porta de entrada na interface: o alfa
+            fecha com o que está pronto de verdade — rolar, estilo e anotações — e a ficha volta
+            pelo beta, quando a importação estiver confiável o bastante para carregar o nome de um
+            personagem de alguém. Recolocar é devolver este botão e o `'sheet'` em `AppTab`.
           */}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'sheet'}
-            className={`toolbar-tab ${activeTab === 'sheet' ? 'toolbar-tab-active' : ''}`}
-            onClick={() => onTabChange('sheet')}
-          >
-            {t.tabs.sheet}
-          </button>
           <button
             type="button"
             role="tab"

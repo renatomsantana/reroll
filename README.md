@@ -150,7 +150,10 @@ vantagem/desvantagem, export/import de presets, atalhos de teclado, entre outros
 - [x] Modificador (+/-) e modo Normal/Vantagem/Desvantagem pra qualquer quantidade de dados
 - [x] Par de dados com cor por posição (maior azul, menor vermelho) quando um grupo tem 2 dados
 - [x] Cada tipo de dado com cor própria nos chips de resultado
-- [x] Ficha de personagem (Força, Destreza, Constituição, Inteligência, Sabedoria, Carisma)
+- [ ] Ficha de personagem (Força, Destreza, Constituição, Inteligência, Sabedoria, Carisma) — está
+      escrita e testada, mas SEM entrada na interface a partir da 1.0.9: a importação de PDF ainda
+      erra em ficha de sistema que ela não conhece, e ficha lida errado troca o personagem de
+      alguém. Volta pelo beta (ver a nota da 1.0.9 no `CHANGELOG.md`).
 - [x] Modo compacto (janela mini só com o rolador)
 - [x] Limpar histórico
 - [x] Som de rolagem, diferente pra 1 dado (`roll-single.mp3`) e pra vários (`roll-many.mp3`),
