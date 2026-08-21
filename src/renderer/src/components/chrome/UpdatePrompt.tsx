@@ -13,7 +13,7 @@ import './UpdatePrompt.css'
  * diálogo nativo rouba o foco e aparece com a cara do Chrome no meio de uma rolagem. Este fica
  * dentro da janela, no vocabulário do 98 como o resto.
  *
- * Duas perguntas, na mesma janela, porque a partir do "sim" o app baixa 76MB e reinicia — e isso
+ * Duas perguntas, na mesma janela, porque a partir do "sim" o app baixa ~100MB e reinicia — e isso
  * não pode acontecer por clique errado num aviso que apareceu sem ninguém pedir.
  */
 interface UpdatePromptProps {
@@ -86,6 +86,21 @@ export function UpdatePrompt({ status, onDismiss }: UpdatePromptProps) {
             ? t.settings.updateConfirmAgain
             : t.settings.updateConfirm.replace('{version}', version)}
         </p>
+        {/*
+          O CHANGELOG da versão nova, que a spec pede junto da pergunta (seção 4). Some na segunda
+          confirmação: ali a decisão já foi tomada e o que falta é o aviso de que o app vai reiniciar.
+
+          Renderizado como TEXTO, dentro de um `<pre>`, e nunca como marcação. O conteúdo vem de fora
+          — é a descrição de uma release na internet —, e passá-lo por `dangerouslySetInnerHTML` seria
+          dar a uma string remota o direito de virar HTML dentro do app. As tags já foram tiradas no
+          processo principal (ver `textoDasNotas`); isto aqui é a segunda tranca.
+        */}
+        {!confirming && status.notes && (
+          <>
+            <p className="update-prompt-notes-title">{t.settings.updateNotesTitle}</p>
+            <pre className="update-prompt-notes">{status.notes}</pre>
+          </>
+        )}
         <div className="update-prompt-actions">
           <Button variant="secondary" onClick={onDismiss}>
             {t.settings.updateLater}

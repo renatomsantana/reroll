@@ -1,0 +1,118 @@
+# O INSTALADOR PÚBLICO, construído por máquina limpa a partir de uma etiqueta.
+#
+# Este arquivo é o argumento de confiança do Reroll. Ele é distribuído sem certificado de assinatura,
+# então o SmartScreen avisa quem baixa — e a resposta a esse aviso não pode ser "confie em mim". Ela
+# é: o código está aqui, o instalador saiu DESTE commit, foi construído por uma máquina que ninguém
+# usa pra mais nada, e o SHA-256 publicado ao lado dele permite a qualquer um conferir que o arquivo
+# baixado é o mesmo que saiu daqui.
+#
+# COMO PUBLICAR UMA VERSÃO:
+#
+#   1. suba a versão no `package.json` e escreva o `CHANGELOG.md`;
+#   2. `git tag v1.0.9 && git push origin v1.0.9`;
+#   3. este fluxo compila, empacota, calcula o resumo e cria a release como RASCUNHO;
+#   4. abra o rascunho, cole o link do VirusTotal (ver `CONTRIBUTING.md`) e publique.
+#
+# O passo 4 é manual de propósito. Publicar é o momento em que o app chega na máquina dos outros pelo
+# update automático, e esse momento merece um par de olhos.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  # Só o que é preciso pra criar a release. O padrão do GitHub é mais largo que isto.
+  contents: write
+
+jobs:
+  empacotar:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # A MESMA conferência do `ci.yml`, de novo. Parece redundante e não é: uma etiqueta pode ser
+      # empurrada pra um commit que nunca passou pelo CI, e "publiquei sem querer o código quebrado"
+      # é um erro que só acontece uma vez porque o estrago é grande.
+      - name: Conferir tipos
+        run: npm run typecheck
+
+      - name: Analisar o código
+        run: npm run lint
+
+      - name: Rodar os testes
+        run: npm test
+
+      - name: Auditar dependências
+        run: npm audit --audit-level=high
+
+      # `--publish never`: quem cria a release é o passo abaixo, com o rascunho e os resumos juntos.
+      # Deixar o electron-builder publicar sozinho pularia a conferência e o VirusTotal.
+      - name: Empacotar o instalador
+        run: npm run dist:win -- --publish never
+
+      # A conferência do PACOTE, que só tem o que olhar depois de ele existir — por isso ela roda
+      # aqui e não junto dos outros testes lá em cima.
+      #
+      # Ela cobre o defeito que já quebrou o update deste app pra todo mundo de uma vez: o
+      # `latest.yml` apontando pra um nome de arquivo que não é o do anexo, e o app instalado
+      # procurando algo que não existe (404, sem pista nenhuma). Confere também o `sha512` — o mesmo
+      # que o `electron-updater` valida antes de executar o instalador baixado.
+      - name: Conferir o pacote gerado
+        run: npx vitest run src/main/pacoteDaRelease.test.ts
+
+      # O SHA-256 de cada arquivo publicável, num `.txt` que vai junto na release.
+      #
+      # É ele que fecha a promessa deste arquivo: quem baixa roda
+      # `Get-FileHash Reroll-Setup-<versão>.exe` no PowerShell e compara com esta linha. Se bater, o
+      # arquivo é bit a bit o que saiu desta máquina, a partir deste commit.
+      - name: Calcular os resumos SHA-256
+        shell: pwsh
+        run: |
+          $saida = "release/SHA256SUMS.txt"
+          Get-ChildItem release -Filter *.exe | ForEach-Object {
+            $resumo = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$resumo  $($_.Name)"
+          } | Set-Content -Path $saida -Encoding utf8
+          Get-Content $saida
+
+      - name: Criar a release (rascunho)
+        uses: softprops/action-gh-release@v2
+        with:
+          # RASCUNHO. Ver o cabeçalho: a publicação é o gesto que dispara o update automático na
+          # máquina de todo mundo que já instalou, e ele fica na mão de uma pessoa.
+          draft: true
+          # `latest.yml` é o que o `electron-updater` lê pra saber que existe versão nova; sem ele na
+          # release, o app instalado não encontra nada. `.blockmap` é o que permite baixar só a
+          # diferença entre uma versão e a seguinte.
+          files: |
+            release/*.exe
+            release/latest.yml
+            release/*.blockmap
+            release/SHA256SUMS.txt
+          body: |
+            ## Conferir o download
+
+            Antes de instalar, confira que o arquivo é o mesmo que saiu daqui. No PowerShell:
+
+            ```powershell
+            Get-FileHash .\Reroll-Setup-*.exe -Algorithm SHA256
+            ```
+
+            O resultado tem que bater com a linha correspondente em `SHA256SUMS.txt`, anexado abaixo.
+
+            O Reroll não tem certificado de assinatura digital, então o Windows mostra um aviso do
+            SmartScreen na primeira execução ("Mais informações" → "Executar assim mesmo"). O resumo
+            acima e o código aberto neste repositório são o que existe no lugar do certificado.

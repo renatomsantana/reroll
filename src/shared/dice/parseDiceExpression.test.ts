@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_SIMULTANEOUS_DICE } from '../diceRegistry'
 import { parseDiceExpression, parseTestBonus } from './parseDiceExpression'
 
 /**
@@ -76,15 +77,66 @@ describe('parseDiceExpression — o que uma ficha traz escrito', () => {
   })
 
   it('recusa quantidade acima do teto de dados da rolagem', () => {
-    // 15 é `MAX_SIMULTANEOUS_DICE`. Passar disso seria aceitar um preset que a rolagem trunca calada.
-    expect(parseDiceExpression('15d6')).not.toBeNull()
-    expect(parseDiceExpression('16d6')).toBeNull()
-    // 9d6+9d6 são 18 dados, acima do teto — e o caminho até aqui é o que descobriu o bug do `+9`
-    // sendo lido como modificador (ver o comentário de `TOKEN`).
-    expect(parseDiceExpression('9d6+9d6')).toBeNull()
-    expect(parseDiceExpression('7d6+7d6')?.expression).toEqual({
-      groups: [{ sides: 6, count: 14 }],
+    /**
+     * O teto sai da CONSTANTE, e não de um número escrito à mão. O teste já tinha `15` cravado e
+     * quebrou no dia em que o limite subiu pra 20 — falhando por estar desatualizado, não por o
+     * código ter errado, que é o pior tipo de teste vermelho: ele treina a pessoa a mexer no teste
+     * em vez de olhar o código.
+     */
+    const teto = MAX_SIMULTANEOUS_DICE
+    expect(parseDiceExpression(`${teto}d6`)).not.toBeNull()
+    expect(parseDiceExpression(`${teto + 1}d6`)).toBeNull()
+
+    // SOMA de grupos: dois grupos que sozinhos passam, juntos estouram. O caminho até aqui é o que
+    // descobriu o bug do `+9` sendo lido como modificador (ver o comentário de `TOKEN`).
+    const metadeQuePassa = Math.floor(teto / 2)
+    expect(parseDiceExpression(`${teto}d6+${teto}d6`)).toBeNull()
+    expect(parseDiceExpression(`${metadeQuePassa}d6+${metadeQuePassa}d6`)?.expression).toEqual({
+      groups: [{ sides: 6, count: metadeQuePassa * 2 }],
       modifiers: []
+    })
+  })
+
+  it('quantidade de DOIS DÍGITOS depois do "+" é lida como grupo, não como modificador', () => {
+    /**
+     * O defeito que apareceu quando o teto subiu pra 20 e as contagens de dois dígitos passaram a
+     * caber: "1d6+10d6" devolvia NADA, enquanto "10d6+1d6" — a mesma rolagem escrita ao contrário —
+     * funcionava. A espiada que separa modificador de grupo olhava um dígito atrás demais, lia um
+     * modificador "+1" e sobrava um "0d6", quantidade zero, que derrubava a leitura inteira.
+     *
+     * Ficava escondido porque nada no app usava dois dígitos: com teto 15, "9d6+9d6" já estourava.
+     */
+    expect(parseDiceExpression('1d6+10d6')?.expression).toEqual({
+      groups: [{ sides: 6, count: 11 }],
+      modifiers: []
+    })
+    // A ordem inversa sempre funcionou — as duas juntas são o que prova que o defeito era da espiada.
+    expect(parseDiceExpression('10d6+1d6')?.expression).toEqual({
+      groups: [{ sides: 6, count: 11 }],
+      modifiers: []
+    })
+    expect(parseDiceExpression('2d20+10d6')?.expression).toEqual({
+      groups: [
+        { sides: 20, count: 2 },
+        { sides: 6, count: 10 }
+      ],
+      modifiers: []
+    })
+  })
+
+  it('e um modificador de dois dígitos continua sendo modificador', () => {
+    // O outro lado da mesma moeda: a correção não pode transformar "+12" num grupo de dados.
+    expect(parseDiceExpression('1d20+12')?.expression).toEqual({
+      groups: [{ sides: 20, count: 1 }],
+      modifiers: [{ type: 'flat', value: 12 }]
+    })
+    expect(parseDiceExpression('2d6+10 de fogo')?.expression).toEqual({
+      groups: [{ sides: 6, count: 2 }],
+      modifiers: [{ type: 'flat', value: 10 }]
+    })
+    expect(parseDiceExpression('1d8-10')?.expression).toEqual({
+      groups: [{ sides: 8, count: 1 }],
+      modifiers: [{ type: 'flat', value: -10 }]
     })
   })
 })

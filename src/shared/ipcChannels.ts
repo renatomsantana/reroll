@@ -16,6 +16,10 @@ export const IpcChannels = {
   windowSetCompact: 'window:setCompact',
   windowSetAppIcon: 'window:setAppIcon',
   scenePickBackgroundImage: 'scene:pickBackgroundImage',
+  /** Escolhe um PDF de ficha e devolve os bytes — quem interpreta é o renderer (ver `extractPdfSheet.ts`). */
+  sheetsPickPdf: 'sheets:pickPdf',
+  /** Cria o personagem e grava anotações e presets dentro dele, em ordem — ver o comentário no handler. */
+  sheetsApply: 'sheets:apply',
   appGetVersion: 'app:getVersion',
   updateGetStatus: 'update:getStatus',
   updateCheck: 'update:check',

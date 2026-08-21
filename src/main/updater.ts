@@ -13,7 +13,9 @@ import type { UpdateStatus } from '@shared/types/update'
  *   nada por conta própria. Sem internet, a pergunta falha e vira uma linha de estado — o resto do
  *   app não depende dela em momento nenhum, então continua inteiro offline.
  * - O download só começa depois de a pessoa pedir e confirmar DUAS vezes, na tela de Preferências
- *   (ver `UpdateSection.tsx`). São 76MB; puxar isso da conexão de alguém sem avisar não é educado.
+ *   (ver `UpdateSection.tsx`). São ~100MB; puxar isso da conexão de alguém sem avisar não é educado.
+ *   (O número subiu de 76MB com a atualização do Electron 33 pro 43 — se ele mudar de novo, o texto
+ *   que a pessoa LÊ antes de confirmar está em `translations.ts`, não aqui.)
  * - Terminado o download, aí sim o app reinicia sozinho pra aplicar — é o que a pessoa pediu quando
  *   confirmou, e o texto da confirmação diz exatamente isso antes de começar.
  *
@@ -40,17 +42,20 @@ const PERIODIC_CHECK_INTERVAL_MS = 60 * 60 * 1000
 const RESTART_DELAY_MS = 1500
 
 let currentStatus: UpdateStatus = { state: 'idle' }
-let mainWindow: BrowserWindow | null = null
+/**
+ * De onde sai a janela pra onde o progresso é mandado. É uma FUNÇÃO, e não a janela guardada: o
+ * download sobrevive a ela (ver `setStatus`), e perguntar na hora é o que faz o atualizador
+ * continuar certo se a janela for recriada um dia.
+ */
+let obterJanela: () => BrowserWindow | null = () => null
 /** Versão encontrada, guardada à parte: o evento de progresso do download não repete qual versão está baixando. */
 let pendingVersion = ''
 
 function setStatus(status: UpdateStatus): void {
   currentStatus = status
-  // `isDestroyed` porque o download continua depois da janela fechar — mandar pra uma janela morta
-  // derruba o processo main com "Object has been destroyed".
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IpcChannels.updateStatus, status)
-  }
+  // A janela pode não existir: o download continua depois de ela fechar, e mandar pra uma janela
+  // morta derruba o processo main com "Object has been destroyed".
+  obterJanela()?.webContents.send(IpcChannels.updateStatus, status)
 }
 
 /**
@@ -90,8 +95,8 @@ function instalarAgora(version: string): void {
    * Traz pra frente por dois segundos e devolve o "sempre no topo" antes de sair, pra não deixar
    * essa marca gravada na janela caso a instalação não vá adiante.
    */
-  const janela = mainWindow
-  if (janela && !janela.isDestroyed()) {
+  const janela = obterJanela()
+  if (janela) {
     if (janela.isMinimized()) janela.restore()
     janela.setAlwaysOnTop(true)
     janela.show()
@@ -111,8 +116,8 @@ function instalarAgora(version: string): void {
   }, AVISO_ANTES_DE_SAIR_MS)
 }
 
-export function registerUpdateHandlers(window: BrowserWindow): void {
-  mainWindow = window
+export function registerUpdateHandlers(janela: () => BrowserWindow | null): void {
+  obterJanela = janela
 
   ipcMain.handle(IpcChannels.appGetVersion, () => app.getVersion())
   ipcMain.handle(IpcChannels.updateGetStatus, () => currentStatus)
@@ -162,7 +167,7 @@ export function registerUpdateHandlers(window: BrowserWindow): void {
   autoUpdater.on('update-not-available', () => setStatus({ state: 'upToDate' }))
   autoUpdater.on('update-available', (info) => {
     pendingVersion = info.version
-    setStatus({ state: 'available', version: info.version })
+    setStatus({ state: 'available', version: info.version, notes: textoDasNotas(info.releaseNotes) })
   })
   autoUpdater.on('download-progress', (progress) =>
     setStatus({
@@ -195,6 +200,48 @@ export function registerUpdateHandlers(window: BrowserWindow): void {
     if (currentStatus.state === 'downloading' || currentStatus.state === 'ready') return
     void checkForUpdates()
   }, PERIODIC_CHECK_INTERVAL_MS)
+}
+
+/**
+ * O CHANGELOG da release, virado em texto simples.
+ *
+ * O `electron-updater` entrega `releaseNotes` de três jeitos conforme o provedor: texto puro, HTML
+ * (é o caso do GitHub, que devolve a descrição da release já convertida) ou uma lista de versões
+ * quando há mais de uma release entre a instalada e a nova.
+ *
+ * As tags HTML são tiradas em vez de renderizadas, e isso é decisão de segurança, não de estilo: o
+ * texto vem de FORA (a descrição de uma release na internet) e a alternativa seria injetá-lo na
+ * interface com `dangerouslySetInnerHTML` — dar a uma string remota o direito de virar marcação
+ * dentro do app, que é exatamente o que a CSP e as travas de navegação existem pra impedir.
+ *
+ * O corte em 2000 caracteres é pra a janela não virar um rolo de texto sem fim: quem quiser a
+ * história completa abre a página da release.
+ */
+export function textoDasNotas(bruto: unknown): string | undefined {
+  const cru = Array.isArray(bruto)
+    ? bruto
+        .map((entrada) => (entrada as { note?: unknown } | null)?.note)
+        .filter((nota): nota is string => typeof nota === 'string')
+        .join('\n\n')
+    : typeof bruto === 'string'
+      ? bruto
+      : ''
+
+  const limpo = cru
+    // `<br>` e `</p>` viram quebra de linha ANTES de as tags sumirem, senão o texto vira um bloco só.
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|li|h[1-6])>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
+  return limpo ? limpo.slice(0, 2000) : undefined
 }
 
 /**

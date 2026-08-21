@@ -43,6 +43,24 @@ export interface ProfilesState {
  */
 export const DEFAULT_PROFILE_ID = 'default'
 
+/**
+ * QUANTOS PERSONAGENS cabem. Quinze.
+ *
+ * A spec pede "pelo menos 10, e trate 10 como o mínimo garantido, não como limite". Quinze é a
+ * escolha do usuário em cima disso, e ela tem um porquê que não é técnico: cada personagem carrega
+ * a ficha, o diário, os presets e a aparência DELE, e é isso que a importação de PDF vai preencher.
+ * Quinze cobre folgado quem joga em três ou quatro mesas ao mesmo tempo, que é o caso real.
+ *
+ * O teto vale na CRIAÇÃO, e não na leitura. `normalizeProfiles` NUNCA corta a lista, mesmo que ela
+ * venha do disco com mais que isto: um arquivo restaurado de backup, ou escrito por uma versão em
+ * que o teto era outro, não pode perder personagem por causa de um número que mudou. O que o app
+ * faz é parar de deixar criar mais — o que sobra continua lá, editável e apagável.
+ *
+ * Quem cobra o teto: `ProfilesContext.create` (o botão "Novo personagem") e o canal de importação de
+ * ficha. Os dois, porque são os dois jeitos de nascer um personagem.
+ */
+export const MAX_PROFILES = 15
+
 export function createProfile(name = '', system = ''): Profile {
   return { id: crypto.randomUUID(), name, system, photo: null, createdAt: Date.now() }
 }

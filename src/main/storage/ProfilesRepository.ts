@@ -3,6 +3,7 @@ import { join } from 'path'
 import { app } from 'electron'
 import {
   DEFAULT_PROFILE_ID,
+  MAX_PROFILES,
   normalizeProfiles,
   type ProfilesState
 } from '@shared/types/profile'
@@ -70,8 +71,29 @@ export class ProfilesRepository {
     return this.state ?? (await this.init())
   }
 
+  /**
+   * Grava a lista. Recusa a gravação que faria a lista CRESCER além do teto (`MAX_PROFILES`).
+   *
+   * A regra é sobre CRESCER, e não sobre o tamanho, e a diferença é o que a torna segura: uma lista
+   * que já veio do disco com vinte personagens — backup restaurado, arquivo de uma versão em que o
+   * teto era outro — continua editável, apagável e gravável. O que não passa é sair de quinze pra
+   * dezesseis. Um teto que olhasse só o tamanho travaria o app de quem tem mais, e a única saída
+   * seria editar JSON na mão.
+   *
+   * A trava vive AQUI, e não só no botão da tela, porque o canal `profiles:save` grava o estado
+   * inteiro de uma vez: qualquer caminho do renderer que monte uma lista maior chega direto no
+   * disco. Medido no app rodando — a interface parava em quinze e o canal aceitava o décimo sexto
+   * sem reclamar.
+   */
   async save(next: ProfilesState): Promise<ProfilesState> {
-    this.state = normalizeProfiles(next)
+    const limpo = normalizeProfiles(next)
+    const atual = this.state?.profiles.length ?? 0
+    if (limpo.profiles.length > MAX_PROFILES && limpo.profiles.length > atual) {
+      throw new Error(
+        `Limite de ${MAX_PROFILES} personagens atingido — apague um antes de criar outro.`
+      )
+    }
+    this.state = limpo
     await this.store.write(this.state)
     return this.state
   }

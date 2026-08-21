@@ -1,0 +1,260 @@
+import { existsSync } from 'fs'
+import { join } from 'path'
+import { describe, expect, it } from 'vitest'
+import { readSheet } from './readers/index'
+import { montarFicha } from '@shared/types/montarFicha'
+import { abrirPdfNoNode } from './testes/abrirPdfNoNode'
+
+/**
+ * O importador contra as FICHAS DE VERDADE.
+ *
+ * Todo o resto da suíte monta a `PdfSheet` à mão, o que é bom (leitor é função pura) e insuficiente:
+ * uma régua calibrada em fixture inventada passa no teste e erra no arquivo. Foi exatamente o que
+ * aconteceu duas vezes — os cinco atributos de Ordem Paranormal sumindo por nomes de campo
+ * repetidos, e "Limite de Estresse = 6. /" entrando como atributo de Oblivio. Nenhum dos dois
+ * apareceria sem abrir o PDF.
+ *
+ * As fichas estão no `.gitignore` (são material dos sistemas, não do repositório), então este
+ * arquivo PULA sozinho quando elas não existem. Quem tem os arquivos ganha a verificação de ponta a
+ * ponta; quem não tem continua com a suíte passando.
+ */
+
+const PASTA = join(process.cwd(), 'Fichas RPG')
+const ORDEM = join(PASTA, 'Ordem Paranormal - Ficha de Personagem Editável Matais.pdf')
+const OBLIVIO = join(PASTA, 'Ficha Oblívio - Preenchida.pdf')
+const KIDS = join(PASTA, 'Ficha Kids on Bikes - Preenchida.pdf')
+const KIDS_BRANCA = join(PASTA, 'Ficha Kids on Bikes.pdf')
+
+
+describe.skipIf(!existsSync(ORDEM))('ficha real de Ordem Paranormal', () => {
+  it('lê identificação, atributos, recursos e ataques — e nenhum campo de perícia cru', async () => {
+    const lido = readSheet(await abrirPdfNoNode(ORDEM))
+
+    expect(lido.readerId).toBe('ordem-paranormal')
+    expect(lido.system).toBe('Ordem Paranormal')
+    expect(lido.characterName).toBeTruthy()
+
+    // Os cinco atributos, que já sumiram uma vez por nome de campo repetido.
+    const atributos = lido.fields.filter((c) => c.group === 'Atributos').map((c) => c.label)
+    expect(atributos).toEqual(['Agilidade', 'Força', 'Intelecto', 'Presença', 'Vigor'])
+
+    // Nenhuma linha rotulada com a posição na grade: `Pericias.4.1` na tela não diz nada a ninguém.
+    expect(lido.fields.some((c) => /^Pericias\./.test(c.label))).toBe(false)
+    expect(lido.fields.some((c) => /^Atq/.test(c.label))).toBe(false)
+
+    /**
+     * Os cinco atributos ROLAM, com a regra do sistema: Força 3 é "role 3d20 e fique com o maior".
+     * É o que transforma a ficha importada de formulário inerte em ficha de uso (ver `sheetRoll.ts`).
+     */
+    expect(lido.fields.filter((c) => c.group === 'Atributos').every((c) => c.roll === 'pool-d20')).toBe(true)
+    // E o que NÃO é rolagem não ganha botão: defesa e deslocamento são números de consulta.
+    expect(lido.fields.find((c) => c.label === 'Defesa')?.roll).toBeUndefined()
+
+    /**
+     * O NEX legível. O menu da ficha guarda dois números na mesma string ("5         1"), e a
+     * importação trazia um campo "NEX = 5 1", que não quer dizer nada em lugar nenhum.
+     */
+    expect(lido.fields.find((c) => c.label === 'NEX')?.value).toBe('5% · 1 PE/turno')
+
+    /**
+     * E nada da grade de BÔNUS das perícias, que é o resto da mesma tabela. A célula `Bns1.0` fica
+     * embaixo do cabeçalho impresso "TREINO" e vinha como "Treino = 0", com cara de atributo do
+     * personagem — é a primeira casa de uma tabela vazia.
+     */
+    expect(lido.fields.some((c) => c.label === 'Treino')).toBe(false)
+    // Nem uma seção "Outros" na ficha montada: era só onde esse par de ruídos ia parar.
+    expect(montarFicha(lido.fields).sections.map((s) => s.title)).not.toContain('Outros')
+
+    // Esta ficha não tem perícia treinada: as 29 linhas valem "0" e nenhuma delas vira campo.
+    expect(lido.fields.filter((c) => c.group === 'Perícias')).toEqual([])
+    // E o aviso de "perícias não são importadas" não existe mais: o único que resta é o da regra
+    // do maior dado, conferido logo abaixo.
+    expect(lido.warnings).toEqual(['ordem-maior-dado'])
+
+    /**
+     * A coluna TESTE desta ficha veio como "2d20", que em Ordem Paranormal quer dizer "role dois e
+     * use o MAIOR". O preset é criado assim mesmo — os dados que caem na mesa são os certos —, mas o
+     * total somado não é o do sistema, e o usuário precisa saber disso na hora de importar.
+     */
+    const teste = lido.presets.find((p) => p.name === 'Ataque com Faca (teste)')
+    expect(teste).toBeDefined()
+    expect(teste!.expression.keep).toEqual({ mode: 'highest', count: 1 })
+    expect(lido.warnings).toContain('ordem-maior-dado')
+
+    // O DANO soma, e continua somando: a regra do maior é do teste, não do dado de dano.
+    expect(lido.presets.find((p) => p.name === 'Ataque com Faca (dano)')!.expression.keep).toBeUndefined()
+  }, 60_000)
+})
+
+describe.skipIf(!existsSync(OBLIVIO))('ficha real de Oblivio', () => {
+  it('lê os dez atributos e as partes do corpo, sem trazer a regra impressa junto', async () => {
+    const lido = readSheet(await abrirPdfNoNode(OBLIVIO))
+
+    expect(lido.readerId).toBe('oblivio')
+    expect(lido.system).toBe('Oblivio')
+
+    const atributos = lido.fields.filter((c) => c.group === 'Atributos').map((c) => c.label)
+    expect(atributos).toEqual([
+      'Carne',
+      'Força',
+      'Prontidão',
+      'Determinação',
+      'Mente',
+      'Coragem',
+      'Dor',
+      'Fôlego',
+      'Proteção',
+      'Velocidade'
+    ])
+    expect(lido.fields.filter((c) => c.group === 'Corpo')).toHaveLength(5)
+
+    /**
+     * O ruído que motivou `PEDACO_DE_FRASE`: a página de equipamento escreve as regras no mesmo
+     * formato de um campo preenchido ("Limite de Estresse: 6. / Dano: 1D4 PE."), e elas entravam na
+     * ficha como se fossem valores do personagem.
+     */
+    const rotulos = lido.fields.map((c) => c.label)
+    expect(rotulos).not.toContain('Limite de Estresse')
+    expect(rotulos).not.toContain('Dano')
+    expect(rotulos).not.toContain('Alcance')
+    expect(lido.fields.some((c) => /\.\s*$|\.\s/.test(c.value) && c.value.length < 20)).toBe(false)
+    // Fórmula não é nome de campo: "Limite de Estresse (5 + Carne): 0/7" dava a linha "(5 + Carne)".
+    expect(rotulos.some((r) => r.startsWith('('))).toBe(false)
+
+    // Os talentos escolhidos vão pro bloco de habilidades, e não pra pilha de campos sem grupo.
+    const habilidades = lido.fields.filter((c) => c.group === 'Habilidades').map((c) => c.label)
+    expect(habilidades).toContain('Voracidade')
+    expect(habilidades).toContain('Estocada')
+
+    /**
+     * E nenhum preset que seja só a notação, ou pedaço de regra: a página de equipamento produzia
+     * "1D4" e "1D4 PE. /" como rolagens do personagem.
+     */
+    expect(lido.presets.map((p) => p.name)).not.toContain('1D4')
+    expect(lido.presets.some((p) => /\.\s*$|\.\s/.test(p.name))).toBe(false)
+    /**
+     * "RESULTADO 1D6" é o cabeçalho da primeira coluna da TABELA DE FARDOS, que vem impressa nas
+     * regras. Passava por todos os filtros — curto, com notação, com palavra — e era o único preset
+     * que esta ficha produzia: um botão que não é rolagem de personagem nenhum.
+     */
+    expect(lido.presets.map((p) => p.name)).not.toContain('RESULTADO 1D6')
+
+    /**
+     * O parágrafo INTEIRO, e não a primeira linha dele. O extrator devolve a descrição picada em
+     * cinco fragmentos e a habilidade em quatro; antes disto a ficha importava "…curto dos lados e"
+     * e "…(se movimentando", que é pior que não importar, porque parece completo.
+     */
+    const porRotulo = new Map(lido.fields.map((c) => [c.label, c.value]))
+    expect(porRotulo.get('Descrição')).toContain('não visível por causa do moletom.')
+    // A habilidade tem indentação pendente: a continuação começa 80 pontos à ESQUERDA da primeira.
+    expect(porRotulo.get('Estocada')).toContain('cause dano extra igual ao número de casas')
+  }, 60_000)
+})
+
+describe.skipIf(!existsSync(KIDS))('ficha real de Kids on Bikes — arte com anotação por cima', () => {
+  /**
+   * O terceiro tipo de ficha, e o mais difícil: a arte inteira é imagem, inclusive os nomes dos
+   * campos, e o que existe de texto no arquivo é só o que a pessoa digitou por cima. São 41
+   * fragmentos em 2 páginas, contra os 68 POR PÁGINA da de Oblivio — é essa diferença de densidade
+   * que separa os dois caminhos de leitura.
+   *
+   * Antes disto, a ficha caía no caminho de "PDF de texto" e importava três pedaços de frase, sem
+   * nome de personagem, com um aviso que dizia algo falso sobre o arquivo. Todo o resto se perdia.
+   */
+  it('remonta o que foi escrito, propõe o nome e não finge saber o que é cada valor', async () => {
+    const lido = readSheet(await abrirPdfNoNode(KIDS))
+
+    expect(lido.readerId).toBe('generico')
+    // O nome sai do primeiro texto da página, e não do arquivo ("Ficha Kids on Bikes - Preenchida").
+    expect(lido.characterName).toBe('rodrigo barreto')
+    expect(lido.warnings).toContain('arte-com-anotacao')
+
+    /**
+     * As vantagens que a pessoa nomeou ela mesma, com o parágrafo INTEIRO. O extrator devolve isto
+     * picado em quatro fragmentos ("Heróico: Você não precisa da" / "permissão do Mestre para" / …),
+     * e a primeira leitura importava só o primeiro pedaço.
+     */
+    const porRotulo = new Map(lido.fields.map((c) => [c.label, c.value]))
+    expect(porRotulo.get('Heróico')).toBe(
+      'Você não precisa da permissão do Mestre para gastar Fichas de Adversidade para ignorar Medos.'
+    )
+    expect(porRotulo.get('Durão')).toContain('adicione +3 ao número negativo')
+
+    /**
+     * "Você ganha +1 em testes de Luta." está escrito nas duas páginas, uma vez como "preta intensa"
+     * e outra como "bike preta intensa" — na página 1 a palavra "bike" é parte do desenho. É a mesma
+     * anotação, e vinha duas vezes.
+     */
+    const luta = lido.fields.filter((c) => c.value === 'Você ganha +1 em testes de Luta.')
+    expect(luta.map((c) => c.label)).toEqual(['bike preta intensa'])
+
+    // O texto que não tem rótulo nenhum não é jogado fora — vai inteiro pro bloco de história.
+    const solto = lido.rawText ?? ''
+    for (const escrito of ['11', 'Novo Aluno Misterioso', 'supersticioso', 'd20', 'd12', '1 - Dinamite']) {
+      expect(solto).toContain(escrito)
+    }
+    /**
+     * Cada dado numa linha própria. Eles ficam lado a lado na arte, em corpo 26, e a régua de
+     * "mesma linha" chegou a grudar dois atributos diferentes num "d8 d4" só.
+     */
+    expect(solto.split('\n')).toContain('d20')
+    expect(solto).not.toContain('d8 d4')
+
+    // O parágrafo da coluna da direita não foi intercalado com o da esquerda.
+    expect(solto).toContain('Pegs Apoio nas rodas Você pode levar um passageiro em pé.')
+
+    // E nenhum preset chamado "d20": o app já tem esse botão, e o atributo dele é desenho.
+    expect(lido.presets.map((p) => p.name)).not.toContain('d20')
+  }, 60_000)
+})
+
+describe.skipIf(!existsSync(KIDS_BRANCA))('ficha real de Kids on Bikes em branco', () => {
+  it('continua sendo reconhecida como imagem pura, sem inventar conteúdo', async () => {
+    // 1,4 MB, duas páginas, UM fragmento de texto. Não há o que importar, e dizer isso é o certo.
+    const lido = readSheet(await abrirPdfNoNode(KIDS_BRANCA))
+    expect(lido.fields).toEqual([])
+    expect(lido.presets).toEqual([])
+    expect(lido.rawText ?? '').toBe('')
+    expect(lido.warnings).toContain('pdf-sem-texto')
+  }, 60_000)
+})
+
+const OBLIVIO_BRANCA = join(PASTA, 'Ficha Oblivio - Colorida.pdf')
+const ORDEM_BRANCA = join(PASTA, 'Ordem Paranormal - Ficha de Personagem Editável.pdf')
+
+/**
+ * Os MODELOS EM BRANCO dos dois sistemas — os arquivos que se baixa do site antes de preencher.
+ *
+ * É o caso mais comum de importação errada: a pessoa baixa a ficha oficial, importa por engano antes
+ * de preencher, e o app tem que dizer isso em vez de criar um personagem de mentira. Estes dois
+ * arquivos estavam na pasta e não tinham teste nenhum.
+ *
+ * O defeito que estas asserções travam: o app propunha o NOME DO ARQUIVO como nome do personagem, ou
+ * seja, oferecia criar alguém chamado "Ordem Paranormal - Ficha de Personagem Editável". Quando um
+ * leitor dedicado reconhece o sistema e não acha nome nenhum escrito, o arquivo é o título da ficha,
+ * não uma pessoa — e vazio é melhor que isso, porque a tela de conferência não deixa confirmar sem
+ * nome e a pessoa digita o dela.
+ */
+describe.skipIf(!existsSync(OBLIVIO_BRANCA) || !existsSync(ORDEM_BRANCA))('modelos em branco', () => {
+  it('Oblivio em branco: reconhece o sistema, avisa que está vazia e NÃO propõe nome', async () => {
+    const lido = readSheet(await abrirPdfNoNode(OBLIVIO_BRANCA))
+
+    expect(lido.readerId).toBe('oblivio')
+    expect(lido.system).toBe('Oblivio')
+    expect(lido.characterName).toBe('')
+    expect(lido.presets).toEqual([])
+    // O aviso é o que separa "importou vazio" de "o app não funcionou".
+    expect(lido.warnings).toContain('sem-nome-nem-rolagem')
+    // Os atributos zerados ainda são lidos: quem quiser importar a ficha vazia e preencher no app pode.
+    expect(lido.fields.some((c) => c.group === 'Atributos')).toBe(true)
+  })
+
+  it('Ordem Paranormal em branco: mesma coisa, sem inventar personagem', async () => {
+    const lido = readSheet(await abrirPdfNoNode(ORDEM_BRANCA))
+
+    expect(lido.readerId).toBe('ordem-paranormal')
+    expect(lido.characterName).toBe('')
+    expect(lido.presets).toEqual([])
+    expect(lido.warnings).toContain('sem-nome-nem-rolagem')
+  })
+})

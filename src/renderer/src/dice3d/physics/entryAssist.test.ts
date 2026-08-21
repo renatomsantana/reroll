@@ -90,7 +90,7 @@ function rolar(launcher: 'tray' | 'mouth', shape: TrayShape) {
   // Tipos MISTURADOS, como uma rolagem de verdade ("2d6 + 1d20") — os outros testes de contenção
   // rodam um tipo por vez, e é na mistura de tamanhos que um dado grande manda um pequeno longe.
   const dice: Die[] = slots.map((slot, i) => {
-    const tipo = AVAILABLE_DICE_TYPES[i % AVAILABLE_DICE_TYPES.length] as PhysicalDiceSides
+    const tipo = AVAILABLE_DICE_TYPES[i % AVAILABLE_DICE_TYPES.length]
     return {
       sides: tipo,
       body: DICE_REGISTRY[tipo].createBody(world),

@@ -22,12 +22,13 @@ import { TRAY_SHAPES } from '@renderer/dice3d/geometry/trayShape'
  */
 
 const VALORES_FECHADOS = {
-  theme: ['day', 'night'],
+  themeSource: ['day', 'night', 'system'],
   language: ['pt-BR', 'en-US'],
   diceMaterial: ['matte', 'metallic', 'plastic', 'glass'],
   launchMode: ['tray', 'tower', 'towerDecor'],
   trayShape: [...TRAY_SHAPES],
-  cameraMode: ['table', 'dice', 'free']
+  cameraMode: ['table', 'dice', 'free'],
+  displayMode: ['3d', 'quick']
 } as const satisfies Record<string, readonly string[]>
 
 /**
@@ -47,4 +48,39 @@ export function sanearPreferencias<T extends Record<string, unknown>>(bruto: T):
     }
   }
   return limpo as Partial<T>
+}
+
+/**
+ * As MIGRAÇÕES de formato das preferências: campo que mudou de nome ou de forma entre versões.
+ *
+ * Separada de `sanearPreferencias` porque as duas respondem perguntas diferentes. Aquela pergunta
+ * "este valor ainda existe?" e joga fora o que não; esta pergunta "onde isto morava antes?" e
+ * TRAZ pra cá. Misturar as duas faria a higiene apagar dado que a migração ainda ia usar.
+ *
+ * Recebe o objeto CRU do `localStorage`, e não o já saneado, porque o campo velho não está na lista
+ * de campos conhecidos — depois da higiene ele ainda estaria lá, mas depender disso seria depender
+ * de um detalhe de outra função.
+ */
+export function migrarPreferencias(bruto: unknown): Record<string, unknown> {
+  if (typeof bruto !== 'object' || bruto === null) return {}
+  const entrada = bruto as Record<string, unknown>
+  const migrado: Record<string, unknown> = {}
+
+  /**
+   * `theme` ('day' | 'night') virou `themeSource` ('day' | 'night' | 'system') quando o tema ganhou
+   * a opção de acompanhar o Windows.
+   *
+   * A escolha de quem já usava o app TEM que atravessar: sem isto, todo mundo que estava no tema
+   * noturno reabriria no claro depois de atualizar. Não é perda de dado grave, é daquelas que fazem
+   * a pessoa desconfiar do resto — "se ele esqueceu isso, o que mais ele esqueceu?".
+   *
+   * Só quando `themeSource` ainda NÃO existe: quem já gravou no formato novo manda nele, senão toda
+   * abertura desfaria a escolha mais recente.
+   */
+  if (!('themeSource' in entrada)) {
+    const antigo = entrada.theme
+    if (antigo === 'day' || antigo === 'night') migrado.themeSource = antigo
+  }
+
+  return migrado
 }

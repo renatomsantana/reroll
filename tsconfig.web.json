@@ -20,5 +20,7 @@
       "@shared/*": ["src/shared/*"]
     }
   },
-  "include": ["src/renderer/src/**/*", "src/shared/**/*"]
+  "include": ["src/renderer/src/**/*", "src/shared/**/*"],
+  "//exclude": "Os testes `*.node.test.ts` leem arquivo do disco e por isso precisam dos tipos do Node, que o renderer NÃO pode ter — dar `node` a ele abriria a porta pra `fs` num processo que não tem acesso a nada disso. As pastas `testes/` são as FERRAMENTAS desses testes (abrir PDF do disco, fabricar PDF torto): mesmo motivo, e ficam de fora pela pasta porque não são arquivos de teste e não terminam em `.node.test.ts`. Os dois grupos são conferidos por `tsconfig.tests.json`.",
+  "exclude": ["src/renderer/src/**/*.node.test.ts", "src/renderer/src/**/testes/**"]
 }

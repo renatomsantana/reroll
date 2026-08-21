@@ -1,9 +1,10 @@
 import { promises as fs } from 'fs'
-import { dialog, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
 import type { Preset, PresetInput } from '@shared/types/preset'
 import { IpcChannels } from '@shared/ipcChannels'
-import { DEFAULT_DICE_SIDES, MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
+import { DEFAULT_DICE_SIDES, MAX_EXPLOSOES_POR_DADO, MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
 import { PresetsRepository } from '../storage/PresetsRepository'
+import { escolherArquivo, escolherOndeSalvar } from './dialogos'
 
 /**
  * `presets.json` é documentado no README como editável à mão (backup/transferência manual
@@ -55,7 +56,31 @@ export function isValidPresetInput(value: unknown): value is PresetInput {
   )
 
   return (
-    groupsValid && modifiersValid && keepValido(expression.keep) && totalDiceCount <= MAX_SIMULTANEOUS_DICE
+    groupsValid &&
+    modifiersValid &&
+    keepValido(expression.keep) &&
+    explodeValido(expression.explode) &&
+    totalDiceCount <= MAX_SIMULTANEOUS_DICE
+  )
+}
+
+/**
+ * A regra explosiva ("tirou o máximo, rola de novo"), quando houver uma.
+ *
+ * AUSENTE é válido, e é o caso de todo preset gravado antes de a regra existir. O que não passa é
+ * `explode` presente e torto — e o campo que importa é o TETO: um `maxChain` gigante vindo de um
+ * `presets.json` editado à mão é um dado que cai centenas de vezes na bandeja antes de a rolagem
+ * terminar, e a pessoa não tem como interromper. O teto do teto é o mesmo que o app usa
+ * (`MAX_EXPLOSOES_POR_DADO`), porque um preset não tem por que poder mais do que a interface.
+ */
+function explodeValido(explode: unknown): boolean {
+  if (explode === undefined || explode === null) return true
+  if (typeof explode !== 'object') return false
+  const regra = explode as Record<string, unknown>
+  return (
+    Number.isInteger(regra.maxChain) &&
+    (regra.maxChain as number) > 0 &&
+    (regra.maxChain as number) <= MAX_EXPLOSOES_POR_DADO
   )
 }
 
@@ -92,26 +117,28 @@ export function registerPresetsHandlers(repository: PresetsRepository): void {
 
   ipcMain.handle(IpcChannels.presetsExport, async () => {
     const presets = await repository.getAll()
-    const { canceled, filePath } = await dialog.showSaveDialog({
-      title: 'Exportar presets',
-      defaultPath: 'presets-reroll.json',
-      filters: [{ name: 'JSON', extensions: ['json'] }]
+    // Pela porta de `dialogos.ts`, que é quem lembra a pasta — ver o cabeçalho de lá.
+    const filePath = await escolherOndeSalvar({
+      proposito: 'presets',
+      titulo: 'Exportar presets',
+      nomeSugerido: 'presets-reroll.json',
+      filtros: [{ name: 'JSON', extensions: ['json'] }]
     })
-    if (canceled || !filePath) return null
+    if (!filePath) return null
 
     await fs.writeFile(filePath, JSON.stringify(presets, null, 2), 'utf-8')
     return filePath
   })
 
   ipcMain.handle(IpcChannels.presetsImport, async (): Promise<Preset[] | null> => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      title: 'Importar presets',
-      properties: ['openFile'],
-      filters: [{ name: 'JSON', extensions: ['json'] }]
+    const caminho = await escolherArquivo({
+      proposito: 'presets',
+      titulo: 'Importar presets',
+      filtros: [{ name: 'JSON', extensions: ['json'] }]
     })
-    if (canceled || filePaths.length === 0) return null
+    if (!caminho) return null
 
-    const raw = await fs.readFile(filePaths[0], 'utf-8')
+    const raw = await fs.readFile(caminho, 'utf-8')
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) {
       throw new Error('Arquivo inválido: esperado uma lista de presets.')

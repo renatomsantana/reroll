@@ -3,7 +3,9 @@ import type { Preset, PresetInput } from '@shared/types/preset'
 import type { NotesData } from '@shared/types/notes'
 import type { UpdateStatus } from '@shared/types/update'
 import { IpcChannels } from '@shared/ipcChannels'
-import type { ProfilesState } from '@shared/types/profile'
+import type { Profile, ProfilesState } from '@shared/types/profile'
+import type { SheetApplyPayload } from '@shared/types/sheetImport'
+import type { PdfEscolhido } from '@shared/types/sheetImport'
 
 const api = {
   presets: {
@@ -38,6 +40,12 @@ const api = {
   scene: {
     pickBackgroundImage: (): Promise<string | null> =>
       ipcRenderer.invoke(IpcChannels.scenePickBackgroundImage)
+  },
+  sheets: {
+    /** Bytes do PDF escolhido, ou o MOTIVO de não ter dado (ver `PdfEscolhido`). Quem interpreta é o renderer. */
+    pickPdf: (): Promise<PdfEscolhido> => ipcRenderer.invoke(IpcChannels.sheetsPickPdf),
+    apply: (payload: SheetApplyPayload): Promise<Profile> =>
+      ipcRenderer.invoke(IpcChannels.sheetsApply, payload)
   },
   update: {
     getVersion: (): Promise<string> => ipcRenderer.invoke(IpcChannels.appGetVersion),

@@ -1,0 +1,311 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { SheetImport } from '@shared/types/sheetImport'
+import { montarFicha, type FichaMontada } from '@shared/types/montarFicha'
+import { useTranslation } from '@renderer/i18n/useTranslation'
+import { Button } from '../common/Button'
+import { Card } from '../common/Card'
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
+import './SheetImportModal.css'
+
+/**
+ * A tela de CONFERÊNCIA da ficha importada.
+ *
+ * Ela existe porque importar ficha é palpite, e palpite precisa de revisão antes de virar dado
+ * gravado. Um importador que cria o personagem direto do que achou é um importador que, no primeiro
+ * PDF fora do padrão, cria um personagem chamado "Assinatura do Mestre" com quatro presets de lixo —
+ * e o usuário só descobre depois, tendo que apagar tudo à mão.
+ *
+ * Por isso três coisas aqui não são enfeite:
+ *
+ * - TUDO é desmarcável, campo por campo e preset por preset;
+ * - o nome e o sistema são editáveis, porque são os dois que o leitor mais erra;
+ * - os avisos do leitor aparecem em destaque no topo, antes da lista. O usuário precisa saber o que
+ *   NÃO foi lido; silêncio sobre isso vira "o app importou errado".
+ */
+
+interface SheetImportModalProps {
+  sheet: SheetImport
+  onCancel: () => void
+  onConfirm: (escolha: {
+    /** Personagem a atualizar, ou `undefined` pra criar um novo. Ver `alvo` no componente. */
+    targetProfileId?: string
+    characterName: string
+    system: string
+    notes: FichaMontada
+    presets: SheetImport['presets']
+  }) => void
+  /** `true` enquanto a gravação acontece — trava os botões pra não criar dois personagens. */
+  saving: boolean
+  /**
+   * O personagem ABERTO agora, que é o candidato a ser atualizado por esta importação. `null` quando
+   * não há um que faça sentido atualizar — um recém-criado e ainda sem nome, por exemplo, em que
+   * "atualizar" e "criar" dariam no mesmo.
+   */
+  perfilAtual: { id: string; name: string } | null
+}
+
+export function SheetImportModal({
+  sheet,
+  onCancel,
+  onConfirm,
+  saving,
+  perfilAtual
+}: SheetImportModalProps) {
+  const t = useTranslation()
+  const cardRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(cardRef)
+
+  const [nome, setNome] = useState(sheet.characterName)
+  const [sistema, setSistema] = useState(sheet.system)
+  /**
+   * Um leitor DEDICADO reconheceu a ficha. O teste é o leitor, e não `sheet.system` estar
+   * preenchido: são a mesma coisa hoje, mas um leitor novo pode reconhecer um sistema e deixar o
+   * nome dele em branco, e aí a tela ofereceria um campo editável dizendo que reconheceu.
+   */
+  const reconhecido = sheet.readerId !== 'generico'
+  /**
+   * Marcados por ÍNDICE, e tudo começa marcado. O usuário abriu esta janela pra importar; fazê-lo
+   * marcar sessenta caixas antes de conseguir isso seria transformar um atalho em trabalho manual.
+   */
+  const [camposFora, setCamposFora] = useState<Set<number>>(new Set())
+  const [presetsFora, setPresetsFora] = useState<Set<number>>(new Set())
+  /**
+   * O texto SEM RÓTULO da ficha (ver `rawText` em `SheetImport`), que só existe quando a ficha é uma
+   * arte com anotação por cima. Vem marcado: nesse tipo de arquivo ele é quase tudo o que há, e
+   * desmarcado por padrão o usuário importaria um personagem vazio sem entender por quê.
+   */
+  const [trazerTexto, setTrazerTexto] = useState(true)
+  /**
+   * ONDE a ficha vai parar. Começa sempre em "personagem novo", e isso é deliberado: criar é a
+   * operação que não estraga nada, e atualizar substitui as seções de quem está aberto. Um padrão
+   * que sobrescreve seria a escolha errada pro clique distraído.
+   *
+   * A opção de atualizar existe por um caso que acontece toda campanha: subiu de nível, salvou o
+   * PDF, importou de novo. Sem ela o app criava um segundo personagem com o mesmo nome, e juntar os
+   * dois de volta significava apagar um — levando junto o diário, que não está em PDF nenhum.
+   */
+  const [atualizar, setAtualizar] = useState(false)
+  const alvo = atualizar && perfilAtual ? perfilAtual.id : undefined
+
+  /**
+   * "(3 de 12)" — quantos itens seguem marcados. Vem de um molde traduzido, e não montado com
+   * `de`/`of` no meio do JSX: a ordem das palavras muda de idioma pra idioma.
+   */
+  const contagem = (escolhidos: number, total: number): string =>
+    t.sheetImport.count.replace('{selected}', String(escolhidos)).replace('{total}', String(total))
+
+  useEffect(() => {
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !saving) onCancel()
+    }
+    window.addEventListener('keydown', aoTeclar)
+    return () => window.removeEventListener('keydown', aoTeclar)
+  }, [onCancel, saving])
+
+  const camposEscolhidos = sheet.fields.filter((_, i) => !camposFora.has(i))
+  const presetsEscolhidos = sheet.presets.filter((_, i) => !presetsFora.has(i))
+
+  /**
+   * O que vai pra ficha, dividido entre BLOCOS e SEÇÕES.
+   *
+   * Grupo que tem bloco correspondente (Habilidades, Inventário, Aparência, História) cai no bloco,
+   * como texto de uma linha por campo. O que é NÚMERO — Atributos, Perícias, Recursos — vira seção,
+   * e a ficha desenha seção de valores curtos como quadro. O resto (Identificação, Corpo) também
+   * vira seção, com o nome que o sistema usa. Ver `sheetBlocks.ts` sobre por quê.
+   */
+  const paraAFicha = useMemo(
+    () => montarFicha(camposEscolhidos, trazerTexto ? sheet.rawText : undefined),
+    [camposEscolhidos, sheet.rawText, trazerTexto]
+  )
+
+  function alternar(conjunto: Set<number>, indice: number, aplicar: (s: Set<number>) => void): void {
+    const proximo = new Set(conjunto)
+    if (proximo.has(indice)) proximo.delete(indice)
+    else proximo.add(indice)
+    aplicar(proximo)
+  }
+
+  return (
+    <div className="modal-overlay" onClick={() => !saving && onCancel()}>
+      <Card ref={cardRef} className="sheet-import" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-import-header">
+          <h2 className="sheet-import-title">{t.sheetImport.title}</h2>
+          {/*
+            O sistema é AFIRMADO, não perguntado — pedido do usuário: "coloca o sistema sem a pessoa
+            poder editar, já afirme que reconhecemos que é uma ficha do sistema".
+
+            Ele tem razão sobre o caso reconhecido: quem diz o sistema é a ESTRUTURA do arquivo (os
+            nomes de campo da ficha de Ordem Paranormal, os dez atributos da de Oblivio — ver o
+            `detect` de cada leitor), não um palpite. Oferecer um campo de texto ali só convidava a
+            digitar por cima de algo que o arquivo já provou.
+          */}
+          {reconhecido ? (
+            <span className="sheet-import-reader">
+              {t.sheetImport.recognized} <strong>{sheet.readerLabel}</strong>
+            </span>
+          ) : (
+            <span className="sheet-import-reader">{t.sheetImport.unrecognized}</span>
+          )}
+        </div>
+
+        {sheet.warnings.length > 0 && (
+          <ul className="sheet-import-warnings">
+            {sheet.warnings.map((aviso) => (
+              <li key={aviso}>{t.sheetImport.warnings[aviso]}</li>
+            ))}
+          </ul>
+        )}
+
+        <div className="sheet-import-identity">
+          <label>
+            {t.sheetImport.character}
+            <input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </label>
+          {/*
+            O campo de sistema só aparece quando NENHUM leitor reconheceu a ficha. Nesse caso não há
+            o que afirmar, e deixar o personagem sem sistema nenhum seria pior que perguntar — é a
+            única informação da tela que o arquivo não entregou.
+          */}
+          {!reconhecido && (
+            <label>
+              {t.sheetImport.system}
+              <input
+                value={sistema}
+                placeholder={t.sheetImport.systemPlaceholder}
+                onChange={(e) => setSistema(e.target.value)}
+              />
+            </label>
+          )}
+        </div>
+
+        {perfilAtual && (
+          <div className="sheet-import-destination">
+            <span className="sheet-import-destination-label">{t.sheetImport.destinationLabel}</span>
+            <label>
+              <input
+                type="radio"
+                name="sheet-import-destino"
+                checked={!atualizar}
+                onChange={() => setAtualizar(false)}
+              />
+              {t.sheetImport.destinationNew}
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="sheet-import-destino"
+                checked={atualizar}
+                onChange={() => setAtualizar(true)}
+              />
+              {t.sheetImport.destinationUpdate.replace('{name}', perfilAtual.name)}
+            </label>
+            {atualizar && <p className="sheet-import-destination-hint">{t.sheetImport.destinationUpdateHint}</p>}
+          </div>
+        )}
+
+        <div className="sheet-import-columns">
+          <section className="sheet-import-section">
+            <h3>
+              {t.sheetImport.fieldsTitle} <span>{contagem(camposEscolhidos.length, sheet.fields.length)}</span>
+            </h3>
+            {sheet.fields.length === 0 ? (
+              <p className="sheet-import-empty">{t.sheetImport.fieldsEmpty}</p>
+            ) : (
+              <ul className="sheet-import-list">
+                {sheet.fields.map((campo, i) => (
+                  <li key={`${campo.label}-${i}`}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={!camposFora.has(i)}
+                        onChange={() => alternar(camposFora, i, setCamposFora)}
+                      />
+                      <span className="sheet-import-label">{campo.label}</span>
+                      <span className="sheet-import-value">{campo.value}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="sheet-import-section">
+            <h3>
+              {t.sheetImport.presetsTitle} <span>{contagem(presetsEscolhidos.length, sheet.presets.length)}</span>
+            </h3>
+            {sheet.presets.length === 0 ? (
+              <p className="sheet-import-empty">{t.sheetImport.presetsEmpty}</p>
+            ) : (
+              <ul className="sheet-import-list">
+                {sheet.presets.map((preset, i) => (
+                  <li key={`${preset.name}-${i}`}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={!presetsFora.has(i)}
+                        onChange={() => alternar(presetsFora, i, setPresetsFora)}
+                      />
+                      <span className="sheet-import-label">{preset.name}</span>
+                      <span className="sheet-import-kind">{t.sheetImport.kinds[preset.kind]}</span>
+                      <span className="sheet-import-value">{descreverExpressao(preset)}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        {/*
+          O texto que não tem rótulo. Só aparece na ficha que é ARTE com anotação por cima, onde os
+          nomes dos campos são desenho e não há como dizer o que é cada valor — mostrar isso como uma
+          lista de "campo = valor" seria inventar rótulo. Aqui ele aparece como está na página, e o
+          usuário decide se traz ou não.
+        */}
+        {sheet.rawText && (
+          <section className="sheet-import-section sheet-import-raw">
+            <h3>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={trazerTexto}
+                  onChange={() => setTrazerTexto((atual) => !atual)}
+                />
+                {t.sheetImport.rawTextTitle} <span>{t.sheetImport.rawTextHint}</span>
+              </label>
+            </h3>
+            <pre className="sheet-import-rawtext">{sheet.rawText}</pre>
+          </section>
+        )}
+
+        <div className="sheet-import-actions">
+          <Button variant="ghost" onClick={onCancel} disabled={saving}>
+            {t.sheetImport.cancel}
+          </Button>
+          <Button
+            onClick={() =>
+              onConfirm({
+                targetProfileId: alvo,
+                characterName: nome,
+                system: reconhecido ? sheet.system : sistema,
+                notes: paraAFicha,
+                presets: presetsEscolhidos
+              })
+            }
+            disabled={saving || !nome.trim()}
+          >
+            {saving ? t.sheetImport.confirming : alvo ? t.sheetImport.update : t.sheetImport.confirm}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+/** "1d20+7" a partir da expressão — a mesma leitura que o usuário fez na ficha, de volta pra ele. */
+function descreverExpressao(preset: SheetImport['presets'][number]): string {
+  const dados = preset.expression.groups.map((grupo) => `${grupo.count}d${grupo.sides}`).join(' + ')
+  const total = preset.expression.modifiers.reduce((soma, m) => soma + m.value, 0)
+  if (total === 0) return dados
+  return `${dados} ${total > 0 ? '+' : '-'} ${Math.abs(total)}`
+}

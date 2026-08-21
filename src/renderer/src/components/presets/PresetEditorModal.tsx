@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DiceGroup, KeepRule } from '@shared/types/dice'
 import type { Preset, PresetInput } from '@shared/types/preset'
-import { DEFAULT_DICE_SIDES, MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
+import { DEFAULT_DICE_SIDES, MAX_EXPLOSOES_POR_DADO, MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
 import { Button } from '../common/Button'
@@ -40,6 +40,12 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
    */
   const [keepMode, setKeepMode] = useState<KeepRule['mode'] | 'all'>(preset?.expression.keep?.mode ?? 'all')
   const [keepCount, setKeepCount] = useState(preset?.expression.keep?.count ?? 1)
+  /**
+   * DADOS EXPLOSIVOS no preset. Booleano e não número: o teto da cadeia é do app
+   * (`MAX_EXPLOSOES_POR_DADO`) e não uma escolha de quem monta o preset — ninguém quer decidir
+   * "quantas vezes no máximo" pra salvar um ataque de espada.
+   */
+  const [explode, setExplode] = useState(Boolean(preset?.expression.explode))
 
   const totalDiceCount = groups.reduce((sum, g) => sum + g.count, 0)
   const tooManyDice = totalDiceCount > MAX_SIMULTANEOUS_DICE
@@ -86,7 +92,8 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
       expression: {
         groups,
         modifiers: modifier !== 0 ? [{ type: 'flat', value: modifier }] : [],
-        keep: regraDeManter()
+        keep: regraDeManter(),
+        explode: explode ? { maxChain: MAX_EXPLOSOES_POR_DADO } : undefined
       }
     })
   }
@@ -225,6 +232,20 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
             {keepMode !== 'all' && <p className="preset-editor-hint">{t.presetEditor.keepHint}</p>}
           </div>
         )}
+
+        {/*
+          Uma caixa de marcar, e não uma lista: explode ou não explode. O detalhe de quantas vezes
+          no máximo é do app (ver `MAX_EXPLOSOES_POR_DADO`), não de quem monta um preset de ataque.
+        */}
+        <label className="preset-editor-field preset-editor-check">
+          <input
+            type="checkbox"
+            checked={explode}
+            onChange={(e) => setExplode(e.target.checked)}
+          />
+          <span>{t.presetEditor.explode}</span>
+        </label>
+        {explode && <p className="preset-editor-hint">{t.presetEditor.explodeHint}</p>}
 
         <label className="preset-editor-field">
           <span>{t.presetEditor.modifier}</span>

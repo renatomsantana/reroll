@@ -12,8 +12,16 @@ export type UpdateStatus =
   | { state: 'checking' }
   /** Já está na versão mais recente. */
   | { state: 'upToDate' }
-  /** Existe versão nova, e ela NÃO foi baixada — o download só começa se a pessoa pedir e confirmar. */
-  | { state: 'available'; version: string }
+  /**
+   * Existe versão nova, e ela NÃO foi baixada — o download só começa se a pessoa pedir e confirmar.
+   *
+   * `notes` é o CHANGELOG da release, que a spec pede no aviso (seção 4): "mostre o changelog +
+   * Atualizar agora / Depois". Ele já vinha junto do evento do `electron-updater` e era descartado,
+   * então quem recebia o aviso via só um número de versão e tinha que decidir no escuro.
+   *
+   * Ausente é normal: release publicada sem descrição, ou o provedor não mandando o campo.
+   */
+  | { state: 'available'; version: string; notes?: string }
   | { state: 'downloading'; version: string; percent: number }
   /** Baixada e pronta. Como o download só acontece a pedido, daqui o app reinicia sozinho pra aplicar. */
   | { state: 'ready'; version: string }

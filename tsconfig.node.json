@@ -19,8 +19,12 @@
   },
   "include": [
     "electron.vite.config.ts",
+    "vitest.config.ts",
+    "eslint.config.mjs",
     "src/main/**/*",
     "src/preload/**/*",
     "src/shared/**/*"
-  ]
+  ],
+  "//exclude": "Os testes `*.node.test.ts` atravessam os dois lados do app — abrem PDF com `fs` e chamam o leitor de ficha, que mora no renderer. Nenhum dos dois projetos dá conta deles sozinho, e por isso são conferidos por `tsconfig.tests.json`.",
+  "exclude": ["src/**/*.node.test.ts"]
 }

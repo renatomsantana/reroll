@@ -114,3 +114,20 @@
   font-size: 11px;
   color: var(--win-text-muted);
 }
+
+/*
+ * Caixa de marcar (dados explosivos): deitada, e não em coluna como os outros campos.
+ * `.preset-editor-field` empilha rótulo em cima do controle, que é o certo pra um campo de texto e
+ * errado pra uma caixinha — ali o rótulo pertence AO LADO dela, e o par inteiro é a área clicável.
+ */
+.preset-editor-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.preset-editor-check input[type='checkbox'] {
+  margin: 0;
+  flex: 0 0 auto;
+}

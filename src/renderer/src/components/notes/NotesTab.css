@@ -330,3 +330,15 @@
     min-height: 150px;
   }
 }
+
+/*
+ * Erro da importação de ficha. Fica no fluxo da aba, e não dentro do modal, porque os dois casos que
+ * ele cobre acontecem quando não há modal nenhum na tela: o PDF não abriu, ou a gravação falhou
+ * depois de a janela de conferência já ter fechado.
+ */
+.notes-import-error {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border: 2px inset var(--win-face);
+  font-size: 11px;
+}

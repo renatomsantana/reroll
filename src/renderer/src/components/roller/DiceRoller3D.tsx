@@ -1,7 +1,9 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties } from 'react'
-import type { DiceGroup, DiceGroupResult, KeepRule, RollResult } from '@shared/types/dice'
+import type { DiceGroup, DiceGroupResult, ExplodeRule, KeepRule, RollResult } from '@shared/types/dice'
 import { totalMantido, valoresDosGrupos } from '@shared/dice/manterDados'
-import { DEFAULT_DICE_SIDES, colorForDice } from '@shared/diceRegistry'
+import { rollExpression, rollWithMode } from '@renderer/domain/dice/diceEngine'
+import { webglDisponivel } from '@renderer/dice3d/utils/webglDisponivel'
+import { DEFAULT_DICE_SIDES, MAX_EXPLOSOES_POR_DADO, colorForDice } from '@shared/diceRegistry'
 import { expressionLabel, type RollMode } from '@renderer/domain/dice/diceEngine'
 import { MAX_SIMULTANEOUS_DICE } from '@renderer/dice3d/config/physicsConfig'
 import {
@@ -11,7 +13,7 @@ import {
 } from '@renderer/dice3d/scene/DiceCanvasMulti'
 import { AVAILABLE_DICE_TYPES } from '@renderer/dice3d/dice-defs/registry'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
-import type { LaunchMode } from '@renderer/settings/SettingsContext'
+import type { DisplayMode, LaunchMode } from '@renderer/settings/SettingsContext'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { playRollSound } from '@renderer/audio/rollSound'
@@ -38,7 +40,9 @@ export interface DiceRoller3DHandle {
     modifier: number,
     sourceName?: string,
     /** "Role 3 e use o maior" — ver `KeepRule`. Ausente quer dizer somar tudo, como sempre foi. */
-    keep?: KeepRule
+    keep?: KeepRule,
+    /** "Tirou o máximo, rola de novo" — ver `ExplodeRule`. Ausente quer dizer que não explode. */
+    explode?: ExplodeRule
   ) => void
 }
 
@@ -107,6 +111,138 @@ function groupRollsBySides(rolls: { sides: number; value: number }[]): DiceGroup
 }
 
 /**
+ * Um dado da rolagem e as faces que ele já mostrou. Sem explosão a lista tem um elemento só.
+ *
+ * A cena 3D não sabe explodir sozinha: ela lança um punhado de dados e diz onde cada um parou. A
+ * explosão é ENCENADA por cima disso, em ondas — assentou, algum tirou o máximo? então os que
+ * tiraram voltam pra bandeja e caem de novo. É o mesmo gesto de quem joga na mesa, e o preço é este
+ * acumulador aqui, que amarra a segunda queda de um dado à primeira.
+ */
+export interface DadoEmCadeia {
+  sides: number
+  faces: number[]
+}
+
+/** O dado ainda está explodindo? Última face no máximo E cadeia dentro do teto. */
+export function aindaExplode(dado: DadoEmCadeia, regra: ExplodeRule | undefined): boolean {
+  if (!regra || regra.maxChain <= 0) return false
+  return dado.faces[dado.faces.length - 1] === dado.sides && dado.faces.length <= regra.maxChain
+}
+
+/** Os grupos da próxima onda: um por tipo de dado que ainda está explodindo. */
+export function gruposDaProximaOnda(cadeias: DadoEmCadeia[], regra: ExplodeRule | undefined): DiceGroup[] {
+  const porTipo = new Map<number, number>()
+  for (const dado of cadeias) {
+    if (!aindaExplode(dado, regra)) continue
+    porTipo.set(dado.sides, (porTipo.get(dado.sides) ?? 0) + 1)
+  }
+  return [...porTipo].map(([sides, count]) => ({ sides, count }))
+}
+
+/**
+ * Encaixa o resultado de uma onda nas cadeias que a pediram.
+ *
+ * O casamento é POR TIPO DE DADO, e não por posição: a cena monta os dados agrupados por tipo e não
+ * promete devolver na mesma ordem em que os dados estavam antes. Casar por posição funcionaria hoje
+ * e quebraria calado no dia em que a ordem mudasse — e "quebrar calado" aqui é um d6 herdando a
+ * segunda queda de um d20.
+ */
+export function encaixarOnda(cadeias: DadoEmCadeia[], onda: { sides: number; value: number }[], regra: ExplodeRule | undefined): void {
+  /**
+   * UMA QUEDA POR DADO NESTA ONDA — e este conjunto é o que garante isso.
+   *
+   * Sem ele há um defeito que o teste pegou e que não daria erro nenhum em produção: um dado que
+   * recebe a face máxima de novo CONTINUA elegível, então o segundo dado da mesma onda encontrava o
+   * primeiro de novo e empilhava tudo nele. Com 3d6 explodindo dois, um dado ficava com a cadeia
+   * inteira e o outro com nada — total certo por acaso na maioria das vezes, e errado assim que a
+   * regra de manter entrasse na conta.
+   */
+  const jaRecebeu = new Set<DadoEmCadeia>()
+  for (const queda of onda) {
+    const destino = cadeias.find(
+      (dado) => dado.sides === queda.sides && !jaRecebeu.has(dado) && aindaExplode(dado, regra)
+    )
+    // Sem destino é um dado a mais do que se pediu — não deveria acontecer, e engolir é melhor do
+    // que somar a face num dado que já tinha parado.
+    if (!destino) continue
+    destino.faces.push(queda.value)
+    jaRecebeu.add(destino)
+  }
+}
+
+/** As cadeias viram o formato de resultado que o histórico e a regra de manter já entendem. */
+export function cadeiasParaGrupos(cadeias: DadoEmCadeia[]): DiceGroupResult[] {
+  const ordem: number[] = []
+  const porTipo = new Map<number, DadoEmCadeia[]>()
+  for (const dado of cadeias) {
+    if (!porTipo.has(dado.sides)) {
+      porTipo.set(dado.sides, [])
+      ordem.push(dado.sides)
+    }
+    porTipo.get(dado.sides)?.push(dado)
+  }
+  return ordem.map((sides) => {
+    const dados = porTipo.get(sides) ?? []
+    // Um valor por DADO: a soma da cadeia dele. Ver `DiceGroupResult.rolls`.
+    const rolls = dados.map((dado) => dado.faces.reduce((soma, face) => soma + face, 0))
+    const explodiu = dados.some((dado) => dado.faces.length > 1)
+    return {
+      sides,
+      rolls,
+      subtotal: rolls.reduce((soma, valor) => soma + valor, 0),
+      ...(explodiu ? { chains: dados.map((dado) => dado.faces) } : {})
+    }
+  })
+}
+
+/** Quantos dados a rolagem tem, somando todos os grupos. */
+export function totalDeDados(grupos: DiceGroup[]): number {
+  return grupos.reduce((soma, g) => soma + g.count, 0)
+}
+
+/**
+ * ACRESCENTAR um dado de `sides`, respeitando o teto. Devolve a MESMA lista quando não cabe.
+ *
+ * Pura e exportada por causa de um defeito medido no app rodando: o teto era conferido ANTES do
+ * `setGroups`, lendo a lista do render anterior. Cliques rápidos no "+" são agrupados pelo React
+ * num lote só — todos enxergam o mesmo valor velho, a conta nunca alcança o teto, e a rolagem
+ * chega a 31 dados num app cujo limite é 20. Medido exatamente assim: trinta cliques seguidos.
+ *
+ * Conferindo aqui dentro, quem manda é a lista que o React entrega (`prev`), que é sempre a mais
+ * recente — inclusive no meio de um lote. E devolver `prev` sem tocar mantém a função pura, que é o
+ * contrato de quem é passado pro `setState` (o React pode chamá-la mais de uma vez).
+ */
+export function comDadoAcrescentado(grupos: DiceGroup[], sides: number, teto: number): DiceGroup[] {
+  if (totalDeDados(grupos) >= teto) return grupos
+  if (grupos.some((g) => g.sides === sides)) {
+    return grupos.map((g) => (g.sides === sides ? { ...g, count: g.count + 1 } : g))
+  }
+  return [...grupos, { sides, count: 1 }]
+}
+
+/**
+ * AJUSTAR a contagem de um grupo. Zero remove o grupo — menos quando é o último, que nunca some.
+ *
+ * Mesmo motivo de `comDadoAcrescentado` pro teto ser conferido aqui dentro.
+ */
+export function comContagemAjustada(
+  grupos: DiceGroup[],
+  indice: number,
+  delta: number,
+  teto: number
+): DiceGroup[] {
+  const grupo = grupos[indice]
+  if (!grupo) return grupos
+  if (delta > 0 && totalDeDados(grupos) >= teto) return grupos
+
+  const proxima = grupo.count + delta
+  if (proxima <= 0) {
+    return grupos.length > 1 ? grupos.filter((_, i) => i !== indice) : grupos
+  }
+  return grupos.map((g, i) => (i === indice ? { ...g, count: proxima } : g))
+}
+
+/**
  * O roller 3D "de verdade" (Fase 10) — substitui a rolagem instantânea por
  * RNG no modo completo do app. Sempre produz um `RollResult` no mesmo
  * formato que o sistema antigo já usava, então Histórico e Presets
@@ -146,7 +282,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     cameraMode,
     debugMode,
     soundEnabled,
-    resultPopupEnabled
+    resultPopupEnabled,
+    displayMode
   } = useSettings()
   const multiRef = useRef<DiceCanvasMultiHandle>(null)
   /** Timer do delay do som de rolagem (ver `ROLL_SOUND_DELAY_MS`) — guardado só pra poder cancelar no unmount, evitando tocar som depois que o componente já saiu de tela (troca de aba durante o delay). */
@@ -219,6 +356,78 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const sourceNameRef = useRef<string | undefined>(undefined)
   /** Regra de manter do preset em curso — ver `rollGroups` e `handleMultiResult`. */
   const keepRef = useRef<KeepRule | undefined>(undefined)
+  /**
+   * DADOS EXPLOSIVOS: liga/desliga por rolagem, do lado do botão de vantagem/desvantagem.
+   *
+   * Fica no componente e não nas Preferências porque é escolha DA ROLAGEM, não do app — a spec pede
+   * "configurável por rolagem" justamente porque cada sistema de RPG usa a sua, e quem joga dois
+   * sistemas na mesma semana troca o tempo todo.
+   */
+  const [explode, setExplode] = useState(false)
+  /** A regra da rolagem EM CURSO — mesma razão do `keepRef`: ela é lida quando os dados assentam. */
+  const explodeRef = useRef<ExplodeRule | undefined>(undefined)
+  /**
+   * A onda de explosão que está na cena AGORA, ou `null` quando é a queda normal.
+   *
+   * Ela substitui os grupos que vão pra bandeja sem tocar em `groups` — e essa separação é o ponto:
+   * `groups` é a ESCOLHA da pessoa, mostrada nos contadores da barra. Se a onda mexesse nele, a
+   * seleção de dados dela mudaria sozinha no meio da rolagem.
+   */
+  const [ondaDeExplosao, setOndaDeExplosao] = useState<DiceGroup[] | null>(null)
+  /** O que cada dado desta rolagem já mostrou, entre uma onda e outra. Ver `DadoEmCadeia`. */
+  const cadeiasRef = useRef<DadoEmCadeia[]>([])
+
+  /** Começa uma rolagem do zero: nenhuma onda pendente, nenhuma cadeia herdada da anterior. */
+  function limparCadeias(): void {
+    cadeiasRef.current = []
+    setOndaDeExplosao(null)
+  }
+
+  /**
+   * A máquina desenha a bandeja? Perguntado UMA vez, no primeiro render.
+   *
+   * Quando não desenha, o app cai no modo rápido SEM PERGUNTAR e diz por quê na tela. É a
+   * degradação graciosa da spec (5.8): antes disto, um notebook com driver de vídeo velho abria o
+   * app, tentava montar a cena, falhava, e a pessoa ficava com um programa de rolar dados no qual
+   * não dava pra rolar dado.
+   */
+  const [temWebgl] = useState(webglDisponivel)
+  /** O modo QUE ESTÁ VALENDO: a escolha da pessoa, ou o rápido à força quando não há 3D possível. */
+  const modoEfetivo: DisplayMode = temWebgl ? displayMode : 'quick'
+  const semFisica = modoEfetivo === 'quick'
+
+  /**
+   * A rolagem SEM FÍSICA — o mesmo cálculo da bandeja, resolvido na hora.
+   *
+   * É o `rollExpression` de sempre, que é também o que o modo compacto já usava (ver
+   * `handleCompactPresetRoll` em `App.tsx`). O que muda no modo rápido é só de onde vem o número:
+   * de `crypto.getRandomValues` em vez das faces que os dados mostraram na bandeja. Vantagem,
+   * manter e explosão continuam valendo, porque quem sabe fazer as três é o motor.
+   */
+  function rolarSemFisica(
+    gruposDaVez: DiceGroup[],
+    modificador: number,
+    keep: KeepRule | undefined,
+    regraExplosiva: ExplodeRule | undefined,
+    modoDaVez: RollMode
+  ): void {
+    const expression = {
+      groups: gruposDaVez,
+      modifiers: modificador !== 0 ? [{ type: 'flat' as const, value: modificador }] : [],
+      keep,
+      explode: regraExplosiva
+    }
+    const resultado =
+      modoDaVez === 'normal' || gruposDaVez.length !== 1
+        ? rollExpression(expression)
+        : {
+            ...rollWithMode(gruposDaVez[0].count, gruposDaVez[0].sides, modoDaVez, modificador),
+            explode: regraExplosiva
+          }
+
+    if (soundEnabled) playRollSound(gruposDaVez.reduce((soma, g) => soma + g.count, 0))
+    finalizeResult(resultado)
+  }
   /** Popup do total sobre a bandeja/torre ao assentar os dados — some sozinho no fim da animação CSS (`onAnimationEnd`), não precisa de timer em JS. `key` força reinício da animação mesmo se o total se repetir entre uma rolagem e outra. */
   const [resultPopup, setResultPopup] = useState<{ key: string; total: number } | null>(null)
 
@@ -243,7 +452,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }, [autoRollArm])
 
   useImperativeHandle(ref, () => ({
-    rollGroups: (newGroups, newModifier, sourceName, keep) => {
+    rollGroups: (newGroups, newModifier, sourceName, keep, explodeDoPreset) => {
       /**
        * A BANDEJA aceita preset a qualquer momento, inclusive por cima de uma rolagem em
        * andamento — pedido do usuário ("que aconteça a qualquer momento"). Antes havia um
@@ -266,6 +475,16 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
        * quem a lê é o `handleMultiResult`, segundos depois, quando os dados assentam.
        */
       keepRef.current = keep
+      /**
+       * A regra explosiva do PRESET manda, e o botão da barra acompanha.
+       *
+       * Sem espelhar no botão, o preset explosivo faria dados explodirem com o interruptor da barra
+       * visivelmente desligado — a tela discordando do que acabou de acontecer na bandeja.
+       */
+      explodeRef.current = explodeDoPreset
+      setExplode(Boolean(explodeDoPreset))
+      // Rolagem nova, cadeias novas: o que sobrou de uma explosão anterior não pode entrar nesta.
+      limparCadeias()
       // Presets não carregam modo de vantagem/desvantagem — sempre volta a 'normal'
       // pra não herdar um modo deixado ligado de uma rolagem manual anterior.
       setMode('normal')
@@ -276,6 +495,23 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       setResultPopup(null)
       setIsRolling(true)
       setPresetRollSeq((n) => n + 1)
+
+      /**
+       * No modo rápido o preset resolve AQUI e a função acaba: não há cena pra sincronizar nem
+       * arremesso pra esperar. Os `setGroups`/`setModifier` acima continuam valendo pra barra
+       * mostrar de que dados veio a rolagem.
+       */
+      if (semFisica) {
+        setIsRolling(false)
+        rolarSemFisica(
+          newGroups.length > 0 ? newGroups : DEFAULT_GROUPS,
+          newModifier,
+          keep,
+          explodeDoPreset,
+          'normal'
+        )
+        return
+      }
 
       // Só marca; quem arremessa é o efeito abaixo, depois que os dados novos já entraram na cena
       // (ver `pendingPresetRollRef`). Vale pros dois modos desde que a torre parou de remontar.
@@ -309,7 +545,11 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const isSingleGroup = groups.length === 1
   const singleCount = isSingleGroup ? groups[0].count : 1
   /** Em vantagem/desvantagem a cena lança o grupo duas vezes; ver `handleMultiResult`. */
-  const canvasGroups = mode === 'normal' ? groups : [...groups, ...groups]
+  /**
+   * O que está NA BANDEJA. Durante uma onda de explosão são só os dados que voltaram pra cair de
+   * novo; fora dela, a escolha da pessoa (dobrada em vantagem/desvantagem).
+   */
+  const canvasGroups = ondaDeExplosao ?? (mode === 'normal' ? groups : [...groups, ...groups])
 
   /**
    * Clicar num tipo de dado ADICIONA um dado desse tipo à rolagem (em vez de substituir a
@@ -336,13 +576,9 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     const cap = capForAddingSides(sides)
     if (currentDiceTotal >= cap) return
     if (nextMode !== mode) setMode(nextMode)
-    setGroups((prev) => {
-      const existing = prev.find((g) => g.sides === sides)
-      if (existing) {
-        return prev.map((g) => (g.sides === sides ? { ...g, count: g.count + 1 } : g))
-      }
-      return [...prev, { sides, count: 1 }]
-    })
+    // O teto é conferido DE NOVO lá dentro, sobre a lista que o React entrega — ver
+    // `comDadoAcrescentado`. A conferência acima serve pra não mexer no modo à toa.
+    setGroups((prev) => comDadoAcrescentado(prev, sides, cap))
     setLastResult(null)
   }
 
@@ -350,17 +586,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   function adjustGroupCount(index: number, delta: number) {
     if (isRolling) return
     const cap = mode === 'normal' ? MAX_SIMULTANEOUS_DICE : ADVANTAGE_MAX_COUNT
-    const currentTotal = groups.reduce((sum, g) => sum + g.count, 0)
-    if (delta > 0 && currentTotal >= cap) return
-    setGroups((prev) => {
-      const group = prev[index]
-      if (!group) return prev
-      const nextCount = group.count + delta
-      if (nextCount <= 0) {
-        return prev.length > 1 ? prev.filter((_, i) => i !== index) : prev
-      }
-      return prev.map((g, i) => (i === index ? { ...g, count: nextCount } : g))
-    })
+    setGroups((prev) => comContagemAjustada(prev, index, delta, cap))
     setLastResult(null)
   }
 
@@ -375,6 +601,28 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     if (newMode !== 'normal' && isSingleGroup && singleCount > ADVANTAGE_MAX_COUNT) {
       setGroups([{ sides: groups[0].sides, count: ADVANTAGE_MAX_COUNT }])
     }
+    /**
+     * VANTAGEM E EXPLOSÃO NÃO ANDAM JUNTAS, e o desligamento é automático dos dois lados.
+     *
+     * Não é limitação técnica escondida: são duas regras que dizem coisas diferentes sobre a MESMA
+     * rolagem. Vantagem é "role tudo duas vezes e fique com a melhor tentativa"; explosão é "este
+     * dado continua caindo". Juntas, a pergunta "a tentativa descartada também explode?" não tem
+     * resposta que os sistemas concordem — e inventar uma seria o app decidir uma regra de RPG por
+     * conta própria.
+     *
+     * Desligar sozinho é a mesma escolha que o app já faz quando a rolagem passa a ter mais de um
+     * tipo de dado (ver `addDie`): a opção some em vez de ficar ligada sem efeito.
+     */
+    if (newMode !== 'normal') setExplode(false)
+    setLastResult(null)
+  }
+
+  function alternarExplosao(): void {
+    setExplode((ligado) => {
+      const proximo = !ligado
+      if (proximo) setMode('normal')
+      return proximo
+    })
     setLastResult(null)
   }
 
@@ -399,14 +647,52 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       return
     }
     const keep = keepRef.current
+    const regraExplosiva = explodeRef.current
     const expression = {
       groups,
       modifiers: modifier !== 0 ? [{ type: 'flat' as const, value: modifier }] : [],
-      keep
+      keep,
+      explode: regraExplosiva
     }
 
     if (mode === 'normal') {
-      const porSides = groupRollsBySides(result.rolls)
+      /**
+       * A EXPLOSÃO ACONTECE AQUI, entre uma queda e a próxima.
+       *
+       * Primeira queda: cada dado da bandeja começa uma cadeia. Quedas seguintes: o que caiu se
+       * encaixa nas cadeias que pediram outra chance (ver `encaixarOnda`). Enquanto sobrar dado no
+       * máximo, a rolagem NÃO termina — os dados voltam pra bandeja e caem de novo, que é o gesto
+       * que a mecânica descreve.
+       */
+      if (cadeiasRef.current.length === 0) {
+        cadeiasRef.current = result.rolls.map((queda) => ({ sides: queda.sides, faces: [queda.value] }))
+      } else {
+        encaixarOnda(cadeiasRef.current, result.rolls, regraExplosiva)
+      }
+
+      const proximaOnda = gruposDaProximaOnda(cadeiasRef.current, regraExplosiva)
+      if (proximaOnda.length > 0) {
+        /**
+         * Mesmo caminho da rolagem de preset: troca os dados da cena e só arremessa DEPOIS que o
+         * resync do filho rodou (ver `pendingPresetRollRef`). Chamar `roll()` aqui arremessaria os
+         * dados da onda anterior.
+         *
+         * `isRolling` continua ligado o tempo todo: pra quem está olhando isto é UMA rolagem, e
+         * apagar o "Rolando..." entre as ondas piscaria a interface a cada explosão.
+         */
+        setOndaDeExplosao(proximaOnda)
+        pendingPresetRollRef.current = true
+        setPresetRollSeq((n) => n + 1)
+        if (soundEnabled) {
+          if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
+          const quantos = proximaOnda.reduce((soma, g) => soma + g.count, 0)
+          rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(quantos), rollSoundDelay(launchMode))
+        }
+        return
+      }
+
+      const porSides = cadeiasParaGrupos(cadeiasRef.current)
+      limparCadeias()
       /**
        * O total sai dos dados MANTIDOS quando o preset tem essa regra — "role 3d20 e use o maior",
        * de Ordem Paranormal. Sem regra, `totalMantido` soma tudo e o resultado é o de sempre.
@@ -421,7 +707,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         modifierTotal: modifier,
         total: totalMantido(valoresDosGrupos(porSides), keep) + modifier,
         timestamp: Date.now(),
-        keep
+        keep,
+        explode: regraExplosiva
       })
       return
     }
@@ -453,9 +740,20 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     // Rolagem MANUAL não tem nome de golpe. Limpa aqui também (e não só no `finalizeResult`) pro
     // caso de clicar "Rolar" antes de uma rolagem de preset chegar a assentar.
     sourceNameRef.current = undefined
-    setIsRolling(true)
+    keepRef.current = undefined
+    // A regra da rolagem em curso é a do interruptor NESTE instante; ver `explodeRef`.
+    explodeRef.current = explode ? { maxChain: MAX_EXPLOSOES_POR_DADO } : undefined
+    limparCadeias()
     setRollError(false)
     setResultPopup(null)
+
+    // Sem bandeja não há espera: o resultado sai no mesmo clique, e `isRolling` nunca chega a ligar.
+    if (semFisica) {
+      rolarSemFisica(groups, modifier, undefined, explodeRef.current, mode)
+      return
+    }
+
+    setIsRolling(true)
     multiRef.current?.roll()
     // Som com atraso (ver `ROLL_SOUND_DELAY_MS`), não no assentamento final (`finalizeResult`).
     if (soundEnabled) {
@@ -488,6 +786,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
+    // `handleRollClick` é recriado a cada render (ele lê grupos, modo, modificador e explosão do
+    // render atual), e listá-lo aqui significaria remover e reinstalar o ouvinte de teclado a cada
+    // clique num contador de dados. O ouvinte é instalado uma vez e sempre chama a versão do render
+    // em que foi criado — o que basta porque as duas coisas que decidem se ele AGE (`isRolling` e
+    // `shortcutsEnabled`) estão na lista.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRolling, shortcutsEnabled])
 
   return (
@@ -584,6 +888,22 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                   </div>
                 )}
 
+                {/*
+                  Fora do `isSingleGroup`: explodir vale pra qualquer rolagem, inclusive misturando
+                  tipos (2d6 + 1d20 com os dois explodindo é o normal em vários sistemas). É o que o
+                  separa da vantagem, que só faz sentido com um tipo só.
+                */}
+                <div className="dice-roller-3d-mode">
+                  <Button
+                    selected={explode}
+                    onClick={alternarExplosao}
+                    disabled={isRolling}
+                    title={t.roller.explodeHint}
+                  >
+                    {t.roller.explode}
+                  </Button>
+                </div>
+
                 <label className="dice-roller-3d-modifier">
                   <span>{t.roller.modifier}</span>
                   <input
@@ -608,6 +928,20 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         </fieldset>
       </div>
 
+      {semFisica ? (
+        /*
+          MODO RÁPIDO: no lugar da bandeja, o número. Sem `DiceCanvasMulti` montado — não é só
+          escondê-lo com CSS: a cena custa um `WebGLRenderer`, um mundo de física e as texturas
+          todas, e mantê-la viva atrás de um `display: none` gastaria exatamente o que este modo
+          existe pra não gastar.
+        */
+        <div className="dice-roller-3d-quick">
+          {!temWebgl && <p className="dice-roller-3d-quick-aviso">{t.roller.quickForced}</p>}
+          <span className="dice-roller-3d-quick-label">{t.roller.total}</span>
+          <span className="dice-roller-3d-quick-total">{lastResult ? lastResult.total : '—'}</span>
+          {lastResult && <span className="dice-roller-3d-quick-expr">{lastResult.label}</span>}
+        </div>
+      ) : (
       <div className="dice-roller-3d-canvas">
         <DiceCanvasMulti
           // `groups`/`canvasGroups` NÃO entram mais aqui pro modo bandeja — trocar tipo/
@@ -677,6 +1011,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           </div>
         )}
       </div>
+      )}
 
       <div className="dice-roller-3d-result">
         {rollError && <span className="dice-roller-3d-error">{t.roller.rollError}</span>}

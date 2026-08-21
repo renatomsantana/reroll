@@ -1,0 +1,360 @@
+/*
+ * A aba FICHA. Ela existe separada das Anotações desde que o usuário pediu as duas apartadas — o
+ * porquê está no comentário do componente.
+ */
+.sheet-tab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px;
+}
+
+/*
+ * O corpo ROLA, e é ele que rola — não a janela.
+ *
+ * Com o perfil mais cinco blocos, nenhuma altura de tela comporta tudo sem espremer todo mundo até
+ * o texto não caber em nenhum. A alternativa (deixar cada bloco encolher) foi o que a tela antiga
+ * fazia, e é o que faz uma ficha virar cinco fendas de três linhas.
+ */
+.sheet-tab-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.sheet-group {
+  margin: 0;
+  padding: 8px 10px 10px;
+  border: 2px groove var(--win-face);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sheet-group legend {
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.sheet-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.sheet-textarea {
+  width: 100%;
+  /*
+   * Altura FIXA, não elástica: dentro de um contêiner que rola, um `textarea` que cresce com
+   * `flex: 1` não tem contra o que crescer e colapsa pra altura mínima. 150px são ~9 linhas, que é
+   * o que cabe de inventário ou lista de habilidades sem rolar por dentro.
+   */
+  height: 150px;
+  resize: vertical;
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 6px;
+}
+
+/* A história é onde se escreve parágrafo — mais alta e na largura toda. */
+.sheet-group-wide .sheet-textarea {
+  height: 200px;
+}
+
+.sheet-group-profile {
+  flex: 0 0 auto;
+}
+
+.sheet-profile {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/*
+ * Foto do personagem em 3×4 (84×112), a proporção de foto de documento — era um QUADRADO de 52px.
+ * Aumentada a pedido do usuário, e a proporção mudou junto porque quadrado recortava o rosto de
+ * qualquer retrato: `object-fit: cover` corta o que sobra, e o que sobrava num quadrado era
+ * justamente a altura da cabeça.
+ */
+.sheet-profile-photo {
+  flex: 0 0 auto;
+  width: 84px;
+  height: 112px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--win-text-muted);
+  background: var(--win-input-bg);
+  /* Degrau para DENTRO, igual a um campo — é um espaço a preencher, não um botão de ação. */
+  box-shadow:
+    inset -1px -1px 0 var(--win-highlight),
+    inset 1px 1px 0 var(--win-shadow);
+  border: 0;
+  cursor: pointer;
+}
+
+.sheet-profile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sheet-profile-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheet-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.sheet-field span {
+  flex: 0 0 64px;
+}
+
+.sheet-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sheet-profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.sheet-save-error {
+  margin: 0;
+  font-size: 11px;
+  color: #800000;
+}
+
+/*
+ * A coluna da foto. O recado de erro fica EMBAIXO do botão, e não ao lado: `.sheet-profile` é uma
+ * linha, então um parágrafo solto ali dentro entraria como terceira coluna e empurraria o nome e o
+ * sistema pra fora.
+ */
+.sheet-profile-photo-column {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheet-photo-error {
+  margin: 0;
+  /* Preso à largura da foto: sem isto o texto estica a coluna e reflui a linha inteira. */
+  width: 84px;
+  font-size: 10px;
+  line-height: 1.2;
+  color: #800000;
+}
+
+/*
+ * SEÇÕES de uma ficha importada. Cada uma é o nome que o sistema de RPG dá àquele pedaço, e os
+ * campos vêm em duas colunas de rótulo/valor — que é como ficha impressa se organiza, e o que
+ * permite ver oito atributos de relance sem rolar.
+ */
+.sheet-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sheet-group-section {
+  flex: 0 0 auto;
+}
+
+.sheet-group-section legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* O ✕ da legenda é pequeno e sem moldura: apagar uma seção inteira não é ação de todo dia. */
+.sheet-section-remove {
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--win-text-muted);
+  cursor: pointer;
+}
+
+.sheet-section-remove:hover {
+  color: var(--win-text);
+}
+
+.sheet-section-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 4px 12px;
+}
+
+.sheet-section-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  min-width: 0;
+}
+
+/*
+ * O rótulo tem largura fixa e corta com reticências: os nomes vêm da ficha e variam demais
+ * ("Sanidade máxima", "PV", "Braço Esquerdo"). Sem o teto, um rótulo comprido empurrava o campo de
+ * valor pra fora da coluna. O `title` no elemento mostra o nome inteiro ao passar o mouse.
+ */
+.sheet-section-field span {
+  flex: 0 0 108px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--win-text-muted);
+}
+
+.sheet-section-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * A linha VALOR + DADO. Existe pro botão de rolar ficar colado no número que ele rola — solto no
+ * fim da linha ele pareceria pertencer ao campo seguinte, que numa grade de atributos é o erro mais
+ * fácil de cometer e o mais caro: rola-se Presença achando que se rolou Vigor.
+ */
+.sheet-field-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sheet-field-value input {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * O botão de dado. Quadrado, do tamanho de um campo, com o mesmo relevo dos outros botões da
+ * janela — é um botão de ação de verdade, apertado no meio da jogada, e não um ícone decorativo.
+ */
+.sheet-roll {
+  flex: 0 0 auto;
+  width: 26px;
+  /*
+   * A altura acompanha o CAMPO (`stretch`), e não um número fixo: o mesmo botão aparece ao lado de
+   * um campo de lista (uma linha, 11px) e de um quadro de valores (número em 16px), e com altura
+   * fixa ele ficava flutuando no meio da caixa grande.
+   */
+  align-self: stretch;
+  min-height: 22px;
+  padding: 0;
+  /* 14px é o corpo do dado nos cartões de preset — o mesmo botão, o mesmo tamanho. */
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--win-face);
+  border: 0;
+  box-shadow:
+    inset -1px -1px 0 var(--win-shadow),
+    inset 1px 1px 0 var(--win-highlight);
+}
+
+.sheet-roll:disabled {
+  /* Apagado, e não escondido: sumir com o botão faria a fileira de atributos dançar a cada rolagem. */
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sheet-roll:not(:disabled):active {
+  /* Afunda ao clique, como todo botão do Windows 98 — o relevo inverte. */
+  box-shadow:
+    inset 1px 1px 0 var(--win-shadow),
+    inset -1px -1px 0 var(--win-highlight);
+}
+
+/*
+ * QUADRO DE VALORES — atributos, recursos, partes do corpo.
+ *
+ * É o desenho que faz a tela ler como ficha de RPG e não como formulário: rótulo pequeno em cima,
+ * número grande embaixo, cada um na sua caixa. Uma ficha impressa mostra atributo assim em todo
+ * sistema, e era o que mais destoava aqui — os valores vinham numa lista de texto.
+ *
+ * A grade se ajusta sozinha ao espaço (`auto-fill`), então cinco atributos de Ordem Paranormal e dez
+ * de Oblivio se organizam sem ninguém dizer quantas colunas usar.
+ */
+.sheet-section-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.sheet-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sheet-stat span {
+  font-size: 10px;
+  color: var(--win-text-muted);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * O número é o que se lê de longe no meio da jogada: grande, centralizado e monoespaçado, pra
+ * "10" e "9m/6q" ocuparem a mesma largura visual e a fileira não dançar.
+ */
+.sheet-stat input {
+  width: 100%;
+  text-align: center;
+  font-size: 16px;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 4px 2px;
+}
+
+/*
+ * No quadro de valores o dado fica À DIREITA do número, e o número continua mandando na largura da
+ * caixa: um atributo é o que se lê de relance no meio da jogada, e encolher "18" pra caber um botão
+ * inverteria a hierarquia da ficha impressa que este quadro imita.
+ */
+.sheet-stat .sheet-field-value {
+  width: 100%;
+}
+
+/* O nome do personagem é o cabeçalho da ficha — maior e em negrito, como no papel. */
+.sheet-field-name input {
+  font-size: 15px;
+  font-weight: bold;
+  padding: 5px 6px;
+}

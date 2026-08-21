@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { ehPermitido } from './seguranca'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ehPermitido, podeNavegarPara } from './seguranca'
 
 /**
  * A lista branca de rede é a promessa mais forte que o app faz a quem instala: ele não fala com
@@ -43,5 +43,76 @@ describe('lista branca de rede', () => {
   it('não engasga com endereço malformado', () => {
     expect(ehPermitido('nao é url')).toBe(false)
     expect(ehPermitido('')).toBe(false)
+  })
+})
+
+/**
+ * NAVEGAR é uma pergunta diferente de ALCANÇAR, e a diferença é o tamanho do estrago.
+ *
+ * O atualizador precisa falar com o github.com, então ele passa em `ehPermitido`. Se a navegação
+ * usasse a mesma lista, uma página do GitHub poderia TOMAR O LUGAR da interface — rodando com o
+ * preload do Reroll, ou seja, com as pontes de IPC na mão. Estes testes são o que impede as duas
+ * listas de virarem uma só num dia de pressa.
+ */
+describe('o que pode virar a página do app', () => {
+  it('não deixa nem `file:` — a interface entra por `loadFile`, que não passa por aqui', () => {
+    /**
+     * Parece contraintuitivo e é o ponto: a única navegação `file:` que chegaria neste ponto seria
+     * uma partindo DA PÁGINA, e um `file:///C:/...` colado numa anotação viraria uma página qualquer
+     * do disco rodando com o preload do Reroll.
+     */
+    expect(podeNavegarPara('file:///C:/Program%20Files/Reroll/resources/app.asar/index.html')).toBe(false)
+    expect(podeNavegarPara('file:///C:/Users/alguem/Downloads/pagina-baixada.html')).toBe(false)
+  })
+
+  it('NÃO deixa o GitHub tomar o lugar da interface, mesmo ele podendo ser alcançado', () => {
+    // As duas asserções juntas são o teste: alcançável sim, navegável não.
+    expect(ehPermitido('https://github.com/renatomsantana/reroll')).toBe(true)
+    expect(podeNavegarPara('https://github.com/renatomsantana/reroll')).toBe(false)
+  })
+
+  it('bloqueia página remota e endereço malformado', () => {
+    expect(podeNavegarPara('https://site-do-atacante.net/')).toBe(false)
+    expect(podeNavegarPara('javascript:alert(1)')).toBe(false)
+    expect(podeNavegarPara('nao é url')).toBe(false)
+  })
+})
+
+/**
+ * O SERVIDOR DE DESENVOLVIMENTO é a única exceção das duas listas, e ele chega por variável de
+ * ambiente — comparada por ORIGEM desde este teste.
+ *
+ * O `startsWith` que estava aqui deixava passar `http://localhost:5173.dominio-de-alguem.net`, que
+ * COMEÇA com o endereço do dev. É a mesma armadilha do domínio parecido, testada logo acima pro lado
+ * do GitHub, do outro lado do mesmo arquivo — e no dev a janela roda com o preload carregado.
+ */
+describe('exceção do servidor de desenvolvimento', () => {
+  /**
+   * `vi.stubEnv` em vez de mexer em `process.env` na mão: os tipos do Electron declaram
+   * `ELECTRON_RENDERER_URL` como SOMENTE LEITURA, então atribuir ali não compila — e o `npm test`
+   * sozinho não pegaria isso, porque o vitest não checa tipo.
+   */
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('deixa passar o próprio servidor, e só ele', () => {
+    vi.stubEnv('ELECTRON_RENDERER_URL', 'http://localhost:5173')
+    expect(ehPermitido('http://localhost:5173/src/main.tsx')).toBe(true)
+    expect(podeNavegarPara('http://localhost:5173/')).toBe(true)
+    // Outra porta na mesma máquina já é outra origem.
+    expect(podeNavegarPara('http://localhost:5174/')).toBe(false)
+  })
+
+  it('não cai no domínio que só COMEÇA igual', () => {
+    vi.stubEnv('ELECTRON_RENDERER_URL', 'http://localhost:5173')
+    expect(ehPermitido('http://localhost:5173.dominio-de-alguem.net/x')).toBe(false)
+    expect(podeNavegarPara('http://localhost:5173.dominio-de-alguem.net/x')).toBe(false)
+  })
+
+  it('sem a variável, não há exceção nenhuma', () => {
+    vi.stubEnv('ELECTRON_RENDERER_URL', undefined)
+    expect(ehPermitido('http://localhost:5173/')).toBe(false)
+    expect(podeNavegarPara('http://localhost:5173/')).toBe(false)
   })
 })
