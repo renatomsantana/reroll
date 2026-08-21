@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { RollMode } from '@renderer/domain/dice/diceEngine'
 import { DEFAULT_DICE_SIDES } from '@shared/diceRegistry'
+import {
+  modificadorDoTexto,
+  textoDeModificadorAceito,
+  textoDoModificadorAjustado
+} from '@shared/dice/modificador'
 import { DICE_IMAGES } from '@renderer/assets/dice'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { Button } from '../common/Button'
@@ -17,7 +22,9 @@ export function DiceRollerPanel({ onRoll }: DiceRollerPanelProps) {
   const [count, setCount] = useState(1)
   const [sides, setSides] = useState(20)
   const [mode, setMode] = useState<RollMode>('normal')
-  const [modifier, setModifier] = useState(0)
+  /** Texto, e não número — ver `shared/dice/modificador.ts`. */
+  const [textoDoModificador, setTextoDoModificador] = useState('0')
+  const modifier = modificadorDoTexto(textoDoModificador)
   const [spinTick, setSpinTick] = useState(0)
 
   function handleRoll() {
@@ -80,15 +87,46 @@ export function DiceRollerPanel({ onRoll }: DiceRollerPanelProps) {
       </div>
 
       <div className="dice-roller-row">
-        <label className="dice-roller-modifier">
+        {/* `div` e não `label`: o rótulo roubaria o clique dos botões pro campo de dentro dele. */}
+        <div className="dice-roller-modifier">
           <span>{t.roller.modifier}</span>
-          <input
-            type="number"
-            value={modifier}
-            onChange={(e) => setModifier(Number(e.target.value) || 0)}
-            aria-label={t.roller.modifier}
-          />
-        </label>
+          {/*
+            MENOS e MAIS no lugar das setinhas, e o estado é TEXTO — ver `shared/dice/modificador.ts`.
+            No modo compacto a janela é minúscula e as setas do navegador eram praticamente
+            inclicáveis; e sem o texto não dava pra digitar modificador negativo em canto nenhum.
+          */}
+          <div className="dice-roller-modifier-campo">
+            <Button
+              variant="ghost"
+              className="dice-roller-modifier-btn"
+              aria-label={t.roller.modifierMinus}
+              title={t.roller.modifierMinus}
+              onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, -1))}
+            >
+              −
+            </Button>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={textoDoModificador}
+              onChange={(e) => {
+                const bruto = e.target.value.trim()
+                if (textoDeModificadorAceito(bruto)) setTextoDoModificador(bruto)
+              }}
+              onBlur={() => setTextoDoModificador(String(modifier))}
+              aria-label={t.roller.modifier}
+            />
+            <Button
+              variant="ghost"
+              className="dice-roller-modifier-btn"
+              aria-label={t.roller.modifierPlus}
+              title={t.roller.modifierPlus}
+              onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, 1))}
+            >
+              +
+            </Button>
+          </div>
+        </div>
 
         <div className="dice-roller-mode">
           {(['normal', 'advantage', 'disadvantage'] as const).map((m) => (

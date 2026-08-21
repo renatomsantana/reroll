@@ -67,3 +67,27 @@
   width: 46px;
   text-align: center;
 }
+
+/*
+ * Modificador do modo COMPACTO. Mais apertado que o da barra cheia porque a janela tem 300px de
+ * largura — mas os botões não podem encolher a ponto de ficarem difíceis de acertar, que é
+ * justamente o problema das setinhas que eles substituíram.
+ */
+.dice-roller-modifier-campo {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.dice-roller-modifier-campo input {
+  width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dice-roller-modifier-btn {
+  min-width: 22px;
+  padding-left: 0;
+  padding-right: 0;
+  font-weight: bold;
+}

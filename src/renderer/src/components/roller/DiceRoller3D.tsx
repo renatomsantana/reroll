@@ -1,6 +1,11 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { DiceGroup, DiceGroupResult, ExplodeRule, KeepRule, RollResult } from '@shared/types/dice'
 import { totalMantido, valoresDosGrupos } from '@shared/dice/manterDados'
+import {
+  modificadorDoTexto,
+  textoDeModificadorAceito,
+  textoDoModificadorAjustado
+} from '@shared/dice/modificador'
 import { rollExpression, rollWithMode } from '@renderer/domain/dice/diceEngine'
 import { webglDisponivel } from '@renderer/dice3d/utils/webglDisponivel'
 import { DEFAULT_DICE_SIDES, MAX_EXPLOSOES_POR_DADO, colorForDice } from '@shared/diceRegistry'
@@ -193,40 +198,6 @@ export function cadeiasParaGrupos(cadeias: DadoEmCadeia[]): DiceGroupResult[] {
       ...(explodiu ? { chains: dados.map((dado) => dado.faces) } : {})
     }
   })
-}
-
-/**
- * Teto do modificador. ±999 cobre com folga qualquer bônus de ficha de RPG, e existe pra o campo não
- * aceitar um número de doze dígitos que estoura o layout e não quer dizer nada.
- */
-export const MODIFICADOR_MAXIMO = 999
-
-/**
- * O que o campo do modificador aceita ENQUANTO se digita — inclusive o que ainda não é número.
- *
- * É aqui que morava o defeito relatado: o campo era `<input type="number">` e guardava
- * `Number(valor) || 0`. Digitar o sinal de menos dava `Number('-')` = `NaN`, que virava zero na
- * hora — o traço sumia do campo antes de dar tempo de escrever o algarismo, e não havia como pôr um
- * modificador negativo. O mesmo valia pro campo vazio: apagar pra reescrever devolvia um zero
- * imediato no lugar.
- *
- * Por isso o estado passou a ser TEXTO, e por isso `-`, `+` e `` são aceitos: eles são passagem, não
- * destino. O número sai de `modificadorDoTexto`, que trata os três como zero.
- */
-export function textoDeModificadorAceito(bruto: string): boolean {
-  return /^[+-]?\d{0,3}$/.test(bruto)
-}
-
-/** O número que um texto de modificador vale. Estado incompleto (`-`, `+`, vazio) vale zero. */
-export function modificadorDoTexto(texto: string): number {
-  const n = Number(texto)
-  return Number.isFinite(n) ? n : 0
-}
-
-/** Soma `delta` ao modificador, respeitando o teto. Devolve o TEXTO, que é o estado do campo. */
-export function textoDoModificadorAjustado(texto: string, delta: number): string {
-  const proximo = modificadorDoTexto(texto) + delta
-  return String(Math.max(-MODIFICADOR_MAXIMO, Math.min(MODIFICADOR_MAXIMO, proximo)))
 }
 
 /** Quantos dados a rolagem tem, somando todos os grupos. */

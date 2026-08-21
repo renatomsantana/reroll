@@ -131,3 +131,23 @@
   margin: 0;
   flex: 0 0 auto;
 }
+
+/* Modificador: menos, campo, mais — mesma peça da barra de rolagem. Ver `shared/dice/modificador.ts`. */
+.preset-editor-modifier-campo {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.preset-editor-modifier-campo input {
+  width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.preset-editor-modifier-btn {
+  min-width: 24px;
+  padding-left: 0;
+  padding-right: 0;
+  font-weight: bold;
+}
