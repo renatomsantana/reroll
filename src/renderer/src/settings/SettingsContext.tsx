@@ -147,22 +147,19 @@ export const FONT_OPTIONS = [
   // "MS" fora do rótulo a pedido do usuário — o nome real da fonte continua em `family`, que é o
   // que o navegador procura no sistema.
   /**
-   * A opção AMIGÁVEL A DISLÉXICOS da lista, e o rótulo diz isso porque de nada adianta ela estar
-   * aqui se quem precisa não souber qual é.
+   * A opção AMIGÁVEL A DISLÉXICOS da lista — e o rótulo NÃO diz isso, a pedido do usuário.
    *
-   * A Comic Sans é recomendada com frequência pra leitura com dislexia — as letras têm formas
-   * irregulares o bastante pra reduzir a troca de b/d/p/q, que é a confusão mais comum. Não é
-   * remédio e não funciona pra todo mundo; é por isso que ela entra como opção, não como padrão.
+   * O rótulo já foi "Comic Sans (p/ dislexia)". A explicação saiu, a fonte fica: a Comic Sans é
+   * recomendada com frequência pra leitura com dislexia, porque as letras têm formas irregulares o
+   * bastante pra reduzir a troca de b/d/p/q, que é a confusão mais comum. Não é remédio e não
+   * funciona pra todo mundo; é por isso que ela entra como opção, não como padrão.
    *
-   * A OpenDyslexic, que é a fonte desenhada especificamente pra isso, chegou a entrar e SAIU a
-   * pedido do usuário junto de outras sete. A Comic Sans ficou e vem com o Windows, então cobre o
-   * requisito sem empacotar arquivo nenhum.
+   * Este comentário fica no lugar do rótulo. Sem ele, a Comic Sans vira só "a fonte de piada" da
+   * lista e some na próxima limpeza — e com ela some a única opção que cobre o requisito. A
+   * OpenDyslexic, desenhada especificamente pra isso, chegou a entrar e SAIU a pedido do usuário
+   * junto de outras sete; a Comic Sans ficou e vem com o Windows, então cobre sem empacotar arquivo.
    */
-  {
-    id: 'comic-sans',
-    label: 'Comic Sans (p/ dislexia)',
-    family: "'Comic Sans MS', 'Comic Sans', cursive"
-  },
+  { id: 'comic-sans', label: 'Comic Sans', family: "'Comic Sans MS', 'Comic Sans', cursive" },
   /**
    * O reserva era `'Comic Sans MS'` e isso virou bug relatado: "você errou no Papyrus, ela ficou
    * com a fonte Comic Sans". Não era troca de nome — a Papyrus simplesmente NÃO vem com o Windows
