@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { DICE_REGISTRY } from '@renderer/dice3d/dice-defs/registry'
 import { setupDiceEnvironment } from '@renderer/dice3d/scene/createDiceEnvironment'
@@ -61,6 +61,27 @@ export function StylePreview({ sides, bodyColor, numberColor, material }: StyleP
    * o atalho de uma cor que provavelmente não vai voltar.
    */
   const textureCacheRef = useRef<DiceTextureCache>(new Map())
+
+  /**
+   * QUANTAS VEZES A CENA JÁ NASCEU. Existe pra consertar um defeito que chegou ao usuário: entrando
+   * na aba Estilo, a bandeja aparecia e O DADO NÃO — só depois de mexer numa cor, num acabamento ou
+   * no tipo do dado.
+   *
+   * A causa é a ordem, e ela virou defeito no dia em que a montagem passou a esperar dois quadros
+   * (ver o efeito logo abaixo). Quem CRIA o dado é o outro efeito, o das cores, e a primeira coisa
+   * que ele faz é desistir se a cena ainda não existe. Na primeira passagem ela nunca existe: o
+   * efeito de cor roda junto com o de montagem, e a montagem só acontece dois quadros depois. As
+   * dependências dele são as props de aparência, que não mudam sozinhas — então ele não rodava de
+   * novo, e o dado ficava por criar numa cena que já estava sendo desenhada, vazia.
+   *
+   * A `TrayPreview` não tinha o problema porque lá a geometria nasce DENTRO da montagem; aqui o
+   * dado nasce fora dela, porque precisa ser refeito a cada cor.
+   *
+   * CONTADOR e não booleano: em `StrictMode` o React monta, desmonta e monta de novo, e um booleano
+   * que já está `true` não provoca render nenhum na segunda montagem — o efeito não rodaria e o
+   * defeito voltaria só no modo de desenvolvimento, que é o pior lugar pra ele se esconder.
+   */
+  const [geracaoDaCena, setGeracaoDaCena] = useState(0)
 
   /**
    * A MONTAGEM ESPERA UM QUADRO, e essa linha é o conserto de um engasgo medido.
@@ -151,6 +172,11 @@ export function StylePreview({ sides, bodyColor, numberColor, material }: StyleP
      */
     const cacheDeTexturas = textureCacheRef.current
 
+    // A CENA EXISTE A PARTIR DAQUI — e é isto que faz o efeito das cores rodar de novo e criar o
+    // dado. Ver o comentário de `geracaoDaCena` lá em cima: sem esta linha a prévia fica vazia até
+    // a pessoa mexer em alguma coisa.
+    setGeracaoDaCena((geracao) => geracao + 1)
+
     return () => {
       stopLoop()
       resizeObserver.disconnect()
@@ -228,7 +254,8 @@ export function StylePreview({ sides, bodyColor, numberColor, material }: StyleP
 
     const timeoutId = window.setTimeout(rebuild, COLOR_UPDATE_DEBOUNCE_MS)
     return () => window.clearTimeout(timeoutId)
-  }, [sides, bodyColor, numberColor, material])
+    // `geracaoDaCena` na lista é o que conserta a prévia vazia — ver o comentário da declaração.
+  }, [sides, bodyColor, numberColor, material, geracaoDaCena])
 
   return <div ref={containerRef} className="style-preview" />
 }
