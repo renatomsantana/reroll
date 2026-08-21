@@ -76,6 +76,11 @@ antes de os dois renderizadores serem criados.
 
 ### Corrigido
 
+- **Não dava para digitar modificador NEGATIVO.** O campo era numérico e guardava o valor já
+  convertido: digitar o sinal de menos virava zero na mesma tecla, e o traço sumia antes de dar tempo
+  de escrever o algarismo. Num app de RPG isso é meio caminho perdido — metade das rolagens de ficha
+  tem penalidade. O campo passou a guardar texto, aceita "-2" digitado à mão, e as setinhas do
+  navegador deram lugar a botões **−** e **+**, que dizem o que fazem.
 - **A rolagem podia passar do limite de dados.** Cliques rápidos no "+" chegavam a 31 dados num app
   cujo teto é 20: a checagem lia a lista do render anterior, e o React agrupa cliques rápidos num
   lote só, onde todos enxergam o mesmo valor velho. A conta passou para dentro da atualização de

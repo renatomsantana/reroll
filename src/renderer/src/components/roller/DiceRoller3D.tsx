@@ -195,6 +195,40 @@ export function cadeiasParaGrupos(cadeias: DadoEmCadeia[]): DiceGroupResult[] {
   })
 }
 
+/**
+ * Teto do modificador. ±999 cobre com folga qualquer bônus de ficha de RPG, e existe pra o campo não
+ * aceitar um número de doze dígitos que estoura o layout e não quer dizer nada.
+ */
+export const MODIFICADOR_MAXIMO = 999
+
+/**
+ * O que o campo do modificador aceita ENQUANTO se digita — inclusive o que ainda não é número.
+ *
+ * É aqui que morava o defeito relatado: o campo era `<input type="number">` e guardava
+ * `Number(valor) || 0`. Digitar o sinal de menos dava `Number('-')` = `NaN`, que virava zero na
+ * hora — o traço sumia do campo antes de dar tempo de escrever o algarismo, e não havia como pôr um
+ * modificador negativo. O mesmo valia pro campo vazio: apagar pra reescrever devolvia um zero
+ * imediato no lugar.
+ *
+ * Por isso o estado passou a ser TEXTO, e por isso `-`, `+` e `` são aceitos: eles são passagem, não
+ * destino. O número sai de `modificadorDoTexto`, que trata os três como zero.
+ */
+export function textoDeModificadorAceito(bruto: string): boolean {
+  return /^[+-]?\d{0,3}$/.test(bruto)
+}
+
+/** O número que um texto de modificador vale. Estado incompleto (`-`, `+`, vazio) vale zero. */
+export function modificadorDoTexto(texto: string): number {
+  const n = Number(texto)
+  return Number.isFinite(n) ? n : 0
+}
+
+/** Soma `delta` ao modificador, respeitando o teto. Devolve o TEXTO, que é o estado do campo. */
+export function textoDoModificadorAjustado(texto: string, delta: number): string {
+  const proximo = modificadorDoTexto(texto) + delta
+  return String(Math.max(-MODIFICADOR_MAXIMO, Math.min(MODIFICADOR_MAXIMO, proximo)))
+}
+
 /** Quantos dados a rolagem tem, somando todos os grupos. */
 export function totalDeDados(grupos: DiceGroup[]): number {
   return grupos.reduce((soma, g) => soma + g.count, 0)
@@ -336,7 +370,14 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
    * dos do pai, e é exatamente essa ordem que garante que os dados certos já estão na cena.
    */
   const pendingPresetRollRef = useRef(false)
-  const [modifier, setModifier] = useState(0)
+  /**
+   * O modificador vive como TEXTO, e o número é derivado — ver `textoDeModificadorAceito`.
+   *
+   * Guardar o número e converter a cada tecla é o que impedia digitar negativo: o campo não tem como
+   * representar "o usuário digitou o sinal e ainda não digitou o algarismo".
+   */
+  const [textoDoModificador, setTextoDoModificador] = useState('0')
+  const modifier = modificadorDoTexto(textoDoModificador)
   /**
    * Estojo de dados atrás da bandeja aberto/fechado. A ÚNICA forma de mexer nisso é clicando no
    * próprio estojo dentro da cena 3D (`onCaseClick` abaixo) — existia um botão "Abrir/Fechar
@@ -488,7 +529,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       // Presets não carregam modo de vantagem/desvantagem — sempre volta a 'normal'
       // pra não herdar um modo deixado ligado de uma rolagem manual anterior.
       setMode('normal')
-      setModifier(newModifier)
+      setTextoDoModificador(String(newModifier))
       setGroups(newGroups.length > 0 ? newGroups : DEFAULT_GROUPS)
       setLastResult(null)
       setRollError(false)
@@ -904,15 +945,62 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                   </Button>
                 </div>
 
-                <label className="dice-roller-3d-modifier">
+                {/*
+                  `div` e não `label`: o rótulo roubaria o clique dos botões pro campo de dentro
+                  dele, e aí apertar "−" só focaria o texto. Mesmo motivo do seletor de fonte nas
+                  Preferências.
+                */}
+                <div className="dice-roller-3d-modifier">
                   <span>{t.roller.modifier}</span>
-                  <input
-                    type="number"
-                    value={modifier}
-                    onChange={(e) => setModifier(Number(e.target.value) || 0)}
-                    aria-label={t.roller.modifier}
-                  />
-                </label>
+                  {/*
+                    MENOS e MAIS no lugar das setinhas do `type="number"`, a pedido do usuário. As
+                    setas do navegador são minúsculas, empilhadas e não dizem o que fazem; e o campo
+                    continua digitável, que é a outra metade do pedido.
+                  */}
+                  <div className="dice-roller-3d-modifier-campo">
+                    <Button
+                      variant="ghost"
+                      className="dice-roller-3d-modifier-btn"
+                      aria-label={t.roller.modifierMinus}
+                      title={t.roller.modifierMinus}
+                      disabled={isRolling}
+                      onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, -1))}
+                    >
+                      −
+                    </Button>
+                    <input
+                      /**
+                       * `text`, e não `number`. O campo numérico do navegador não deixa guardar um
+                       * estado intermediário — o traço sozinho, ou o campo vazio —, e era isso que
+                       * impedia digitar modificador negativo.
+                       */
+                      type="text"
+                      inputMode="numeric"
+                      value={textoDoModificador}
+                      onChange={(e) => {
+                        const bruto = e.target.value.trim()
+                        if (textoDeModificadorAceito(bruto)) setTextoDoModificador(bruto)
+                      }}
+                      /**
+                       * Ao sair do campo, o texto é normalizado pelo número que ele vale: quem
+                       * deixou só um "-" ou o campo vazio vê "0" no lugar, em vez de um campo que
+                       * mostra uma coisa e vale outra.
+                       */
+                      onBlur={() => setTextoDoModificador(String(modifier))}
+                      aria-label={t.roller.modifier}
+                    />
+                    <Button
+                      variant="ghost"
+                      className="dice-roller-3d-modifier-btn"
+                      aria-label={t.roller.modifierPlus}
+                      title={t.roller.modifierPlus}
+                      disabled={isRolling}
+                      onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, 1))}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
 

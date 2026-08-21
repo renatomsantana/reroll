@@ -316,3 +316,29 @@
   line-height: 1.5;
   color: var(--win-text-muted);
 }
+
+/*
+ * MODIFICADOR: menos, campo, mais — no lugar das setinhas do `type="number"`.
+ *
+ * As três peças coladas numa linha só, como um contador do 98. O campo é estreito de propósito
+ * (cabem quatro caracteres: sinal e três algarismos, que é o teto de `MODIFICADOR_MAXIMO`).
+ */
+.dice-roller-3d-modifier-campo {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.dice-roller-3d-modifier-campo input {
+  width: 46px;
+  text-align: center;
+  /* Tabular pra o número não dançar de largura enquanto se digita. */
+  font-variant-numeric: tabular-nums;
+}
+
+.dice-roller-3d-modifier-btn {
+  min-width: 24px;
+  padding-left: 0;
+  padding-right: 0;
+  font-weight: bold;
+}

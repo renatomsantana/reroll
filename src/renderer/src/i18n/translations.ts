@@ -12,6 +12,9 @@ export interface TranslationDict {
     rollGroupTitle: string
     rollButton: string
     modifier: string
+    /** Botões de menos e mais do modificador — substituíram as setinhas do campo numérico. */
+    modifierMinus: string
+    modifierPlus: string
     mode: { normal: string; advantage: string; disadvantage: string }
     /** Interruptor dos DADOS EXPLOSIVOS na barra de rolagem (ver `ExplodeRule`). */
     explode: string
@@ -320,6 +323,8 @@ export const translations: Record<Language, TranslationDict> = {
       rollGroupTitle: 'Rolagem',
       rollButton: 'ROLAR',
       modifier: 'Mod:',
+      modifierMinus: 'Diminuir o modificador',
+      modifierPlus: 'Aumentar o modificador',
       mode: { normal: 'Normal', advantage: 'Vantagem', disadvantage: 'Desvantagem' },
       explode: '💥 Explode',
       explodeHint:
@@ -628,6 +633,8 @@ export const translations: Record<Language, TranslationDict> = {
       rollGroupTitle: 'Roll',
       rollButton: 'ROLL',
       modifier: 'Mod:',
+      modifierMinus: 'Decrease the modifier',
+      modifierPlus: 'Increase the modifier',
       mode: { normal: 'Normal', advantage: 'Advantage', disadvantage: 'Disadvantage' },
       explode: '💥 Explode',
       explodeHint:
