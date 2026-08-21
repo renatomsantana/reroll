@@ -94,6 +94,12 @@ export const FONT_OPTIONS = [
   { id: 'times', label: 'Times New Roman', family: "'Times New Roman', Times, serif" },
   { id: 'georgia', label: 'Georgia', family: 'Georgia, serif' },
   { id: 'palatino', label: 'Palatino', family: "'Palatino Linotype', 'Book Antiqua', serif" },
+  /**
+   * Empacotada (`global.css` + `assets/fonts/lora-*.woff2`), com a licença OFL junto. O reserva é a
+   * genérica `serif`, e não a Times nem a Georgia: se o `@font-face` sumir um dia, cair numa fonte
+   * que também é item deste menu faria escolher Lora dar visivelmente outra opção da lista.
+   */
+  { id: 'lora', label: 'Lora', family: "Lora, serif", credit: 'by cata' },
   { id: 'courier', label: 'Courier New', family: "'Courier New', Courier, monospace" },
   { id: 'consolas', label: 'Consolas', family: 'Consolas, monospace' },
   // Empacotada (`global.css`). Reserva na Consolas e na Courier — as duas monoespaçadas que o

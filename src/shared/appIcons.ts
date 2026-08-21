@@ -11,6 +11,18 @@ export interface AppIconOption {
  * vindo do renderer e montar um caminho de arquivo fora de `build/icons/`.
  */
 /** Ícone branco ('rbranco') removido a pedido do usuário — ficava ilegível/"sumido" na barra de tarefas do Windows (tema claro), então não pode mais existir como opção. */
+/**
+ * Quem desenhou os ícones — mostrado ao lado do rótulo nas Preferências.
+ *
+ * Vive AQUI, junto da lista, pelo mesmo motivo do crédito das fontes (ver `FONT_OPTIONS`): quem
+ * acrescentar ou trocar ícone amanhã mexe neste arquivo, e crédito guardado longe é crédito que se
+ * perde numa refatoração.
+ *
+ * É UM crédito pro conjunto, e não um por ícone: os sete são da mesma pessoa, e repetir "by @xuga"
+ * sete vezes numa fileira de miniaturas viraria ruído em vez de atribuição.
+ */
+export const APP_ICONS_CREDIT = 'by @xuga'
+
 export const APP_ICON_OPTIONS: AppIconOption[] = [
   { id: 'base', label: 'Clássico' },
   { id: 'azul', label: 'Azul' },
