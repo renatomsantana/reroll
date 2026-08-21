@@ -69,7 +69,8 @@ export type CameraMode = 'table' | 'dice' | 'free'
 export type DisplayMode = '3d' | 'quick'
 
 /**
- * DOZE fontes no fechamento do alfa.
+ * QUINZE fontes: doze no fechamento do alfa, mais a Parisienne, a Sweetie e a Hello Honey,
+ * pedidas logo depois.
  *
  * A lista já teve dezoito e foi ENCURTADA a pedido do usuário — saíram MS Sans Serif, Verdana,
  * Trebuchet, Candara, Georgia, Palatino, Consolas e OpenDyslexic. Menu de fonte longo não é menu
@@ -91,8 +92,11 @@ export type DisplayMode = '3d' | 'quick'
  * 1. A cadeia de RESERVA de cada fonte termina numa família genérica, nunca em outra fonte deste
  *    menu. Quando a cadeia cai num item da própria lista, escolher uma dá visivelmente a outra — foi
  *    o bug do Papyrus, relatado por ele (ver mais abaixo).
- * 2. Só Montserrat e JetBrains Mono NÃO vêm no Windows: elas são empacotadas em `assets/fonts/` e
- *    declaradas por `@font-face` no `global.css`. Fonte de fora sem esse par cai no reserva calada.
+ * 2. Fonte que NÃO vem no Windows precisa de um de dois tratamentos, e o que decide é a LICENÇA.
+ *    Montserrat, JetBrains Mono, Lora e Parisienne são OFL: entram empacotadas em `assets/fonts/`,
+ *    com a licença ao lado e um par de `@font-face` no `global.css`. Janda Silly Monkey, Sweetie e
+ *    Hello Honey são gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver
+ *    instaladas vê o reserva. Fonte de fora sem um dos dois tratamentos cai no reserva calada.
  * 3. Fonte que só vem com o OFFICE (Century Gothic, Garamond) não entra: na máquina que não tem
  *    Office ela vira outra coisa sem avisar.
  */
@@ -183,6 +187,38 @@ export const FONT_OPTIONS = [
     label: 'Janda Silly Monkey',
     family: "'Janda Silly Monkey', 'Ink Free', cursive",
     credit: 'by xuga'
+  },
+  /**
+   * PARISIENNE — manuscrita conectada e inclinada, pedida pelo usuário junto da Sweetie e da Hello
+   * Honey. É a única das três que entra EMPACOTADA (`global.css` + `assets/fonts/parisienne-*.woff2`,
+   * com a OFL junto), porque é a única cuja licença deixa redistribuir.
+   *
+   * O reserva é a genérica `cursive` direto, e aqui pode ser: como o arquivo vem com o app, o
+   * reserva nunca chega a ser usado de verdade. Se um dia chegar, é porque o `@font-face` falhou —
+   * e nesse caso qualquer manuscrita que o sistema escolher é melhor do que apontar pra outra opção
+   * deste menu, que é o que fazia escolher uma dar visivelmente a outra (ver o caso da Papyrus).
+   */
+  { id: 'parisienne', label: 'Parisienne', family: 'Parisienne, cursive' },
+  /**
+   * SWEETIE e HELLO HONEY — pedidas pelo usuário e NÃO EMPACOTADAS, pelo mesmo motivo da Janda
+   * Silly Monkey logo acima: as duas são gratuitas apenas para USO PESSOAL (a Sweetie é da Graphix
+   * Line Studio, a Hello Honey é da Ef Studio, e as duas vendem licença comercial à parte). Pôr o
+   * arquivo dentro de um app publicado no GitHub seria redistribuição, e a licença não cobre isso.
+   *
+   * O que existe aqui é só o NOME da família. Quem tiver a fonte instalada no Windows vê a fonte;
+   * quem não tiver cai no reserva — e por isso o reserva delas importa de verdade, ao contrário do
+   * das empacotadas.
+   *
+   * `Segoe Script` é o reserva das duas: vem com o Windows desde o Vista, é manuscrita conectada
+   * (que é o que as duas são) e, principalmente, NÃO é opção deste menu. A `Ink Free` já é o reserva
+   * da Janda e da Papyrus, mas ela é uma manuscrita solta, de traço mais grosso — a Segoe Script
+   * fica mais perto do desenho de script fino que as duas têm.
+   */
+  { id: 'sweetie', label: 'Sweetie', family: "Sweetie, 'Segoe Script', cursive" },
+  {
+    id: 'hello-honey',
+    label: 'Hello Honey',
+    family: "'Hello Honey', 'Segoe Script', cursive"
   }
 ] as const
 

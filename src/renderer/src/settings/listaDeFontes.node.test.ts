@@ -45,12 +45,16 @@ describe('lista de fontes', () => {
    * opção do menu é escolha deliberada de "cair em algo do mesmo peso visual" se o empacotamento um
    * dia falhar.
    *
-   * As duas abaixo são diferentes: elas de fato faltam em máquina limpa, então o reserva delas é o
-   * que a pessoa VÊ. É aí que cair noutra opção do menu vira o bug relatado.
+   * As quatro abaixo são diferentes: elas de fato faltam em máquina limpa, então o reserva delas é
+   * o que a pessoa VÊ. É aí que cair noutra opção do menu vira o bug relatado. Três delas estão
+   * nessa situação pelo mesmo motivo — licença gratuita só pra uso pessoal, que não deixa
+   * redistribuir o arquivo dentro de um app publicado.
    */
   const PODEM_FALTAR = new Map<string, string>([
     ['papyrus', 'não vem com o Windows — vem com o Office/macOS. Foi este o bug relatado.'],
-    ['janda-silly-monkey', 'gratuita só pra uso pessoal, então não pode ser empacotada']
+    ['janda-silly-monkey', 'gratuita só pra uso pessoal, então não pode ser empacotada'],
+    ['sweetie', 'gratuita só pra uso pessoal (Graphix Line Studio), então não pode ser empacotada'],
+    ['hello-honey', 'gratuita só pra uso pessoal (Ef Studio), então não pode ser empacotada']
   ])
 
   it('fonte que pode faltar na máquina não cai em outra opção do menu', () => {
@@ -77,8 +81,8 @@ describe('lista de fontes', () => {
   it('toda fonte que pode faltar TEM reserva de verdade, e não só a genérica', () => {
     /**
      * Cair direto em `cursive` ou `fantasy` deixa a escolha na mão do navegador, e o resultado varia
-     * de máquina pra máquina. Estas duas precisam de um passo intermediário concreto — no caso das
-     * duas de hoje, a `Ink Free`/`Segoe Print`, manuscritas que vêm com o Windows 10+.
+     * de máquina pra máquina. Estas precisam de um passo intermediário concreto — no caso das quatro
+     * de hoje, a `Ink Free`, a `Segoe Print` e a `Segoe Script`, manuscritas que vêm com o Windows.
      */
     for (const [id] of PODEM_FALTAR) {
       const fonte = FONT_OPTIONS.find((f) => f.id === id)
@@ -135,9 +139,9 @@ describe('lista de fontes', () => {
     expect(sanearPreferencias({ fontId: 'palatino' })).toEqual({ fontId: 'palatino' })
   })
 
-  it('as três fontes EMPACOTADAS continuam com o arquivo no lugar', async () => {
+  it('as quatro fontes EMPACOTADAS continuam com o arquivo no lugar', async () => {
     /**
-     * Montserrat, JetBrains Mono e Lora não vêm com o Windows — elas são declaradas por `@font-face`
+     * Montserrat, JetBrains Mono, Lora e Parisienne não vêm com o Windows — são declaradas por `@font-face`
      * em `global.css`, apontando pra um `.woff2` em `assets/fonts/`. Se o arquivo sumir (foi o que
      * aconteceu com a OpenDyslexic ao ser removida), a fonte cai no reserva SEM ERRO NENHUM: a tela
      * mostra outra letra e ninguém descobre por quê.

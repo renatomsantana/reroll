@@ -9,13 +9,24 @@ O código do Reroll é MIT (ver `LICENSE`). O que vem de fora tem licença próp
 | Montserrat | SIL Open Font License 1.1 | `src/renderer/src/assets/fonts/` |
 | JetBrains Mono | SIL Open Font License 1.1 | `src/renderer/src/assets/fonts/` |
 | Lora | SIL Open Font License 1.1 | `src/renderer/src/assets/fonts/` |
+| Parisienne | SIL Open Font License 1.1 | `src/renderer/src/assets/fonts/` |
 
 As demais fontes do menu de Preferências **não** são empacotadas — o app usa a que já estiver
 instalada no Windows e cai numa família genérica quando não estiver. Ver `FONT_OPTIONS` em
 `settings/SettingsContext.tsx`, que explica caso a caso.
 
-A **Janda Silly Monkey** aparece na lista e não é redistribuída de propósito: ela é gratuita apenas
-para uso pessoal, e empacotá-la num app publicado seria redistribuição.
+Três fontes do menu aparecem na lista e **não** são redistribuídas de propósito, todas pelo mesmo
+motivo: são gratuitas apenas para uso pessoal, e empacotá-las num app publicado seria
+redistribuição. Quem as tiver instaladas no Windows as vê; quem não tiver cai no reserva.
+
+| Fonte | Autoria | Licença |
+| --- | --- | --- |
+| Janda Silly Monkey | Kimberly Geswein | gratuita só para uso pessoal |
+| Sweetie | Graphix Line Studio | gratuita só para uso pessoal |
+| Hello Honey | Ef Studio | gratuita só para uso pessoal |
+
+As três vendem licença comercial à parte. Se um dia o Reroll precisar empacotá-las, é essa licença
+que tem de ser comprada — não basta o arquivo estar disponível para download.
 
 ## Arte
 
