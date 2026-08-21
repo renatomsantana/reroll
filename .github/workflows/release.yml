@@ -88,6 +88,48 @@ jobs:
           } | Set-Content -Path $saida -Encoding utf8
           Get-Content $saida
 
+      # AS NOTAS DA RELEASE SAEM DO CHANGELOG, e isso não é comodidade — é o texto que a pessoa lê
+      # DENTRO DO APP. O `electron-updater` entrega a descrição da release como `releaseNotes`, e o
+      # aviso de versão nova mostra ela (ver `textoDasNotas` em `updater.ts`). Com um corpo genérico,
+      # o "o que mudou nesta versão" viraria instrução de conferir checksum.
+      #
+      # A seção extraída é a PRIMEIRA do arquivo: por convenção do Keep a Changelog, é a mais nova.
+      - name: Montar as notas da release
+        shell: pwsh
+        run: |
+          $linhas = Get-Content CHANGELOG.md
+          $inicio = -1
+          $fim = $linhas.Count
+          for ($i = 0; $i -lt $linhas.Count; $i++) {
+            if ($linhas[$i] -match '^## \[') {
+              if ($inicio -lt 0) { $inicio = $i } else { $fim = $i; break }
+            }
+          }
+          if ($inicio -lt 0) { throw "CHANGELOG.md sem nenhuma seção de versão" }
+          $corpo = $linhas[($inicio + 1)..($fim - 1)] -join "`n"
+
+          $rodape = @'
+
+---
+
+## Conferir o download
+
+Antes de instalar, confira que o arquivo é o mesmo que saiu daqui. No PowerShell:
+
+```powershell
+Get-FileHash .\Reroll-Setup-*.exe -Algorithm SHA256
+```
+
+O resultado tem que bater com a linha correspondente em `SHA256SUMS.txt`, anexado abaixo.
+
+O Reroll não tem certificado de assinatura digital, então o Windows mostra um aviso do SmartScreen
+na primeira execução ("Mais informações" → "Executar assim mesmo"). O resumo acima e o código aberto
+neste repositório são o que existe no lugar do certificado.
+'@
+
+          Set-Content -Path release/NOTAS.md -Value ($corpo.Trim() + "`n" + $rodape) -Encoding utf8
+          Get-Content release/NOTAS.md
+
       - name: Criar a release (rascunho)
         uses: softprops/action-gh-release@v2
         with:
@@ -102,17 +144,4 @@ jobs:
             release/latest.yml
             release/*.blockmap
             release/SHA256SUMS.txt
-          body: |
-            ## Conferir o download
-
-            Antes de instalar, confira que o arquivo é o mesmo que saiu daqui. No PowerShell:
-
-            ```powershell
-            Get-FileHash .\Reroll-Setup-*.exe -Algorithm SHA256
-            ```
-
-            O resultado tem que bater com a linha correspondente em `SHA256SUMS.txt`, anexado abaixo.
-
-            O Reroll não tem certificado de assinatura digital, então o Windows mostra um aviso do
-            SmartScreen na primeira execução ("Mais informações" → "Executar assim mesmo"). O resumo
-            acima e o código aberto neste repositório são o que existe no lugar do certificado.
+          body_path: release/NOTAS.md
