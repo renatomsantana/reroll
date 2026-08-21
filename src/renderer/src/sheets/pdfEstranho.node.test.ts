@@ -47,6 +47,14 @@ async function importar(nome: string, bytes: Uint8Array): Promise<SheetImport> {
 }
 
 describe('PDF legível, mas torto — importa o que dá, sem estourar', () => {
+  /**
+   * TETO DE 20s, e não os 5s padrão do vitest: este é o PRIMEIRO teste do arquivo, e é ele que paga
+   * a partida a frio do pdf.js — carregar o módulo, montar o worker e ler o primeiro documento. Na
+   * máquina do desenvolvedor isso cabe folgado nos 5s; num runner do GitHub Actions frio ele mediu
+   * 5146ms e derrubou uma release inteira por 146 milissegundos. O teste não é lento por defeito, e
+   * afrouxar o teto aqui não afrouxa nada: quem falha de verdade falha por asserção, não por tempo,
+   * e os outros treze testes do arquivo continuam no teto padrão porque o módulo já está quente.
+   */
   it('o caso de controle: campo e texto bem formados são lidos de verdade', async () => {
     const lido = await importar(
       'ok.pdf',
@@ -57,7 +65,7 @@ describe('PDF legível, mas torto — importa o que dá, sem estourar', () => {
     )
     // Sem esta asserção o resto do arquivo poderia estar passando por não ler NADA de nenhum PDF.
     expect(lido.fields.some((c) => c.value === 'Ana Prado')).toBe(true)
-  })
+  }, 20_000)
 
   it('widget SEM /Rect não derruba a importação nem leva o campo bom junto', async () => {
     const semRect = '<< /Type /Annot /Subtype /Widget /FT /Tx /T (Forca) /V (12) >>'
