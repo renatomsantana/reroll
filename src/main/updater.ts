@@ -1,4 +1,4 @@
-import { app, ipcMain, type BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { IpcChannels } from '@shared/ipcChannels'
 import type { UpdateStatus } from '@shared/types/update'
@@ -53,6 +53,64 @@ function setStatus(status: UpdateStatus): void {
   }
 }
 
+/**
+ * Quanto tempo o aviso de "instalando" fica na tela antes de o app sair.
+ *
+ * Não é enfeite: é o único momento em que dá pra explicar o que vai acontecer. Depois disto a
+ * janela não existe mais e o instalador roda em silêncio, sem janela própria — para quem está
+ * olhando, a tela simplesmente fica sem o app por alguns segundos.
+ */
+const AVISO_ANTES_DE_SAIR_MS = 2200
+
+/**
+ * Fecha o app e entrega o lugar ao instalador — com aviso na tela e saída limpa.
+ *
+ * O usuário relatou "a tela do desktop das pessoas está travando" quando a atualização acontece, e
+ * são DUAS causas somadas, tratadas em lugares diferentes:
+ *
+ * 1. O UAC. O instalador podia pedir administrador, e o Windows responde a isso acendendo a área de
+ *    trabalho segura: tela escurecida, teclado e mouse ignorados. Isso se resolve no empacotamento
+ *    (`allowElevation: false` em `electron-builder.yml`), não aqui.
+ * 2. O VAZIO. Entre a janela fechar e a versão nova abrir não havia nada na tela nem explicação
+ *    nenhuma. É o que esta função trata: avisa, espera o aviso ser visto, e só então sai.
+ *
+ * A saída também deixou de ser só `quitAndInstall`. As janelas são DESTRUÍDAS antes, e por um
+ * motivo prático: enquanto o processo antigo vive, ele segura arquivos dentro da pasta de
+ * instalação, e o instalador fica esperando por eles — o que estica ainda mais o tempo de tela
+ * vazia. Destruindo antes, o processo morre sozinho e o instalador começa na hora.
+ */
+function instalarAgora(version: string): void {
+  setStatus({ state: 'installing', version })
+
+  /**
+   * O aviso só serve se for VISTO. O app pode estar minimizado ou atrás do navegador quando a
+   * atualização termina — e aí a pessoa vê a tela piscar sem nunca ter lido a explicação, que é
+   * exatamente a experiência que ela relatou como travamento.
+   *
+   * Traz pra frente por dois segundos e devolve o "sempre no topo" antes de sair, pra não deixar
+   * essa marca gravada na janela caso a instalação não vá adiante.
+   */
+  const janela = mainWindow
+  if (janela && !janela.isDestroyed()) {
+    if (janela.isMinimized()) janela.restore()
+    janela.setAlwaysOnTop(true)
+    janela.show()
+    janela.focus()
+  }
+
+  setTimeout(() => {
+    if (janela && !janela.isDestroyed()) janela.setAlwaysOnTop(false)
+    for (const aberta of BrowserWindow.getAllWindows()) aberta.destroy()
+    /**
+     * `isSilent = true`, `isForceRunAfter = true`: instala sem assistente e reabre o Reroll na
+     * versão nova. Silencioso continua sendo o certo aqui — com o assistente, quem não é de
+     * computador teria que clicar em "Avançar" pra terminar uma atualização que ele já confirmou
+     * duas vezes.
+     */
+    autoUpdater.quitAndInstall(true, true)
+  }, AVISO_ANTES_DE_SAIR_MS)
+}
+
 export function registerUpdateHandlers(window: BrowserWindow): void {
   mainWindow = window
 
@@ -71,9 +129,7 @@ export function registerUpdateHandlers(window: BrowserWindow): void {
   })
   ipcMain.handle(IpcChannels.updateInstallNow, () => {
     if (currentStatus.state !== 'ready') return
-    // `isSilent = true`, `isForceRunAfter = true`: instala sem assistente e reabre o Reroll na
-    // versão nova. O botão só existe quando a atualização JÁ está baixada, então não há espera aqui.
-    autoUpdater.quitAndInstall(true, true)
+    instalarAgora(currentStatus.version)
   })
 
   /**
@@ -123,7 +179,7 @@ export function registerUpdateHandlers(window: BrowserWindow): void {
      * é só pra a tela alcançar a mudança de estado — sem ela o app some no meio da barra de
      * progresso, o que parece travamento, não conclusão.
      */
-    setTimeout(() => autoUpdater.quitAndInstall(true, true), RESTART_DELAY_MS)
+    setTimeout(() => instalarAgora(info.version), RESTART_DELAY_MS)
   })
   autoUpdater.on('error', (error) => setStatus({ state: 'error', message: error.message }))
 

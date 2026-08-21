@@ -17,4 +17,10 @@ export type UpdateStatus =
   | { state: 'downloading'; version: string; percent: number }
   /** Baixada e pronta. Como o download só acontece a pedido, daqui o app reinicia sozinho pra aplicar. */
   | { state: 'ready'; version: string }
+  /**
+   * O instalador está RODANDO. Existe por causa do "a tela trava quando atualiza": entre o app
+   * fechar e a versão nova abrir há alguns segundos em que não há nada na tela, e sem aviso isso é
+   * lido como travamento. Este estado é o que põe o aviso na tela ANTES de o app sumir.
+   */
+  | { state: 'installing'; version: string }
   | { state: 'error'; message: string }

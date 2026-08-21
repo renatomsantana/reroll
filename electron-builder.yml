@@ -28,6 +28,23 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  # ---------------------------------------------------------------------------------------------
+  # SEM ELEVAÇÃO, NUNCA. Instalação por USUÁRIO, e ponto.
+  #
+  # Isto é a correção do "a tela trava quando atualiza" que o usuário relatou. O que trava não é o
+  # app: é o UAC. Quando o instalador pede administrador, o Windows acende a ÁREA DE TRABALHO
+  # SEGURA — escurece a tela inteira, ignora teclado e mouse de tudo o mais e espera a resposta. Pra
+  # quem não é de computador, isso é indistinguível de um travamento, ainda mais numa atualização
+  # que roda em silêncio e sem janela nenhuma explicando.
+  #
+  # Com `allowElevation: false` o instalador não tem como pedir: ele instala na pasta do usuário,
+  # onde já tem permissão. O preço é não poder instalar em pasta protegida (`Program Files`) — que
+  # é justamente onde este app não precisa estar.
+  #
+  # `perMachine: false` é o padrão, e está escrito porque é a metade que garante a outra: instalar
+  # "pra todos os usuários" exige administrador por definição.
+  allowElevation: false
+  perMachine: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
   # O instalador atualiza POR CIMA de uma instalação existente — ninguém desinstala nada, e os dados

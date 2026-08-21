@@ -107,6 +107,7 @@ export interface TranslationDict {
     updateAvailable: string
     updateDownloading: string
     updateReady: string
+    updateInstalling: string
     updateError: string
     reset: string
     close: string
@@ -340,6 +341,8 @@ export const translations: Record<Language, TranslationDict> = {
       updateAvailable: 'Existe uma atualização nova: versão {version}.',
       updateDownloading: 'Baixando a versão {version}... {percent}%',
       updateReady: 'Versão {version} baixada — reiniciando para aplicar...',
+      updateInstalling:
+        'Instalando a versão {version}. O Reroll vai fechar e abrir sozinho em alguns segundos — nesse intervalo a tela fica sem ele. Não desligue o computador.',
       updateError: 'Não deu pra procurar atualizações agora.',
       debugMode: 'Modo debug',
       debugModeHint: 'Mostra colisores, normais de face, confiança da leitura e FPS por cima da cena 3D.',
@@ -567,6 +570,8 @@ export const translations: Record<Language, TranslationDict> = {
       updateAvailable: 'There is a new update: version {version}.',
       updateDownloading: 'Downloading version {version}... {percent}%',
       updateReady: 'Version {version} downloaded — restarting to apply...',
+      updateInstalling:
+        'Installing version {version}. Reroll will close and reopen by itself in a few seconds — the screen sits without it in between. Do not turn the computer off.',
       updateError: "Couldn't check for updates right now.",
       debugMode: 'Debug mode',
       debugModeHint: 'Shows colliders, face normals, reading confidence and FPS over the 3D scene.',

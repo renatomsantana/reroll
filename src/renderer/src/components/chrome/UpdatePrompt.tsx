@@ -27,9 +27,33 @@ export function UpdatePrompt({ status, onDismiss }: UpdatePromptProps) {
   const [confirming, setConfirming] = useState(false)
 
   const version =
-    status.state === 'available' || status.state === 'downloading' || status.state === 'ready'
+    status.state === 'available' ||
+    status.state === 'downloading' ||
+    status.state === 'ready' ||
+    status.state === 'installing'
       ? status.version
       : ''
+
+  /**
+   * INSTALANDO: a última coisa que aparece antes de o app sumir da tela.
+   *
+   * Ela existe por causa do relato de "a tela trava quando atualiza". O app fecha, o instalador roda
+   * em silêncio e por alguns segundos não há NADA — sem este aviso, quem está olhando não tem como
+   * saber que aquilo é a atualização acontecendo, e não a máquina travando. Sem botão nenhum: não há
+   * o que decidir aqui, e um botão que não faz nada é pior que nenhum.
+   */
+  if (status.state === 'installing') {
+    return (
+      <div className="modal-overlay update-prompt-overlay">
+        <Card className="update-prompt">
+          <h2 className="update-prompt-title">{t.settings.updatePromptTitle}</h2>
+          <p className="update-prompt-text">
+            {t.settings.updateInstalling.replace('{version}', version)}
+          </p>
+        </Card>
+      </div>
+    )
+  }
 
   // Enquanto baixa, a janela FICA — com a barra de progresso. Some o botão de fechar junto: o app
   // vai reiniciar sozinho ao terminar, e desaparecer no meio disso pareceria que travou.

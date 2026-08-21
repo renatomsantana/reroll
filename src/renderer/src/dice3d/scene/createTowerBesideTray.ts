@@ -103,8 +103,14 @@ export interface TowerBesideTrayHandle {
 }
 
 interface BrickFactory {
-  /** Material de tijolo pra uma peça de `width` × `height` no mundo. */
-  (width: number, height: number): THREE.MeshStandardMaterial
+  /**
+   * Material de tijolo pra uma peça de `width` × `height` no mundo.
+   *
+   * `pedra` diz o tamanho DA PEDRA daquela peça, e existe pras peças aparelhadas do portão. Sem
+   * isso, todas herdavam o tijolo da casca e o encolhimento automático transformava a ombreira em
+   * vinte fiadas de pedrinha — que é alvenaria de parede, não a cantaria que emoldura um vão.
+   */
+  (width: number, height: number, pedra?: { largura: number; altura: number }): THREE.MeshStandardMaterial
   /** Todos os materiais já criados — pra tingir todos de uma vez em `updateColors`. */
   materials: THREE.MeshStandardMaterial[]
 }
@@ -132,8 +138,8 @@ function createBrickMaterialFactory(stoneColor: number, brickWidth: number, bric
   const cache = new Map<string, THREE.MeshStandardMaterial>()
   const materials: THREE.MeshStandardMaterial[] = []
 
-  const factory = ((width: number, height: number) => {
-    const key = `${width.toFixed(2)}x${height.toFixed(2)}`
+  const factory = ((width: number, height: number, pedra?: { largura: number; altura: number }) => {
+    const key = `${width.toFixed(2)}x${height.toFixed(2)}x${pedra ? `${pedra.largura.toFixed(2)}x${pedra.altura.toFixed(2)}` : 'padrao'}`
     const cached = cache.get(key)
     if (cached) return cached
     const { map, normalMap } = createBrickTexture(
@@ -141,8 +147,10 @@ function createBrickMaterialFactory(stoneColor: number, brickWidth: number, bric
       NEUTRAL_MORTAR,
       width,
       height,
-      brickWidth,
-      brickHeight
+      pedra?.largura ?? brickWidth,
+      pedra?.altura ?? brickHeight,
+      // Pedra escolhida a dedo não passa pelo encolhimento automático — ver o parâmetro lá.
+      pedra === undefined
     )
     const material = new THREE.MeshStandardMaterial({
       color: stoneColor,
@@ -239,6 +247,16 @@ function createSpire(radius: number, baseY: number, material: THREE.Material): T
   return group
 }
 
+/**
+ * As AMEIAS em volta do bico — os doze blocos de pedra no alto da casca, entre a cornija e o
+ * telhado cônico.
+ *
+ * Desligadas a pedido do usuário ("vamos tirar esses tijolos ao redor do bico da torre para ver como
+ * fica"). Ficam atrás de um interruptor, e não apagadas, porque o pedido é explicitamente um teste
+ * de aparência: voltar é trocar `false` por `true`.
+ */
+const MOSTRA_AMEIAS_DO_TOPO = false
+
 function createMerlonRing(radius: number, y: number, brick: BrickFactory): THREE.Group {
   const group = new THREE.Group()
   const count = 12
@@ -296,6 +314,16 @@ function createCornice(radius: number, y: number, brick: BrickFactory): THREE.Me
  * portão reto é vocabulário de galpão; o arco é o que data a construção. Cada aduela é uma peça
  * independente girando ao longo da meia-volta, como numa abóbada de verdade, e não um desenho.
  */
+/**
+ * As sete ADUELAS que arqueavam por cima do vão. Desligadas junto com os mini tijolos: com as três
+ * pedras grandes emoldurando a porta, elas voltavam a picar o contorno em bloquinhos, que é
+ * exatamente o que o usuário mandou tirar.
+ *
+ * Atrás de interruptor, como as ameias do topo — os dois são teste de aparência, e voltar é trocar
+ * `false` por `true`.
+ */
+const MOSTRA_ARCO_DE_ADUELAS = false
+
 function createGateArch(
   radius: number,
   gateArcWidth: number,
@@ -306,7 +334,16 @@ function createGateArch(
   const voussoirs = 7
   const blockWidth = radius * 0.15
   const blockHeight = radius * 0.2
-  const material = brick(blockWidth, blockHeight)
+  /**
+   * Cada aduela é UMA PEDRA, e por isso pede pedra do tamanho dela mesma.
+   *
+   * Sem isso ela herdava o tijolo da casca e o encolhimento automático punha uns seis tijolinhos
+   * dentro de cada bloco do arco — o usuário viu e mandou tirar ("tira esses mini tijolos da
+   * portinha"). E ele está certo pela construção, não só pelo gosto: arco de pedra é feito de
+   * aduelas inteiras encaixadas, uma pedra por bloco. Alvenaria miúda dentro de uma aduela é uma
+   * contradição.
+   */
+  const material = brick(blockWidth, blockHeight, { largura: blockWidth, altura: blockHeight })
   const halfSpan = gateArcWidth / 2
   const archRise = radius * 0.42
   const tangent = new THREE.Vector3(
@@ -348,19 +385,28 @@ function createGateArch(
  * direcional com mapa de 2048, e cada fonte sombreadora extra custa outro passe de render inteiro —
  * três deles, por um detalhe de canto, não se paga.
  */
-function createTorches(radius: number, gateArcWidth: number, gateHeight: number): THREE.Group {
+/** Uma tocha viva: a chama e a luz dela, pra quem anima poder mexer nas duas juntas. */
+interface TochaViva {
+  chama: THREE.Mesh
+  material: THREE.MeshStandardMaterial
+  luz: THREE.PointLight
+  /** Defasagem própria, pra as três não piscarem em uníssono. */
+  fase: number
+}
+
+export interface TorchesHandle {
+  group: THREE.Group
+  update: (segundos: number) => void
+}
+
+function createTorches(radius: number, gateArcWidth: number, gateHeight: number): TorchesHandle {
   const group = new THREE.Group()
   const halfAngle = gateArcWidth / 2 / radius
   const baseAngle = TOWER_BESIDE_GATE_ANGLE + halfAngle * 1.75
   const y = gateHeight + radius * 0.28
 
   const metal = new THREE.MeshStandardMaterial({ color: POLE_COLOR, roughness: 0.55, metalness: 0.4 })
-  const flameMaterial = new THREE.MeshStandardMaterial({
-    color: TORCH_FLAME_COLOR,
-    emissive: TORCH_FLAME_COLOR,
-    emissiveIntensity: 1.6,
-    roughness: 1
-  })
+  const vivas: TochaViva[] = []
 
   for (let i = 0; i < 3; i++) {
     const angle = baseAngle + i * ((Math.PI * 2) / 3)
@@ -381,17 +427,61 @@ function createTorches(radius: number, gateArcWidth: number, gateHeight: number)
     basket.position.copy(radial).multiplyScalar(radius + radius * 0.28).setY(y + radius * 0.04)
     group.add(basket)
 
-    // A chama é emissiva: sem isso ela ficaria escura como qualquer outro objeto, já que a luz sai
-    // DELA e não a ilumina.
-    const flame = new THREE.Mesh(new THREE.ConeGeometry(radius * 0.07, radius * 0.2, 10), flameMaterial)
-    flame.position.copy(basket.position).setY(y + radius * 0.17)
-    group.add(flame)
+    /**
+     * MATERIAL PRÓPRIO por tocha, e não um compartilhado pelas três.
+     *
+     * O brilho da chama entra na animação (`emissiveIntensity`), e material compartilhado faria as
+     * três acenderem e apagarem exatamente juntas — que é o que denuncia fogo falso mais rápido que
+     * qualquer outra coisa. Três materiais é barato; sincronia não tem conserto depois.
+     *
+     * A chama é emissiva porque a luz sai DELA: sem isso ela ficaria escura como qualquer objeto.
+     */
+    const material = new THREE.MeshStandardMaterial({
+      color: TORCH_FLAME_COLOR,
+      emissive: TORCH_FLAME_COLOR,
+      emissiveIntensity: 1.6,
+      roughness: 1
+    })
+    const chama = new THREE.Mesh(new THREE.ConeGeometry(radius * 0.07, radius * 0.2, 10), material)
+    chama.position.copy(basket.position).setY(y + radius * 0.17)
+    group.add(chama)
 
-    const light = new THREE.PointLight(TORCH_LIGHT_COLOR, 4.5, radius * 4.5, 2)
-    light.position.copy(flame.position)
-    group.add(light)
+    const luz = new THREE.PointLight(TORCH_LIGHT_COLOR, 4.5, radius * 4.5, 2)
+    luz.position.copy(chama.position)
+    group.add(luz)
+
+    // Defasagem por índice, não aleatória: o fogo tem que ser o mesmo a cada montagem da cena.
+    vivas.push({ chama, material, luz, fase: i * 2.399 })
   }
-  return group
+
+  const alturaDeRepouso = vivas[0]?.chama.position.y ?? 0
+  return {
+    group,
+    /**
+     * O TREMOR do fogo, por soma de duas ondas de frequências que não se dividem (7.3 e 11.7 por
+     * segundo).
+     *
+     * Uma onda só dá pulso de sinaleiro — o olho pega a batida na hora. Duas incomensuráveis nunca
+     * repetem o mesmo desenho, que é o que faz parecer chama e não pisca-pisca. É a mesma ideia que
+     * a bandeira usa pra ondular (ver `createFlag`).
+     *
+     * Três coisas mexem juntas, e é a combinação que vende o fogo: a chama ESTICA e afina (volume
+     * de fogo não muda, a forma sim), o brilho dela sobe e desce junto, e a LUZ no chão acompanha —
+     * chama que cresce sem clarear a parede lê como enfeite de plástico.
+     */
+    update(segundos) {
+      for (const { chama, material, luz, fase } of vivas) {
+        const tremor =
+          Math.sin(segundos * 7.3 + fase) * 0.6 + Math.sin(segundos * 11.7 + fase * 1.7) * 0.4
+        const estica = 1 + tremor * 0.18
+        chama.scale.set(1 - tremor * 0.09, estica, 1 - tremor * 0.09)
+        // A base fica no cesto: crescer pra cima, e não pros dois lados, que é como fogo sobe.
+        chama.position.y = alturaDeRepouso + (estica - 1) * 0.1
+        material.emissiveIntensity = 1.6 + tremor * 0.28
+        luz.intensity = 4.5 + tremor * 0.9
+      }
+    }
+  }
 }
 
 /**
@@ -425,8 +515,27 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
    * comprida a ponte fica. Com a folga de 0.75 dá 0.9 de vão — uma ponte, e não o degrau quadrado
    * que era com 0.15.
    */
-  const inicio = radius - 0.05
-  const fim = seatDistance - (apothem + TRAY_CONFIG.wallThickness / 2)
+  /**
+   * Entra 0.3 pra DENTRO da casca, e não 0.05.
+   *
+   * Com 0.05 o tabuleiro parava rente à face externa e sobrava um vão entre ele e o piso do arco —
+   * visível de cima, e é por ele que o dado sairia pisando no vazio. Enfiado sob o arco, o tampo da
+   * ponte vira a continuação do piso da boca, que é o que este comentário sempre disse que ela era.
+   */
+  const inicio = radius - 0.3
+  /**
+   * DOIS CENTÍMETROS a mais de alcance, a pedido do usuário ("aumenta 2cm o tamanho dela").
+   *
+   * A unidade sai da mesma âncora que o resto do projeto usa: um d20 aqui tem 0.56 de lado e um d20
+   * de verdade mede uns 2cm de face a face, então 2cm = 0.56 de mundo. Não é um decimal escolhido —
+   * é a conversão.
+   *
+   * O acréscimo é pra FORA, então a ponte passa a avançar meio palmo além do meio da parede do
+   * hexágono, pairando 0.6 acima da borda. Ela é decorativa (não tem collider), então isso não muda
+   * rolagem nenhuma: o que muda é que agora ela LIGA a torre à bandeja em vez de parar antes.
+   */
+  const DOIS_CENTIMETROS = 0.56
+  const fim = seatDistance - (apothem + TRAY_CONFIG.wallThickness / 2) + DOIS_CENTIMETROS
   const comprimento = fim - inicio
   const largura = gateArcWidth * 0.85
   const espessura = 0.08
@@ -443,12 +552,44 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   const quantas = 6
   const fatia = largura / quantas
   for (let i = 0; i < quantas; i++) {
+    /**
+     * As LISTRAS entre as tábuas voltaram (0.88 de fatia), mas agora elas não VAZAM: existe um
+     * estrado por baixo (logo acima) fechando o tabuleiro.
+     *
+     * A primeira versão tinha a fresta e nada atrás dela — de cima dava pra ver o chão entre as
+     * tábuas, e o tabuleiro lia como grade. Fechei encostando as tábuas, e aí o usuário sentiu falta
+     * do desenho ("coloca as listras da ponte de volta"): as duas coisas eram separáveis, e a peça
+     * que faltava era o estrado, não a fresta.
+     */
     const prancha = new THREE.Mesh(new THREE.BoxGeometry(comprimento, espessura, fatia * 0.88), deckMaterial)
-    prancha.position.set(inicio + comprimento / 2, -espessura / 2, (i + 0.5) * fatia - largura / 2)
+    /**
+     * O tampo fica 0.004 ACIMA do piso do arco, não exatamente nele.
+     *
+     * Com a ponte entrando por baixo do arco, as duas superfícies ficaram coplanares em y=0 e o
+     * z-fighting apareceu como um chuvisco na emenda (visto de cima na renderização). Quatro
+     * milésimos separam as duas sem criar degrau: o dado tem 0.56, ele não sente isso.
+     */
+    prancha.position.set(inicio + comprimento / 2, -espessura / 2 + 0.004, (i + 0.5) * fatia - largura / 2)
     prancha.castShadow = true
     prancha.receiveShadow = true
     grupo.add(prancha)
   }
+
+  /**
+   * ESTRADO: uma tábua inteira por baixo das seis, que é o que uma ponte de verdade tem — as tábuas
+   * do tampo são pregadas em cima de um estrado, não flutuam lado a lado.
+   *
+   * É ele que deixa as listras serem listras: sem o estrado, a fresta entre as tábuas é um buraco
+   * até o chão; com ele, é uma linha escura de sombra.
+   */
+  const estrado = new THREE.Mesh(
+    new THREE.BoxGeometry(comprimento, espessura * 0.55, largura),
+    deckMaterial
+  )
+  estrado.position.set(inicio + comprimento / 2, -espessura - espessura * 0.2, 0)
+  estrado.castShadow = true
+  estrado.receiveShadow = true
+  grupo.add(estrado)
 
   /**
    * Ferragem FOSCA (metalness 0.2), não polida. Com 0.45, que é o valor da ferragem da torre, as
@@ -483,9 +624,18 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
      * caindo passava rente aos pilares do portão, que ficam a `gateArcWidth / 2`, e as duas coisas
      * se enterravam uma na outra. Puxada pra dentro, ela desce livre na frente do vão.
      */
-    const z = lado * largura * 0.4
+    /**
+     * Na QUINA do tabuleiro, e um fio pra fora dele (0.52 da largura, contra os 0.40 de antes).
+     *
+     * Em 0.40 a corrente descia por DENTRO da largura da ponte: de cima ela aparecia deitada em cima
+     * das tábuas, e de três-quartos parecia atravessar a madeira. Corrente de ponte levadiça prende
+     * na quina, por fora — e aqui cabe: a quina está em 0.801 e o pilar do portão em 0.943, então
+     * sobra folga de 0.11 pra ela descer livre sem raspar em nada.
+     */
+    const z = lado * largura * 0.52
     const de = new THREE.Vector3(radius * 0.98, gateHeight + radius * 0.3, z)
-    const para = new THREE.Vector3(inicio + comprimento * 0.96, 0, z)
+    // Ponta na BORDA de fora do tampo (o `fim`), que é onde a corrente de verdade se prende.
+    const para = new THREE.Vector3(fim, 0, z)
     const direcao = para.clone().sub(de).normalize()
     const elos = Math.max(6, Math.round(de.distanceTo(para) / (raioElo * 1.6)))
     for (let i = 0; i < elos; i++) {
@@ -535,7 +685,18 @@ function createGateStructure(
   const pillarWidth = radius * 0.2
   const pillarDepth = radius * 0.26
   const pillarHeight = gateHeight + radius * 0.18
-  const pillarMaterial = brick(pillarWidth, pillarHeight)
+  /**
+   * CANTARIA da ombreira: UMA pedra, do tamanho do pilar inteiro.
+   *
+   * Começou como a alvenaria da casca encolhida (vinte fiadas de pedrinha), virou quatro blocos
+   * empilhados, e agora é um monólito — o usuário foi cortando a cada rodada até sobrar o essencial
+   * ("deixa só o grande da direita, o grande da esquerda e o grande de cima"). O vão passa a ser
+   * emoldurado por três pedras, e nada mais.
+   */
+  const pillarMaterial = brick(pillarWidth, pillarHeight, {
+    largura: pillarWidth,
+    altura: pillarHeight
+  })
 
   for (const side of [-1, 1] as const) {
     const pillarAngle = TOWER_BESIDE_GATE_ANGLE + side * halfAngle
@@ -551,7 +712,8 @@ function createGateStructure(
   const lintelHeight = radius * 0.22
   const lintel = new THREE.Mesh(
     new THREE.BoxGeometry(lintelWidth, lintelHeight, pillarDepth),
-    brick(lintelWidth, lintelHeight)
+    // UMA pedra atravessando o vão inteiro — a terceira das três que emolduram a porta.
+    brick(lintelWidth, lintelHeight, { largura: lintelWidth, altura: lintelHeight })
   )
   lintel.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), tangentAt(TOWER_BESIDE_GATE_ANGLE))
   lintel.position
@@ -751,11 +913,12 @@ export function createTowerBesideTray(
   tower.add(createShellMesh(radius, height, gateArcWidth, gateHeight, brick))
   tower.add(createRoofCap(radius, height, brick))
   tower.add(createCornice(radius, height, brick))
-  tower.add(createMerlonRing(radius, height, brick))
+  if (MOSTRA_AMEIAS_DO_TOPO) tower.add(createMerlonRing(radius, height, brick))
   tower.add(createSpire(radius, height, roofMaterial))
   tower.add(createGateStructure(radius, gateArcWidth, gateHeight, brick))
-  tower.add(createGateArch(radius, gateArcWidth, gateHeight, brick))
-  tower.add(createTorches(radius, gateArcWidth, gateHeight))
+  if (MOSTRA_ARCO_DE_ADUELAS) tower.add(createGateArch(radius, gateArcWidth, gateHeight, brick))
+  const tochas = createTorches(radius, gateArcWidth, gateHeight)
+  tower.add(tochas.group)
   tower.add(createDrawbridge(layout, doorMaterial))
   const flag = createFlag(height + radius * 1.9, radius, flagMaterial)
   tower.add(flag.group)
@@ -789,6 +952,7 @@ export function createTowerBesideTray(
     },
     update(segundos) {
       flag.update(segundos)
+      tochas.update(segundos)
     }
   }
 }

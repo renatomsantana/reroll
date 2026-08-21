@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { registerPresetsHandlers } from './ipc/registerPresetsHandlers'
 import { registerNotesHandlers } from './ipc/registerNotesHandlers'
 import { registerWindowHandlers } from './ipc/registerWindowHandlers'
@@ -7,6 +7,7 @@ import { resolveAppIconPath } from './appIconPaths'
 import { registerSceneBackgroundHandlers } from './ipc/registerSceneBackgroundHandlers'
 import { registerProfilesHandlers } from './ipc/registerProfilesHandlers'
 import { registerUpdateHandlers } from './updater'
+import { abrirNoNavegador, aplicarTravasDeSeguranca } from './seguranca'
 import { PresetsRepository } from './storage/PresetsRepository'
 import { NotesRepository } from './storage/NotesRepository'
 import { SettingsRepository } from './storage/SettingsRepository'
@@ -39,7 +40,26 @@ function createWindow(settingsRepository: SettingsRepository, initialIconPath: s
     backgroundColor: '#c0c0c0',
     icon: initialIconPath,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js')
+      preload: join(__dirname, '../preload/index.js'),
+      /**
+       * As quatro travas escritas À MÃO, mesmo sendo o padrão do Electron 33.
+       *
+       * O padrão protege quem não sabe que elas existem; escrevê-las protege de OUTRA coisa — de
+       * alguém (eu, daqui a seis meses) desligar uma delas pra "resolver rápido" um problema, sem
+       * topar com o motivo. Aqui a linha está na cara, com o porquê ao lado.
+       *
+       * - `sandbox`: o renderizador roda numa caixa do sistema operacional. Se um dia rodar código
+       *   hostil ali, ele não fala com o disco nem com a rede direto — só pelas pontes de IPC.
+       * - `contextIsolation`: o preload vive num mundo separado do JavaScript da página, então a
+       *   página não consegue reescrever a ponte pra fazê-la chamar outra coisa.
+       * - `nodeIntegration`: a página NÃO tem `require`. É o que separa "app" de "shell".
+       * - `webSecurity`: mantém a origem valendo. Desligar isso é o atalho clássico pra carregar
+       *   arquivo local numa página, e abre tudo de uma vez.
+       */
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true
     }
   })
 
@@ -49,12 +69,38 @@ function createWindow(settingsRepository: SettingsRepository, initialIconPath: s
 
   window.on('ready-to-show', () => window.show())
 
+  /**
+   * A janela NUNCA sai do app. `setWindowOpenHandler` (logo abaixo) cobre janela nova; este cobre a
+   * navegação da própria janela, que é outro caminho: basta um `location.href`, um `<a>` ou um
+   * `<form>` pra a aba principal virar outra coisa.
+   *
+   * Por que isso importa num app que só carrega arquivo local: se um dia entrar na tela qualquer
+   * texto que vire link — nota colada pelo usuário, ficha importada, mensagem de erro de terceiro —,
+   * um clique poderia trocar a interface do Reroll por uma página remota RODANDO COM O PRELOAD DELE,
+   * ou seja, com acesso às mesmas pontes de IPC. Bloquear navegação é o que corta essa classe
+   * inteira de uma vez, e custa cinco linhas.
+   *
+   * O endereço de desenvolvimento é a única exceção, porque em `npm run dev` a janela é servida por
+   * ele e o recarregamento do Vite navega de verdade.
+   */
+  window.webContents.on('will-navigate', (evento, url) => {
+    const permitido = process.env.ELECTRON_RENDERER_URL
+    if (permitido && url.startsWith(permitido)) return
+    evento.preventDefault()
+    // Link http(s) clicado dentro do app abre no navegador do sistema, como já acontece com janela nova.
+    abrirNoNavegador(url)
+  })
+
+  /**
+   * Anexar um webview seria outra janela com outras permissões dentro da nossa. O app não usa
+   * nenhum, então a resposta certa é proibir na raiz em vez de confiar que ninguém vai adicionar um.
+   */
+  window.webContents.on('will-attach-webview', (evento) => evento.preventDefault())
+
   window.webContents.setWindowOpenHandler((details) => {
     // Só abre esquemas de navegador de verdade no browser padrão do sistema — nunca
     // repassa `file:`/`javascript:`/outros esquemas pro `shell.openExternal` sem checar.
-    if (details.url.startsWith('https://') || details.url.startsWith('http://')) {
-      shell.openExternal(details.url)
-    }
+    abrirNoNavegador(details.url)
     return { action: 'deny' }
   })
 
@@ -97,6 +143,12 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(async () => {
+    /**
+     * ANTES de qualquer janela: as travas valem pra sessão inteira, e uma janela criada antes delas
+     * nasceria com a rede aberta. Ver `seguranca.ts` pra o que exatamente é negado.
+     */
+    aplicarTravasDeSeguranca()
+
     /**
      * Os perfis vêm PRIMEIRO e com `await`: são eles que dizem de qual pasta saem anotações e
      * presets (ver `ProfilesRepository.activeDirectory`). Sem o `init` concluído, a primeira leitura
