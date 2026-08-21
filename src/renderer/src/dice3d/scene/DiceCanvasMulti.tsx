@@ -19,6 +19,7 @@ import { createWoodTextures } from './createWoodTexture'
 import { createTowerBesideTray, DEFAULT_TOWER_COLORS, type TowerColors } from './createTowerBesideTray'
 import { traySafeHalfExtent } from '../geometry/trayShape'
 import { createRiebeckPlush } from './createRiebeckPlush'
+import { createTrojanHorse, TROJAN_HORSE_SIZE } from './createTrojanHorse'
 import type { DiceMaterialFinish } from '../materials/createDiceMaterial'
 import type { CameraMode } from '@renderer/settings/SettingsContext'
 import {
@@ -147,6 +148,103 @@ function plushZBehindCase(caseZ: number): number {
  * Se ainda assim não agradar, virar isto pra `false` tira a pelúcia da mesa sem mexer em mais nada.
  */
 const SHOW_PLUSH = true
+
+/**
+ * CAVALO DE TROIA na mesa — EM TESTE, e fora do 0.1.9 por decisão do usuário ("apenas vamos
+ * testar, coloca mas n vamos colocar no patch 9 ainda").
+ *
+ * Quem for fechar o patch: ou este interruptor vai pra `false`, ou o arquivo do cavalo
+ * (`createTrojanHorse.ts`) e este bloco ficam de fora do commit. Ele está aqui pra ser visto no app
+ * instalado, que é onde o usuário julga, e não pra sair.
+ */
+const MOSTRA_CAVALO = true
+
+/**
+ * ESCALA do cavalo na cena — pedido do usuário depois de ver as quatro versões: "faz ele bem menor".
+ *
+ * O modelo é desenhado com 4.3 de altura (ver `createTrojanHorse.ts`), e o número aqui NÃO é
+ * escolhido: é o que faz ele caber inteiro atrás do estojo, que tem 1.22 de altura. Os 0.08 de
+ * desconto são pra folga — colado no limite, um pedacinho da orelha aparecia por cima da tampa.
+ *
+ * A regra amarrada à caixa, e não um decimal solto, é o que impede isto de quebrar calado: se o
+ * estojo mudar de altura um dia, o cavalo continua escondido.
+ *
+ * Mesma história da pelúcia do Riebeck, que encolheu duas vezes até virar enfeite. E encolher
+ * resolve o que quatro rodadas de ajuste não resolveram — o acabamento do bicho: no tamanho de
+ * easter egg, o que se lê é a silhueta (essa é medida da foto e está certa), não a emenda do
+ * pescoço.
+ */
+const CAIXA_ALTURA = 1.22
+/**
+ * O desconto subiu de 0.08 pra 0.4 a pedido do usuário ("faz ele menor, ta colidindo com o
+ * estojo") e de novo em seguida ("pode diminuir o tamanho"): agora ele tem 0.67 de altura contra os
+ * 1.22 da caixa, com folga de sobra em vez de
+ * caber raspando.
+ */
+const CAVALO_ESCALA = (CAIXA_ALTURA - 0.8) / TROJAN_HORSE_SIZE.altura
+
+/**
+ * ASSENTO DO CAVALO: o centro de face OPOSTO ao da torre de castelo (-30°), a mesma distância do
+ * centro que ela.
+ *
+ * A distância é a conta da torre (`towerBesideTrayLayout`): apótema 6.5 + parede 0.2 + raio 1.45 +
+ * folga 0.75 = 8.9. Espelhar o assento é o que faz os dois objetos equilibrarem a mesa em vez de
+ * amontoarem do mesmo lado — e, quando o cavalo virar modo de lançamento, é de um centro de face
+ * que ele vai precisar sair, como ela.
+ */
+/**
+ * ATRÁS DO ESTOJO, ao lado da pelúcia — pedido do usuário, e o mesmo esconderijo dela.
+ *
+ * O assento ao lado da bandeja saiu: encostado na traseira-esquerda o bicho sumia atrás da parede,
+ * e na frente-esquerda ele ficava na entrada principal da cena, que é justamente de onde o usuário
+ * já tinha mandado tirar a pelúcia ("não quero que dê pra ver ele da entrada principal").
+ *
+ * O X afasta da pelúcia, que mora no centro do estojo (`PLUSH_X` = 0): meia pelúcia + meio cavalo +
+ * uma folga. O estojo vai de -4.86 a 4.86, então sobra estojo de sobra pra tapar os dois.
+ */
+/**
+ * Folga entre a PELÚCIA e o cavalo, que é outra coisa e por isso tem número próprio: com a mesma
+ * folga do estojo (4cm) os dois ficavam longe um do outro, e o usuário pediu o cavalo "mais perto do
+ * riebeck". 1cm é a mesma folga que ela usa com o estojo — é a distância de "encostado" desta cena.
+ */
+const CAVALO_FOLGA_PELUCIA_CM = 1
+
+/**
+ * Onde o cavalo assenta, a partir da CAIXA REAL dele — não das constantes do modelo.
+ *
+ * `TROJAN_HORSE_SIZE.largura` mede a PLATAFORMA (1.76), e os cubos das rodas passam dela: a largura
+ * de verdade é 2.18, 24% maior. Foi essa diferença que fez o bicho encostar no estojo mesmo com a
+ * conta "certa" — a constante estava descrevendo uma parte do objeto e sendo usada como se fosse o
+ * objeto inteiro.
+ *
+ * Medindo o grupo montado, o número passa a ser o que está em cena, e continua certo no dia em que
+ * alguém mexer no modelo. É a mesma lição do enquadramento da prévia da aba Estilo.
+ */
+function assentarCavaloAtrasDoEstojo(cavalo: THREE.Group, caseZ: number): void {
+  cavalo.updateMatrixWorld(true)
+  const caixa = new THREE.Box3().setFromObject(cavalo)
+  // Medido ANTES de girar: o bicho é modelado com o comprimento em Z, e o giro de 90° troca os dois.
+  const meioComprimento = (caixa.max.z - caixa.min.z) / 2
+
+  cavalo.rotation.y = Math.PI / 2
+  cavalo.position.set(
+    // Ao lado da pelúcia, que fica no centro do estojo: meia pelúcia + meio cavalo + folga.
+    0.3 + meioComprimento + CAVALO_FOLGA_PELUCIA_CM * CENTIMETER,
+    TABLE_SURFACE_Y,
+    /**
+     * O MESMO Z da pelúcia — pedido do usuário ("coloca ele na mesma linha q o riebeck").
+     *
+     * Antes cada um era assentado pela própria profundidade a partir da traseira do estojo, o que
+     * alinhava a FRENTE dos dois e deixava os centros desencontrados (a pelúcia tem 0.48 de fundo, o
+     * cavalo 0.25). De trás, isso lia como um fora de lugar. Alinhando pelo centro, os dois ficam na
+     * mesma linha da prateleira, que é como duas peças enfileiradas se parecem de qualquer ângulo.
+     *
+     * A folga com o estojo continua garantida: o cavalo é o mais raso dos dois, então onde a pelúcia
+     * cabe, ele cabe com sobra.
+     */
+    plushZBehindCase(caseZ)
+  )
+}
 
 // Reexportado (e importado) daqui porque metade do app pede o tipo a este módulo e a outra metade
 // às Preferências. A definição, com a explicação dos três modos, mora em `SettingsContext.tsx`.
@@ -1005,6 +1103,21 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
          * O giro é calculado, não escolhido: `atan2` das próprias coordenadas, senão ela apareceria
          * de lado (foi assim que a primeira posição precisou de conserto).
          */
+        /**
+         * O cavalo é DECORATIVO como a pelúcia: nenhum corpo físico, nenhum collider, nenhuma linha
+         * no laço da física — ele não existe pra rolagem nenhuma.
+         *
+         * DE PERFIL pra câmera (`rotation.y = 90°`), e não alinhado com a face da bandeja: o bicho
+         * só lê como cavalo de lado — de frente vira uma caixa com quatro pernas. Renderizado nos
+         * dois ângulos antes de escolher.
+         */
+        if (MOSTRA_CAVALO) {
+          const cavalo = createTrojanHorse()
+          cavalo.scale.setScalar(CAVALO_ESCALA)
+          assentarCavaloAtrasDoEstojo(cavalo, positions[0].z)
+          scene.add(cavalo)
+        }
+
         if (SHOW_PLUSH) {
           const plush = createRiebeckPlush()
           plush.scale.setScalar(PLUSH_SCALE)

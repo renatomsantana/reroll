@@ -15,12 +15,20 @@ import './FontSelect.css'
  */
 
 /**
- * Teto de altura da lista — também decide se ela abre pra baixo ou pra cima, então não é só estética.
- * Tem cópia em `.font-select-list` (`FontSelect.css`) e as duas precisam andar juntas: divergindo, a
- * conta do flip usa uma altura que a lista não tem. Cabem as 12 fontes de `FONT_OPTIONS` mais a
- * linha opcional de "fonte padrão" (13 x 26px + 8px de borda e padding = 346).
+ * Altura de uma linha da lista e a folga de borda/padding — a matéria-prima da conta de altura.
+ *
+ * O teto era um NÚMERO FIXO (350px) com uma cópia no CSS, e as duas tinham que andar juntas: quem
+ * acrescentasse fonte sem lembrar disso ganhava uma lista que decide o flip por uma altura que ela
+ * não tem. Isso caducou na primeira vez que precisou — o alfa fechou com 18 fontes, e 350px passou a
+ * cortar seis.
+ *
+ * Agora a altura é CALCULADA a partir de quantas opções existem, limitada pela janela. Some a cópia,
+ * some a armadilha, e a lista passa a crescer sozinha quando alguém acrescentar a próxima fonte.
  */
-const LIST_MAX_HEIGHT = 350
+const LINE_HEIGHT = 26
+const LIST_PADDING = 8
+/** Folga até a borda da janela, pra lista nunca encostar no topo nem no rodapé. */
+const VIEWPORT_MARGIN = 24
 
 /**
  * `''` = "usar a fonte do app", a linha extra que só aparece quando `defaultLabel` é passado. Existe
@@ -40,6 +48,8 @@ interface ListPosition {
   left: number
   top: number
   width: number
+  /** Calculada na abertura (ver `openList`) — é a mesma altura que decide se a lista abre pra cima. */
+  maxHeight: number
 }
 
 export function FontSelect({ value, onChange, defaultLabel }: FontSelectProps) {
@@ -80,11 +90,16 @@ export function FontSelect({ value, onChange, defaultLabel }: FontSelectProps) {
   function openList(): void {
     const rect = buttonRef.current?.getBoundingClientRect()
     if (!rect) return
-    const fitsBelow = window.innerHeight - rect.bottom >= LIST_MAX_HEIGHT
+    const altura = Math.min(
+      options.length * LINE_HEIGHT + LIST_PADDING,
+      window.innerHeight - VIEWPORT_MARGIN
+    )
+    const fitsBelow = window.innerHeight - rect.bottom >= altura
     setPosition({
       left: rect.left,
-      top: fitsBelow ? rect.bottom : Math.max(4, rect.top - LIST_MAX_HEIGHT),
-      width: rect.width
+      top: fitsBelow ? rect.bottom : Math.max(4, rect.top - altura),
+      width: rect.width,
+      maxHeight: altura
     })
     setActiveIndex(selectedIndex)
     setOpen(true)
@@ -184,7 +199,12 @@ export function FontSelect({ value, onChange, defaultLabel }: FontSelectProps) {
           className="font-select-list"
           role="listbox"
           tabIndex={-1}
-          style={{ left: position.left, top: position.top, width: position.width }}
+          style={{
+            left: position.left,
+            top: position.top,
+            width: position.width,
+            maxHeight: position.maxHeight
+          }}
           onKeyDown={handleListKeyDown}
         >
           {options.map((font, index) => (

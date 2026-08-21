@@ -77,8 +77,12 @@
   margin: 0;
   padding: 2px;
   list-style: none;
-  /* Cópia de `LIST_MAX_HEIGHT` em `FontSelect.tsx` — mexer nos dois juntos, ver o comentário lá. */
-  max-height: 350px;
+  /*
+   * A altura vem do componente por `style` (ver `openList` em `FontSelect.tsx`), calculada a partir
+   * de quantas fontes existem. Aqui fica só o TETO de segurança, pra lista nunca passar da janela se
+   * o cálculo faltar por algum motivo — não é mais a cópia de um número que precisa andar junto.
+   */
+  max-height: 100vh;
   overflow-y: auto;
   background: var(--win-input-bg);
   border: 2px outset var(--win-highlight);

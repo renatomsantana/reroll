@@ -47,3 +47,16 @@ Fichas RPG/
 # `src/renderer/src/assets/models/`, que essa sim vai versionada; manter as duas seria duas fontes
 # do mesmo arquivo, divergindo na primeira vez que uma for atualizada sem a outra.
 torre 3D/
+
+# TEXTURA DO CAVALO — imagem de TERCEIRO, não pode ser publicada.
+#
+# `src/renderer/src/assets/local/` guarda a foto de referência que o cavalo de Troia usa como
+# textura (`createTrojanHorse.ts`). Ela é um render de banco de modelo 3D, trazido pelo usuário pra
+# `torre 3D/` — serve pra ver o bicho bonito AQUI, mas pôr um arquivo de terceiro dentro de um app
+# publicado no GitHub é redistribuição, e ninguém licenciou isso.
+#
+# Consequência prática, e ela é DELIBERADA: quem clonar o repositório não vai ter a imagem, e o
+# `createTrojanHorse.ts` cai na madeira lisa sozinho (ver o `catch` do carregamento lá). O cavalo
+# fica mais feio pra quem clona e continua legal de publicar. Se um dia ele for pro app de verdade,
+# a saída é uma textura própria ou uma com licença que permita redistribuir.
+src/renderer/src/assets/local/

@@ -382,3 +382,71 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/*
+ * Botão de FORMA: a silhueta antes do nome. `currentColor` é o que faz o desenho acompanhar o
+ * estado do botão — no marcado, que inverte a cor do texto, o ícone inverte junto em vez de virar
+ * um borrão escuro sobre fundo escuro.
+ */
+.style-tab-shape-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.style-tab-shape-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5px;
+  flex-shrink: 0;
+}
+
+/*
+ * Lista de MODOS: a mesma caixa de listagem dos tipos de dado, com duas linhas por item (título e
+ * a frase do que acontece). Sem altura máxima — são três itens fixos, e a rolagem que serve à lista
+ * de oito dados aqui só esconderia o terceiro.
+ */
+.style-tab-modes {
+  max-height: none;
+}
+
+.style-tab-mode {
+  align-items: flex-start;
+}
+
+.style-tab-mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.style-tab-mode-title {
+  font-weight: bold;
+}
+
+/*
+ * A frase quebra em quantas linhas precisar (`normal`, contra o `nowrap` que as listas usam) e é
+ * menor que o título — é explicação, não rótulo.
+ *
+ * A cor NÃO pode ser fixa: na linha marcada o fundo é a cor de destaque, e um cinza de texto
+ * apagado por cima dela some. `inherit` faz a frase seguir a cor da linha, e o que a separa do
+ * título passa a ser o peso e o tamanho.
+ */
+.style-tab-mode-description {
+  font-size: 11px;
+  font-weight: normal;
+  white-space: normal;
+  color: inherit;
+}
+
+/*
+ * A nota da legenda da prévia ("torre em cena só pra escolher a cor"). Linha PRÓPRIA e mais fraca:
+ * ela explica o que está à vista, não faz parte do nome do que está montado ali.
+ */
+.style-tab-preview-note {
+  display: block;
+  font-weight: normal;
+  font-size: 11px;
+  color: var(--win-text-muted);
+}

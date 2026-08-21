@@ -159,9 +159,20 @@ export interface TranslationDict {
     /** Rótulos do seletor de modo de lançamento, na aba Estilo (`StyleTab.tsx`). */
     /** Forma da bandeja e os nomes das quatro. */
     trayShape: string
+    /** Linha da legenda da prévia quando a torre só está em cena pra a cor ser escolhida. */
+    towerForColorOnly: string
     trayShapes: { triangle: string; square: string; hexagon: string; circle: string }
     launchMode: string
-    launchModeOptions: { tray: string; tower: string; towerDecor: string }
+    /**
+     * Cada modo tem TÍTULO e uma frase dizendo o que acontece com o dado nele.
+     *
+     * A frase não é enfeite: "Torre rolando" e "Torre de enfeite" põem a mesma torre na mesma mesa,
+     * e o que muda — se o dado sai pela boca dela ou é jogado direto — não cabe num rótulo de botão.
+     */
+    launchModeOptions: Record<
+      'tray' | 'tower' | 'towerDecor',
+      { title: string; description: string }
+    >
     /** Estados do olho que trava a câmera nos dados (`CameraModeSwitch.tsx`). */
     cameraLockOn: string
     cameraLockOff: string
@@ -382,9 +393,24 @@ export const translations: Record<Language, TranslationDict> = {
       targetsTower: 'Torre',
       trayPresets: 'Estilos de bandeja prontos',
       trayShape: 'Formato da bandeja',
+      towerForColorOnly: 'torre em cena só pra você escolher a cor',
       trayShapes: { triangle: 'Triângulo', square: 'Quadrado', hexagon: 'Hexágono', circle: 'Círculo' },
-      launchMode: 'Modo de lançamento',
-      launchModeOptions: { tray: 'Sem torre', tower: 'Torre rolando', towerDecor: 'Torre de enfeite' },
+      launchMode: 'Onde os dados são rolados',
+      launchModeOptions: {
+        tray: {
+          title: 'Direto na bandeja',
+          description: 'Você joga os dados por cima. A torre não fica na mesa.'
+        },
+        tower: {
+          title: 'Pela torre',
+          description:
+            'Os dados saem pela boca da torre, um de cada vez, e caem na bandeja. Rolagem com muitos dados demora mais.'
+        },
+        towerDecor: {
+          title: 'Torre só de enfeite',
+          description: 'A torre fica na mesa, mas os dados são jogados direto na bandeja.'
+        }
+      },
       cameraLockOn: 'Câmera travada nos dados — clique pra soltar (WASD move, Q/E sobe e desce)',
       cameraLockOff: 'Câmera solta — clique pra travar nos dados (WASD move, Q/E sobe e desce)',
       backgroundImage: 'Imagem de fundo',
@@ -594,9 +620,24 @@ export const translations: Record<Language, TranslationDict> = {
       targetsTower: 'Tower',
       trayPresets: 'Ready-made tray styles',
       trayShape: 'Tray shape',
+      towerForColorOnly: 'tower shown only so you can pick its colour',
       trayShapes: { triangle: 'Triangle', square: 'Square', hexagon: 'Hexagon', circle: 'Circle' },
-      launchMode: 'Launch mode',
-      launchModeOptions: { tray: 'No tower', tower: 'Tower rolls', towerDecor: 'Tower as decor' },
+      launchMode: 'Where the dice are rolled',
+      launchModeOptions: {
+        tray: {
+          title: 'Straight onto the tray',
+          description: 'You throw the dice in from above. The tower is not on the table.'
+        },
+        tower: {
+          title: 'Through the tower',
+          description:
+            'Dice come out of the tower mouth, one at a time, and land on the tray. Rolls with many dice take longer.'
+        },
+        towerDecor: {
+          title: 'Tower as decor only',
+          description: 'The tower stays on the table, but the dice are thrown straight onto the tray.'
+        }
+      },
       cameraLockOn: 'Camera locked on the dice — click to release (WASD moves, Q/E up and down)',
       cameraLockOff: 'Camera free — click to lock on the dice (WASD moves, Q/E up and down)',
       backgroundImage: 'Background image',

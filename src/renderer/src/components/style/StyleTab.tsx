@@ -16,6 +16,7 @@ import { ColorWheel } from './ColorWheel'
 import { StylePreview } from './StylePreview'
 import { TRAY_SHAPES } from '@renderer/dice3d/geometry/trayShape'
 import { TrayPreview } from './TrayPreview'
+import { TrayShapeIcon } from './TrayShapeIcon'
 import './StyleTab.css'
 
 const MATERIAL_OPTIONS: DiceMaterialFinish[] = ['matte', 'metallic', 'plastic', 'glass']
@@ -138,6 +139,16 @@ export function StyleTab() {
   /** Qual das duas cores do dado a roda edita. Um alvo por vez: existe UMA roda na tela, e ela sempre mostra a cor de quem está marcado aqui. */
   const [diceTarget, setDiceTarget] = useState<DiceColorTarget>('body')
   const [sceneTarget, setSceneTarget] = useState<SceneColorTarget>('wall')
+  /**
+   * A TORRE aparece na prévia por dois motivos, e o segundo é o pedido do usuário ("consertar para
+   * aparecer a preview da torre qnd pintarmos as cores"):
+   *
+   * 1. ela está na mesa de verdade — qualquer modo de lançamento que não seja a bandeja pura;
+   * 2. a pessoa está pintando uma peça dela, mesmo no modo sem torre. Pedra, bico, bandeira e porta
+   *    continuam escolhíveis nesse modo — as cores ficam gravadas esperando a torre voltar —, e sem
+   *    esta segunda regra pintar as quatro seria escolher no escuro, que é exatamente o que ele viu.
+   */
+  const towerVisivelNaPrevia = launchMode !== 'tray' || TOWER_TARGETS.includes(sceneTarget)
 
   const selectedOverride = selectedDiceType === 'default' ? undefined : diceColorOverrides[selectedDiceType]
   const selectedBodyColor = selectedOverride?.bodyColor ?? diceBodyColor
@@ -312,8 +323,33 @@ export function StyleTab() {
           <legend>{t.styleTab.preview}</legend>
           {section === 'scene' ? (
             <>
-              <TrayPreview wallColor={wallColor} floorColor={floorColor} trayShape={trayShape} />
-              <p className="style-tab-preview-caption">{t.styleTab.sectionScene}</p>
+              <TrayPreview
+                wallColor={wallColor}
+                floorColor={floorColor}
+                trayShape={trayShape}
+                showTower={towerVisivelNaPrevia}
+                towerStoneColor={towerStoneColor}
+                towerRoofColor={towerRoofColor}
+                towerFlagColor={towerFlagColor}
+                towerDoorColor={towerDoorColor}
+              />
+              {/*
+                A legenda diz o que está montado ali — "Hexágono · Torre rolando" —, e não o nome da
+                seção, que a pessoa acabou de clicar e já sabe. Com quatro formas e três modos de
+                lançamento, o nome da seção era a única coisa da tela que não respondia a nada.
+              */}
+              <p className="style-tab-preview-caption">
+                {t.styleTab.trayShapes[trayShape]}
+                {' · '}
+                {t.styleTab.launchModeOptions[launchMode].title}
+                {/*
+                  A torre em cena no modo SEM torre contradiz a própria legenda, e a contradição
+                  seria lida como bug. Ela está ali emprestada, pra pintar — e a linha diz isso.
+                */}
+                {towerVisivelNaPrevia && launchMode === 'tray' && (
+                  <span className="style-tab-preview-note">{t.styleTab.towerForColorOnly}</span>
+                )}
+              </p>
             </>
           ) : (
             <>
@@ -517,22 +553,64 @@ export function StyleTab() {
             */}
             <fieldset className="style-group">
               <legend>{t.styleTab.trayShape}</legend>
+              {/*
+                Cada botão traz a SILHUETA da forma vista de cima, na orientação em que ela vai
+                aparecer na mesa (ver `TrayShapeIcon`). Só o nome não dizia o que muda de verdade —
+                e a prévia ao lado já monta a forma marcada, então o ícone é o atalho e a prévia é
+                a confirmação.
+              */}
               <div className="style-tab-options-row">
                 {TRAY_SHAPES.map((forma) => (
-                  <Button key={forma} selected={trayShape === forma} onClick={() => setTrayShape(forma)}>
+                  <Button
+                    key={forma}
+                    selected={trayShape === forma}
+                    className="style-tab-shape-button"
+                    onClick={() => setTrayShape(forma)}
+                  >
+                    <TrayShapeIcon shape={forma} />
                     {t.styleTab.trayShapes[forma]}
                   </Button>
                 ))}
               </div>
             </fieldset>
 
+            {/*
+              ONDE OS DADOS SÃO ROLADOS, em lista com uma frase por opção — antes eram três botões
+              lado a lado dizendo só "Sem torre", "Torre rolando" e "Torre de enfeite", e a
+              diferença entre os dois últimos não se adivinha por nome nenhum.
+
+              A frase diz o que ACONTECE com o dado em cada um, que é a pergunta que a pessoa tem na
+              cabeça ao escolher. Escolher a lista do 98 em vez dos botões não é gosto: com uma
+              descrição embaixo do título, três botões em relevo lado a lado viram três blocos de
+              texto disputando a largura, enquanto a lista empilha e dá a linha inteira a cada um.
+            */}
             <fieldset className="style-group">
               <legend>{t.styleTab.launchMode}</legend>
-              <div className="style-tab-options-row">
+              <div
+                className="style-tab-list style-tab-modes"
+                role="radiogroup"
+                aria-label={t.styleTab.launchMode}
+              >
                 {(['tray', 'tower', 'towerDecor'] as const).map((mode) => (
-                  <Button key={mode} selected={launchMode === mode} onClick={() => setLaunchMode(mode)}>
-                    {t.styleTab.launchModeOptions[mode]}
-                  </Button>
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={launchMode === mode}
+                    className={`style-tab-list-item style-tab-mode ${
+                      launchMode === mode ? 'style-tab-list-item-selected' : ''
+                    }`}
+                    onClick={() => setLaunchMode(mode)}
+                  >
+                    <span className="style-tab-mode-text">
+                      <span className="style-tab-mode-title">
+                        {t.styleTab.launchModeOptions[mode].title}
+                      </span>
+                      <span className="style-tab-mode-description">
+                        {t.styleTab.launchModeOptions[mode].description}
+                      </span>
+                    </span>
+                  </button>
                 ))}
               </div>
             </fieldset>
