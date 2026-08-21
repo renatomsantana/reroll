@@ -3,8 +3,21 @@ productName: Reroll
 directories:
   output: release
   buildResources: build
+# ---------------------------------------------------------------------------------------------
+# TRÊS PASTAS NOMEADAS, e não `out/**/*`.
+#
+# `out/` é onde o electron-vite escreve os três bundles, mas é TAMBÉM onde qualquer coisa que rode
+# durante o desenvolvimento acaba escrevendo: as renderizações de conferência, os scripts de
+# medição, os arquivos de rascunho. Com o curinga, tudo isso entrava no instalador — aconteceu no
+# 0.1.8 e ia acontecer de novo aqui, com 2,3 MB de bancada e capturas de tela do app inacabado
+# dentro do pacote que vai pros amigos.
+#
+# Listar as três pastas de verdade é o que impede a próxima vez: o que não é bundle não tem como
+# entrar por descuido, porque não tem nome nesta lista.
 files:
-  - out/**/*
+  - out/main/**/*
+  - out/preload/**/*
+  - out/renderer/**/*
   - package.json
   - build/icons/**/*
 asar: true
