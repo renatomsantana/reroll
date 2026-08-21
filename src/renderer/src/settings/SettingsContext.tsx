@@ -41,21 +41,22 @@ export type LaunchMode = 'tray' | 'tower' | 'towerDecor'
 export type CameraMode = 'table' | 'dice' | 'free'
 
 /**
- * ONZE fontes, e o número não é gosto: a lista do seletor (`FontSelect.tsx`) tem linhas de 26px e a
- * conta tem que fechar com o teto dela, senão volta a barra de rolagem. Eram catorze, o usuário
- * pediu "bota menos fontes, suficientes para tirar a barra" e caiu pra nove com teto de 260px;
- * depois entraram Montserrat e JetBrains Mono e o teto subiu pra 300px (11 x 26 = 286, mais 8px de
- * borda e padding = 294, com `box-sizing: border-box`). Ao mexer aqui, mexer nos DOIS lugares que
- * guardam esse teto: `LIST_MAX_HEIGHT` em `FontSelect.tsx` e `.font-select-list` em `FontSelect.css`.
+ * DEZOITO fontes no fechamento do alfa.
  *
- * O corte de catorze pra nove manteve uma de cada FAMÍLIA visual (a clássica do 98, a moderna, a
- * serifada, a monoespaçada, a de impacto) e as duas do easter egg; saíram as que repetiam alguém que
- * ficou — Arial e Trebuchet ao lado de Verdana/Segoe, Georgia ao lado de Times, Consolas ao lado de
- * Courier, Century Gothic.
+ * O número já foi motivo de bug de layout: a lista do seletor tinha teto de altura FIXO, com uma
+ * cópia no CSS, e crescer a lista sem lembrar dos dois lugares deixava a lista cortada e a conta de
+ * abrir-pra-cima errada. Isso não é mais um risco — a altura agora é calculada a partir de quantas
+ * opções existem (ver `FontSelect.tsx`), então acrescentar fonte aqui é só acrescentar fonte.
  *
- * Montserrat e JetBrains Mono são as duas ÚNICAS que não vêm no Windows: elas vêm empacotadas em
- * `assets/fonts/` e são declaradas com `@font-face` no `global.css`. Sem aquele bloco, as duas
- * linhas abaixo cairiam no reserva em silêncio (ver o caso do Papyrus mais adiante neste arquivo).
+ * O que continua valendo ao mexer nesta lista:
+ *
+ * 1. A cadeia de RESERVA de cada fonte termina numa família genérica, nunca em outra fonte deste
+ *    menu. Quando a cadeia cai num item da própria lista, escolher uma dá visivelmente a outra — foi
+ *    o bug do Papyrus, relatado por ele (ver mais abaixo).
+ * 2. Só Montserrat e JetBrains Mono NÃO vêm no Windows: elas são empacotadas em `assets/fonts/` e
+ *    declaradas por `@font-face` no `global.css`. Fonte de fora sem esse par cai no reserva calada.
+ * 3. Fonte que só vem com o OFFICE (Century Gothic, Garamond) não entra: na máquina que não tem
+ *    Office ela vira outra coisa sem avisar.
  */
 export const FONT_OPTIONS = [
   { id: 'tahoma', label: 'Tahoma (clássica)', family: "Tahoma, 'MS Sans Serif', Geneva, sans-serif" },
@@ -68,9 +69,33 @@ export const FONT_OPTIONS = [
   // Empacotada (`global.css`). O reserva atrás dela é a outra sans moderna da lista, não a Tahoma:
   // se um dia o `@font-face` sumir, o menos pior é cair em algo do mesmo peso visual.
   { id: 'montserrat', label: 'Montserrat', family: "Montserrat, 'Segoe UI', Tahoma, sans-serif" },
+  /**
+   * Pedido do usuário, com o crédito de quem indicou — mesmo esquema da JetBrains Mono e da Janda
+   * Silly Monkey.
+   *
+   * Não é empacotada e não precisa: a Arial vem com o Windows desde sempre. O reserva é a Helvetica
+   * (que no Windows o próprio sistema resolve como Arial) e depois a genérica `sans-serif` — nenhuma
+   * das duas é item deste menu, que é a regra que o caso da Papyrus deixou aqui: cadeia de reserva
+   * terminando em outra opção da lista faz escolher uma dar visivelmente a outra.
+   */
+  { id: 'arial', label: 'Arial', family: 'Arial, Helvetica, sans-serif', credit: 'by dan' },
   { id: 'verdana', label: 'Verdana', family: 'Verdana, Geneva, sans-serif' },
+  /**
+   * As cinco abaixo entraram no fechamento do alfa, a pedido do usuário ("adicionar mais algumas
+   * fontes"). Todas vêm COM O WINDOWS — nenhuma é do Office nem precisa ser empacotada.
+   *
+   * O reserva de cada uma termina na família GENÉRICA (`sans-serif`, `serif`, `monospace`) e nunca
+   * em outra fonte deste menu. É a regra que o caso da Papyrus deixou aqui: quando a cadeia de
+   * reserva cai numa fonte que também é item da lista, escolher uma dá visivelmente a outra, e isso
+   * já virou bug relatado neste projeto.
+   */
+  { id: 'trebuchet', label: 'Trebuchet MS', family: "'Trebuchet MS', sans-serif" },
+  { id: 'candara', label: 'Candara', family: 'Candara, sans-serif' },
   { id: 'times', label: 'Times New Roman', family: "'Times New Roman', Times, serif" },
+  { id: 'georgia', label: 'Georgia', family: 'Georgia, serif' },
+  { id: 'palatino', label: 'Palatino', family: "'Palatino Linotype', 'Book Antiqua', serif" },
   { id: 'courier', label: 'Courier New', family: "'Courier New', Courier, monospace" },
+  { id: 'consolas', label: 'Consolas', family: 'Consolas, monospace' },
   // Empacotada (`global.css`). Reserva na Consolas e na Courier — as duas monoespaçadas que o
   // Windows garante, pela mesma razão da linha da Montserrat.
   {
