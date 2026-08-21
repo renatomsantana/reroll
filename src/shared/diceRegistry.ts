@@ -16,17 +16,40 @@ export const DEFAULT_DICE_SIDES: readonly number[] = [4, 6, 8, 10, 12, 20, 100]
  * silenciosamente na hora de rolar, com o total/rótulo batendo com a contagem original,
  * não com o que de fato foi rolado.
  *
- * Reduzido de 24 pra 10 originalmente: com o arremesso de fora e de CIMA da bandeja (dados
- * nascem bem acima e do lado de fora, como alguém em pé jogando pra dentro — ver
- * `SPAWN_CONFIG.launchHeightRange`), quantidades grandes convergindo ao mesmo tempo tinham
- * uma chance real de um dado ficar preso do lado de fora depois de esbarrar noutro no meio
- * da entrada (ver `ENTRY_FORCE_PUSH_TIMEOUT_MS` em `collisionGroups.ts` — o teto de tempo
- * "fantasma" sem colidir com a parede não existia ainda). Reavaliado depois de corrigir
- * esse teto: `diceEscape.test.ts` e um sweep de contagens (10 e 15, 15 rodadas cada) passaram
- * a mostrar 100% de assentamento e ZERO escapes em ambos, contra a degradação observada
- * antes a partir de 12. Subido de 10 pra 15 com essa validação.
+ * O número foi MEDIDO três vezes, e a história importa porque ela é o argumento contra mexer nele
+ * no chute:
+ *
+ * - 24 → 10. Com o arremesso de fora e de CIMA da bandeja (os dados nascem bem acima e do lado de
+ *   fora, como alguém em pé jogando pra dentro — ver `SPAWN_CONFIG.launchHeightRange`), quantidades
+ *   grandes convergindo ao mesmo tempo tinham chance real de um dado ficar preso do lado de fora
+ *   depois de esbarrar noutro no meio da entrada. Faltava o teto de tempo "fantasma" sem colidir
+ *   com a parede (`ENTRY_FORCE_PUSH_TIMEOUT_MS` em `collisionGroups.ts`).
+ * - 10 → 15. Com aquele teto no lugar, um sweep de 10 e 15 dados (15 rodadas cada) passou a mostrar
+ *   100% de assentamento e zero escapes, contra a degradação que aparecia a partir de 12.
+ * - 15 → 20, a pedido do usuário. Medido de novo, agora nas QUATRO formas de bandeja (triângulo,
+ *   quadrado, hexágono e círculo) e em 15/18/20/22 dados, 6 rodadas cada, reaproveitando os mesmos
+ *   corpos entre rodadas: 100% de assentamento e ZERO escapes em todas as 16 combinações. A
+ *   distribuição das faces observadas nesses 1800 dados ficou entre 15,4% e 17,5% (o esperado é
+ *   16,7%), ou seja, a física não vicia número nenhum nem com a bandeja cheia.
+ *
+ * PRA MEXER DE NOVO: repita a medição. `trayShapes.test.ts`, `towerShapes.test.ts` e
+ * `diceEscape.test.ts` já rodam no limite atual e falham se ele passar do que a bandeja aguenta —
+ * mas eles conferem o limite, não descobrem qual deveria ser.
  */
-export const MAX_SIMULTANEOUS_DICE = 15
+export const MAX_SIMULTANEOUS_DICE = 20
+
+/**
+ * Quantas vezes um MESMO dado pode explodir em cadeia (ver `ExplodeRule` em `types/dice.ts`).
+ *
+ * Vive aqui, junto do outro teto, porque os dois protegem da mesma coisa por caminhos diferentes: um
+ * limita quantos dados entram, o outro quantas vezes cada um pode voltar. Sem este, um d4 — que tem
+ * 25% de chance de continuar a cada lançamento — é uma cadeia que termina "quase sempre", e "quase
+ * sempre" dentro de um laço é um app travado na vez em que não terminar.
+ *
+ * Dez: a chance de um d4 chegar lá é uma em um milhão, e mesmo assim o dado vale no máximo 44 —
+ * grande o bastante pra ser a história da noite, pequeno o bastante pra caber na tela.
+ */
+export const MAX_EXPLOSOES_POR_DADO = 10
 
 export interface DiceColor {
   bg: string

@@ -244,10 +244,55 @@ export function TrayPreview({
   const towerColorsRef = useRef(towerColors)
   towerColorsRef.current = towerColors
 
+  /**
+   * A MONTAGEM ESPERA UM QUADRO, e essa linha é o conserto de um engasgo medido.
+   *
+   * Criar um `WebGLRenderer` custa ~15ms, e a aba Estilo cria DOIS (o dado e a bandeja) mais as
+   * cenas, luzes, geometrias e texturas de cada um — tudo dentro do mesmo quadro em que a aba
+   * aparece. Medido no app instalado: trocar pra Estilo custava 66ms, ou seja, quatro quadros
+   * perdidos de uma vez. É o tipo de engasgo que não parece bug, parece "o app é meio pesado".
+   *
+   * Adiando, a aba PINTA primeiro — texto, botões, paletas, tudo no lugar — e a prévia entra logo
+   * depois. O trabalho é o mesmo; o que muda é ele não acontecer entre o clique e a tela.
+   *
+   * DOIS `requestAnimationFrame` aninhados, e não um. É a parte que erra fácil: o callback do rAF
+   * roda ANTES da pintura do quadro, então adiar um só empurra o trabalho pra dentro do mesmo
+   * quadro — a tela continua esperando por ele, e a medição não muda em nada (foi o que aconteceu na
+   * primeira tentativa). Com o segundo aninhado, a pintura do primeiro quadro já aconteceu quando a
+   * montagem começa.
+   *
+   * O `cancelado` é o que impede o caso feio: trocar de aba rápido demais desmontaria o componente
+   * antes de o quadro chegar, e a montagem rodaria criando um renderer que ninguém iria descartar.
+   */
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
+    let desmontar: (() => void) | null = null
+    let cancelado = false
+    let agendado = requestAnimationFrame(() => {
+      agendado = requestAnimationFrame(() => {
+        if (cancelado) return
+        desmontar = montarPrevia(container)
+      })
+    })
+
+    return () => {
+      cancelado = true
+      cancelAnimationFrame(agendado)
+      desmontar?.()
+    }
+    /**
+     * `montarPrevia` fora da lista de propósito: ela é uma declaração de função, recriada a cada
+     * render, e listá-la reconstruiria a cena 3D inteira a cada mudança de estado do componente —
+     * que é o oposto do que este efeito passou a existir pra evitar. Quem manda aqui continua sendo
+     * a forma da bandeja e a presença da torre, porque a geometria das duas nasce na construção.
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trayShape, showTower])
+
+  /** Tudo o que a prévia precisa criar. Devolve a função que descarta. */
+  function montarPrevia(container: HTMLDivElement): () => void {
     const scene = new THREE.Scene()
     /**
      * Bandeja, estojo e torre giram JUNTOS, num grupo só. Girar só a bandeja deixaria os outros
@@ -336,9 +381,9 @@ export function TrayPreview({
       caseRef.current = null
       towerRef.current = null
     }
-    // Só no mount: as cores entram pelos efeitos abaixo, sem remontar a cena.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trayShape, showTower]) // forma e presença da torre reconstroem: a geometria nasce na montagem
+    // As cores entram pelos efeitos abaixo, sem reconstruir a cena — só forma e torre reconstroem,
+    // porque a geometria das duas nasce aqui.
+  }
 
   useEffect(() => {
     const wall = hexStringToNumber(wallColor)

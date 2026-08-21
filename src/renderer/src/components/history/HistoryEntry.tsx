@@ -21,7 +21,17 @@ export function HistoryEntry({ result }: { result: RollResult }) {
    */
   const marcas = result.keep ? mantidosPorGrupo(result.groups, result.keep) : null
   const allRolls = result.groups.flatMap((g, gi) =>
-    g.rolls.map((value, i) => ({ sides: g.sides, value, conta: marcas ? marcas[gi][i] : true }))
+    g.rolls.map((value, i) => ({
+      sides: g.sides,
+      value,
+      conta: marcas ? marcas[gi][i] : true,
+      /**
+       * As faces que compuseram este dado, quando ele EXPLODIU. Sem isto, um d6 aparece no histórico
+       * valendo 14 — a pessoa olha o número, sabe que um d6 não faz 14, e desconfia do resto da
+       * linha. Com a cadeia, "14" vira "14 (6 + 6 + 2)" e a conta se explica sozinha.
+       */
+      cadeia: (g.chains?.[i]?.length ?? 0) > 1 ? g.chains?.[i] : undefined
+    }))
   )
 
   return (
@@ -50,9 +60,20 @@ export function HistoryEntry({ result }: { result: RollResult }) {
               <span
                 className={`history-entry-roll-value ${roll.conta ? '' : 'history-entry-roll-descartado'}`}
                 style={{ background: color.bg, color: color.text }}
-                title={roll.conta ? `d${roll.sides}` : `d${roll.sides} — não conta pro total`}
+                title={
+                  [
+                    `d${roll.sides}`,
+                    roll.cadeia ? `explodiu: ${roll.cadeia.join(' + ')}` : null,
+                    roll.conta ? null : 'não conta pro total'
+                  ]
+                    .filter(Boolean)
+                    .join(' — ')
+                }
               >
                 {roll.value}
+                {/* A marca de explosão fica GRUDADA no número, e não no fim da linha: é aquele
+                    dado que explodiu, não a rolagem inteira. */}
+                {roll.cadeia && <span className="history-entry-explodiu">💥</span>}
               </span>
             </span>
           )

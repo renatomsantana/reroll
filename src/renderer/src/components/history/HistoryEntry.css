@@ -52,3 +52,14 @@
   opacity: 0.45;
   text-decoration: line-through;
 }
+
+/*
+ * Marca de dado que EXPLODIU, colada no número. Pequena de propósito: a informação principal
+ * continua sendo o valor, e a cadeia inteira ("6 + 6 + 2") está no `title` pra quem quiser conferir.
+ */
+.history-entry-explodiu {
+  font-size: 8px;
+  line-height: 1;
+  margin-left: 2px;
+  vertical-align: super;
+}

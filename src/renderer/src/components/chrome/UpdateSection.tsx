@@ -10,7 +10,7 @@ import { Button } from '../common/Button'
  * O fluxo é o que o usuário desenhou: o app descobre em silêncio que existe versão nova, e quem
  * decide é quem está usando — clicar em "Atualizar", responder "deseja atualizar?" e depois "tem
  * certeza?". Só então o download começa. As duas perguntas são de propósito: a partir do "sim" o
- * app baixa 76MB e reinicia sozinho, e isso não pode acontecer por clique errado.
+ * app baixa ~100MB e reinicia sozinho, e isso não pode acontecer por clique errado.
  */
 export function UpdateSection() {
   const t = useTranslation()

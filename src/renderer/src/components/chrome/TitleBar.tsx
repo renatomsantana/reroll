@@ -8,7 +8,15 @@ export function TitleBar() {
   const { appIconId, compactMode, setCompactMode } = useSettings()
 
   function handleMaximize() {
-    window.api.windowControls.maximize()
+    /**
+     * `void` nos três botões da barra de título (aqui, minimizar e fechar): são chamadas de IPC, ou
+     * seja, promessas. Se o processo principal cair, a rejeição não tem dono — e como estes três não
+     * TÊM o que mostrar em caso de falha (a janela não minimizou, a pessoa está vendo), o console é
+     * o lugar certo do recado.
+     */
+    void window.api.windowControls.maximize().catch((causa: unknown) => {
+      console.error('Falha ao maximizar a janela:', causa)
+    })
   }
 
   /**
@@ -41,7 +49,7 @@ export function TitleBar() {
           type="button"
           className="titlebar-btn"
           aria-label="Minimizar"
-          onClick={() => window.api.windowControls.minimize()}
+          onClick={() => void window.api.windowControls.minimize()}
         >
           &#x2013;
         </button>
@@ -69,7 +77,7 @@ export function TitleBar() {
           type="button"
           className="titlebar-btn titlebar-btn-close"
           aria-label="Fechar"
-          onClick={() => window.api.windowControls.close()}
+          onClick={() => void window.api.windowControls.close()}
         >
           &#x2715;
         </button>

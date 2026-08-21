@@ -18,10 +18,19 @@ export function usePresets() {
     // descartada, senão a lista de presets do anterior fica na tela como se fosse a do atual.
     let atual = true
     setLoading(true)
-    window.api.presets
+    void window.api.presets
       .getAll()
       .then((carregados) => {
         if (atual) setPresets(carregados)
+      })
+      /**
+       * Falha de LEITURA vira lista vazia e uma linha no console, e não uma rejeição sem dono.
+       * Sem o `catch`, `presets.json` ilegível deixava o app preso em "carregando" pra sempre — o
+       * `finally` até rodava, mas a promessa rejeitada não tinha quem a tratasse.
+       */
+      .catch((causa: unknown) => {
+        console.error('Falha ao ler os presets do personagem:', causa)
+        if (atual) setPresets([])
       })
       .finally(() => {
         if (atual) setLoading(false)

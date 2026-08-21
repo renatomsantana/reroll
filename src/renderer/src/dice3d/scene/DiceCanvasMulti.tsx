@@ -919,6 +919,17 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     const onCaseClickRef = useRef(onCaseClick)
     onCaseClickRef.current = onCaseClick
 
+    /**
+     * "Algo que projeta sombra mudou" — ver `shadowMap.autoUpdate` na montagem da cena.
+     *
+     * Com o mapa de sombras deixando de se refazer sozinho a cada quadro, quem MEXE na cena fora do
+     * laço precisa avisar. Sem isto há um defeito visível e específico: clicar em "+" pra somar um
+     * dado põe um dado novo na bandeja e a sombra dele não existe até a rolagem seguinte.
+     *
+     * Num ref, e não em estado, porque quem lê é o laço de animação — que roda fora do React.
+     */
+    const precisaDeSombraRef = useRef(true)
+
     /** Espelham as props mais recentes pro efeito de resync (abaixo) nunca usar valores desatualizados de cor/acabamento, mesmo que o próprio efeito só dispare por causa de `groups`. */
     const diceColorsRef = useRef(diceColors)
     diceColorsRef.current = diceColors
@@ -988,6 +999,20 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       const renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.shadowMap.enabled = true
       renderer.shadowMap.type = THREE.PCFSoftShadowMap
+      /**
+       * O MAPA DE SOMBRAS não se refaz sozinho a cada quadro.
+       *
+       * `autoUpdate` é `true` por padrão no three.js, e o que isso quer dizer é que a cena inteira é
+       * desenhada MAIS UMA VEZ, do ponto de vista da luz, em todo quadro — inclusive com os dados
+       * parados há dez minutos e a sombra sendo exatamente a mesma. Numa cena com sombra suave
+       * (`PCFSoftShadowMap`) esse segundo desenho é uma boa fatia do custo do quadro.
+       *
+       * Aqui ele passa a ser PEDIDO: `needsUpdate` é ligado enquanto há dado se mexendo, e mais uma
+       * vez quando tudo assenta — esse último é o que importa, porque é ele que grava a sombra final
+       * dos dados onde eles pararam. Ver `precisaDeSombra` no laço.
+       */
+      renderer.shadowMap.autoUpdate = false
+      renderer.shadowMap.needsUpdate = true
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
       container.appendChild(renderer.domElement)
 
@@ -1528,21 +1553,110 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       let lastFrameTime = performance.now()
       /** Último instante em que a cena foi DESENHADA (ver o teto de quadros abaixo). */
       let ultimoDesenhoMs = 0
+      /**
+       * A sombra precisa ser refeita neste quadro? Ver `shadowMap.autoUpdate` na montagem.
+       *
+       * Começa ligado (a primeira sombra tem que existir) e é religado sempre que algo que projeta
+       * sombra se mexe — ou seja, enquanto há dado rolando, e uma última vez quando o último assenta.
+       */
+      let precisaDeSombra = true
+      let estavaRolando = false
+      /**
+       * QUEM ESTÁ SE MEXENDO AGORA — a pergunta que decide quanto trabalho este quadro custa.
+       *
+       * `rolling`, mais o `queued` que JÁ TEM hora de sair. Não dá pra escrever `phase !== 'done'`,
+       * que era a versão óbvia: no modo torre os dados nascem `queued` e ficam PARQUEADOS —
+       * invisíveis, fora da simulação — até alguém clicar em rolar, e com aquele teste a torre nunca
+       * sairia do modo caro. O `releaseAtMs` é o que separa dado parqueado de dado na fila da boca.
+       */
+      function temDadoSeMexendo(): boolean {
+        return diceRef.current.some(
+          (die) => die.phase === 'rolling' || (die.phase === 'queued' && die.releaseAtMs !== undefined)
+        )
+      }
+
       function tick() {
         const now = performance.now()
         const deltaSeconds = (now - lastFrameTime) / 1000
         lastFrameTime = now
+
+        /**
+         * A CENA ESTÁ NA TELA? `display: none` deixa `clientWidth` em zero, e é assim que a aba de
+         * rolagem some sem ser desmontada (ver `App.tsx`).
+         *
+         * Isto era consultado só na hora de DESENHAR — o resto do quadro rodava igual, escondido ou
+         * não. Medido no app instalado: 5,4% de CPU na aba Ficha e 3,0% nas Anotações, com a cena
+         * invisível e ninguém mexendo em nada, a 165 quadros por segundo. É o "pequeno lag em tudo"
+         * que o usuário descreveu — a cena 3D competindo com o React pela mesma thread em telas onde
+         * ela nem aparece.
+         */
+        const visivel = !!container && container.clientWidth > 0 && container.clientHeight > 0
+        const rolando = temDadoSeMexendo()
+
+        /**
+         * FÍSICA: só enquanto há dado se mexendo — e aí SIM mesmo com a aba escondida.
+         *
+         * A segunda metade é de propósito e não pode ser simplificada: quem rola e troca de aba no
+         * meio quer voltar e encontrar o resultado pronto, não os dados congelados no ar.
+         *
+         * A primeira metade é a economia. Com tudo parado, `world.step()` e o laço de `updateDie`
+         * (agora até vinte dados, cada um consultando colisor, rastreador de repouso e leitura de
+         * face) rodavam 165 vezes por segundo pra concluir, toda vez, que nada mudou.
+         */
+        if (rolando && stepPhysics) {
+          const simulatedSeconds = stepPhysics(deltaSeconds)
+          for (const die of diceRef.current) updateDie(die, simulatedSeconds)
+        }
+
+        /**
+         * ESCONDIDA: acaba aqui. O que sobra do quadro é animação e desenho, e nenhum dos dois tem
+         * sentido numa tela que ninguém está vendo — a bandeira tremulando atrás de um `display:
+         * none` é trabalho puro.
+         *
+         * O laço continua vivo (o `requestAnimationFrame` abaixo) porque ele precisa estar de pé no
+         * quadro em que a aba voltar. Um `tick` que só faz duas comparações e reagenda é
+         * praticamente de graça.
+         */
+        if (!visivel) {
+          frameId = requestAnimationFrame(tick)
+          return
+        }
+
+        /**
+         * TETO DE QUADROS. Antes disto a cena era desenhada a CADA quadro do `requestAnimationFrame`,
+         * que é a taxa do monitor — no monitor do usuário, 164 Hz a 2560×1440. Ou seja: 164
+         * renderizações por segundo de uma cena com sombra e reflexo, sem parar, com os dados
+         * parados e ninguém mexendo em nada. Isso mantém a GPU sob carga constante, e foi assim que
+         * ele percebeu: um chiado que só existia na aba de rolagem e sumia nas outras (som do app
+         * nenhum depende de aba; a cena 3D é a única coisa que só vive aqui).
+         *
+         * Três taxas, e a diferença entre elas é o que está acontecendo na tela:
+         *
+         * - dado em movimento: taxa cheia, porque é a hora em que a suavidade importa de verdade;
+         * - mexendo na câmera: taxa cheia também, senão o arrasto fica travado na mão;
+         * - cena parada: 30, que é de sobra pro que continua se mexendo sozinho — a bandeira
+         *   tremulando e a respiração da pelúcia, as duas lentas.
+         *
+         * O teto agora governa TAMBÉM as animações, e não só o desenho. Elas ficavam de fora, e o
+         * resultado era pano de bandeira e respiração de pelúcia sendo recalculados 165 vezes por
+         * segundo pra serem desenhados 30 — cinco sextos daquele trabalho iam direto pro lixo.
+         *
+         * A FÍSICA continua fora do teto, e isso segue sendo de propósito: ela é passada acima com o
+         * `deltaSeconds` real. Limitar o desenho é economia; limitar a simulação mudaria o
+         * comportamento dos dados, que é a última coisa que se quer mexer aqui.
+         */
+        const mexendoNaCamera = now - ultimaInteracaoMs < 400
+        const alvoFps = rolando || mexendoNaCamera ? FPS_ATIVO : FPS_PARADO
+        if (now - ultimoDesenhoMs < 1000 / alvoFps - 1) {
+          frameId = requestAnimationFrame(tick)
+          return
+        }
 
         if (hud && deltaSeconds > 0) {
           // Suavizado (média móvel exponencial) — o FPS instantâneo cru pula demais
           // frame a frame pra ser legível num overlay de texto.
           fpsSmoothed = fpsSmoothed * 0.9 + (1 / deltaSeconds) * 0.1
           hud.updateFps(fpsSmoothed)
-        }
-
-        if (stepPhysics) {
-          const simulatedSeconds = stepPhysics(deltaSeconds)
-          for (const die of diceRef.current) updateDie(die, simulatedSeconds)
         }
 
         // Abertura da tampa do estojo (ver `createShelfCaseMesh`) — puramente visual, fora da
@@ -1606,50 +1720,26 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         // arquivo, e `applyKeyboardCamera`).
         applyKeyboardCamera(Math.min(deltaSeconds, 0.1))
         controls.update()
+        ultimoDesenhoMs = now
         /**
-         * Não desenha enquanto a aba está escondida — mas a FÍSICA acima continua rodando, e isso é
-         * de propósito: quem rola e troca de aba no meio quer voltar e encontrar o resultado pronto,
-         * não os dados congelados no ar.
+         * A sombra é refeita enquanto os dados se mexem e MAIS UMA VEZ no quadro seguinte ao último
+         * assentar — essa última é a que registra a sombra deles parados onde caíram. Fora disso, o
+         * mapa da vez anterior continua valendo, porque nada que projeta sombra mudou de lugar.
          */
-        /**
-         * TETO DE QUADROS. Antes disto a cena era desenhada a CADA quadro do `requestAnimationFrame`,
-         * que é a taxa do monitor — no monitor do usuário, 164 Hz a 2560×1440. Ou seja: 164
-         * renderizações por segundo de uma cena com sombra e reflexo, sem parar, com os dados
-         * parados e ninguém mexendo em nada. Isso mantém a GPU sob carga constante, e foi assim que
-         * ele percebeu: um chiado que só existia na aba de rolagem e sumia nas outras (som do app
-         * nenhum depende de aba; a cena 3D é a única coisa que só vive aqui).
-         *
-         * Três taxas, e a diferença entre elas é o que está acontecendo na tela:
-         *
-         * - dado em movimento: taxa cheia, porque é a hora em que a suavidade importa de verdade;
-         * - mexendo na câmera: taxa cheia também, senão o arrasto fica travado na mão;
-         * - cena parada: 30, que é de sobra pro que continua se mexendo sozinho — a bandeira
-         *   tremulando e a respiração da pelúcia, as duas lentas.
-         *
-         * A FÍSICA fica de fora do teto, e isso é de propósito: ela continua sendo passada acima em
-         * todo quadro, com o `deltaSeconds` real. Limitar o desenho é economia de GPU; limitar a
-         * simulação mudaria o comportamento dos dados, que é a última coisa que se quer mexer aqui.
-         */
-        /**
-         * "Tem dado se mexendo" é `rolling`, mais o `queued` que JÁ TEM hora de sair.
-         *
-         * Não dá pra escrever `phase !== 'done'`, que era a versão óbvia: no modo torre os dados
-         * nascem `queued` e ficam PARQUEADOS — invisíveis, fora da simulação — até alguém clicar em
-         * rolar. Com aquele teste, o modo torre nunca sairia da taxa cheia, que é exatamente o
-         * cenário que este teto existe pra cobrir. O `releaseAtMs` é o que separa dado parqueado de
-         * dado na fila da boca esperando a vez.
-         */
-        const rolando = diceRef.current.some(
-          (die) => die.phase === 'rolling' || (die.phase === 'queued' && die.releaseAtMs !== undefined)
-        )
-        const mexendoNaCamera = now - ultimaInteracaoMs < 400
-        const alvoFps = rolando || mexendoNaCamera ? FPS_ATIVO : FPS_PARADO
-        const podeDesenhar = now - ultimoDesenhoMs >= 1000 / alvoFps - 1
-
-        if (podeDesenhar && container && container.clientWidth > 0 && container.clientHeight > 0) {
-          ultimoDesenhoMs = now
-          renderer.render(scene, camera)
+        if (rolando || estavaRolando) precisaDeSombra = true
+        estavaRolando = rolando
+        // A tampa do estojo abrindo/fechando move geometria por vários quadros seguidos.
+        if (lidAnimationRef.current) precisaDeSombra = true
+        // E qualquer mexida na cena vinda de fora do laço (dado somado, forma trocada).
+        if (precisaDeSombraRef.current) {
+          precisaDeSombra = true
+          precisaDeSombraRef.current = false
         }
+
+        renderer.shadowMap.needsUpdate = precisaDeSombra
+        precisaDeSombra = false
+
+        renderer.render(scene, camera)
         frameId = requestAnimationFrame(tick)
       }
       tick()
@@ -1807,6 +1897,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       const world = worldRef.current
       const scene = sceneRef.current
       if (!world || !scene) return
+
+      // Os dados na bandeja vão mudar: a sombra da vez anterior não vale mais.
+      precisaDeSombraRef.current = true
 
       for (const die of diceRef.current) {
         die.debug?.visuals.dispose()
@@ -2001,7 +2094,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       }, COLOR_UPDATE_DEBOUNCE_MS)
 
       return () => window.clearTimeout(timeoutId)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     }, [diceColors, material, wallColor, backgroundColor, floorColor, backgroundImage])
 
     /**

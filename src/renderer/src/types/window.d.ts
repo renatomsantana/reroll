@@ -1,7 +1,8 @@
 import type { Preset, PresetInput } from '@shared/types/preset'
 import type { NotesData } from '@shared/types/notes'
 import type { UpdateStatus } from '@shared/types/update'
-import type { ProfilesState } from '@shared/types/profile'
+import type { Profile, ProfilesState } from '@shared/types/profile'
+import type { PdfEscolhido, SheetApplyPayload } from '@shared/types/sheetImport'
 
 export interface RolladorApi {
   presets: {
@@ -31,6 +32,18 @@ export interface RolladorApi {
   }
   scene: {
     pickBackgroundImage: () => Promise<string | null>
+  }
+  sheets: {
+    pickPdf: () => Promise<PdfEscolhido>
+    /**
+     * O tipo vem do PROCESSO PRINCIPAL, que é quem executa isto — e não redigitado aqui.
+     *
+     * Ele já era uma cópia à mão do `SheetApplyPayload`, e as duas versões divergiram: o campo
+     * ficou sem o `roll` de cada campo (o que põe o botão de dado na ficha) e sem o personagem de
+     * destino. Como este arquivo é só a declaração do que o preload expõe, a divergência não
+     * quebrava a compilação — ela apagava informação na travessia, calada.
+     */
+    apply: (payload: SheetApplyPayload) => Promise<Profile>
   }
   update: {
     getVersion: () => Promise<string>

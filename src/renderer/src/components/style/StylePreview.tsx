@@ -62,10 +62,48 @@ export function StylePreview({ sides, bodyColor, numberColor, material }: StyleP
    */
   const textureCacheRef = useRef<DiceTextureCache>(new Map())
 
+  /**
+   * A MONTAGEM ESPERA UM QUADRO, e essa linha é o conserto de um engasgo medido.
+   *
+   * Criar um `WebGLRenderer` custa ~15ms, e a aba Estilo cria DOIS (o dado e a bandeja) mais as
+   * cenas, luzes, geometrias e texturas de cada um — tudo dentro do mesmo quadro em que a aba
+   * aparece. Medido no app instalado: trocar pra Estilo custava 66ms, ou seja, quatro quadros
+   * perdidos de uma vez. É o tipo de engasgo que não parece bug, parece "o app é meio pesado".
+   *
+   * Adiando, a aba PINTA primeiro — texto, botões, paletas, tudo no lugar — e a prévia entra logo
+   * depois. O trabalho é o mesmo; o que muda é ele não acontecer entre o clique e a tela.
+   *
+   * DOIS `requestAnimationFrame` aninhados, e não um. É a parte que erra fácil: o callback do rAF
+   * roda ANTES da pintura do quadro, então adiar um só empurra o trabalho pra dentro do mesmo
+   * quadro — a tela continua esperando por ele, e a medição não muda em nada (foi o que aconteceu na
+   * primeira tentativa). Com o segundo aninhado, a pintura do primeiro quadro já aconteceu quando a
+   * montagem começa.
+   *
+   * O `cancelado` é o que impede o caso feio: trocar de aba rápido demais desmontaria o componente
+   * antes de o quadro chegar, e a montagem rodaria criando um renderer que ninguém iria descartar.
+   */
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
+    let desmontar: (() => void) | null = null
+    let cancelado = false
+    let agendado = requestAnimationFrame(() => {
+      agendado = requestAnimationFrame(() => {
+        if (cancelado) return
+        desmontar = montarPrevia(container)
+      })
+    })
+
+    return () => {
+      cancelado = true
+      cancelAnimationFrame(agendado)
+      desmontar?.()
+    }
+  }, [])
+
+  /** Tudo o que a prévia precisa criar. Devolve a função que descarta. */
+  function montarPrevia(container: HTMLDivElement): () => void {
     const scene = new THREE.Scene()
     sceneRef.current = scene
 
@@ -102,12 +140,23 @@ export function StylePreview({ sides, bodyColor, numberColor, material }: StyleP
       renderer.render(scene, camera)
     })
 
+    /**
+     * O cache é capturado numa variável AQUI, e não lido de `.current` dentro da limpeza.
+     *
+     * Na prática dá no mesmo — o `Map` é criado uma vez e nunca trocado, só mutado. Mas a limpeza
+     * roda muito depois, e a regra que aponta isso está apontando uma classe de defeito real: no
+     * dia em que alguém trocar o `Map` inteiro (`textureCacheRef.current = new Map()`), a limpeza
+     * passaria a descartar as texturas do mapa NOVO e vazaria as do antigo — uma por número, por
+     * cor, em silêncio. Capturar agora custa uma linha e fecha isso pra sempre.
+     */
+    const cacheDeTexturas = textureCacheRef.current
+
     return () => {
       stopLoop()
       resizeObserver.disconnect()
       if (meshRef.current) disposeMesh(meshRef.current)
-      for (const texture of textureCacheRef.current.values()) texture.dispose()
-      textureCacheRef.current.clear()
+      for (const texture of cacheDeTexturas.values()) texture.dispose()
+      cacheDeTexturas.clear()
       environment.dispose()
       disposeScene(scene)
       disposePreviewRenderer(renderer, container)
@@ -115,7 +164,7 @@ export function StylePreview({ sides, bodyColor, numberColor, material }: StyleP
       sceneRef.current = null
       cameraRef.current = null
     }
-  }, [])
+  }
 
   const isFirstUpdate = useRef(true)
   useEffect(() => {

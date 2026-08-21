@@ -1,6 +1,48 @@
 # Reroll
 
-App desktop de rolagem de dados para RPG. Funciona 100% offline, com presets de ataque/magia salvos localmente no seu computador. Feito com Electron + React + TypeScript.
+App desktop de rolagem de dados para RPG. Funciona 100% offline, com presets de ataque/magia salvos
+localmente no seu computador. Feito com Electron + React + TypeScript.
+
+Licença: [MIT](LICENSE). Créditos de fontes e arte de terceiros: [NOTICE.md](NOTICE.md).
+Histórico de versões: [CHANGELOG.md](CHANGELOG.md). Quer contribuir? [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Privacidade — o que o Reroll faz com os seus dados
+
+Nada sai do seu computador. Isso não é uma promessa de boa vontade; está **imposto em código**, e dá
+para conferir:
+
+- **Nenhuma requisição de rede**, exceto uma pergunta ao GitHub sobre versão nova (e o download do
+  instalador, se você mandar atualizar). Qualquer outro destino é bloqueado na sessão do Electron,
+  antes de a conexão sair da máquina — ver a lista branca em
+  [`src/main/seguranca.ts`](src/main/seguranca.ts).
+- **Nenhuma permissão do sistema é pedida**: câmera, microfone, localização, notificação, área de
+  transferência. Todas negadas por padrão, no mesmo arquivo.
+- **Nenhuma telemetria, nenhuma conta, nenhum cadastro.** O app não sabe quem você é.
+- **Seus dados ficam em `%APPDATA%\Reroll`** — presets, anotações, personagens e preferências, em
+  arquivos JSON que você pode abrir, copiar e levar embora.
+- A instalação é **por usuário** e **não pede administrador**.
+
+## Baixando e conferindo o instalador
+
+O Reroll **não tem certificado de assinatura digital** (eles custam caro para um projeto pessoal),
+então o Windows mostra um aviso do SmartScreen na primeira execução: clique em **Mais informações →
+Executar assim mesmo**.
+
+No lugar do certificado, o que existe é verificável:
+
+1. o código é aberto e está todo aqui;
+2. o instalador é construído pelo **GitHub Actions**, a partir do commit etiquetado — não pela
+   máquina de ninguém (ver [`.github/workflows/release.yml`](.github/workflows/release.yml));
+3. o **SHA-256** de cada instalador é publicado junto na página da release.
+
+Para conferir o arquivo que você baixou, no PowerShell:
+
+```powershell
+Get-FileHash .\Reroll-Setup-1.0.9.exe -Algorithm SHA256
+```
+
+O resultado tem que bater com a linha correspondente em `SHA256SUMS.txt`, anexado na mesma release.
+Se bater, o arquivo é exatamente o que saiu do build público.
 
 ## Rodando em modo desenvolvimento
 

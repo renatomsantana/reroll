@@ -1,7 +1,8 @@
-import { session, shell } from 'electron'
+import { app, Menu, session, shell, type Session, type WebContents } from 'electron'
 
 /**
- * As travas de sessão do app — as que valem pra TUDO que rodar dentro dele, e não só pra uma janela.
+ * As travas de segurança do app — as que valem pra TUDO que rodar dentro dele, e não só pra uma
+ * janela.
  *
  * Existe porque o app é distribuído pra gente que não é de computador ("vou mandar para muitos
  * amigos e pessoas que não manjam muito de pc"). Pra esse público, a garantia que importa não é uma
@@ -13,6 +14,12 @@ import { session, shell } from 'electron'
  * As duas são impostas aqui, na sessão, e não confiadas ao código da interface. Quem tentar sair
  * disso — uma dependência curiosa, um `<img>` apontando pra fora, código hostil que um dia consiga
  * rodar na página — bate nesta parede antes de chegar na rede.
+ *
+ * TUDO AQUI É POR EVENTO DO `app`, e não por janela, e essa é a diferença que o arquivo garante
+ * daqui pra frente: as travas de navegação viviam dentro do `createWindow`, então valiam pra AQUELA
+ * janela. Uma segunda janela criada um dia — uma ficha destacada, uma bandeja pro segundo monitor —
+ * nasceria sem nenhuma delas, e ninguém repararia, porque o app continuaria abrindo normalmente.
+ * Com `web-contents-created` e `session-created`, a trava alcança o que ainda não foi escrito.
  */
 
 /**
@@ -38,14 +45,31 @@ const DOMINIO_DE_ANEXO = 'githubusercontent.com'
  */
 const ESQUEMAS_LOCAIS = ['file:', 'data:', 'blob:', 'devtools:', 'chrome-extension:']
 
+/**
+ * O endereço do servidor de desenvolvimento, comparado por ORIGEM e não por prefixo de texto.
+ *
+ * O `startsWith` que estava aqui tinha exatamente o defeito que o comentário do `DOMINIO_DE_ANEXO`
+ * descreve pro lado do GitHub: com `ELECTRON_RENDERER_URL=http://localhost:5173`, o endereço
+ * `http://localhost:5173.dominio-de-alguem.net/` COMEÇA com ele e passava. Só vale em `npm run dev`
+ * (fora dali a variável não existe), mas é a mesma armadilha que já foi consertada uma vez a dois
+ * metros daqui — e é justamente no dev que a janela roda com o preload e as pontes de IPC abertas.
+ */
+function ehEnderecoDeDesenvolvimento(url: string): boolean {
+  const servidor = process.env.ELECTRON_RENDERER_URL
+  if (!servidor) return false
+  try {
+    return new URL(url).origin === new URL(servidor).origin
+  } catch {
+    return false
+  }
+}
+
 export function ehPermitido(url: string): boolean {
   try {
     const alvo = new URL(url)
     if (ESQUEMAS_LOCAIS.includes(alvo.protocol)) return true
     // Em `npm run dev` a interface é servida por um endereço local — sem isto, não há como programar.
-    if (process.env.ELECTRON_RENDERER_URL && url.startsWith(process.env.ELECTRON_RENDERER_URL)) {
-      return true
-    }
+    if (ehEnderecoDeDesenvolvimento(url)) return true
     // Só HTTPS. Em HTTP, qualquer um no caminho pode trocar o que o app baixa.
     if (alvo.protocol !== 'https:') return false
     if (HOSTS_PERMITIDOS.includes(alvo.hostname)) return true
@@ -56,10 +80,31 @@ export function ehPermitido(url: string): boolean {
   }
 }
 
-/** Instala as travas. Chamar UMA vez, depois do `app.whenReady()` e antes de abrir janela. */
-export function aplicarTravasDeSeguranca(): void {
-  const sessao = session.defaultSession
+/**
+ * Um endereço pode virar A PÁGINA do app? Só o que carrega a própria interface.
+ *
+ * É uma pergunta diferente de `ehPermitido`, e separá-las importa: aquela responde "pode sair um
+ * pedido de rede pra cá" e inclui o GitHub, porque o atualizador precisa dele. Se a navegação usasse
+ * a mesma lista, uma página do github.com poderia TOMAR O LUGAR da interface — rodando com o preload
+ * do Reroll, ou seja, com as mesmas pontes de IPC. Baixar um arquivo de um lugar e entregar a
+ * interface a ele são coisas de tamanhos bem diferentes.
+ */
+export function podeNavegarPara(url: string): boolean {
+  /**
+   * O SERVIDOR DE DESENVOLVIMENTO é a única resposta "sim", e `file:` NÃO está aqui de propósito.
+   *
+   * A interface empacotada não precisa dele: ela entra por `window.loadFile()`, que é chamada do
+   * processo principal e não passa por `will-navigate`. O que passaria por aqui com `file:` liberado
+   * seria uma navegação partindo DA PÁGINA — e um `file:///C:/...` colado numa anotação viraria uma
+   * página qualquer do disco tomando o lugar da interface, com o preload do Reroll junto. Ou seja,
+   * liberar `file:` não serve pra nada e abre justamente o caminho que este arquivo existe pra
+   * fechar.
+   */
+  return ehEnderecoDeDesenvolvimento(url)
+}
 
+/** As travas de uma sessão: permissão nenhuma, rede só pro caminho da atualização, zero extensões. */
+function travarSessao(sessao: Session): void {
   /**
    * PERMISSÕES: tudo negado, sem exceção.
    *
@@ -79,16 +124,143 @@ export function aplicarTravasDeSeguranca(): void {
    */
   sessao.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (detalhes, responder) => {
     if (ehPermitido(detalhes.url)) return responder({ cancel: false })
-    // eslint-disable-next-line no-console
+     
     console.warn('[segurança] pedido de rede bloqueado:', detalhes.url)
     responder({ cancel: true })
   })
 
   /**
-   * Nenhuma extensão do Chrome, nem plugin. O app não usa, e cada um seria código de terceiro
+   * Nenhum script de sessão pendurado na página. O app não usa, e cada um seria código de terceiro
    * rodando dentro dele com as permissões dele.
+   *
+   * Isto era `setPreloads([])`, que o Electron 43 marcou como obsoleto — API obsoleta some, e some
+   * sem avisar quem depende dela. O laço é o substituto direto, e ele NÃO alcança o preload do app:
+   * aquele vem de `webPreferences.preload` da janela, que é outro registro (é por isso que a
+   * documentação diz que o script de sessão roda ANTES dele). Além disso, a trava roda antes de
+   * qualquer janela existir, então nesse momento a lista está vazia de qualquer forma — o laço vale
+   * pelo dia em que uma dependência resolver registrar um.
    */
-  sessao.setPreloads([])
+  for (const script of sessao.getPreloadScripts()) sessao.unregisterPreloadScript(script.id)
+}
+
+/**
+ * As travas de NAVEGAÇÃO, aplicadas a todo `webContents` que o app criar — a janela de hoje e a que
+ * alguém escrever depois.
+ *
+ * Por que isso importa num app que só carrega arquivo local: se um dia entrar na tela qualquer
+ * texto que vire link — nota colada pelo usuário, ficha importada, mensagem de erro de terceiro —,
+ * um clique poderia trocar a interface do Reroll por uma página remota RODANDO COM O PRELOAD DELE,
+ * ou seja, com acesso às mesmas pontes de IPC. Bloquear navegação corta essa classe inteira de uma
+ * vez, e custa cinco linhas.
+ */
+function travarConteudo(conteudo: WebContents): void {
+  /**
+   * `setWindowOpenHandler` (abaixo) cobre janela nova; este cobre a navegação da PRÓPRIA janela, que
+   * é outro caminho: basta um `location.href`, um `<a>` ou um `<form>` pra a aba principal virar
+   * outra coisa.
+   */
+  conteudo.on('will-navigate', (evento, url) => {
+    if (podeNavegarPara(url)) return
+    evento.preventDefault()
+    // Link http(s) clicado dentro do app abre no navegador do sistema, como já acontece com janela nova.
+    abrirNoNavegador(url)
+  })
+
+  /**
+   * Navegação DENTRO de um quadro não passa por `will-navigate` — ela tem evento próprio. O app não
+   * usa `<iframe>` nenhum hoje, e é justamente por isso que a resposta certa é fechar a porta agora,
+   * em vez de contar com o fato de que ninguém vai adicionar um.
+   */
+  conteudo.on('will-frame-navigate', (evento) => {
+    if (podeNavegarPara(evento.url)) return
+    evento.preventDefault()
+    abrirNoNavegador(evento.url)
+  })
+
+  /**
+   * Anexar um webview seria outra janela, com outras permissões, dentro da nossa.
+   *
+   * O `preventDefault` já basta; o resto é o cinto do suspensório. Se um dia alguém precisar mesmo
+   * de um webview e tirar a proibição, o que ele NÃO vai ganhar de brinde é o preload do Reroll (com
+   * as pontes de IPC) nem o `require` do Node — as duas coisas que transformariam uma página de
+   * terceiro num pedaço do app.
+   */
+  conteudo.on('will-attach-webview', (evento, preferencias) => {
+    delete preferencias.preload
+    preferencias.nodeIntegration = false
+    evento.preventDefault()
+  })
+
+  conteudo.setWindowOpenHandler((detalhes) => {
+    // Só abre esquemas de navegador de verdade no browser padrão do sistema — nunca
+    // repassa `file:`/`javascript:`/outros esquemas pro `shell.openExternal` sem checar.
+    abrirNoNavegador(detalhes.url)
+    return { action: 'deny' }
+  })
+}
+
+/**
+ * O app roda EMPACOTADO? É o que separa a máquina de quem programa da de quem joga.
+ *
+ * Só isto, e não `NODE_ENV`: o `electron-vite` não carimba `NODE_ENV` no bundle do processo
+ * principal, então uma checagem por ele daria "desenvolvimento" dentro do app instalado — que é o
+ * lado errado de errar numa função que decide o que fica LIGADO em produção.
+ */
+function ehDesenvolvimento(): boolean {
+  return !app.isPackaged
+}
+
+/**
+ * TIRA O MENU PADRÃO do Electron na versão instalada — e com ele o DevTools.
+ *
+ * Isto conserta um buraco que passou despercebido desde o começo. A janela é `frame: false`, então
+ * nunca houve barra de menu VISÍVEL e era fácil supor que não havia menu nenhum. Mas quando ninguém
+ * chama `setApplicationMenu`, o Electron instala o menu padrão dele — invisível numa janela sem
+ * moldura, e com os ATALHOS todos funcionando. Medido dentro do Electron 43, numa janela oculta com
+ * a mesma configuração desta aqui:
+ *
+ *     View   > Toggle Developer Tools   Ctrl+Shift+I
+ *     View   > Reload                   Ctrl+R
+ *     View   > Force Reload             Ctrl+Shift+R
+ *     Window > Close                    Ctrl+W
+ *
+ * Três problemas, e o primeiro é o que a spec proíbe:
+ *
+ * 1. DEVTOOLS em produção. Um app não assinado que abre o inspetor do Chromium com um atalho é
+ *    exatamente o tipo de coisa que não se explica pra quem instalou confiando.
+ * 2. `Ctrl+R` RECARREGA a página no meio da partida. Remonta a cena 3D e apaga o histórico de
+ *    rolagens — que vive só na memória —, e nada na tela explica o que aconteceu.
+ * 3. `Ctrl+W` fecha a janela sem passar pelo botão de fechar do app.
+ *
+ * Em DESENVOLVIMENTO o menu fica, porque é ali que o inspetor e o recarregar são a ferramenta.
+ *
+ * `devTools: false` no `webPreferences` da janela é a outra metade, e as duas são necessárias: sem
+ * menu ninguém abre o inspetor pelo atalho, e sem `devTools` ninguém abre por
+ * `webContents.openDevTools()` — que é uma linha que qualquer código futuro pode chamar sem querer.
+ */
+export function tirarMenuDeProducao(): void {
+  if (ehDesenvolvimento()) return
+  Menu.setApplicationMenu(null)
+}
+
+/** As `webPreferences` que dependem de estar ou não empacotado. Ver `tirarMenuDeProducao`. */
+export function preferenciasDeDepuracao(): { devTools: boolean } {
+  return { devTools: ehDesenvolvimento() }
+}
+
+/** Instala as travas. Chamar UMA vez, depois do `app.whenReady()` e antes de abrir janela. */
+export function aplicarTravasDeSeguranca(): void {
+  tirarMenuDeProducao()
+
+  /**
+   * A sessão padrão JÁ EXISTE quando o app fica pronto, então ela não dispara `session-created` — por
+   * isso as duas linhas. O evento é pra qualquer sessão futura (uma `partition` própria numa janela
+   * nova, por exemplo), que sem ele nasceria com a rede aberta e as permissões no padrão do Chromium.
+   */
+  travarSessao(session.defaultSession)
+  app.on('session-created', travarSessao)
+
+  app.on('web-contents-created', (_evento, conteudo) => travarConteudo(conteudo))
 }
 
 /**

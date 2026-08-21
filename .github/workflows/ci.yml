@@ -1,0 +1,66 @@
+# A CONFERÊNCIA AUTOMÁTICA de todo commit e todo pull request.
+#
+# Ela existe por uma razão que vale escrever: o Reroll é distribuído SEM ASSINATURA DIGITAL, e o
+# SmartScreen do Windows avisa quem baixa. Sem certificado, a confiança tem que vir de outro lugar —
+# e o lugar é este: o código é público, a conferência roda à vista de todos, e o instalador é
+# construído por uma máquina limpa a partir de um commit com etiqueta, não pela máquina de ninguém.
+#
+# O que roda aqui é exatamente o que roda na mão (`npm run check`), e é de propósito: um CI que
+# confere coisa diferente do que o desenvolvedor confere é um CI que vira ruído.
+
+name: Conferência
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Permite disparar à mão pela aba Actions, que é o que se quer quando se está investigando algo.
+  workflow_dispatch:
+
+# Um pull request atualizado cancela a conferência anterior dele. Sem isto, três commits seguidos
+# deixam três execuções competindo pelos mesmos minutos.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conferir:
+    # WINDOWS, e não o `ubuntu-latest` que sairia mais barato: este app só existe pro Windows, e a
+    # única conferência que interessa é a que roda onde ele roda. Caminho com contrabarra, maiúscula
+    # que não diferencia no sistema de arquivos, `%APPDATA%` — os testes de armazenamento tocam nos
+    # três, e no Linux eles passariam por motivos que não valem aqui.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # A mesma linha do Node que o Electron 43 embarca, pra o que passa aqui ser o que roda lá.
+          node-version: '22'
+          cache: npm
+
+      # `npm ci` e não `npm install`: ele instala EXATAMENTE a árvore do `package-lock.json` e falha
+      # se o lock estiver fora de sincronia com o `package.json`. É o que torna o build reproduzível,
+      # que é metade do argumento de confiança de um app sem assinatura.
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Conferir tipos
+        run: npm run typecheck
+
+      - name: Analisar o código
+        run: npm run lint
+
+      - name: Rodar os testes
+        run: npm test
+
+      # DERRUBA O BUILD em achado alto ou crítico, que é o que a spec pede (5.1). `--audit-level` só
+      # muda o código de saída; achado moderado continua aparecendo no registro pra ser lido.
+      - name: Auditar dependências
+        run: npm audit --audit-level=high
+
+      # Compila os três bundles. Não empacota o instalador — isso é do `release.yml`, e fazer aqui
+      # gastaria seis minutos em cada commit por um arquivo que ninguém vai baixar.
+      - name: Compilar
+        run: npm run build

@@ -1,18 +1,20 @@
 import { join } from 'path'
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { registerPresetsHandlers } from './ipc/registerPresetsHandlers'
 import { registerNotesHandlers } from './ipc/registerNotesHandlers'
 import { registerWindowHandlers } from './ipc/registerWindowHandlers'
 import { resolveAppIconPath } from './appIconPaths'
 import { registerSceneBackgroundHandlers } from './ipc/registerSceneBackgroundHandlers'
+import { registerSheetHandlers } from './ipc/registerSheetHandlers'
 import { registerProfilesHandlers } from './ipc/registerProfilesHandlers'
 import { registerUpdateHandlers } from './updater'
-import { abrirNoNavegador, aplicarTravasDeSeguranca } from './seguranca'
+import { aplicarTravasDeSeguranca, preferenciasDeDepuracao } from './seguranca'
 import { PresetsRepository } from './storage/PresetsRepository'
 import { NotesRepository } from './storage/NotesRepository'
 import { SettingsRepository } from './storage/SettingsRepository'
 import { ProfilesRepository } from './storage/ProfilesRepository'
 import { SPLASH_SIZE } from '@shared/windowSizes'
+import { IMPORTACAO_DE_FICHA_LIGADA } from '@shared/recursos'
 
 /**
  * Identidade do app pro Windows. Tem que ser LITERALMENTE o mesmo texto do `appId` em
@@ -27,7 +29,23 @@ import { SPLASH_SIZE } from '@shared/windowSizes'
  */
 const APP_USER_MODEL_ID = 'com.renato.reroll'
 
-function createWindow(settingsRepository: SettingsRepository, initialIconPath: string): void {
+/**
+ * A janela de agora, pra quem precisa dela DEPOIS de ela existir.
+ *
+ * Os handlers de IPC (controles da janela, progresso do update) são registrados UMA vez, na abertura
+ * do app, e perguntam por ela na hora em que são chamados — em vez de nascerem grudados na janela
+ * que existia no momento do registro. Sem isso, `createWindow` chamado uma segunda vez (o caminho do
+ * `activate`, e qualquer janela nova que se escreva um dia) registrava os mesmos canais de novo, e
+ * `ipcMain.handle` derruba o processo nisso: "Attempted to register a second handler for...".
+ */
+let janelaPrincipal: BrowserWindow | null = null
+
+function obterJanelaPrincipal(): BrowserWindow | null {
+  if (janelaPrincipal && !janelaPrincipal.isDestroyed()) return janelaPrincipal
+  return null
+}
+
+function createWindow(initialIconPath: string): void {
   const window = new BrowserWindow({
     width: SPLASH_SIZE.width,
     height: SPLASH_SIZE.height,
@@ -42,7 +60,7 @@ function createWindow(settingsRepository: SettingsRepository, initialIconPath: s
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       /**
-       * As quatro travas escritas À MÃO, mesmo sendo o padrão do Electron 33.
+       * As quatro travas escritas À MÃO, mesmo sendo o padrão do Electron desde a versão 20.
        *
        * O padrão protege quem não sabe que elas existem; escrevê-las protege de OUTRA coisa — de
        * alguém (eu, daqui a seis meses) desligar uma delas pra "resolver rápido" um problema, sem
@@ -59,56 +77,44 @@ function createWindow(settingsRepository: SettingsRepository, initialIconPath: s
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: true
+      webSecurity: true,
+      /**
+       * O INSPETOR só existe em desenvolvimento. Ver `tirarMenuDeProducao` em `seguranca.ts`: esta
+       * é a metade que fecha o caminho por código (`webContents.openDevTools()`), e o menu retirado
+       * lá é a que fecha o caminho pelo atalho `Ctrl+Shift+I`.
+       */
+      ...preferenciasDeDepuracao()
     }
   })
 
-  registerWindowHandlers(window, settingsRepository)
-  // Depende da janela: é por ela que o progresso do download chega na interface.
-  registerUpdateHandlers(window)
+  janelaPrincipal = window
 
   window.on('ready-to-show', () => window.show())
 
   /**
-   * A janela NUNCA sai do app. `setWindowOpenHandler` (logo abaixo) cobre janela nova; este cobre a
-   * navegação da própria janela, que é outro caminho: basta um `location.href`, um `<a>` ou um
-   * `<form>` pra a aba principal virar outra coisa.
+   * As travas de navegação NÃO estão mais aqui.
    *
-   * Por que isso importa num app que só carrega arquivo local: se um dia entrar na tela qualquer
-   * texto que vire link — nota colada pelo usuário, ficha importada, mensagem de erro de terceiro —,
-   * um clique poderia trocar a interface do Reroll por uma página remota RODANDO COM O PRELOAD DELE,
-   * ou seja, com acesso às mesmas pontes de IPC. Bloquear navegação é o que corta essa classe
-   * inteira de uma vez, e custa cinco linhas.
-   *
-   * O endereço de desenvolvimento é a única exceção, porque em `npm run dev` a janela é servida por
-   * ele e o recarregamento do Vite navega de verdade.
+   * Elas viviam neste bloco (`will-navigate`, `will-attach-webview`, `setWindowOpenHandler`), e o
+   * problema não era o que faziam, era o alcance: valiam pra ESTA janela. Foram pra
+   * `seguranca.ts`, penduradas em `app.on('web-contents-created')`, onde alcançam também a janela
+   * que ainda não foi escrita. Ver o cabeçalho de lá.
    */
-  window.webContents.on('will-navigate', (evento, url) => {
-    const permitido = process.env.ELECTRON_RENDERER_URL
-    if (permitido && url.startsWith(permitido)) return
-    evento.preventDefault()
-    // Link http(s) clicado dentro do app abre no navegador do sistema, como já acontece com janela nova.
-    abrirNoNavegador(url)
-  })
 
   /**
-   * Anexar um webview seria outra janela com outras permissões dentro da nossa. O app não usa
-   * nenhum, então a resposta certa é proibir na raiz em vez de confiar que ninguém vai adicionar um.
+   * O carregamento é uma PROMESSA, e a falha dela é o pior desfecho possível: uma janela cinza,
+   * aberta, sem nada dentro e sem erro nenhum. Acontece se o bundle do renderer não estiver onde se
+   * espera (empacotamento torto) ou se o servidor de desenvolvimento não estiver de pé.
+   *
+   * Não há interface pra mostrar o recado — ela é justamente o que não carregou —, então o console é
+   * o único lugar. Mas ele é infinitamente melhor que o silêncio de antes.
    */
-  window.webContents.on('will-attach-webview', (evento) => evento.preventDefault())
+  const carregando = process.env.ELECTRON_RENDERER_URL
+    ? window.loadURL(process.env.ELECTRON_RENDERER_URL)
+    : window.loadFile(join(__dirname, '../renderer/index.html'))
 
-  window.webContents.setWindowOpenHandler((details) => {
-    // Só abre esquemas de navegador de verdade no browser padrão do sistema — nunca
-    // repassa `file:`/`javascript:`/outros esquemas pro `shell.openExternal` sem checar.
-    abrirNoNavegador(details.url)
-    return { action: 'deny' }
+  void carregando.catch((causa: unknown) => {
+    console.error('A interface do Reroll não pôde ser carregada:', causa)
   })
-
-  if (process.env.ELECTRON_RENDERER_URL) {
-    window.loadURL(process.env.ELECTRON_RENDERER_URL)
-  } else {
-    window.loadFile(join(__dirname, '../renderer/index.html'))
-  }
 }
 
 /**
@@ -142,7 +148,19 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     existing.focus()
   })
 
-  app.whenReady().then(async () => {
+  /**
+   * O ARRANQUE INTEIRO, com o `catch` que faltava.
+   *
+   * Tudo que abre o app está aqui dentro e tudo é assíncrono: ler os perfis do disco, migrar o
+   * formato antigo, ler as preferências. Sem o `catch`, uma falha em qualquer um desses passos —
+   * `profiles.json` ilegível, `%APPDATA%` sem permissão, disco cheio — virava uma rejeição sem dono:
+   * o processo continuava vivo, nenhuma janela era criada, e da parte de quem clicou no ícone o app
+   * simplesmente não abriu.
+   *
+   * O diálogo nativo é o único recado possível aqui: a interface é justamente o que não chegou a
+   * existir. Depois dele o app SAI, em vez de ficar num processo vivo sem janela nenhuma.
+   */
+  const arranque = async (): Promise<void> => {
     /**
      * ANTES de qualquer janela: as travas valem pra sessão inteira, e uma janela criada antes delas
      * nasceria com a rede aberta. Ver `seguranca.ts` pra o que exatamente é negado.
@@ -166,6 +184,15 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     registerNotesHandlers(notesRepository)
 
     registerSceneBackgroundHandlers()
+    /**
+     * Os canais da importação de ficha só existem quando o recurso está ligado (ver
+     * `IMPORTACAO_DE_FICHA_LIGADA`). Não é redundância com o botão escondido na tela: com o canal
+     * fora do ar, o app instalado não tem POR ONDE abrir um PDF, nem por um caminho que alguém
+     * escreva sem querer amanhã. O que está desligado deve estar desligado dos dois lados.
+     */
+    if (IMPORTACAO_DE_FICHA_LIGADA) {
+      registerSheetHandlers(profilesRepository, notesRepository, presetsRepository)
+    }
 
     const settingsRepository = new SettingsRepository()
     // Lido ANTES de criar a janela, pra ela já nascer com o ícone escolhido na sessão anterior
@@ -173,6 +200,15 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     // depois que o renderer montasse e chamasse `setAppIcon` de novo — um "flash" visível).
     const mainSettings = await settingsRepository.get()
     const initialIconPath = resolveAppIconPath(mainSettings.appIconId)
+
+    /**
+     * Os handlers da janela e do update ficam AQUI, e não dentro do `createWindow`, mesmo precisando
+     * dela: `ipcMain.handle` recusa registrar o mesmo canal duas vezes, e recusa derrubando o
+     * processo. Registrando uma vez só e perguntando pela janela na hora da chamada, abrir uma
+     * segunda janela deixa de ser um jeito de o app não abrir.
+     */
+    registerWindowHandlers(obterJanelaPrincipal, settingsRepository)
+    registerUpdateHandlers(obterJanelaPrincipal)
 
     /**
      * Aqui rodava um `applyIconToShortcuts` a cada abertura, pra reescrever o ícone dos atalhos e
@@ -186,14 +222,29 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
      * a incomodar, o caminho não é PowerShell: é assinar o executável, ou abrir mão do
      * AppUserModelID (que é quem faz o Windows preferir o ícone do atalho ao da janela).
      */
-    createWindow(settingsRepository, initialIconPath)
+    createWindow(initialIconPath)
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow(settingsRepository, initialIconPath)
+        createWindow(initialIconPath)
       }
     })
-  })
+  }
+
+  void app.whenReady().then(() =>
+    arranque().catch((causa: unknown) => {
+      console.error('O Reroll não conseguiu abrir:', causa)
+      dialog.showErrorBox(
+        'Reroll',
+        [
+          'O Reroll não conseguiu abrir.',
+          'Isso costuma ser um problema de acesso à pasta de dados do app (%APPDATA%\\Reroll).',
+          `Detalhe técnico: ${(causa as Error)?.message ?? String(causa)}`
+        ].join('\n\n')
+      )
+      app.quit()
+    })
+  )
 }
 
 app.on('window-all-closed', () => {

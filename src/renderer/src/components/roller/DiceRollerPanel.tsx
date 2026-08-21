@@ -37,6 +37,9 @@ export function DiceRollerPanel({ onRoll }: DiceRollerPanelProps) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
+    // Mesmo caso do roller 3D: `handleRoll` nasce de novo a cada render, e o que ele PRECISA
+    // enxergar são estes quatro valores — que estão listados. Ver o comentário em `DiceRoller3D`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count, sides, mode, modifier])
 
   return (

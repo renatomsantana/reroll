@@ -3,6 +3,7 @@ import type {
   DiceExpression,
   DiceGroup,
   DiceGroupResult,
+  ExplodeRule,
   RollResult
 } from '@shared/types/dice'
 import { rotuloDeManter, totalMantido, valoresDosGrupos } from '@shared/dice/manterDados'
@@ -26,10 +27,38 @@ function rollDie(sides: number): number {
   return (value % range) + 1
 }
 
-function rollGroup(group: DiceGroup): DiceGroupResult {
-  const rolls = Array.from({ length: group.count }, () => rollDie(group.sides))
+/**
+ * A cadeia de um dado só: a face que caiu e, se a regra explosiva valer e ela for a máxima, as faces
+ * seguintes.
+ *
+ * O teto é do `maxChain` e é obrigatório: sem ele, um d4 com 25% de chance de continuar a cada
+ * lançamento é um laço que TERMINA quase sempre e trava o app na vez em que não terminar. "Quase
+ * sempre" não é um contrato aceitável dentro de um laço.
+ */
+function rolarCadeia(sides: number, explode?: ExplodeRule): number[] {
+  const cadeia = [rollDie(sides)]
+  if (!explode || explode.maxChain <= 0) return cadeia
+
+  // `sides === 1` não existe entre os dados do app, mas se um dia existir a face máxima é a única
+  // face — a cadeia nunca pararia sozinha, e o teto seria a ÚNICA coisa segurando.
+  while (cadeia[cadeia.length - 1] === sides && cadeia.length <= explode.maxChain) {
+    cadeia.push(rollDie(sides))
+  }
+  return cadeia
+}
+
+function rollGroup(group: DiceGroup, explode?: ExplodeRule): DiceGroupResult {
+  const cadeias = Array.from({ length: group.count }, () => rolarCadeia(group.sides, explode))
+  // Um valor por DADO: a soma da cadeia dele. Ver o comentário de `DiceGroupResult.rolls`.
+  const rolls = cadeias.map((cadeia) => cadeia.reduce((soma, face) => soma + face, 0))
   const subtotal = rolls.reduce((sum, roll) => sum + roll, 0)
-  return { sides: group.sides, rolls, subtotal }
+
+  // `chains` só quando houve explosão de verdade — o caso normal não carrega estrutura à toa, e a
+  // presença dela é o que diz à tela que há detalhe pra mostrar.
+  const explodiu = cadeias.some((cadeia) => cadeia.length > 1)
+  return explodiu
+    ? { sides: group.sides, rolls, subtotal, chains: cadeias }
+    : { sides: group.sides, rolls, subtotal }
 }
 
 export function expressionLabel(expression: DiceExpression): string {
@@ -44,12 +73,18 @@ export function expressionLabel(expression: DiceExpression): string {
    * cartão do preset, e "2d20" com total 14 sem nenhuma explicação parece defeito — a pessoa somou
    * os dois dados que está vendo e deu outro número.
    */
-  const manter = rotuloDeManter(expression.keep)
-  return manter ? `${base} (usa ${manter})` : base
+  /**
+   * "explode" entra no rótulo pelo mesmo motivo que a regra de manter: é o rótulo que aparece no
+   * histórico e no cartão do preset, e um "1d6" com total 17 sem explicação parece defeito.
+   */
+  const partes = [rotuloDeManter(expression.keep) && `usa ${rotuloDeManter(expression.keep)}`, expression.explode && 'explode']
+    .filter(Boolean)
+    .join(', ')
+  return partes ? `${base} (${partes})` : base
 }
 
 export function rollExpression(expression: DiceExpression): RollResult {
-  const groups = expression.groups.map(rollGroup)
+  const groups = expression.groups.map((group) => rollGroup(group, expression.explode))
   /**
    * O total sai dos dados MANTIDOS, mas `groups` continua com todos: os descartados caíram na
    * bandeja e a pessoa está olhando pra eles. Ver `manterDados.ts`.
@@ -64,7 +99,8 @@ export function rollExpression(expression: DiceExpression): RollResult {
     modifierTotal,
     total: groupsTotal + modifierTotal,
     timestamp: Date.now(),
-    keep: expression.keep
+    keep: expression.keep,
+    explode: expression.explode
   }
 }
 

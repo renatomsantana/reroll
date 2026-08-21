@@ -37,6 +37,7 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
 
   const {
     theme,
+    themeSource,
     fontId,
     language,
     soundEnabled,
@@ -44,6 +45,8 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
     debugMode,
     appIconId,
     resultPopupEnabled,
+    displayMode,
+    setDisplayMode,
     toggleTheme,
     setFontId,
     setLanguage,
@@ -73,8 +76,21 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
 
         <label className="settings-panel-field">
           <span>{t.settings.theme}</span>
+          {/*
+            Três estados num botão só, e não uma lista suspensa: o ciclo é Dia → Noite → Sistema, e
+            o rótulo diz em qual está. Em "Sistema" ele mostra também o que está valendo agora
+            ("Sistema (noite)"), senão a pessoa clica e nada muda na tela — porque o Windows já
+            estava claro — e o botão parece quebrado.
+          */}
           <Button variant="secondary" onClick={toggleTheme}>
-            {theme === 'day' ? t.settings.day : t.settings.night}
+            {themeSource === 'system'
+              ? t.settings.themeSystem.replace(
+                  '{mode}',
+                  theme === 'day' ? t.settings.day : t.settings.night
+                )
+              : themeSource === 'day'
+                ? t.settings.day
+                : t.settings.night}
           </Button>
         </label>
 
@@ -114,6 +130,26 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
               onChange={(e) => setCompactMode(e.target.checked)}
             />
           </label>
+        </label>
+
+        {/*
+          COMO O RESULTADO APARECE — a bandeja 3D ou o número na hora (ver `DisplayMode`).
+          Fica logo acima do balão de total porque as duas linhas falam da mesma coisa: o que se vê
+          quando a rolagem termina.
+        */}
+        <label className="settings-panel-field settings-panel-field-row">
+          <span>
+            {t.settings.displayMode}
+            <br />
+            <small className="settings-panel-hint">{t.settings.displayModeHint}</small>
+          </span>
+          <select
+            value={displayMode}
+            onChange={(e) => setDisplayMode(e.target.value as typeof displayMode)}
+          >
+            <option value="3d">{t.settings.displayMode3d}</option>
+            <option value="quick">{t.settings.displayModeQuick}</option>
+          </select>
         </label>
 
         <label className="settings-panel-field settings-panel-field-row">

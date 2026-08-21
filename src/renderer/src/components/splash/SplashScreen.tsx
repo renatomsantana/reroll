@@ -60,7 +60,15 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
     const start = Date.now()
     let durationMs = FALLBACK_DURATION_MS
     let finished = false
+    /**
+     * `let` e não `const`, apesar de cada um receber valor uma vez só: o `finish` logo abaixo os
+     * LIMPA, e ele precisa estar definido antes de os temporizadores serem criados (é ele que o
+     * `setTimeout` chama). Declarar com `const` no ponto da criação deixaria o `finish` referenciando
+     * uma variável que ainda não existe.
+     */
+    // eslint-disable-next-line prefer-const
     let progressInterval: ReturnType<typeof setInterval> | undefined
+    // eslint-disable-next-line prefer-const
     let safetyTimeout: ReturnType<typeof setTimeout> | undefined
 
     function finish() {
@@ -100,6 +108,10 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       clearTimeout(safetyTimeout)
       audio?.pause()
     }
+    // Efeito de MONTAGEM, deliberadamente sem dependências: o splash toca uma vez e acaba. Listar
+    // `soundEnabled` faria a abertura reiniciar do zero se a preferência de som mudasse no meio —
+    // uma sequência de dois segundos que a pessoa veria começar duas vezes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

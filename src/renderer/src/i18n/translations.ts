@@ -1,8 +1,10 @@
 import type { Language } from '@renderer/settings/SettingsContext'
 
+import type { SheetWarningId } from '@shared/types/sheetWarning'
+
 export interface TranslationDict {
   appTitle: string
-  tabs: { roll: string; style: string; notes: string }
+  tabs: { roll: string; style: string; sheet: string; notes: string }
   roller: {
     quantityLabel: string
     typeLabel: string
@@ -11,6 +13,13 @@ export interface TranslationDict {
     rollButton: string
     modifier: string
     mode: { normal: string; advantage: string; disadvantage: string }
+    /** Interruptor dos DADOS EXPLOSIVOS na barra de rolagem (ver `ExplodeRule`). */
+    explode: string
+    explodeHint: string
+    /** Sufixo do resultado quando algum dado explodiu — "(explodiu)". */
+    explodeSuffix: string
+    /** Aviso do modo rápido FORÇADO — a máquina não desenha a bandeja 3D (ver `webglDisponivel`). */
+    quickForced: string
     resultEmpty: string
     total: string
     advantageSuffix: string
@@ -36,6 +45,8 @@ export interface TranslationDict {
     export: string
     import: string
     exportSuccess: string
+    /** A GRAVAÇÃO do arquivo falhou (disco cheio, pasta sem permissão, pendrive removido). */
+    exportError: string
     importSuccess: string
     importError: string
     saveError: string
@@ -59,6 +70,9 @@ export interface TranslationDict {
     keepLowest: string
     keepCount: string
     keepHint: string
+    /** Caixa de marcar dos DADOS EXPLOSIVOS no editor de presets (ver `ExplodeRule`). */
+    explode: string
+    explodeHint: string
   }
   emojiPicker: { hint: string }
   statusBar: { shortcutsHint: string }
@@ -71,6 +85,8 @@ export interface TranslationDict {
     theme: string
     day: string
     night: string
+    /** Terceira opção do tema: acompanhar o Windows. `{mode}` vira "dia" ou "noite". */
+    themeSystem: string
     font: string
     sound: string
     soundOn: string
@@ -81,6 +97,11 @@ export interface TranslationDict {
     compactEnter: string
     compactExit: string
     resultPopup: string
+    /** Como o resultado aparece: bandeja 3D ou número na hora (ver `DisplayMode`). */
+    displayMode: string
+    displayModeHint: string
+    displayMode3d: string
+    displayModeQuick: string
     resultPopupHint: string
     history: string
     historyHint: string
@@ -95,6 +116,8 @@ export interface TranslationDict {
     /** As DUAS perguntas antes de baixar (pedido do usuário) — a segunda avisa que o app reinicia sozinho. */
     updateConfirm: string
     updateConfirmAgain: string
+    /** Cabeçalho do changelog dentro do aviso de versão nova. */
+    updateNotesTitle: string
     restartNow: string
     /** Aviso na barra de status quando existe versão nova (ver `StatusBar.tsx`). */
     updateBadge: string
@@ -107,6 +130,7 @@ export interface TranslationDict {
     updateAvailable: string
     updateDownloading: string
     updateReady: string
+    /** Mostrado enquanto o instalador roda e o app está prestes a sumir da tela. */
     updateInstalling: string
     updateError: string
     reset: string
@@ -190,6 +214,11 @@ export interface TranslationDict {
     sheetBlock: string
     name: string
     /** Os três blocos fixos do personagem + o diário (`notesBlock`), que é o único com dias. */
+    /** Seções de uma ficha importada (ver `SheetSection`). */
+    sectionRemove: string
+    sectionRemoveConfirm: string
+    attributesBlock: string
+    abilitiesBlock: string
     inventoryBlock: string
     appearanceBlock: string
     backstoryBlock: string
@@ -214,7 +243,16 @@ export interface TranslationDict {
     profileSystem: string
     profilePhoto: string
     profilePhotoEmpty: string
+    /** A escolha da foto falhou (grande demais, formato fora da lista, arquivo ilegível). */
+    profilePhotoError: string
     profileNew: string
+    /** Explica por que "Novo personagem" está travado — ver `MAX_PROFILES`. */
+    profileLimit: string
+    /** Botão e estado de espera da importação de ficha em PDF (`SheetImportModal`). */
+    sheetImport: string
+    sheetImportReading: string
+    /** Botão de dado ao lado de um número da ficha que é rolagem (ver `sheetRoll.ts`). */
+    sheetRollField: string
     profileDelete: string
     profileDeleteConfirm: string
     profileUnnamed: string
@@ -226,6 +264,47 @@ export interface TranslationDict {
     colorLabel: string
     colorReset: string
     saveError: string
+    /** A LEITURA da ficha falhou — ver `loadError` em `useNotes`. Trava a edição, e diz por quê. */
+    loadError: string
+  }
+  /**
+   * A IMPORTAÇÃO DE FICHA — a janela de conferência, os erros do caminho e os avisos dos leitores.
+   *
+   * Estava tudo escrito em português dentro dos componentes e dos leitores, o que deixava metade do
+   * app sem tradução: quem usa a interface em inglês abria a janela de conferência e encontrava um
+   * parágrafo em português explicando o que não deu pra ler — justamente a mensagem que mais precisa
+   * ser entendida.
+   *
+   * `warnings` é `Record<SheetWarningId, string>` de propósito: um aviso novo sem tradução não
+   * compila. Ver `shared/types/sheetWarning.ts`.
+   */
+  sheetImport: {
+    title: string
+    recognized: string
+    unrecognized: string
+    character: string
+    system: string
+    systemPlaceholder: string
+    fieldsTitle: string
+    fieldsEmpty: string
+    presetsTitle: string
+    presetsEmpty: string
+    /** "(3 de 12)" — quantos itens seguem marcados. */
+    count: string
+    rawTextTitle: string
+    rawTextHint: string
+    cancel: string
+    confirm: string
+    confirming: string
+    /** Onde a ficha lida vai parar: um personagem novo ou o que já está aberto. */
+    destinationLabel: string
+    destinationNew: string
+    destinationUpdate: string
+    destinationUpdateHint: string
+    update: string
+    kinds: { test: string; damage: string; other: string }
+    errors: { picker: string; tooLarge: string; unreadable: string; parse: string; save: string }
+    warnings: Record<SheetWarningId, string>
   }
   errorBoundary: { title: string; message: string; reload: string }
   credit: string
@@ -234,7 +313,7 @@ export interface TranslationDict {
 export const translations: Record<Language, TranslationDict> = {
   'pt-BR': {
     appTitle: 'Reroll',
-    tabs: { roll: 'Rolagem', style: '🎨 Estilo', notes: '📝 Anotações' },
+    tabs: { roll: 'Rolagem', style: '🎨 Estilo', sheet: '📜 Ficha', notes: '📝 Anotações' },
     roller: {
       quantityLabel: 'Quantidade de dados',
       typeLabel: 'Tipo de dado',
@@ -242,6 +321,12 @@ export const translations: Record<Language, TranslationDict> = {
       rollButton: 'ROLAR',
       modifier: 'Mod:',
       mode: { normal: 'Normal', advantage: 'Vantagem', disadvantage: 'Desvantagem' },
+      explode: '💥 Explode',
+      explodeHint:
+        'Dado que tira o valor máximo cai de novo, e os dois somam. Não combina com vantagem/desvantagem.',
+      explodeSuffix: '(explodiu)',
+      quickForced:
+        'Este computador não conseguiu desenhar a bandeja 3D, então o Reroll está no modo rápido. Os dados são os mesmos — só não aparecem caindo.',
       resultEmpty: 'Role os dados pra ver o resultado aqui.',
       total: 'Total',
       advantageSuffix: '(vantagem)',
@@ -266,6 +351,7 @@ export const translations: Record<Language, TranslationDict> = {
       export: 'Exportar',
       import: 'Importar',
       exportSuccess: 'Presets exportados para {path}',
+      exportError: 'Não foi possível exportar: {error}',
       importSuccess: '{count} preset(s) importado(s) com sucesso.',
       importError: 'Não foi possível importar: {error}',
       saveError: 'Não foi possível salvar o preset: {error}'
@@ -287,7 +373,10 @@ export const translations: Record<Language, TranslationDict> = {
       keepHighest: 'os maiores',
       keepLowest: 'os menores',
       keepCount: 'Quantos dados contam',
-      keepHint: 'Os outros dados continuam sendo rolados e aparecem na bandeja — só não entram na conta.'
+      keepHint: 'Os outros dados continuam sendo rolados e aparecem na bandeja — só não entram na conta.',
+      explode: 'Dados explosivos',
+      explodeHint:
+        'Dado que tira o valor máximo volta pra bandeja e cai de novo; as quedas somam. Vale pra cada dado da rolagem, separadamente.'
     },
     emojiPicker: {
       hint: 'Dica: com o campo de ícone selecionado, pressione Win + . pra abrir o seletor de emojis completo do Windows.'
@@ -310,6 +399,7 @@ export const translations: Record<Language, TranslationDict> = {
       theme: 'Tema',
       day: '☀️ Dia',
       night: '🌙 Noite',
+      themeSystem: '🖥️ Sistema ({mode})',
       font: 'Fonte',
       sound: 'Som',
       soundOn: 'Ativado',
@@ -318,6 +408,10 @@ export const translations: Record<Language, TranslationDict> = {
       compactModeHint: 'Janela pequena com seus presets, sempre por cima das outras.',
       compactEnter: 'Modo compacto',
       compactExit: 'Sair do modo compacto',
+      displayMode: 'Como o resultado aparece',
+      displayModeHint: 'A bandeja 3D, ou só o número — mais rápido em computador mais fraco.',
+      displayMode3d: '🎲 Bandeja 3D',
+      displayModeQuick: '⚡ Resultado rápido',
       resultPopup: 'Popup de resultado',
       resultPopupHint: 'Mostra o total somado num popup por cima da bandeja ao assentar os dados.',
       history: 'Histórico de rolagens',
@@ -330,7 +424,8 @@ export const translations: Record<Language, TranslationDict> = {
       updateConfirm:
         'Existe uma atualização nova (versão {version}).\n\nDeseja atualizar para a última versão?',
       updateConfirmAgain:
-        'Tem certeza?\n\nO Reroll vai baixar cerca de 76 MB e reiniciar sozinho para aplicar. Seus presets, anotações e preferências continuam onde estão.',
+        'Tem certeza?\n\nO Reroll vai baixar cerca de 100 MB e reiniciar sozinho para aplicar. Seus presets, anotações e preferências continuam onde estão.',
+      updateNotesTitle: 'O que mudou nesta versão:',
       restartNow: 'Reiniciar agora',
       updateBadge: '▲ Versão {version} disponível — clique para atualizar',
       updatePromptTitle: 'Atualização disponível',
@@ -424,6 +519,10 @@ export const translations: Record<Language, TranslationDict> = {
     notesTab: {
       sheetBlock: 'Personagem',
       name: 'Nome',
+      sectionRemove: 'Remover esta seção',
+      sectionRemoveConfirm: 'Remover a seção “{title}” da ficha? Os valores dela se perdem.',
+      attributesBlock: 'Atributos',
+      abilitiesBlock: 'Habilidades',
       inventoryBlock: 'Inventário',
       appearanceBlock: 'Aparência',
       backstoryBlock: 'Backstory',
@@ -440,7 +539,13 @@ export const translations: Record<Language, TranslationDict> = {
       profileSystem: 'Sistema',
       profilePhoto: 'Escolher foto',
       profilePhotoEmpty: 'sem foto',
+      profilePhotoError: 'Não deu pra usar essa imagem. Tente outra, menor que 12 MB.',
       profileNew: 'Novo personagem',
+      profileLimit:
+        'Você chegou no limite de {max} personagens. Apague um que não usa mais para criar outro — as anotações dele continuam no disco.',
+      sheetImport: 'Importar ficha (PDF)',
+      sheetImportReading: 'Lendo PDF...',
+      sheetRollField: 'Rolar {field}',
       profileDelete: 'Apagar personagem',
       profileDeleteConfirm:
         'Apagar "{name}" da lista? As anotações e os presets dele continuam no disco, mas ele some daqui.',
@@ -452,7 +557,60 @@ export const translations: Record<Language, TranslationDict> = {
       underlineLabel: 'Sublinhado',
       colorLabel: 'Cor do texto',
     colorReset: 'Padrão (segue o tema)',
-      saveError: 'Não foi possível salvar as anotações. Suas últimas alterações podem ter sido perdidas.'
+      saveError: 'Não foi possível salvar as anotações. Suas últimas alterações podem ter sido perdidas.',
+      loadError: 'Não consegui ler a ficha deste personagem. Ela está bloqueada pra edição até a leitura funcionar — assim nada é gravado por cima do que está no arquivo.'
+    },
+    sheetImport: {
+      title: 'Conferir ficha importada',
+      recognized: 'Reconhecemos como ficha de',
+      unrecognized: 'Sistema não reconhecido',
+      character: 'Personagem',
+      system: 'Sistema',
+      systemPlaceholder: 'Ordem Paranormal, D&D 5e, Oblivio...',
+      fieldsTitle: 'Anotações',
+      fieldsEmpty: 'Nenhum campo preenchido foi encontrado.',
+      presetsTitle: 'Presets',
+      presetsEmpty: 'Nenhuma rolagem foi encontrada nesta ficha.',
+      count: '({selected} de {total})',
+      rawTextTitle: 'Texto da ficha',
+      rawTextHint: '(vai para o bloco História)',
+      cancel: 'Cancelar',
+      confirm: 'Criar personagem',
+      confirming: 'Importando...',
+      destinationLabel: 'Importar para',
+      destinationNew: 'Um personagem novo',
+      destinationUpdate: 'Atualizar "{name}"',
+      destinationUpdateHint:
+        'As seções da ficha são substituídas pelas do PDF. O diário, as anotações e os presets que você já tinha ficam.',
+      update: 'Atualizar personagem',
+      kinds: { test: 'teste', damage: 'dano', other: 'rolagem' },
+      errors: {
+        picker: 'Não consegui abrir o seletor de arquivos.',
+        tooLarge:
+          'Este PDF tem {mb} MB e é grande demais para abrir com segurança. Ficha de personagem costuma ter menos de 10 MB.',
+        unreadable:
+          'Não consegui abrir esse arquivo. Confira se ele ainda está no lugar e se você tem permissão para lê-lo.',
+        parse: 'Não consegui ler este PDF. Ele pode estar protegido por senha ou danificado.',
+        save: 'Li a ficha, mas não consegui gravar o personagem.'
+      },
+      warnings: {
+        'pdf-sem-texto':
+          'Este PDF não tem texto que dê pra ler — ele parece ser uma imagem digitalizada ou uma arte exportada sem texto. Não dá pra importar nada dele automaticamente; uma ficha em PDF com campos preenchíveis, ou pelo menos com texto de verdade, funciona.',
+        'sem-formulario':
+          'Esta ficha não tem campos preenchíveis — é um PDF de texto. O que dá pra ler são as linhas no formato "Rótulo: valor" e os valores que estão na mesma linha de um rótulo, então a leitura é um palpite baseado na diagramação: confira item por item antes de importar.',
+        'formulario-vazio':
+          'A ficha tem campos preenchíveis, mas todos estão em branco — parece ser o modelo vazio.',
+        'sem-nome-nem-rolagem':
+          'Não achei nome de personagem nem nenhuma rolagem nesta ficha. Os valores que aparecem abaixo podem ser só o preenchimento de fábrica do modelo em branco — confira antes de importar.',
+        'arte-com-anotacao':
+          'Esta ficha é uma IMAGEM com o texto escrito por cima — os nomes dos campos fazem parte do desenho, então o app não tem como saber o que é cada valor. Trouxe tudo o que você escreveu, na ordem em que está na página, pra você organizar na ficha do personagem.',
+        'ordem-maior-dado':
+          'Nos testes desta ficha vale o MAIOR dado, e não a soma — é a regra de Ordem Paranormal, e os presets de teste já foram criados assim. Se algum ataque seu usa um atributo ZERO, que rola dois e fica com o PIOR, troque para "menor" no editor do preset.',
+        'dnd5e-magias-sem-nome':
+          'Esta ficha tem magias escritas na página de conjuração. O PDF guarda cada linha delas sem nome nenhum (só a posição na página), então não dá pra trazer o nome de cada magia — as que estiverem na caixa "Ataques e Magias" da primeira página vieram, e o resto você escreve no bloco de habilidades.',
+        'dnd5e-modelo-em-branco':
+          'Não achei nome de personagem nem nenhum ataque nesta ficha — ela parece ser o modelo em branco. Confira o que veio abaixo antes de importar.'
+      }
     },
     errorBoundary: {
       title: 'Algo deu errado',
@@ -463,7 +621,7 @@ export const translations: Record<Language, TranslationDict> = {
   },
   'en-US': {
     appTitle: 'Reroll',
-    tabs: { roll: 'Roll', style: '🎨 Style', notes: '📝 Notes' },
+    tabs: { roll: 'Roll', style: '🎨 Style', sheet: '📜 Sheet', notes: '📝 Notes' },
     roller: {
       quantityLabel: 'Number of dice',
       typeLabel: 'Dice type',
@@ -471,6 +629,12 @@ export const translations: Record<Language, TranslationDict> = {
       rollButton: 'ROLL',
       modifier: 'Mod:',
       mode: { normal: 'Normal', advantage: 'Advantage', disadvantage: 'Disadvantage' },
+      explode: '💥 Explode',
+      explodeHint:
+        'A die that rolls its highest face is rolled again, and both add up. Does not combine with advantage/disadvantage.',
+      explodeSuffix: '(exploded)',
+      quickForced:
+        'This computer could not draw the 3D tray, so Reroll is in quick mode. The dice are the same — they just do not fall on screen.',
       resultEmpty: 'Roll the dice to see the result here.',
       total: 'Total',
       advantageSuffix: '(advantage)',
@@ -495,6 +659,7 @@ export const translations: Record<Language, TranslationDict> = {
       export: 'Export',
       import: 'Import',
       exportSuccess: 'Presets exported to {path}',
+      exportError: 'Could not export: {error}',
       importSuccess: '{count} preset(s) imported successfully.',
       importError: 'Could not import: {error}',
       saveError: 'Could not save preset: {error}'
@@ -516,7 +681,10 @@ export const translations: Record<Language, TranslationDict> = {
       keepHighest: 'the highest',
       keepLowest: 'the lowest',
       keepCount: 'How many dice count',
-      keepHint: 'The other dice are still rolled and land on the tray — they just do not count.'
+      keepHint: 'The other dice are still rolled and land on the tray — they just do not count.',
+      explode: 'Exploding dice',
+      explodeHint:
+        'A die that rolls its highest face goes back to the tray and falls again; the rolls add up. Applies to each die separately.'
     },
     emojiPicker: {
       hint: 'Tip: with the icon field selected, press Win + . to open the full Windows emoji picker.'
@@ -539,6 +707,7 @@ export const translations: Record<Language, TranslationDict> = {
       theme: 'Theme',
       day: '☀️ Day',
       night: '🌙 Night',
+      themeSystem: '🖥️ System ({mode})',
       font: 'Font',
       sound: 'Sound',
       soundOn: 'On',
@@ -547,6 +716,10 @@ export const translations: Record<Language, TranslationDict> = {
       compactModeHint: 'Small window with your presets, always on top.',
       compactEnter: 'Compact mode',
       compactExit: 'Leave compact mode',
+      displayMode: 'How the result shows up',
+      displayModeHint: 'The 3D tray, or just the number — faster on a weaker computer.',
+      displayMode3d: '🎲 3D tray',
+      displayModeQuick: '⚡ Quick result',
       resultPopup: 'Result popup',
       resultPopupHint: 'Shows the summed total in a popup over the tray once the dice settle.',
       history: 'Roll history',
@@ -559,7 +732,8 @@ export const translations: Record<Language, TranslationDict> = {
       updateConfirm:
         'There is a new update (version {version}).\n\nDo you want to update to the latest version?',
       updateConfirmAgain:
-        'Are you sure?\n\nReroll will download about 76 MB and restart itself to apply it. Your presets, notes and preferences stay where they are.',
+        'Are you sure?\n\nReroll will download about 100 MB and restart itself to apply it. Your presets, notes and preferences stay where they are.',
+      updateNotesTitle: 'What changed in this version:',
       restartNow: 'Restart now',
       updateBadge: '▲ Version {version} available — click to update',
       updatePromptTitle: 'Update available',
@@ -653,6 +827,10 @@ export const translations: Record<Language, TranslationDict> = {
     notesTab: {
       sheetBlock: 'Character',
       name: 'Name',
+      sectionRemove: 'Remove this section',
+      sectionRemoveConfirm: 'Remove the “{title}” section from the sheet? Its values are lost.',
+      attributesBlock: 'Attributes',
+      abilitiesBlock: 'Abilities',
       inventoryBlock: 'Inventory',
       appearanceBlock: 'Appearance',
       backstoryBlock: 'Backstory',
@@ -669,7 +847,13 @@ export const translations: Record<Language, TranslationDict> = {
       profileSystem: 'System',
       profilePhoto: 'Choose photo',
       profilePhotoEmpty: 'no photo',
+      profilePhotoError: 'That image could not be used. Try another one, under 12 MB.',
       profileNew: 'New character',
+      profileLimit:
+        'You have reached the limit of {max} characters. Delete one you no longer use to create another — its notes stay on disk.',
+      sheetImport: 'Import sheet (PDF)',
+      sheetImportReading: 'Reading PDF...',
+      sheetRollField: 'Roll {field}',
       profileDelete: 'Delete character',
       profileDeleteConfirm:
         'Remove "{name}" from the list? Their notes and presets stay on disk, but they disappear from here.',
@@ -681,7 +865,60 @@ export const translations: Record<Language, TranslationDict> = {
       underlineLabel: 'Underline',
       colorLabel: 'Text color',
       colorReset: 'Default (follows theme)',
-      saveError: 'Could not save notes. Your latest changes may have been lost.'
+      saveError: 'Could not save notes. Your latest changes may have been lost.',
+      loadError: 'Could not read this character sheet. Editing is locked until the read succeeds, so nothing overwrites what is in the file.'
+    },
+    sheetImport: {
+      title: 'Review imported sheet',
+      recognized: 'Recognized as a sheet for',
+      unrecognized: 'System not recognized',
+      character: 'Character',
+      system: 'System',
+      systemPlaceholder: 'D&D 5e, Ordem Paranormal, Oblivio...',
+      fieldsTitle: 'Notes',
+      fieldsEmpty: 'No filled-in field was found.',
+      presetsTitle: 'Presets',
+      presetsEmpty: 'No roll was found in this sheet.',
+      count: '({selected} of {total})',
+      rawTextTitle: 'Sheet text',
+      rawTextHint: '(goes to the Backstory block)',
+      cancel: 'Cancel',
+      confirm: 'Create character',
+      confirming: 'Importing...',
+      destinationLabel: 'Import into',
+      destinationNew: 'A new character',
+      destinationUpdate: 'Update "{name}"',
+      destinationUpdateHint:
+        'The sheet sections are replaced by the ones in the PDF. Your journal, notes and existing presets stay.',
+      update: 'Update character',
+      kinds: { test: 'check', damage: 'damage', other: 'roll' },
+      errors: {
+        picker: 'Could not open the file picker.',
+        tooLarge:
+          'This PDF is {mb} MB, too large to open safely. A character sheet is usually under 10 MB.',
+        unreadable:
+          'Could not open that file. Check that it is still there and that you have permission to read it.',
+        parse: 'Could not read this PDF. It may be password protected or damaged.',
+        save: 'I read the sheet, but could not save the character.'
+      },
+      warnings: {
+        'pdf-sem-texto':
+          'This PDF has no readable text — it looks like a scan, or artwork exported without text. Nothing can be imported from it automatically; a PDF sheet with fillable fields, or at least with real text, works.',
+        'sem-formulario':
+          'This sheet has no fillable fields — it is a text PDF. What can be read are lines shaped like "Label: value" and values sitting on the same line as a label, so the reading is a guess based on the layout: check item by item before importing.',
+        'formulario-vazio':
+          'The sheet has fillable fields, but they are all empty — it looks like the blank template.',
+        'sem-nome-nem-rolagem':
+          'I found no character name and no roll in this sheet. The values below may be just the blank template defaults — check them before importing.',
+        'arte-com-anotacao':
+          'This sheet is an IMAGE with the text typed over it — the field names are part of the drawing, so the app cannot tell what each value is. I brought everything you wrote, in the order it appears on the page, for you to organize in the character sheet.',
+        'ordem-maior-dado':
+          'Checks on this sheet use the HIGHEST die, not the sum — that is the Ordem Paranormal rule, and the check presets were created that way. If one of your attacks uses a ZERO attribute, which rolls two and keeps the WORST, switch it to "lowest" in the preset editor.',
+        'dnd5e-magias-sem-nome':
+          'This sheet has spells written on the spellcasting page. The PDF stores each of those lines with no name at all (only its position on the page), so the name of each spell cannot be brought over — whatever is in the "Attacks & Spellcasting" box on page one did come through, and you can write the rest in the abilities block.',
+        'dnd5e-modelo-em-branco':
+          'I found no character name and no attack in this sheet — it looks like the blank template. Check what came through before importing.'
+      }
     },
     errorBoundary: {
       title: 'Something went wrong',

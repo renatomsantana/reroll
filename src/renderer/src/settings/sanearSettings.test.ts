@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanearPreferencias } from './sanearSettings'
+import { migrarPreferencias, sanearPreferencias } from './sanearSettings'
 import { TRAY_SHAPE_SIDES, trayApothem, traySafeHalfExtent } from '@renderer/dice3d/geometry/trayShape'
 import { computeSpawnSlots } from '@renderer/dice3d/physics/computeSpawnSlots'
 
@@ -40,8 +40,9 @@ describe('sanearPreferencias', () => {
   })
 
   it('vale pros outros campos de valor fechado', () => {
-    expect(sanearPreferencias({ theme: 'night' })).toEqual({ theme: 'night' })
-    expect(sanearPreferencias({ theme: 'sepia' })).toEqual({})
+    expect(sanearPreferencias({ themeSource: 'night' })).toEqual({ themeSource: 'night' })
+    expect(sanearPreferencias({ themeSource: 'system' })).toEqual({ themeSource: 'system' })
+    expect(sanearPreferencias({ themeSource: 'sepia' })).toEqual({})
     expect(sanearPreferencias({ launchMode: 'tower' })).toEqual({ launchMode: 'tower' })
     expect(sanearPreferencias({ launchMode: 'catapulta' })).toEqual({})
     expect(sanearPreferencias({ cameraMode: 'free' })).toEqual({ cameraMode: 'free' })
@@ -87,8 +88,43 @@ describe('sanearPreferencias', () => {
   })
 
   it('não mexe no objeto que recebeu', () => {
-    const original = { trayShape: 'pentagon', theme: 'day' }
+    const original = { trayShape: 'pentagon', themeSource: 'day' }
     sanearPreferencias(original)
-    expect(original).toEqual({ trayShape: 'pentagon', theme: 'day' })
+    expect(original).toEqual({ trayShape: 'pentagon', themeSource: 'day' })
+  })
+})
+
+/**
+ * MIGRAÇÃO DE FORMATO — o caminho pelo qual a escolha de quem já usava o app atravessa uma mudança
+ * de estrutura em vez de virar padrão de fábrica.
+ *
+ * É o teste que a spec pede em 8.1 no espírito, ainda que em escala menor: carregar dado gravado por
+ * uma versão anterior e verificar que ele chega inteiro do outro lado. Perder preferência num update
+ * é o tipo de defeito que ninguém relata — a pessoa só reconfigura, e desconfia um pouco mais.
+ */
+describe('migrarPreferencias', () => {
+  it('a escolha de tema de antes de existir "sistema" atravessa', () => {
+    expect(migrarPreferencias({ theme: 'night' })).toEqual({ themeSource: 'night' })
+    expect(migrarPreferencias({ theme: 'day' })).toEqual({ themeSource: 'day' })
+  })
+
+  it('quem já gravou no formato novo manda — a migração não desfaz a escolha recente', () => {
+    // Sem esta regra, toda abertura do app puxaria a preferência de volta pro valor antigo.
+    expect(migrarPreferencias({ theme: 'night', themeSource: 'system' })).toEqual({})
+  })
+
+  it('valor velho que não era válido nem lá atrás é ignorado', () => {
+    expect(migrarPreferencias({ theme: 'sepia' })).toEqual({})
+    expect(migrarPreferencias({ theme: 42 })).toEqual({})
+  })
+
+  it('não engasga com o que não é objeto', () => {
+    expect(migrarPreferencias(null)).toEqual({})
+    expect(migrarPreferencias('preferências')).toEqual({})
+    expect(migrarPreferencias(undefined)).toEqual({})
+  })
+
+  it('preferências já no formato atual passam sem nada a migrar', () => {
+    expect(migrarPreferencias({ themeSource: 'day', fontId: 'lora' })).toEqual({})
   })
 })

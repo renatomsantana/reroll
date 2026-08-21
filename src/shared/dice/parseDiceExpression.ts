@@ -47,13 +47,23 @@ export interface ParsedDiceExpression {
  * feita sobre a string inteira em vez de exigir que ela seja SÓ a expressão: numa ficha a célula
  * costuma ser "Pistola 1d12+2 (curto)", e recusar por causa do resto seria recusar a ficha toda.
  *
- * O `(?!\s*[dD]\s*\d)` no fim do ramo do modificador é o que impede o erro que o teste pegou: em
+ * O `(?![\d\s]*[dD]\s*\d)` no fim do ramo do modificador é o que impede o erro que o teste pegou: em
  * "9d6+9d6" o ramo do modificador casava "+9" ANTES de o ramo do dado ver que aquele 9 era a
  * quantidade do grupo seguinte. Saíam 10d6+9 no lugar de 18d6 — errado, e errado de um jeito
  * plausível. Dano com bônus elemental ("1d8+1d6") é escrito assim em quase todo sistema, então
  * este caso não é exceção: é rotina.
+ *
+ * O `[\d\s]*` (e não `\s*`) dentro dessa espiada conserta um segundo caso, achado quando o teto de
+ * dados subiu pra 20 e as contagens de DOIS DÍGITOS passaram a caber: em "1d6+10d6" a espiada
+ * original olhava logo depois do "10", via o "d" e recusava — certo —, mas aí a expressão VOLTAVA
+ * ATRÁS e tentava casar só o "+1". Aí a espiada olhava a partir do "0d6", não encontrava um "d"
+ * colado, e aceitava: saía um modificador "+1" e sobrava um "0d6", que é quantidade zero, e a
+ * leitura inteira era recusada. Ou seja, "1d6+10d6" devolvia NADA enquanto "10d6+1d6" funcionava.
+ *
+ * Deixando a espiada pular dígitos, o "d" continua sendo visto mesmo depois do recuo, e o ramo do
+ * modificador desiste de vez — que é o que abre caminho pro ramo do dado ler "10d6" inteiro.
  */
-const TOKEN = /(\d*)\s*[dD]\s*(\d+)|([+-])\s*(\d+)(?!\s*[dD]\s*\d)/g
+const TOKEN = /(\d*)\s*[dD]\s*(\d+)|([+-])\s*(\d+)(?![\d\s]*[dD]\s*\d)/g
 
 export function parseDiceExpression(input: string): ParsedDiceExpression | null {
   if (!input) return null

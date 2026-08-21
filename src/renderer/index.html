@@ -2,9 +2,24 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      A CSP é a última linha: mesmo que algum texto de fora (uma ficha importada, uma anotação
+      colada) chegue a virar marcação na página, ela decide o que pode EXECUTAR e pra onde pode
+      falar.
+
+      - `default-src 'self'` fecha o resto (rede, quadro, objeto, worker) na origem do próprio app.
+      - `script-src` sem `unsafe-inline`/`unsafe-eval`: `<script>` injetado não roda. O
+        `wasm-unsafe-eval` é do pdf.js, que compila WebAssembly pra decodificar imagem.
+      - `style-src` precisa de `unsafe-inline` porque a interface calcula cor e tamanho em `style=`
+        (as cores de dado e de bandeja saem das preferências, ver `SettingsContext`).
+      - `img-src data:` é o formato em que a foto do personagem e a imagem de fundo são guardadas.
+      - `base-uri` e `form-action` NÃO são cobertos por `default-src` — são a exceção da regra, e por
+        isso estão escritos. Um `<base href>` injetado reescreveria pra onde apontam os caminhos
+        relativos da página inteira; um `<form action>` mandaria o conteúdo dela pra fora.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reroll</title>

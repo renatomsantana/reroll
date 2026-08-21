@@ -47,13 +47,24 @@ function animateResize(window: BrowserWindow, targetWidth: number, targetHeight:
   })
 }
 
+/**
+ * A janela chega por FUNÇÃO, e não pronta.
+ *
+ * Estes handlers são registrados uma vez só, na abertura do app (ver `index.ts`), porque
+ * `ipcMain.handle` derruba o processo se o mesmo canal for registrado duas vezes. Perguntando pela
+ * janela na hora da chamada, eles continuam valendo se a janela for recriada — e devolvem sem fazer
+ * nada, em vez de estourar com "Object has been destroyed", se ela já tiver morrido (é o caso do
+ * clique que chega enquanto o app fecha).
+ */
 export function registerWindowHandlers(
-  window: BrowserWindow,
+  obterJanela: () => BrowserWindow | null,
   settingsRepository: SettingsRepository
 ): void {
-  ipcMain.handle(IpcChannels.windowMinimize, () => window.minimize())
+  ipcMain.handle(IpcChannels.windowMinimize, () => obterJanela()?.minimize())
 
   ipcMain.handle(IpcChannels.windowMaximize, () => {
+    const window = obterJanela()
+    if (!window) return
     if (window.isMaximized()) {
       window.unmaximize()
     } else {
@@ -61,9 +72,11 @@ export function registerWindowHandlers(
     }
   })
 
-  ipcMain.handle(IpcChannels.windowClose, () => window.close())
+  ipcMain.handle(IpcChannels.windowClose, () => obterJanela()?.close())
 
   ipcMain.handle(IpcChannels.windowSetCompact, async (_event, compact: boolean) => {
+    const window = obterJanela()
+    if (!window) return
     const target = compact ? COMPACT_SIZE : FULL_SIZE
     window.setResizable(true)
     // Mínimo baixo ENQUANTO anima — o mínimo final (`target.minWidth/minHeight`) costuma ser
@@ -90,7 +103,7 @@ export function registerWindowHandlers(
     // `iconId` vem do renderer — valida contra a lista fixa antes de montar um caminho de
     // arquivo com ele, pra nunca resolver pra fora de `build/icons/`.
     if (!isValidAppIconId(iconId)) return
-    window.setIcon(nativeImage.createFromPath(resolveAppIconPath(iconId)))
+    obterJanela()?.setIcon(nativeImage.createFromPath(resolveAppIconPath(iconId)))
     /**
      * Isto cobre o título da janela e o Alt+Tab. A BARRA DE TAREFAS continua com o ícone do
      * instalador enquanto o app declarar um AppUserModelID — o Windows tira o ícone do botão da

@@ -504,7 +504,7 @@ const FOTOS_LOCAIS: Record<string, string> = (() => {
     return import.meta.glob('../../assets/local/cavalo-troia.ts', {
       eager: true,
       import: 'default'
-    }) as Record<string, string>
+    })
   } catch {
     /**
      * `import.meta.glob` é do Vite. O harness de conferência empacota este arquivo com ESBUILD, que

@@ -3,7 +3,7 @@ import { useSettings } from '@renderer/settings/SettingsContext'
 import { appIconImageSmall } from '@renderer/assets/icons'
 import './Toolbar.css'
 
-export type AppTab = 'roll' | 'style' | 'notes'
+export type AppTab = 'roll' | 'style' | 'sheet' | 'notes'
 
 interface ToolbarProps {
   activeTab: AppTab
@@ -57,6 +57,19 @@ export function Toolbar({
             onClick={() => onTabChange('style')}
           >
             {t.tabs.style}
+          </button>
+          {/*
+            FICHA e ANOTAÇÕES são abas separadas a pedido do usuário. A ficha vem antes porque é o
+            que o personagem É; as anotações são o que aconteceu com ele.
+          */}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'sheet'}
+            className={`toolbar-tab ${activeTab === 'sheet' ? 'toolbar-tab-active' : ''}`}
+            onClick={() => onTabChange('sheet')}
+          >
+            {t.tabs.sheet}
           </button>
           <button
             type="button"

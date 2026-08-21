@@ -1,3 +1,5 @@
+import { normalizarTipoDeRolagem, type SheetRollKind } from './sheetRoll'
+
 /**
  * Uma página do BLOCO — uma por dia de jogo, viradas pelos botões ◀ ▶ (pedido do usuário: "coloca
  * tipo uma página para cada dia e você aperta o botão e passa a página/dia").
@@ -25,8 +27,58 @@ export interface NotesPage {
  * atributos, combate, deixa só nome, bloco, inventário, aparência, backstory". O que ficou é o que
  * ele usa: um nome e quatro blocos de texto.
  */
+/**
+ * Uma SEÇÃO da ficha, com o nome que o sistema de RPG dá a ela.
+ *
+ * É o que faz a aba Ficha assumir a forma do sistema em vez de ter cinco blocos fixos pra todo
+ * mundo: uma ficha de Ordem Paranormal importada mostra Identificação, Atributos e Recursos; uma de
+ * Oblivio mostra Identificação, Atributos e Corpo. Os nomes não são inventados aqui — são os que o
+ * leitor daquele sistema devolveu (ver `SheetImportField.group`).
+ *
+ * Mora dentro do `notes.json` do PERFIL, e é por isso que trocar de personagem troca a ficha
+ * inteira: cada um tem as seções do sistema dele, e voltar pro anterior traz de volta as dele.
+ */
+export interface SheetSection {
+  id: string
+  title: string
+  fields: SheetSectionField[]
+}
+
+export interface SheetSectionField {
+  id: string
+  label: string
+  value: string
+  /**
+   * Como se rola este campo (ver `sheetRoll.ts`). Vem do leitor do sistema na importação e é o que
+   * põe o botão de dado ao lado do número na ficha.
+   *
+   * Guarda o TIPO da rolagem, não a expressão: o valor ao lado é editável, e uma expressão gravada
+   * rolaria pra sempre o bônus que o personagem tinha no dia da importação.
+   */
+  roll?: SheetRollKind
+}
+
 export interface NotesData {
   characterName: string
+  /**
+   * ATRIBUTOS e HABILIDADES, pedidos pelo usuário quando a ficha virou aba própria ("coloca
+   * backstory, inventário, atributos, habilidades, deixa mais organizado para uma ficha").
+   *
+   * São texto livre, e não campos estruturados com número por atributo — a ficha já teve isso
+   * (Força/Destreza/... com modificador calculado) e foi MANDADA TIRAR. O que muda agora é que
+   * existe um lugar pra escrever, não que o app volte a entender de sistema: cada RPG tem os seus
+   * atributos, e o importador de ficha já traz os de quem tem (ver `SheetImportField.group`).
+   */
+  attributes: string
+  abilities: string
+  /**
+   * Seções vindas de uma ficha IMPORTADA. Vazio = personagem criado à mão, e aí a aba Ficha mostra
+   * os blocos livres (atributos, habilidades, inventário, aparência, história).
+   *
+   * As duas formas convivem de propósito: quem importou quer a ficha do sistema dele, campo a
+   * campo; quem criou do zero não tem sistema nenhum pra seguir e precisa de espaço pra escrever.
+   */
+  sections: SheetSection[]
   inventory: string
   appearance: string
   backstory: string
@@ -42,6 +94,9 @@ export interface NotesData {
 
 export const DEFAULT_NOTES: NotesData = {
   characterName: '',
+  attributes: '',
+  abilities: '',
+  sections: [],
   inventory: '',
   appearance: '',
   backstory: '',
@@ -83,10 +138,34 @@ export function normalizeNotes(raw: unknown): NotesData {
     pages.push(createNotesPage(typeof legacyText === 'string' ? legacyText : ''))
   }
 
+  /**
+   * `sections` vem de arquivo, então pode vir qualquer coisa — ausente (perfil de antes desta
+   * versão), não-lista, ou com item torto. Filtrar aqui é o que impede a aba Ficha de quebrar
+   * inteira por causa de uma entrada estragada.
+   */
+  const sections: SheetSection[] = Array.isArray(data.sections)
+    ? data.sections
+        .filter((secao): secao is SheetSection => typeof secao?.title === 'string' && Array.isArray(secao?.fields))
+        .map((secao) => ({
+          id: typeof secao.id === 'string' ? secao.id : crypto.randomUUID(),
+          title: secao.title,
+          fields: secao.fields
+            .filter((campo): campo is SheetSectionField => typeof campo?.label === 'string')
+            .map((campo) => ({
+              id: typeof campo.id === 'string' ? campo.id : crypto.randomUUID(),
+              label: campo.label,
+              value: typeof campo.value === 'string' ? campo.value : '',
+              // Tipo de rolagem que não existe (arquivo de outra versão, editado à mão) vira
+              // ausente — o campo perde o botão certo, e não a ficha inteira.
+              roll: normalizarTipoDeRolagem(campo.roll)
+            }))
+        }))
+    : []
+
   const currentPage = Math.min(Math.max(0, Math.trunc(data.currentPage) || 0), pages.length - 1)
   // O nome já morou dentro de um objeto `sheet` (junto de classe, nível, atributos...) — quem gravou
   // naquele formato não perde o nome por causa disso.
   const legacyName = (raw as { sheet?: { name?: string } } | null)?.sheet?.name
   const characterName = data.characterName || legacyName || ''
-  return { ...data, characterName, pages, currentPage }
+  return { ...data, characterName, pages, currentPage, sections }
 }

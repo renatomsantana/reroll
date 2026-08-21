@@ -82,7 +82,7 @@ describe('distribuição estatística de rolagens do d6 (física real, headless)
         0
       )
 
-      // eslint-disable-next-line no-console
+       
       console.log('Distribuição observada:', counts, '— qui-quadrado:', chiSquare.toFixed(2))
 
       for (const value of [1, 2, 3, 4, 5, 6]) {

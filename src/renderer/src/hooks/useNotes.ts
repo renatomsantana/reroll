@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useProfiles } from '@renderer/settings/ProfilesContext'
 import {
   createNotesPage,
@@ -19,7 +19,25 @@ import {
 export function useNotes() {
   const [notes, setNotes] = useState<NotesData>(() => normalizeNotes(DEFAULT_NOTES))
   const [loading, setLoading] = useState(true)
+  /**
+   * De QUAL personagem são as anotações que estão em `notes` neste instante.
+   *
+   * Entre trocar de personagem e a leitura do disco voltar existe um intervalo em que `notes` ainda
+   * é do anterior. Quem tomar decisão baseada nelas nesse intervalo decide errado — foi assim que o
+   * nome do personagem antigo vazou pro recém-criado (ver `SheetTab`). Guardar de quem é o conteúdo
+   * é mais honesto que um `loading` booleano: diz NÃO SÓ que carregou, mas de quem.
+   */
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
   const [saveError, setSaveError] = useState(false)
+  /**
+   * A LEITURA falhou.
+   *
+   * Precisa ser dito, e não só registrado no console, porque a consequência é a ficha ficar
+   * somente-leitura: sem saber o que há no arquivo, gravar por cima seria trocar o conteúdo real
+   * pelo padrão vazio. Sem aviso, isso apareceria como "não consigo digitar nada" — que é
+   * exatamente uma das coisas que o usuário já relatou.
+   */
+  const [loadError, setLoadError] = useState(false)
   const { activeId } = useProfiles()
 
   /**
@@ -29,16 +47,56 @@ export function useNotes() {
    * cima do arquivo do novo.
    */
   useEffect(() => {
+    /**
+     * A resposta que chega DEPOIS de já ter trocado de personagem é descartada.
+     *
+     * Trocar duas vezes rápido (dois cliques na lista) deixa duas leituras no ar ao mesmo tempo, e
+     * elas não voltam necessariamente na ordem em que saíram. Sem esta trava, a leitura do
+     * personagem ANTERIOR pode chegar por último e ficar na tela — com `loadedFor` dizendo que é
+     * dele —, e daí em diante tudo o que for digitado grava a ficha do anterior na pasta do atual.
+     */
+    let atual = true
     setLoading(true)
     window.api.notes
       .get()
-      .then((loaded) => setNotes(normalizeNotes({ ...DEFAULT_NOTES, ...loaded })))
-      .catch((error: unknown) => console.error('Falha ao carregar anotações:', error))
-      .finally(() => setLoading(false))
+      .then((loaded) => {
+        if (!atual) return
+        setNotes(normalizeNotes({ ...DEFAULT_NOTES, ...loaded }))
+        setLoadedFor(activeId)
+        setLoadError(false)
+      })
+      .catch((error: unknown) => {
+        if (!atual) return
+        console.error('Falha ao carregar anotações:', error)
+        setLoadError(true)
+      })
+      .finally(() => {
+        if (atual) setLoading(false)
+      })
+    return () => {
+      atual = false
+    }
   }, [activeId])
+
+  /**
+   * O conteúdo em `notes` é do personagem ABERTO? Enquanto não for, gravar é destruir.
+   *
+   * Entre trocar de personagem e a leitura voltar do disco, a tela continua mostrando a ficha do
+   * ANTERIOR e os campos continuam editáveis. Uma tecla digitada nesse intervalo mandava o conteúdo
+   * velho pro `notes.save`, que escreve na pasta do personagem ATIVO — a ficha do novo apagada pela
+   * do antigo, sem aviso e sem volta. É a janela curta da mesma perda que o usuário relatou
+   * ("quando troquei de Matais para Rodrigo todas as informações sumiram").
+   *
+   * Num ref porque `update` é estável (`useCallback` sem dependências) e precisa ler o valor do
+   * momento da digitação, não o do render em que foi criada.
+   */
+  const prontoRef = useRef(false)
+  prontoRef.current = loadedFor === activeId
 
   /** Aplica a mudança e grava. Recebe função pra sempre partir do estado ATUAL, não do que a tela viu. */
   const update = useCallback((change: (previous: NotesData) => NotesData) => {
+    // Ficha ainda não carregada pra este personagem: ver `prontoRef`. Melhor perder uma tecla que a ficha.
+    if (!prontoRef.current) return
     setNotes((previous) => {
       const next = change(previous)
       window.api.notes
@@ -108,7 +166,9 @@ export function useNotes() {
   return {
     notes,
     loading,
+    loadedFor,
     saveError,
+    loadError,
     updateField,
     updatePage,
     goToPage,

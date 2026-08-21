@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { RollResult } from '@shared/types/dice'
+import type { DiceExpression, RollResult } from '@shared/types/dice'
 import type { Preset, PresetInput } from '@shared/types/preset'
 import { rollExpression } from '@renderer/domain/dice/diceEngine'
 import { usePresets } from '@renderer/hooks/usePresets'
@@ -17,6 +17,7 @@ import { CompactWidget } from '@renderer/components/compact/CompactWidget'
 import { PresetList } from '@renderer/components/presets/PresetList'
 import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModal'
 import { HistoryModal } from '@renderer/components/history/HistoryModal'
+import { SheetTab } from '@renderer/components/notes/SheetTab'
 import { NotesTab } from '@renderer/components/notes/NotesTab'
 import { StyleTab } from '@renderer/components/style/StyleTab'
 import { UpdatePrompt } from '@renderer/components/chrome/UpdatePrompt'
@@ -111,6 +112,22 @@ export default function App() {
     addToHistory(result)
   }
 
+  /**
+   * Rolagem disparada da FICHA — um atributo, uma perícia, o dano de uma arma (ver `sheetRoll.ts`).
+   *
+   * Ela troca pra aba de Rolagem antes de rolar, e isso não é enfeite: os dados caem na bandeja 3D,
+   * que mora lá. Sem a troca, o clique na ficha faria os dados rolarem numa tela que a pessoa não
+   * está vendo — o botão pareceria quebrado enquanto o app fazia exatamente o que foi pedido.
+   *
+   * Não custa remontagem nenhuma: a aba de Rolagem fica montada o tempo todo, só escondida (ver o
+   * comentário do `display` mais abaixo), então o `roller3DRef` já aponta pra uma cena viva.
+   */
+  function handleSheetRoll(expression: DiceExpression, name: string) {
+    const modifierTotal = expression.modifiers.reduce((sum, m) => sum + m.value, 0)
+    setActiveTab('roll')
+    roller3DRef.current?.rollGroups(expression.groups, modifierTotal, name, expression.keep, expression.explode)
+  }
+
   function handlePresetRoll(preset: Preset) {
     const modifierTotal = preset.expression.modifiers.reduce((sum, m) => sum + m.value, 0)
     // O nome vai junto só pro histórico registrar QUAL golpe foi (ver `sourceName` em `RollResult`).
@@ -119,7 +136,8 @@ export default function App() {
       preset.expression.groups,
       modifierTotal,
       preset.name,
-      preset.expression.keep
+      preset.expression.keep,
+      preset.expression.explode
     )
   }
 
@@ -141,14 +159,29 @@ export default function App() {
   }
 
   function handleDeletePreset(preset: Preset) {
-    if (confirm(t.presets.deleteConfirm.replace('{name}', preset.name))) {
-      deletePreset(preset.id)
-    }
+    if (!confirm(t.presets.deleteConfirm.replace('{name}', preset.name))) return
+    // `void` com `catch`: apagar é gravação em disco e pode falhar. Sem o `catch`, a falha era uma
+    // rejeição sem dono — o preset continuava na tela e ninguém sabia por quê.
+    void deletePreset(preset.id).catch((causa: unknown) => {
+      console.error('Falha ao apagar o preset:', causa)
+      alert(t.presets.exportError.replace('{error}', String((causa as Error)?.message ?? causa)))
+    })
   }
 
   async function handleExportPresets() {
-    const path = await exportPresets()
-    if (path) alert(t.presets.exportSuccess.replace('{path}', path))
+    /**
+     * O `try` faltava, e o `import` logo abaixo já tinha o dele — a assimetria era o defeito.
+     * Exportar é gravar um arquivo numa pasta que a pessoa escolheu, e isso falha de verdade: disco
+     * cheio, pasta protegida, pendrive removido entre escolher e gravar. Sem o `catch`, o clique em
+     * "Exportar" simplesmente não fazia nada.
+     */
+    try {
+      const path = await exportPresets()
+      if (path) alert(t.presets.exportSuccess.replace('{path}', path))
+    } catch (causa) {
+      console.error('Falha ao exportar presets:', causa)
+      alert(t.presets.exportError.replace('{error}', (causa as Error).message))
+    }
   }
 
   async function handleImportPresets() {
@@ -227,8 +260,8 @@ export default function App() {
                   onEdit={setEditingPreset}
                   onDelete={handleDeletePreset}
                   onCreate={() => setIsCreating(true)}
-                  onExport={handleExportPresets}
-                  onImport={handleImportPresets}
+                  onExport={() => void handleExportPresets()}
+                  onImport={() => void handleImportPresets()}
                   disabled={isAnyRollInProgress}
                   /**
                    * Rolar continua liberado durante uma rolagem NA BANDEJA — pedido do usuário
@@ -247,6 +280,14 @@ export default function App() {
                   <StyleTab />
                 </section>
               )}
+              {activeTab === 'sheet' && (
+                <SheetTab
+                  onRoll={handleSheetRoll}
+                  /* Mesma trava da lista de presets — ver o comentário do `rollDisabled` de lá. */
+                  rollDisabled={isAnyRollInProgress && launchMode === 'tower'}
+                />
+              )}
+
               {activeTab === 'notes' && (
                 <section className="app-section">
                   <NotesTab />
@@ -300,7 +341,9 @@ export default function App() {
       {isEditorOpen && (
         <PresetEditorModal
           preset={editingPreset}
-          onSave={handleSavePreset}
+          // O `void` diz "esta promessa é tratada lá dentro" — e é: `handleSavePreset` tem o `try`
+          // dele, e é ele que mantém o modal aberto quando a gravação falha.
+          onSave={(input) => void handleSavePreset(input)}
           onCancel={() => {
             setEditingPreset(null)
             setIsCreating(false)

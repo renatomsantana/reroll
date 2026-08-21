@@ -62,7 +62,7 @@ export function FontSelect({ value, onChange, defaultLabel }: FontSelectProps) {
   const options: { id: FontSelectValue; label: string; family: string; credit?: string }[] = [
     ...(defaultLabel ? [{ id: '' as const, label: defaultLabel, family: 'inherit' }] : []),
     ...FONT_OPTIONS.map((font) => ({
-      id: font.id as FontSelectValue,
+      id: font.id,
       label: font.label,
       family: font.family,
       credit: 'credit' in font ? font.credit : undefined

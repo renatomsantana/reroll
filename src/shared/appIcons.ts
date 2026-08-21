@@ -18,10 +18,10 @@ export interface AppIconOption {
  * acrescentar ou trocar ícone amanhã mexe neste arquivo, e crédito guardado longe é crédito que se
  * perde numa refatoração.
  *
- * É UM crédito pro conjunto, e não um por ícone: os sete são da mesma pessoa, e repetir "by @xuga"
+ * É UM crédito pro conjunto, e não um por ícone: os sete são da mesma pessoa, e repetir o nome dela
  * sete vezes numa fileira de miniaturas viraria ruído em vez de atribuição.
  */
-export const APP_ICONS_CREDIT = 'by @xuga'
+export const APP_ICONS_CREDIT = 'by @tweetsdoxuga'
 
 export const APP_ICON_OPTIONS: AppIconOption[] = [
   { id: 'base', label: 'Clássico' },
