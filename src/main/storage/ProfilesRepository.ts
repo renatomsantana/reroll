@@ -76,10 +76,23 @@ export class ProfilesRepository {
     return this.state
   }
 
-  /** Pasta do perfil aberto. Criada sob demanda — perfil recém-criado ainda não tem nada gravado. */
+  /**
+   * Pasta do perfil aberto. Criada sob demanda — perfil recém-criado ainda não tem nada gravado.
+   *
+   * O id é SANEADO antes de virar nome de pasta, e isso é defesa, não capricho: ele chega do
+   * renderer (`profiles.save`) e também é lido de `profiles.json`, um arquivo que qualquer coisa
+   * rodando na máquina pode editar. Um id como `..\..\Startup` sairia de `userData` e faria o app
+   * escrever a ficha do personagem numa pasta arbitrária do sistema — o app viraria a ferramenta de
+   * escrita de quem plantou o id.
+   *
+   * A lista branca é a forma certa aqui porque o id de verdade é um UUID: letras, números, hífen e
+   * underline cobrem 100% do que o app gera, e qualquer outra coisa é, por definição, alguém
+   * tentando outra coisa. O que não passa vira `_`, então o perfil ainda abre — o app não quebra na
+   * mão de quem não fez nada.
+   */
   activeDirectory(): string {
     const activeId = this.state?.activeId ?? DEFAULT_PROFILE_ID
-    return join(this.userData, 'profiles', activeId)
+    return join(this.userData, 'profiles', sanearIdDePasta(activeId))
   }
 
   /**
@@ -111,4 +124,18 @@ export class ProfilesRepository {
       await fs.rename(antigo, novo)
     }
   }
+}
+
+/**
+ * Deixa só o que pode virar nome de pasta com segurança. Fora da classe porque é regra pura e
+ * testável sozinha — ver `profileIsolation.test.ts`.
+ */
+export function sanearIdDePasta(id: string): string {
+  const limpo = id.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64)
+  /**
+   * Só o VAZIO precisa de rede: `.` e `..` não sobrevivem à lista branca (o ponto não está nela, e
+   * vira `_` como qualquer outro caractere de fora). Eu tinha escrito uma guarda contra `^\.+$`
+   * aqui, e o teste provou que ela era inalcançável.
+   */
+  return limpo || '_'
 }

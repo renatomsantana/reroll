@@ -18,15 +18,28 @@ import * as THREE from 'three'
  * profundidade nenhuma sob luz direta, a argamassa precisa ler como realmente recuada. Mesma
  * técnica (altura → normal via diferenças centrais) já usada em `createVelvetNormalMap.ts`.
  */
-const TILE_SIZE = 256
-const BRICKS_PER_ROW = 4
-const ROWS_PER_TILE = 2
-// 5 → 7: junta mais grossa/visível — pedido repetido de "mais contraste, parecer torre da idade
-// média" (uma junta fina lê como alvenaria nova/precisa, não pedra rústica de castelo).
-const MORTAR_THICKNESS = 7
+/**
+ * O LADRILHO, calibrado pra ter a MESMA escala de pixel nos dois eixos.
+ *
+ * Ele cobre 8 tijolos por fiada e 8 fiadas — 64 tijolos distintos, contra os 8 de antes. Em unidades
+ * de mundo isso dá 8 x 1.1 = 8.8 de largura por 8 x 0.55 = 4.4 de altura, ou seja 2:1, e é por isso
+ * que o canvas é 512x256 e não quadrado.
+ *
+ * Quadrado era um erro silencioso: com o mesmo número de pixels cobrindo 8.8 na horizontal e 4.4 na
+ * vertical, a junta de argamassa saía com o dobro da grossura num eixo e metade no outro. Agora são
+ * 58 pixels por unidade nos dois, e a junta tem a mesma espessura em qualquer direção.
+ *
+ * Mais tijolo por ladrilho é a outra metade do conserto da repetição que o usuário viu: 64 pedras
+ * diferentes antes de o desenho se repetir, em vez de 8.
+ */
+const TILE_WIDTH = 512
+const TILE_HEIGHT = 256
+const BRICKS_PER_ROW = 8
+const ROWS_PER_TILE = 8
+/** Junta em pixel. 5 sobre um tijolo de 64x32 dá ~0.09 de mundo — grossa o suficiente pra ler como pedra rústica. */
+const MORTAR_THICKNESS = 5
 const MORTAR_HEIGHT = 0.15
 const BRICK_HEIGHT = 0.9
-// 3.5 → 5: sombra da argamassa mais funda sob luz direta, mesmo pedido de mais contraste.
 const NORMAL_STRENGTH = 5
 
 function seededShade(row: number, col: number): number {
@@ -53,31 +66,31 @@ function isMortarPixel(x: number, y: number, rowHeight: number, brickWidth: numb
 }
 
 function buildHeightMap(rowHeight: number, brickWidth: number): Float32Array {
-  const heights = new Float32Array(TILE_SIZE * TILE_SIZE)
-  for (let y = 0; y < TILE_SIZE; y++) {
-    for (let x = 0; x < TILE_SIZE; x++) {
-      heights[y * TILE_SIZE + x] = isMortarPixel(x, y, rowHeight, brickWidth) ? MORTAR_HEIGHT : BRICK_HEIGHT
+  const heights = new Float32Array(TILE_WIDTH * TILE_HEIGHT)
+  for (let y = 0; y < TILE_HEIGHT; y++) {
+    for (let x = 0; x < TILE_WIDTH; x++) {
+      heights[y * TILE_WIDTH + x] = isMortarPixel(x, y, rowHeight, brickWidth) ? MORTAR_HEIGHT : BRICK_HEIGHT
     }
   }
   return heights
 }
 
 function heightAt(heights: Float32Array, x: number, y: number): number {
-  const cx = ((x % TILE_SIZE) + TILE_SIZE) % TILE_SIZE
-  const cy = ((y % TILE_SIZE) + TILE_SIZE) % TILE_SIZE
-  return heights[cy * TILE_SIZE + cx]
+  const cx = ((x % TILE_WIDTH) + TILE_WIDTH) % TILE_WIDTH
+  const cy = ((y % TILE_HEIGHT) + TILE_HEIGHT) % TILE_HEIGHT
+  return heights[cy * TILE_WIDTH + cx]
 }
 
 function buildNormalMap(heights: Float32Array): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
-  canvas.width = TILE_SIZE
-  canvas.height = TILE_SIZE
+  canvas.width = TILE_WIDTH
+  canvas.height = TILE_HEIGHT
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Não foi possível obter contexto 2D do canvas para o normal map de tijolo')
-  const image = ctx.createImageData(TILE_SIZE, TILE_SIZE)
+  const image = ctx.createImageData(TILE_WIDTH, TILE_HEIGHT)
 
-  for (let y = 0; y < TILE_SIZE; y++) {
-    for (let x = 0; x < TILE_SIZE; x++) {
+  for (let y = 0; y < TILE_HEIGHT; y++) {
+    for (let x = 0; x < TILE_WIDTH; x++) {
       const left = heightAt(heights, x - 1, y)
       const right = heightAt(heights, x + 1, y)
       const up = heightAt(heights, x, y - 1)
@@ -88,7 +101,7 @@ function buildNormalMap(heights: Float32Array): THREE.CanvasTexture {
       const nz = 1
       const len = Math.sqrt(nx * nx + ny * ny + nz * nz)
 
-      const idx = (y * TILE_SIZE + x) * 4
+      const idx = (y * TILE_WIDTH + x) * 4
       image.data[idx] = Math.round(((nx / len) * 0.5 + 0.5) * 255)
       image.data[idx + 1] = Math.round(((ny / len) * 0.5 + 0.5) * 255)
       image.data[idx + 2] = Math.round(((nz / len) * 0.5 + 0.5) * 255)
@@ -122,19 +135,28 @@ export function createBrickTexture(
   surfaceWidth: number,
   surfaceHeight: number,
   brickWorldWidth = 1.1,
-  brickWorldHeight = 0.55
+  brickWorldHeight = 0.55,
+  /**
+   * Se o tamanho da pedra pode ser ENCOLHIDO pra peça pequena caber num tanto mínimo delas.
+   *
+   * `false` quando quem chama já escolheu a pedra a dedo — é o caso da cantaria do portão, onde a
+   * ombreira pede um bloco tão largo quanto ela e a verga pede cinco deitadas. Nesses casos o
+   * ajuste automático não ajuda: ele encolhia a pedra pedida até caber 1.6, e o pedido virava outra
+   * coisa.
+   */
+  ajustarPecaPequena = true
 ): BrickTextures {
   const canvas = document.createElement('canvas')
-  canvas.width = TILE_SIZE
-  canvas.height = TILE_SIZE
+  canvas.width = TILE_WIDTH
+  canvas.height = TILE_HEIGHT
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Não foi possível obter contexto 2D do canvas para a textura de tijolo')
 
   ctx.fillStyle = shadeColor(mortarColor, 0)
-  ctx.fillRect(0, 0, TILE_SIZE, TILE_SIZE)
+  ctx.fillRect(0, 0, TILE_WIDTH, TILE_HEIGHT)
 
-  const rowHeight = TILE_SIZE / ROWS_PER_TILE
-  const brickWidth = TILE_SIZE / BRICKS_PER_ROW
+  const rowHeight = TILE_HEIGHT / ROWS_PER_TILE
+  const brickWidth = TILE_WIDTH / BRICKS_PER_ROW
 
   for (let row = 0; row < ROWS_PER_TILE; row++) {
     const offset = row % 2 === 0 ? 0 : brickWidth / 2
@@ -169,8 +191,56 @@ export function createBrickTexture(
    * ponto em que a textura fecha, e isso aparece como uma emenda vertical na pedra.
    */
   const inteiroOuFracao = (bruto: number): number => (bruto >= 1 ? Math.round(bruto) : bruto)
-  const repeatX = inteiroOuFracao(surfaceWidth / brickWorldWidth)
-  const repeatY = inteiroOuFracao(surfaceHeight / brickWorldHeight)
+  /**
+   * A conta divide pelo tamanho do LADRILHO, não pelo de um tijolo — e essa era a origem de duas
+   * queixas de uma vez ("tão mt repetidos e colados um no outro").
+   *
+   * O ladrilho tem `BRICKS_PER_ROW` tijolos, mas o divisor era a largura de UM. Resultado: o
+   * ladrilho inteiro era espremido no espaço de um tijolo, cada tijolo saía com 1/6 da largura que
+   * este arquivo diz que ele tem, e o mesmo punhado de tijolos se repetia seis vezes mais que o
+   * necessário. De quebra, encolhido, a junta de argamassa virava sub-pixel na tela — daí eles
+   * parecerem colados um no outro.
+   *
+   * Medido na casca da torre: circunferência 9.11, tijolo de 1.1. Antes dava 8 repetições do
+   * ladrilho (32 tijolos na volta, cada um com 0.28 de largura); agora dá 1.4 → 1 repetição, com os
+   * 6 tijolos do ladrilho ocupando a volta inteira no tamanho que deveriam ter.
+   */
+  /**
+   * PEÇA PEQUENA ganha tijolo menor, pra continuar mostrando alvenaria em vez de mancha.
+   *
+   * Um tijolo de 1.1 é maior que uma ameia inteira ou que o pilar do portão: com o tamanho fixo,
+   * essas peças recebiam uma fração tão pequena do ladrilho que ficavam com meio tijolo esticado por
+   * cima, ou seja, cor chapada. Aqui o tijolo encolhe até a peça caber uns dois e meio — que é o
+   * mínimo pra a junta aparecer e ela ler como pedra.
+   *
+   * `Math.min` porque isso só pode ENCOLHER: numa superfície grande o tijolo continua sendo o que a
+   * torre pediu, senão a casca ganharia pedras gigantes.
+   */
+  const TIJOLOS_MINIMOS = 1.6
+  /**
+   * O encolhimento é PROPORCIONAL — um fator só pros dois eixos —, e é isso que preserva a forma do
+   * tijolo.
+   *
+   * Encolhendo eixo a eixo, como estava, cada peça esticava a pedra num sentido diferente: a
+   * ombreira do portão (0.29 x 1.78) saía com tijolo de 0.12 x 0.55, quatro vezes mais alto que
+   * largo, e a verga (2.46 x 0.32) com 0.99 x 0.13, sete vezes mais larga que alta. É por isso que
+   * os tijolos em volta do vão da porta ficavam feios enquanto os da casca estavam certos: não era
+   * tamanho, era PROPORÇÃO.
+   *
+   * Com um fator único, o tijolo do portão é o mesmo da torre, só menor — que é o que acontece numa
+   * construção de verdade, onde a pedra da ombreira é da mesma pedreira que a da parede.
+   */
+  const fator = ajustarPecaPequena
+    ? Math.min(
+        1,
+        surfaceWidth / (TIJOLOS_MINIMOS * brickWorldWidth),
+        surfaceHeight / (TIJOLOS_MINIMOS * brickWorldHeight)
+      )
+    : 1
+  const larguraDoTijolo = brickWorldWidth * fator
+  const alturaDoTijolo = brickWorldHeight * fator
+  const repeatX = inteiroOuFracao(surfaceWidth / (larguraDoTijolo * BRICKS_PER_ROW))
+  const repeatY = inteiroOuFracao(surfaceHeight / (alturaDoTijolo * ROWS_PER_TILE))
   for (const texture of [map, normalMap]) {
     texture.wrapS = THREE.RepeatWrapping
     texture.wrapT = THREE.RepeatWrapping

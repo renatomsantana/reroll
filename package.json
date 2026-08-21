@@ -1,6 +1,6 @@
 {
   "name": "reroll",
-  "version": "0.1.9-alpha",
+  "version": "0.1.10-alpha",
   "description": "Rolador de dados para RPG",
   "author": "Renato Santana",
   "private": true,
