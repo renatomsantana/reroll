@@ -69,8 +69,8 @@ export type CameraMode = 'table' | 'dice' | 'free'
 export type DisplayMode = '3d' | 'quick'
 
 /**
- * QUINZE fontes: doze no fechamento do alfa, mais a Parisienne, a Sweetie e a Hello Honey,
- * pedidas logo depois.
+ * DEZESSEIS fontes: doze no fechamento do alfa, mais a Parisienne, a Sweetie, a Hello Honey e a
+ * Algerian, pedidas logo depois.
  *
  * A lista já teve dezoito e foi ENCURTADA a pedido do usuário — saíram MS Sans Serif, Verdana,
  * Trebuchet, Candara, Georgia, Palatino, Consolas e OpenDyslexic. Menu de fonte longo não é menu
@@ -97,8 +97,11 @@ export type DisplayMode = '3d' | 'quick'
  *    com a licença ao lado e um par de `@font-face` no `global.css`. Janda Silly Monkey, Sweetie e
  *    Hello Honey são gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver
  *    instaladas vê o reserva. Fonte de fora sem um dos dois tratamentos cai no reserva calada.
- * 3. Fonte que só vem com o OFFICE (Century Gothic, Garamond) não entra: na máquina que não tem
- *    Office ela vira outra coisa sem avisar.
+ * 3. Fonte que só vem com o OFFICE (Century Gothic, Garamond) entra apenas se alguém a pedir pelo
+ *    nome, e nunca por iniciativa de quem mexe aqui: na máquina sem Office ela vira outra coisa sem
+ *    avisar, e quem escolheu não descobre por quê. A regra era "não entra" até a ALGERIAN ser
+ *    pedida (ver mais abaixo) — ela é a única exceção, e o reserva dela é que faz a exceção custar
+ *    pouco. Não use a existência dela como precedente para a próxima.
  */
 export const FONT_OPTIONS = [
   { id: 'tahoma', label: 'Tahoma (clássica)', family: "Tahoma, 'MS Sans Serif', Geneva, sans-serif" },
@@ -216,6 +219,33 @@ export const FONT_OPTIONS = [
     id: 'hello-honey',
     label: 'Hello Honey',
     family: "'Hello Honey', 'Segoe Script', cursive"
+  },
+  /**
+   * ALGERIAN — decorativa, de caixa alta, pedida pelo usuário com o crédito do pedro.
+   *
+   * Ela é a EXCEÇÃO da regra 3 lá em cima, e entra sabendo disso. A Algerian não vem com o Windows:
+   * vem com o Microsoft Office desde 1993, o que é outra coisa. Conferido na máquina do usuário no
+   * dia em que ela foi pedida — 154 fontes instaladas, e a Algerian não estava entre elas.
+   *
+   * Empacotar não é opção: ela é comercial (Letraset/URW, vendida avulsa), não é OFL como a
+   * Parisienne nem "grátis pra uso pessoal" como a Sweetie. O que existe aqui é só o NOME, então
+   * quem não tiver Office vê o reserva — e por isso o reserva dela é a parte que importa.
+   *
+   * `Arial Black` é o reserva, e a escolha tem duas contas:
+   *
+   * - ela vem com o Windows, então existe mesmo na máquina limpa;
+   * - ela NÃO é opção deste menu. A `Impact` seria o parente visual mais próximo da Algerian (as
+   *   duas são display pesadas), mas a Impact está na lista logo acima — e cair numa fonte do
+   *   próprio menu é exatamente o bug do Papyrus, onde escolher uma dava visivelmente a outra.
+   *
+   * A `Arial Black` não se confunde com a `Arial` do menu: uma é preta e condensada, a outra é
+   * regular. São famílias diferentes, e a distinção é visível na primeira palavra.
+   */
+  {
+    id: 'algerian',
+    label: 'Algerian',
+    family: "Algerian, 'Arial Black', fantasy",
+    credit: 'by pedro'
   }
 ] as const
 

@@ -28,6 +28,11 @@ redistribuição. Quem as tiver instaladas no Windows as vê; quem não tiver ca
 As três vendem licença comercial à parte. Se um dia o Reroll precisar empacotá-las, é essa licença
 que tem de ser comprada — não basta o arquivo estar disponível para download.
 
+A **Algerian** está no menu pelo mesmo arranjo, mas por outro motivo: ela não é gratuita para uso
+nenhum. É comercial (Letraset/URW), e chega à maioria das máquinas por vir junto do **Microsoft
+Office** desde 1993 — não com o Windows. Quem não tiver Office vê o reserva (`Arial Black`). O
+Reroll não redistribui nem poderia: empacotá-la exigiria comprar a licença da fonte.
+
 ## Arte
 
 Os ícones do app e as artes dos dados são de autoria própria ou contribuídas para este projeto. Os

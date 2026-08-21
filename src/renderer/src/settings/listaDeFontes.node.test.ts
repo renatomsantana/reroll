@@ -45,7 +45,7 @@ describe('lista de fontes', () => {
    * opção do menu é escolha deliberada de "cair em algo do mesmo peso visual" se o empacotamento um
    * dia falhar.
    *
-   * As quatro abaixo são diferentes: elas de fato faltam em máquina limpa, então o reserva delas é
+   * As cinco abaixo são diferentes: elas de fato faltam em máquina limpa, então o reserva delas é
    * o que a pessoa VÊ. É aí que cair noutra opção do menu vira o bug relatado. Três delas estão
    * nessa situação pelo mesmo motivo — licença gratuita só pra uso pessoal, que não deixa
    * redistribuir o arquivo dentro de um app publicado.
@@ -54,7 +54,8 @@ describe('lista de fontes', () => {
     ['papyrus', 'não vem com o Windows — vem com o Office/macOS. Foi este o bug relatado.'],
     ['janda-silly-monkey', 'gratuita só pra uso pessoal, então não pode ser empacotada'],
     ['sweetie', 'gratuita só pra uso pessoal (Graphix Line Studio), então não pode ser empacotada'],
-    ['hello-honey', 'gratuita só pra uso pessoal (Ef Studio), então não pode ser empacotada']
+    ['hello-honey', 'gratuita só pra uso pessoal (Ef Studio), então não pode ser empacotada'],
+    ['algerian', 'vem com o Microsoft Office, não com o Windows — e é comercial, então nem empacotar resolve']
   ])
 
   it('fonte que pode faltar na máquina não cai em outra opção do menu', () => {
@@ -81,8 +82,9 @@ describe('lista de fontes', () => {
   it('toda fonte que pode faltar TEM reserva de verdade, e não só a genérica', () => {
     /**
      * Cair direto em `cursive` ou `fantasy` deixa a escolha na mão do navegador, e o resultado varia
-     * de máquina pra máquina. Estas precisam de um passo intermediário concreto — no caso das quatro
-     * de hoje, a `Ink Free`, a `Segoe Print` e a `Segoe Script`, manuscritas que vêm com o Windows.
+     * de máquina pra máquina. Estas precisam de um passo intermediário concreto — no caso das cinco
+     * de hoje, a `Ink Free`, a `Segoe Print` e a `Segoe Script` (manuscritas que vêm com o Windows)
+     * e a `Arial Black` (display pesada, idem).
      */
     for (const [id] of PODEM_FALTAR) {
       const fonte = FONT_OPTIONS.find((f) => f.id === id)
