@@ -112,3 +112,16 @@
   gap: 10px;
   margin-top: 4px;
 }
+
+/*
+ * Crédito de quem fez os ícones, ao lado do rótulo. Mesmas medidas do crédito das fontes
+ * (`.font-select-credit`): pequeno, apagado e em itálico, porque é atribuição e não uma opção que
+ * disputa a leitura com o nome do campo.
+ */
+.settings-panel-credit {
+  margin-left: 6px;
+  font-style: italic;
+  font-size: 9px;
+  color: var(--win-text-muted);
+  opacity: 0.75;
+}

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useSettings, type Language } from '@renderer/settings/SettingsContext'
 import { LANGUAGE_OPTIONS, useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
-import { APP_ICON_OPTIONS } from '@shared/appIcons'
+import { APP_ICON_OPTIONS, APP_ICONS_CREDIT } from '@shared/appIcons'
 import { APP_ICON_IMAGES } from '@renderer/assets/icons'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
@@ -149,7 +149,11 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         </div>
 
         <div className="settings-panel-field settings-panel-field-column">
-          <span>{t.settings.appIcon}</span>
+          <span>
+            {t.settings.appIcon}
+            {/* Mesmo desenho do crédito das fontes: pequeno, apagado e em itálico — é atribuição, não opção. */}
+            <span className="settings-panel-credit">{APP_ICONS_CREDIT}</span>
+          </span>
           <div className="settings-panel-icon-grid">
             {APP_ICON_OPTIONS.map((option) => (
               <button
