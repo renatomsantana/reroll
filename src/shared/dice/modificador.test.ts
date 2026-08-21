@@ -4,7 +4,7 @@ import {
   modificadorDoTexto,
   textoDeModificadorAceito,
   textoDoModificadorAjustado
-} from './DiceRoller3D'
+} from './modificador'
 
 /**
  * O CAMPO DO MODIFICADOR, e o defeito que o trouxe: não dava pra digitar modificador NEGATIVO.
@@ -16,6 +16,11 @@ import {
  *
  * A causa é conceitual e vale registrar: o estado guardava o NÚMERO, e o número não tem como
  * representar "a pessoa digitou o sinal e ainda não digitou o resto". O texto tem.
+ *
+ * O campo existe em TRÊS lugares — a barra de rolagem 3D, o editor de presets e o roller do modo
+ * compacto — e os três tinham a mesma linha copiada, com o mesmo defeito. Consertar só onde o
+ * usuário reparou teria deixado dois. É por isso que a regra passou a morar em `shared`, e é por
+ * isso que este teste está aqui e não ao lado de um componente.
  */
 
 describe('o que o campo aceita enquanto se digita', () => {

@@ -76,11 +76,14 @@ antes de os dois renderizadores serem criados.
 
 ### Corrigido
 
-- **Não dava para digitar modificador NEGATIVO.** O campo era numérico e guardava o valor já
-  convertido: digitar o sinal de menos virava zero na mesma tecla, e o traço sumia antes de dar tempo
-  de escrever o algarismo. Num app de RPG isso é meio caminho perdido — metade das rolagens de ficha
-  tem penalidade. O campo passou a guardar texto, aceita "-2" digitado à mão, e as setinhas do
-  navegador deram lugar a botões **−** e **+**, que dizem o que fazem.
+- **Não dava para digitar modificador NEGATIVO** — em lugar nenhum. O campo era numérico e guardava
+  o valor já convertido: digitar o sinal de menos virava zero na mesma tecla, e o traço sumia antes
+  de dar tempo de escrever o algarismo. Num app de RPG isso é meio caminho perdido — metade das
+  rolagens de ficha tem penalidade, e não dava para salvar um preset de arma amaldiçoada.
+  O campo existia copiado em **três** telas (barra de rolagem, editor de presets e modo compacto),
+  as três com o mesmo defeito. Agora a regra mora num lugar só: o campo guarda texto, aceita "-2"
+  digitado à mão, e as setinhas do navegador deram lugar a botões **−** e **+**, que dizem o que
+  fazem e são clicáveis mesmo na janela compacta.
 - **A rolagem podia passar do limite de dados.** Cliques rápidos no "+" chegavam a 31 dados num app
   cujo teto é 20: a checagem lia a lista do render anterior, e o React agrupa cliques rápidos num
   lote só, onde todos enxergam o mesmo valor velho. A conta passou para dentro da atualização de

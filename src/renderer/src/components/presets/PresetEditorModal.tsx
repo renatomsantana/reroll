@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import type { DiceGroup, KeepRule } from '@shared/types/dice'
 import type { Preset, PresetInput } from '@shared/types/preset'
 import { DEFAULT_DICE_SIDES, MAX_EXPLOSOES_POR_DADO, MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
+import {
+  modificadorDoTexto,
+  textoDeModificadorAceito,
+  textoDoModificadorAjustado
+} from '@shared/dice/modificador'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
 import { Button } from '../common/Button'
@@ -28,9 +33,15 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
   const [groups, setGroups] = useState<DiceGroup[]>(
     preset?.expression.groups.length ? preset.expression.groups : [emptyGroup()]
   )
-  const [modifier, setModifier] = useState(
-    preset?.expression.modifiers.reduce((sum, m) => sum + m.value, 0) ?? 0
+  /**
+   * O modificador vive como TEXTO — ver `shared/dice/modificador.ts`. Guardar o número convertido a
+   * cada tecla é o que impedia digitar preset com modificador negativo (uma arma amaldiçoada, um
+   * teste com penalidade), porque o sinal de menos sozinho virava zero na hora.
+   */
+  const [textoDoModificador, setTextoDoModificador] = useState(
+    String(preset?.expression.modifiers.reduce((sum, m) => sum + m.value, 0) ?? 0)
   )
+  const modifier = modificadorDoTexto(textoDoModificador)
   /**
    * A regra de manter, em dois estados separados — o MODO e QUANTOS.
    *
@@ -247,15 +258,46 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
         </label>
         {explode && <p className="preset-editor-hint">{t.presetEditor.explodeHint}</p>}
 
-        <label className="preset-editor-field">
+        {/* `div` e não `label`: o rótulo roubaria o clique dos botões pro campo de dentro dele. */}
+        <div className="preset-editor-field">
           <span>{t.presetEditor.modifier}</span>
-          <input
-            type="number"
-            value={modifier}
-            onChange={(e) => setModifier(Number(e.target.value) || 0)}
-            aria-label={t.presetEditor.modifier}
-          />
-        </label>
+          {/*
+            MENOS e MAIS no lugar das setinhas do campo numérico, e o estado é TEXTO — ver
+            `shared/dice/modificador.ts`. Sem isso não dá pra digitar modificador negativo: o campo
+            numérico converte a cada tecla, e o sinal de menos sozinho vira zero na hora.
+          */}
+          <div className="preset-editor-modifier-campo">
+            <Button
+              variant="ghost"
+              className="preset-editor-modifier-btn"
+              aria-label={t.roller.modifierMinus}
+              title={t.roller.modifierMinus}
+              onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, -1))}
+            >
+              −
+            </Button>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={textoDoModificador}
+              onChange={(e) => {
+                const bruto = e.target.value.trim()
+                if (textoDeModificadorAceito(bruto)) setTextoDoModificador(bruto)
+              }}
+              onBlur={() => setTextoDoModificador(String(modifier))}
+              aria-label={t.presetEditor.modifier}
+            />
+            <Button
+              variant="ghost"
+              className="preset-editor-modifier-btn"
+              aria-label={t.roller.modifierPlus}
+              title={t.roller.modifierPlus}
+              onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, 1))}
+            >
+              +
+            </Button>
+          </div>
+        </div>
 
         <div className="preset-editor-actions">
           <Button variant="secondary" onClick={onCancel}>
