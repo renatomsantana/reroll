@@ -14,10 +14,16 @@ corrigidos, e a base de segurança e de release montada para o beta.
 > **Sobre o número da versão.** O app vinha marcado como `0.1.x-alpha` enquanto a especificação já o
 > chamava de 1.0.x. Os dois passam a dizer a mesma coisa a partir daqui.
 
+> **A aba Ficha não entra nesta versão.** O alfa fecha com três abas — Rolagem, Estilo e
+> Anotações —, que são as que estão prontas de verdade. A importação de ficha em PDF continua
+> escrita e testada no repositório, só não tem entrada na interface: ela lê bem as fichas que
+> conhece e ainda erra nas que não conhece, e uma ficha lida errado é o nome, os atributos e a
+> história de um personagem de alguém saindo trocados. Volta pelo beta, quando acertar sozinha.
+
 ### Adicionado
 
 - **Até 15 personagens.** A spec pedia dez como mínimo garantido; o teto ficou em quinze, que cobre
-  quem joga em três ou quatro mesas ao mesmo tempo. Cada um carrega a ficha, o diário, os presets e a
+  quem joga em três ou quatro mesas ao mesmo tempo. Cada um carrega o diário, os presets e a
   aparência dele. No limite, o botão de criar fica travado e explica por quê — e um arquivo que já
   tenha mais que quinze não perde ninguém, porque o teto vale na criação, nunca na leitura.
 - **Até 20 dados por rolagem** (era 15). Medido antes de subir: 100% de assentamento e zero dados
@@ -56,7 +62,6 @@ pela interface a cada 4 segundos:
 | --- | --- | --- |
 | Rolagem (parada) | 278–310 ms | **138–176 ms** |
 | Estilo | 89 ms | **28 ms** |
-| Ficha | 71 ms | **23 ms** |
 | Anotações | 48 ms | **14 ms** |
 | Trocar para Estilo | 71,6 ms até pintar | **43,3 ms** |
 
@@ -79,7 +84,7 @@ antes de os dois renderizadores serem criados.
 - **Não dava para digitar modificador NEGATIVO** — em lugar nenhum. O campo era numérico e guardava
   o valor já convertido: digitar o sinal de menos virava zero na mesma tecla, e o traço sumia antes
   de dar tempo de escrever o algarismo. Num app de RPG isso é meio caminho perdido — metade das
-  rolagens de ficha tem penalidade, e não dava para salvar um preset de arma amaldiçoada.
+  rolagens de RPG tem penalidade, e não dava para salvar um preset de arma amaldiçoada.
   O campo existia copiado em **três** telas (barra de rolagem, editor de presets e modo compacto),
   as três com o mesmo defeito. Agora a regra mora num lugar só: o campo guarda texto, aceita "-2"
   digitado à mão, e as setinhas do navegador deram lugar a botões **−** e **+**, que dizem o que
@@ -106,7 +111,7 @@ antes de os dois renderizadores serem criados.
   recarregava a página no meio da partida (apagando o histórico de rolagens) e `Ctrl+W` fechava a
   janela. O menu foi removido da versão empacotada.
 - **Os seletores de arquivo esqueciam a pasta.** Regressão da atualização do Electron, que passou a
-  abrir todo diálogo em Downloads. O app agora lembra a última pasta de cada tipo — imagem, ficha e
+  abrir todo diálogo em Downloads. O app agora lembra a última pasta de cada tipo — imagem e
   presets, cada uma na sua.
 - **Exportar presets falhava em silêncio.** Sem permissão na pasta, ou com o disco cheio, o clique
   não fazia nada. Agora explica.
@@ -123,9 +128,7 @@ antes de os dois renderizadores serem criados.
   electron-builder 26 e Vite 7. `npm audit` passou de 17 vulnerabilidades para zero.
 - Travas de navegação passaram a valer para o app inteiro, e não só para a janela principal — uma
   janela criada no futuro nasce protegida em vez de nascer aberta.
-- A importação de ficha confere o que recebe antes de gravar qualquer coisa, então uma importação
-  agora acontece inteira ou não acontece.
-- Limites de tamanho para imagens (12 MB) e páginas de PDF (100), que faltavam.
+- Limite de tamanho para as imagens (12 MB), que faltava.
 - `Content-Security-Policy` fechou `base-uri` e `form-action`.
 
 ### Interno
@@ -137,7 +140,7 @@ antes de os dois renderizadores serem criados.
 - Conferência automática (GitHub Actions) em todo commit: tipos, análise estática, testes e
   auditoria de dependências, com o build falhando em achado alto ou crítico.
 - Instalador publicado por CI a partir de commit etiquetado, com SHA-256 ao lado.
-- 614 testes.
+- 689 testes.
 
 ---
 
