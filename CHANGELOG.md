@@ -6,19 +6,54 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
-## [1.0.9] — 2026-08-22
+## [1.0.10] — 2026-08-22
+
+A primeira leva depois do fechamento do alfa: duas fontes pedidas, as anotações reorganizadas em
+lista de sessões e o dado da aba Estilo, que não aparecia.
+
+### Adicionado
+
+- **Sweetie e Algerian no menu de fontes**, que vai de doze para catorze. Nenhuma das duas é
+  empacotada com o app, e o motivo é a licença: a Sweetie é gratuita só para uso pessoal e a
+  Algerian é comercial — pôr o arquivo dentro de um app publicado no GitHub seria redistribuição.
+  O que entra é o nome da família. Quem as tiver instaladas no Windows as vê; quem não tiver cai
+  num reserva escolhido para se parecer com ela e que **não** é opção do próprio menu (Segoe Script
+  para a Sweetie, Arial Black para a Algerian), porque cair numa fonte da lista faz escolher uma e
+  receber outra.
+- **A data de criação de cada sessão de anotações**, que não existia em lugar nenhum. As sessões
+  escritas antes desta versão aparecem como **sem data** — em vez de carimbar a data de hoje numa
+  anotação de três meses atrás, que seria uma informação errada sem ninguém ter como desconfiar.
+
+### Mudado
+
+- **As anotações viraram uma lista de sessões**, com a navegação numa coluna à esquerda e o texto à
+  direita. Saíram as setas ◀ ▶, o contador "3/20" e o seletor de salto: os três existiam para o
+  mesmo problema, e chegar na terceira de vinte sessões era escolher entre dezessete cliques na
+  seta ou um seletor que mostra um nome por vez. A moldura continua Windows 98.
+- **A Comic Sans não diz mais "(p/ dislexia)" no rótulo.** A fonte continua na lista, e continua
+  sendo a opção que cobre leitura com dislexia desde que a OpenDyslexic saiu na poda das dezoito
+  para doze — o que mudou foi só o nome na tela.
+- Créditos: a Sweetie aparece como **by vivi** e a Algerian como **by pedro**.
+
+### Corrigido
+
+- **O dado da aba Estilo não aparecia** até alguém mexer numa cor. A bandeja pintava e o dado não,
+  e ele surgia assim que se trocava uma cor, um acabamento ou o tipo — o que fazia o defeito
+  parecer intermitente. Era ordem de montagem, não desenho: na 1.0.9 a cena passou a ser criada
+  dois quadros depois, para a aba pintar antes, e a partir daí quem cria a malha do dado sempre
+  encontrava a cena ainda vazia na primeira passagem, sem ter por que tentar de novo.
+
+### Interno
+
+- 693 testes (eram 689).
+
+## [1.0.9] — 2026-08-21
 
 O fechamento do alfa: o app inteiro conferido contra a especificação, dois defeitos sérios
 corrigidos, e a base de segurança e de release montada para o beta.
 
 > **Sobre o número da versão.** O app vinha marcado como `0.1.x-alpha` enquanto a especificação já o
 > chamava de 1.0.x. Os dois passam a dizer a mesma coisa a partir daqui.
-
-> **Esta é a segunda leva do 1.0.9.** O instalador publicado em 21/08 foi substituído por este, que
-> traz as fontes Sweetie e Algerian, as anotações em lista de sessões e o dado da aba Estilo
-> consertado. Quem baixou o arquivo anterior tem um instalador com o mesmo número e outro SHA-256: o
-> que vale é o resumo desta página. E como o número não mudou, o app **não** avisa sozinho — pra
-> ficar com esta leva, baixe o instalador daqui.
 
 > **A aba Ficha não entra nesta versão.** O alfa fecha com três abas — Rolagem, Estilo e
 > Anotações —, que são as que estão prontas de verdade. A importação de ficha em PDF continua
@@ -48,17 +83,14 @@ corrigidos, e a base de segurança e de release montada para o beta.
 
 ### Mudado
 
-- **A lista de fontes foi de dezoito para catorze.** Saíram MS Sans Serif, Verdana, Trebuchet,
+- **A lista de fontes encolheu de dezoito para doze.** Saíram MS Sans Serif, Verdana, Trebuchet,
   Candara, Georgia, Palatino, Consolas e OpenDyslexic — a maioria era variação quase indistinguível
   do que ficou, e um menu mais curto é mais fácil de escolher. Quem tinha uma das removidas
-  selecionada cai na fonte padrão na próxima abertura, sem erro. Depois da poda entraram a **Sweetie**
-  e a **Algerian**, pedidas na sequência.
-- **As anotações viraram uma lista de sessões**, com o dia em que cada uma nasceu. A navegação é uma
-  coluna à esquerda e o texto fica à direita; saíram as setas ◀ ▶, o contador "3/20" e o seletor de
-  salto, que existiam os três pro mesmo problema. As sessões escritas antes desta versão aparecem
-  como **sem data** — em vez de carimbar a data de hoje numa anotação de três meses atrás.
-- Créditos: os ícones agora aparecem como **@tweetsdoxuga**, a Times New Roman como **by avigro**, a
-  Sweetie como **by vivi** e a Algerian como **by pedro**.
+  selecionada cai na fonte padrão na próxima abertura, sem erro.
+- **A Comic Sans passou a dizer que é a opção para dislexia.** Ela já estava na lista e já é
+  recomendada para isso; o que faltava era a tela dizer, para quem precisa da opção conseguir
+  encontrá-la.
+- Créditos: os ícones agora aparecem como **@tweetsdoxuga**, e a Times New Roman como **by avigro**.
 - **Versões de dependência fixadas** no `package.json`, sem faixas `^`. Num app distribuído sem
   assinatura digital, o build reproduzível é metade do argumento de confiança.
 
@@ -90,10 +122,6 @@ antes de os dois renderizadores serem criados.
 
 ### Corrigido
 
-- **O dado da aba Estilo não aparecia** até alguém mexer numa cor. A bandeja pintava e o dado não, e
-  ele surgia assim que se trocava uma cor, um acabamento ou o tipo — o que fazia o defeito parecer
-  intermitente. Era ordem de montagem, não desenho: quem cria a malha do dado desistia porque a cena
-  ainda não existia, e não tinha por que tentar de novo.
 - **Não dava para digitar modificador NEGATIVO** — em lugar nenhum. O campo era numérico e guardava
   o valor já convertido: digitar o sinal de menos virava zero na mesma tecla, e o traço sumia antes
   de dar tempo de escrever o algarismo. Num app de RPG isso é meio caminho perdido — metade das
@@ -153,7 +181,7 @@ antes de os dois renderizadores serem criados.
 - Conferência automática (GitHub Actions) em todo commit: tipos, análise estática, testes e
   auditoria de dependências, com o build falhando em achado alto ou crítico.
 - Instalador publicado por CI a partir de commit etiquetado, com SHA-256 ao lado.
-- 693 testes.
+- 689 testes.
 
 ---
 
