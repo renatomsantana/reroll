@@ -69,8 +69,10 @@ export type CameraMode = 'table' | 'dice' | 'free'
 export type DisplayMode = '3d' | 'quick'
 
 /**
- * DEZESSEIS fontes: doze no fechamento do alfa, mais a Parisienne, a Sweetie, a Hello Honey e a
- * Algerian, pedidas logo depois.
+ * CATORZE fontes: doze no fechamento do alfa, mais a Sweetie e a Algerian, pedidas logo depois.
+ *
+ * A Parisienne e a Hello Honey chegaram a entrar junto da Sweetie e SAÍRAM a pedido do usuário no
+ * mesmo dia — é por isso que `assets/fonts/` não tem mais nenhum arquivo de manuscrita.
  *
  * A lista já teve dezoito e foi ENCURTADA a pedido do usuário — saíram MS Sans Serif, Verdana,
  * Trebuchet, Candara, Georgia, Palatino, Consolas e OpenDyslexic. Menu de fonte longo não é menu
@@ -93,10 +95,10 @@ export type DisplayMode = '3d' | 'quick'
  *    menu. Quando a cadeia cai num item da própria lista, escolher uma dá visivelmente a outra — foi
  *    o bug do Papyrus, relatado por ele (ver mais abaixo).
  * 2. Fonte que NÃO vem no Windows precisa de um de dois tratamentos, e o que decide é a LICENÇA.
- *    Montserrat, JetBrains Mono, Lora e Parisienne são OFL: entram empacotadas em `assets/fonts/`,
- *    com a licença ao lado e um par de `@font-face` no `global.css`. Janda Silly Monkey, Sweetie e
- *    Hello Honey são gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver
- *    instaladas vê o reserva. Fonte de fora sem um dos dois tratamentos cai no reserva calada.
+ *    Montserrat, JetBrains Mono e Lora são OFL: entram empacotadas em `assets/fonts/`, com a
+ *    licença ao lado e um par de `@font-face` no `global.css`. Janda Silly Monkey e Sweetie são
+ *    gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver instaladas vê o
+ *    reserva. Fonte de fora sem um dos dois tratamentos cai no reserva calada.
  * 3. Fonte que só vem com o OFFICE (Century Gothic, Garamond) entra apenas se alguém a pedir pelo
  *    nome, e nunca por iniciativa de quem mexe aqui: na máquina sem Office ela vira outra coisa sem
  *    avisar, e quem escolheu não descobre por quê. A regra era "não entra" até a ALGERIAN ser
@@ -189,37 +191,21 @@ export const FONT_OPTIONS = [
     credit: 'by xuga'
   },
   /**
-   * PARISIENNE — manuscrita conectada e inclinada, pedida pelo usuário junto da Sweetie e da Hello
-   * Honey. É a única das três que entra EMPACOTADA (`global.css` + `assets/fonts/parisienne-*.woff2`,
-   * com a OFL junto), porque é a única cuja licença deixa redistribuir.
-   *
-   * O reserva é a genérica `cursive` direto, e aqui pode ser: como o arquivo vem com o app, o
-   * reserva nunca chega a ser usado de verdade. Se um dia chegar, é porque o `@font-face` falhou —
-   * e nesse caso qualquer manuscrita que o sistema escolher é melhor do que apontar pra outra opção
-   * deste menu, que é o que fazia escolher uma dar visivelmente a outra (ver o caso da Papyrus).
-   */
-  { id: 'parisienne', label: 'Parisienne', family: 'Parisienne, cursive' },
-  /**
-   * SWEETIE e HELLO HONEY — pedidas pelo usuário e NÃO EMPACOTADAS, pelo mesmo motivo da Janda
-   * Silly Monkey logo acima: as duas são gratuitas apenas para USO PESSOAL (a Sweetie é da Graphix
-   * Line Studio, a Hello Honey é da Ef Studio, e as duas vendem licença comercial à parte). Pôr o
-   * arquivo dentro de um app publicado no GitHub seria redistribuição, e a licença não cobre isso.
+   * SWEETIE — manuscrita, pedida pelo usuário e NÃO EMPACOTADA, pelo mesmo motivo da Janda Silly
+   * Monkey logo acima: ela é da Graphix Line Studio, gratuita apenas para USO PESSOAL, e vende
+   * licença comercial à parte. Pôr o arquivo dentro de um app publicado no GitHub seria
+   * redistribuição, e a licença não cobre isso.
    *
    * O que existe aqui é só o NOME da família. Quem tiver a fonte instalada no Windows vê a fonte;
-   * quem não tiver cai no reserva — e por isso o reserva delas importa de verdade, ao contrário do
+   * quem não tiver cai no reserva — e por isso o reserva dela importa de verdade, ao contrário do
    * das empacotadas.
    *
-   * `Segoe Script` é o reserva das duas: vem com o Windows desde o Vista, é manuscrita conectada
-   * (que é o que as duas são) e, principalmente, NÃO é opção deste menu. A `Ink Free` já é o reserva
-   * da Janda e da Papyrus, mas ela é uma manuscrita solta, de traço mais grosso — a Segoe Script
-   * fica mais perto do desenho de script fino que as duas têm.
+   * `Segoe Script` é o reserva: vem com o Windows desde o Vista, é manuscrita conectada (que é o
+   * que a Sweetie é) e, principalmente, NÃO é opção deste menu. A `Ink Free` já é o reserva da Janda
+   * e da Papyrus, mas ela é uma manuscrita solta, de traço mais grosso — a Segoe Script fica mais
+   * perto do desenho de script fino da Sweetie.
    */
   { id: 'sweetie', label: 'Sweetie', family: "Sweetie, 'Segoe Script', cursive" },
-  {
-    id: 'hello-honey',
-    label: 'Hello Honey',
-    family: "'Hello Honey', 'Segoe Script', cursive"
-  },
   /**
    * ALGERIAN — decorativa, de caixa alta, pedida pelo usuário com o crédito do pedro.
    *
@@ -227,9 +213,9 @@ export const FONT_OPTIONS = [
    * vem com o Microsoft Office desde 1993, o que é outra coisa. Conferido na máquina do usuário no
    * dia em que ela foi pedida — 154 fontes instaladas, e a Algerian não estava entre elas.
    *
-   * Empacotar não é opção: ela é comercial (Letraset/URW, vendida avulsa), não é OFL como a
-   * Parisienne nem "grátis pra uso pessoal" como a Sweetie. O que existe aqui é só o NOME, então
-   * quem não tiver Office vê o reserva — e por isso o reserva dela é a parte que importa.
+   * Empacotar não é opção: ela é comercial (Letraset/URW, vendida avulsa), não é OFL como a Lora
+   * nem "grátis pra uso pessoal" como a Sweetie. O que existe aqui é só o NOME, então quem não
+   * tiver Office vê o reserva — e por isso o reserva dela é a parte que importa.
    *
    * `Arial Black` é o reserva, e a escolha tem duas contas:
    *
