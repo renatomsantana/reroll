@@ -226,22 +226,34 @@ export interface TranslationDict {
     appearanceBlock: string
     backstoryBlock: string
     notesBlock: string
-    /** Navegação do diário: uma página por dia. */
+    /**
+     * Navegação do diário: uma sessão por dia. `dayCounter`, `dayPrev`, `dayNext` e `dayJump` saíram
+     * junto com as setas ◀ ▶, o contador e o seletor de salto — a lista de sessões faz o que os
+     * quatro faziam (ver `NotesTab.tsx`).
+     */
     dayNumber: string
-    dayCounter: string
-    dayPrev: string
-    dayNext: string
     dayNew: string
     dayDelete: string
     dayDeleteConfirm: string
-    /** Rótulo do seletor que pula direto pra uma sessão, sem passar de uma em uma pelas setas. */
-    dayJump: string
     /**
      * Texto de exemplo do campo de título da sessão. É um convite ("Bote um título"), não o número da
      * página: o número já está no contador ao lado, e um campo que mostra "Sessão 3" sozinho parece
      * rótulo preenchido, não campo vazio esperando um nome.
      */
     dayTitlePlaceholder: string
+    /**
+     * A LISTA DE SESSÕES na lateral do diário (ver `NotesTab.tsx`). Substituiu as setas ◀ ▶, o
+     * contador e o seletor de salto: com vinte sessões, três controles diferentes pra chegar numa
+     * delas é mais navegação do que diário.
+     */
+    sessionsTitle: string
+    /** Data embaixo do nome, na lista. `{date}` sai formatado no idioma da interface. */
+    sessionCreated: string
+    /**
+     * Sessão SEM data de criação — as escritas antes de o campo existir. A tela diz isso em vez de
+     * mostrar uma data inventada; ver `NotesPage.createdAt`.
+     */
+    sessionCreatedUnknown: string
     /** Bloco do PERFIL do personagem (foto, nome, sistema) — ver `shared/types/profile.ts`. */
     profileSystem: string
     profilePhoto: string
@@ -533,14 +545,13 @@ export const translations: Record<Language, TranslationDict> = {
       backstoryBlock: 'Backstory',
       notesBlock: 'Bloco',
       dayNumber: 'Sessão {n}',
-      dayCounter: '{current}/{total}',
-      dayPrev: 'Sessão anterior',
-      dayNext: 'Próxima sessão',
       dayNew: 'Nova sessão',
       dayDelete: 'Apagar esta sessão',
       dayDeleteConfirm: 'Apagar "{day}"? O que estiver escrito nessa sessão se perde.',
-      dayJump: 'Ir para a sessão',
       dayTitlePlaceholder: 'Bote um título',
+      sessionsTitle: 'Sessões',
+      sessionCreated: 'Criada em {date}',
+      sessionCreatedUnknown: 'sem data',
       profileSystem: 'Sistema',
       profilePhoto: 'Escolher foto',
       profilePhotoEmpty: 'sem foto',
@@ -843,14 +854,13 @@ export const translations: Record<Language, TranslationDict> = {
       backstoryBlock: 'Backstory',
       notesBlock: 'Notepad',
       dayNumber: 'Session {n}',
-      dayCounter: '{current}/{total}',
-      dayPrev: 'Previous session',
-      dayNext: 'Next session',
       dayNew: 'New session',
       dayDelete: 'Delete this session',
       dayDeleteConfirm: 'Delete "{day}"? Anything written in that session is lost.',
-      dayJump: 'Jump to session',
       dayTitlePlaceholder: 'Give it a title',
+      sessionsTitle: 'Sessions',
+      sessionCreated: 'Created on {date}',
+      sessionCreatedUnknown: 'no date',
       profileSystem: 'System',
       profilePhoto: 'Choose photo',
       profilePhotoEmpty: 'no photo',

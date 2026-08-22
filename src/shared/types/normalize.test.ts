@@ -29,6 +29,44 @@ describe('normalizeNotes — ler o arquivo de anotações', () => {
     expect(notes.pages[0].text).toBe('A caverna estava alagada.')
   })
 
+  /**
+   * A DATA DE CRIAÇÃO DAS SESSÕES ANTIGAS NÃO EXISTE, e o normalizador não pode inventá-la.
+   *
+   * O campo `createdAt` nasceu com a lista de sessões (ver `NotesTab.tsx`). Quem já usava o app tem
+   * sessões gravadas sem ele, e o arquivo não guarda histórico nenhum de quando foram escritas.
+   *
+   * A tentação, na próxima vez que alguém passar por aqui, é carimbar `Date.now()` pra "não deixar
+   * campo vazio". Isso seria pior do que não ter data: uma sessão de três meses atrás passaria a
+   * afirmar que nasceu hoje, e quem lê não tem como desconfiar. Zero significa NÃO SEI, e a tela diz
+   * "sem data" — que é verdade.
+   */
+  it('sessão antiga fica SEM data em vez de ganhar uma inventada', () => {
+    const notes = normalizeNotes({
+      pages: [{ id: 'd1', title: 'Sessão 1', text: 'A caverna estava alagada.' }]
+    })
+    expect(notes.pages[0].createdAt).toBe(0)
+    // E o que ela tinha continua lá — a migração não pode custar o texto.
+    expect(notes.pages[0].text).toBe('A caverna estava alagada.')
+  })
+
+  it('data gravada de verdade atravessa intacta', () => {
+    const quando = Date.UTC(2026, 7, 21)
+    const notes = normalizeNotes({ pages: [{ id: 'd1', title: '', text: '', createdAt: quando }] })
+    expect(notes.pages[0].createdAt).toBe(quando)
+  })
+
+  it('data torta vira "sem data", e não uma data absurda na lista', () => {
+    /**
+     * Arquivo editado à mão, ou escrito por uma versão que guardava outra coisa aqui. Sem esta
+     * higiene, `new Date(NaN)` vira "Invalid Date" na coluna e um texto vindo de fora vira uma data
+     * de 1970 ou de um futuro qualquer — os três casos aparecem na tela como defeito.
+     */
+    for (const ruim of [NaN, Infinity, -1, 0, '2026-08-21', null, undefined]) {
+      const notes = normalizeNotes({ pages: [{ id: 'd1', title: '', text: '', createdAt: ruim }] })
+      expect(notes.pages[0].createdAt, `createdAt ${String(ruim)} devia virar zero`).toBe(0)
+    }
+  })
+
   it('adota o nome que morava dentro de um objeto `sheet`', () => {
     expect(normalizeNotes({ sheet: { name: 'Riebeck' } }).characterName).toBe('Riebeck')
   })

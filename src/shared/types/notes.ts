@@ -7,6 +7,16 @@ import { normalizarTipoDeRolagem, type SheetRollKind } from './sheetRoll'
 export interface NotesPage {
   id: string
   /**
+   * QUANDO A SESSÃO FOI CRIADA, em milissegundos do epoch. Vai pra lista lateral, embaixo do nome
+   * (ver `NotesTab.tsx`) — pedido do usuário: "poder escolher e dizer qual dia foi criada".
+   *
+   * ZERO significa NÃO SEI, e é um valor legítimo, não um defeito: as sessões escritas antes desta
+   * versão não têm essa data gravada em canto nenhum, e o arquivo não guarda histórico. A tela diz
+   * "sem data" nesses casos. Carimbar a data da migração seria pior que não ter: uma sessão de três
+   * meses atrás passaria a dizer que nasceu hoje, e ninguém teria como desconfiar.
+   */
+  createdAt: number
+  /**
    * Nome do dia, opcional. Vazio = a interface mostra "Dia N" pela POSIÇÃO da página. É de
    * propósito: assim apagar o dia 2 renumera o resto sozinho, em vez de deixar "Dia 3" na segunda
    * posição pra sempre. Quem quiser escrever "Taverna do Javali" por cima, escreve.
@@ -110,7 +120,7 @@ export const DEFAULT_NOTES: NotesData = {
 }
 
 export function createNotesPage(text = ''): NotesPage {
-  return { id: crypto.randomUUID(), title: '', text }
+  return { id: crypto.randomUUID(), title: '', text, createdAt: Date.now() }
 }
 
 /**
@@ -132,7 +142,22 @@ export function normalizeNotes(raw: unknown): NotesData {
   const legacyText = (raw as LegacyNotes | null)?.notes
 
   const pages = Array.isArray(data.pages)
-    ? data.pages.filter((page): page is NotesPage => typeof page?.text === 'string')
+    ? data.pages
+        .filter((page): page is NotesPage => typeof page?.text === 'string')
+        /**
+         * `createdAt` pode faltar (sessão escrita antes desta versão) ou vir torta (arquivo editado
+         * à mão, `NaN`, texto, número negativo). Nos dois casos vira ZERO, que a tela lê como "sem
+         * data" — ver o comentário do campo lá em cima sobre por que não se inventa data aqui.
+         */
+        .map((page) => ({
+          ...page,
+          createdAt:
+            typeof page.createdAt === 'number' &&
+            Number.isFinite(page.createdAt) &&
+            page.createdAt > 0
+              ? page.createdAt
+              : 0
+        }))
     : []
   if (pages.length === 0) {
     pages.push(createNotesPage(typeof legacyText === 'string' ? legacyText : ''))

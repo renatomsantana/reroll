@@ -160,35 +160,6 @@
 }
 
 /**
- * A "lombada" do diário: setas, nome do dia, contador e as ações. Uma linha só, e os botões não
- * encolhem — quem cede espaço é o campo do nome.
- */
-.notes-diary-bar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.notes-diary-bar .btn {
-  flex: 0 0 auto;
-  padding: 3px 8px;
-}
-
-.notes-diary-arrow {
-  /* Quadradinha: é seta, não rótulo — e as duas juntas não podem competir com "Novo dia". */
-  width: 26px;
-  padding: 3px 0;
-}
-
-.notes-diary-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-/**
  * O seletor de fonte na barra do bloco. Sem largura mínima ele encolhe pro tamanho do rótulo mais
  * curto e passa a cortar os nomes ("Tahoma (clás…", "Comic Sa…") — e a lista herda a largura do
  * botão, então o corte se repete linha a linha, bem em cima da caveirinha do easter egg. 200px é o
@@ -271,24 +242,6 @@
 }
 
 /**
- * Seletor de sessão. Largura fixa e curta de propósito: o campo de TÍTULO ao lado é quem cresce
- * (`flex: 1`), porque é onde se escreve; este aqui só precisa caber um nome de sessão e o resto
- * corta com reticências, como um combo do 98 faria.
- */
-.notes-diary-jump {
-  flex: 0 0 auto;
-  max-width: 100px;
-  font-size: 11px;
-}
-
-.notes-diary-count {
-  flex: 0 0 auto;
-  font-size: 11px;
-  color: var(--win-text-muted);
-  padding: 0 2px;
-}
-
-/**
  * As linhas de caderno (fundo) precisam bater com a linha de base do texto de verdade, senão
  * o texto flutua acima/abaixo delas (bug relatado pelo usuário) — a posição antiga (15-16px
  * dentro de cada ciclo de 24px) era um palpite fixo que só por acaso chegava perto da baseline
@@ -319,15 +272,161 @@
   background-attachment: local;
 }
 
-/** Janela estreita: a ficha e o diário viram uma coluna só e a aba inteira rola. */
+/**
+ * AS DUAS COLUNAS: sessões à esquerda, texto à direita — a forma que o usuário pediu ("algo como o
+ * Obsidian"). A moldura continua Windows 98; o que veio do Obsidian é o arranjo, não a aparência.
+ */
+.notes-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 10px;
+}
+
+/**
+ * LARGURA FIXA, e não uma fração da janela. A coluna guarda nomes curtos e uma data; esticá-la com
+ * a janela roubaria do texto do diário, que é o que precisa de espaço. 210px é o que faz caber
+ * "Criada em 21/08/2026" sem quebrar a linha — a data é o item mais largo da coluna, não o nome.
+ */
+.notes-sessions {
+  flex: 0 0 auto;
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.notes-sessions-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.notes-sessions-title {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.notes-sessions-new {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+/**
+ * A caixa de lista do 98: degrau para DENTRO e fundo de campo. É o mesmo desenho de um `<select>`
+ * aberto, e é ele que diz "aqui se escolhe", sem precisar de rótulo nenhum explicando.
+ */
+.notes-sessions-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--win-input-bg);
+  box-shadow:
+    inset -1px -1px 0 var(--win-highlight),
+    inset 1px 1px 0 var(--win-shadow);
+  border: 0;
+  padding: 2px;
+}
+
+.notes-session {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 5px;
+  cursor: default;
+  /* `user-select: none` porque isto é um item de lista, não texto: arrastar aqui seleciona, não escreve. */
+  user-select: none;
+}
+
+/**
+ * SELEÇÃO EM AZUL CHEIO, texto branco — item selecionado do Windows 98, sem gradiente nenhum. Um
+ * realce suave (fundo cinza claro, barra lateral) leria como interface moderna, que é justamente o
+ * que esta janela não é.
+ */
+.notes-session-open {
+  background: var(--win-accent);
+  color: var(--win-titlebar-text);
+}
+
+.notes-session:focus-visible {
+  /* Retângulo pontilhado por dentro: é assim que o 98 mostra o foco de teclado numa lista. */
+  outline: 1px dotted var(--win-text);
+  outline-offset: -2px;
+}
+
+.notes-session-open:focus-visible {
+  outline-color: var(--win-titlebar-text);
+}
+
+/** Nome longo corta com reticências em vez de quebrar em duas linhas — a lista tem que ler como lista. */
+.notes-session-name {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notes-session-date {
+  font-size: 10px;
+  color: var(--win-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/**
+ * Sobre o azul da seleção o cinza de `--win-text-muted` fica ilegível — ele foi escolhido pra
+ * contrastar com fundo de campo, não com fundo cheio. Aqui a data continua sendo secundária, mas
+ * pelo tom mais claro que o nome, e não pelo cinza.
+ */
+.notes-session-open .notes-session-date {
+  color: #d0d0e8;
+}
+
+.notes-editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.notes-editor-head .btn {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+}
+
+.notes-session-title-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/**
+ * Janela estreita (o mínimo do app é 900px de largura): a coluna das sessões encolhe, e quem fica
+ * com o espaço é o texto. Ela não vira uma linha em cima nem some — uma lista de sessões deitada
+ * perde justamente a vantagem de ver várias de uma vez, que é a razão de ela existir.
+ */
 @media (max-width: 1000px) {
-  .notes-layout {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
+  .notes-sessions {
+    width: 150px;
   }
 
-  .notes-group-grow {
-    min-height: 150px;
+  .notes-session-date {
+    font-size: 9px;
   }
 }
 

@@ -82,7 +82,7 @@ describe('cada personagem guarda o que é dele', () => {
       sections: [secao('Atributos', 'Agilidade', '1')],
       inventory: 'Faca de mato',
       backstory: 'Agente de saúde',
-      pages: [{ id: 'd1', title: 'Sessão 1', text: 'O hospital estava vazio.' }]
+      pages: [{ id: 'd1', title: 'Sessão 1', text: 'O hospital estava vazio.', createdAt: 0 }]
     })
     await app.presets.create({
       name: 'Faca (dano)',
@@ -109,7 +109,7 @@ describe('cada personagem guarda o que é dele', () => {
       characterName: 'Rodrigo Barreto',
       sections: [secao('Atributos', 'Carne', '2/10')],
       inventory: 'Vestimenta leve',
-      pages: [{ id: 'd2', title: 'Noite 1', text: 'A cidade não dormia.' }]
+      pages: [{ id: 'd2', title: 'Noite 1', text: 'A cidade não dormia.', createdAt: 0 }]
     })
     await app.presets.create({
       name: 'Estocada',
