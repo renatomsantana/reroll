@@ -191,10 +191,10 @@ export const FONT_OPTIONS = [
     credit: 'by xuga'
   },
   /**
-   * SWEETIE — manuscrita, pedida pelo usuário e NÃO EMPACOTADA, pelo mesmo motivo da Janda Silly
-   * Monkey logo acima: ela é da Graphix Line Studio, gratuita apenas para USO PESSOAL, e vende
-   * licença comercial à parte. Pôr o arquivo dentro de um app publicado no GitHub seria
-   * redistribuição, e a licença não cobre isso.
+   * SWEETIE — manuscrita, pedida pelo usuário com o crédito da vivi, e NÃO EMPACOTADA, pelo mesmo
+   * motivo da Janda Silly Monkey logo acima: ela é da Graphix Line Studio, gratuita apenas para USO
+   * PESSOAL, e vende licença comercial à parte. Pôr o arquivo dentro de um app publicado no GitHub
+   * seria redistribuição, e a licença não cobre isso.
    *
    * O que existe aqui é só o NOME da família. Quem tiver a fonte instalada no Windows vê a fonte;
    * quem não tiver cai no reserva — e por isso o reserva dela importa de verdade, ao contrário do
@@ -205,7 +205,12 @@ export const FONT_OPTIONS = [
    * e da Papyrus, mas ela é uma manuscrita solta, de traço mais grosso — a Segoe Script fica mais
    * perto do desenho de script fino da Sweetie.
    */
-  { id: 'sweetie', label: 'Sweetie', family: "Sweetie, 'Segoe Script', cursive" },
+  {
+    id: 'sweetie',
+    label: 'Sweetie',
+    family: "Sweetie, 'Segoe Script', cursive",
+    credit: 'by vivi'
+  },
   /**
    * ALGERIAN — decorativa, de caixa alta, pedida pelo usuário com o crédito do pedro.
    *
