@@ -216,7 +216,7 @@ describe('reimportar a ficha ATUALIZA o personagem em vez de criar outro', () =>
       backstory: `${comDiario.backstory}
 
 Descobriu que o irmão está vivo.`,
-      pages: [{ id: 'dia-1', title: 'Sessão 1', text: 'A casa na colina.' }]
+      pages: [{ id: 'dia-1', title: 'Sessão 1', text: 'A casa na colina.', createdAt: 0 }]
     })
     await presets.create({ name: 'Grito', expression: { groups: [{ sides: 20, count: 1 }], modifiers: [] } })
 

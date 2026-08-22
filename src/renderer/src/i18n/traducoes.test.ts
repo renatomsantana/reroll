@@ -53,8 +53,7 @@ const IGUAIS_DE_PROPOSITO = new Map<string, string>([
   [
     'notesTab.backstoryBlock',
     '"Backstory" é como a mesa fala em português; traduzir pra "História" confundiria com o bloco de história'
-  ],
-  ['notesTab.dayCounter', 'só marcadores: "{current}/{total}", sem palavra nenhuma']
+  ]
 ])
 
 describe('o dicionário em inglês', () => {
