@@ -37,6 +37,8 @@ export interface TranslationDict {
     discardedDie: string
     addDieHint: string
     maxDiceReachedHint: string
+    removeDieGroup: string
+    noDiceHint: string
   }
   presets: {
     title: string
@@ -356,7 +358,9 @@ export const translations: Record<Language, TranslationDict> = {
       keptDie: 'Conta pro total',
       discardedDie: 'Não conta pro total',
       addDieHint: 'Adiciona um dado deste tipo à rolagem',
-      maxDiceReachedHint: 'Limite de {max} dados por rolagem atingido'
+      maxDiceReachedHint: 'Limite de {max} dados por rolagem atingido',
+      removeDieGroup: 'Tira este tipo de dado da rolagem',
+      noDiceHint: 'Escolha um tipo de dado pra rolar'
     },
     presets: {
       title: 'Presets',
@@ -665,7 +669,9 @@ export const translations: Record<Language, TranslationDict> = {
       keptDie: 'Counts toward the total',
       discardedDie: 'Does not count',
       addDieHint: 'Adds one die of this type to the roll',
-      maxDiceReachedHint: 'Limit of {max} dice per roll reached'
+      maxDiceReachedHint: 'Limit of {max} dice per roll reached',
+      removeDieGroup: 'Removes this die type from the roll',
+      noDiceHint: 'Pick a die type to roll'
     },
     presets: {
       title: 'Presets',

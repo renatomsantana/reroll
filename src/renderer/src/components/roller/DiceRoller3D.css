@@ -96,6 +96,22 @@
   gap: 6px;
 }
 
+/**
+ * Aviso de bandeja vazia, no lugar onde os chips estariam.
+ *
+ * Texto solto e não uma caixinha afundada como o chip: não é um valor que se ajusta, é uma frase
+ * dizendo o que fazer. Altura casada com a do chip (22px) pra a fileira não pular de tamanho quando
+ * o primeiro dado entra.
+ */
+.dice-roller-3d-sem-dados {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.75;
+}
+
 /** Chip de grupo (ex.: "3×d20"): caixinha afundada, como um campo de valor do 98. */
 .dice-roller-3d-group-chip {
   display: flex;
