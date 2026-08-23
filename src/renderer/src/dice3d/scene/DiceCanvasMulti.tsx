@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type RAPIER from '@dimforge/rapier3d-compat'
-import type { PhysicalDiceSides } from '@shared/types/dice3d'
+import type { DiceDefinition, PhysicalDiceSides } from '@shared/types/dice3d'
 import { createCamera } from './createCamera'
 import { CAMERA_CONFIG, TOWER_BESIDE_CAMERA_CONFIG } from '../config/sceneConfig'
 import {
@@ -49,6 +49,7 @@ import {
 import { clampLinearVelocity } from '../physics/clampVelocity'
 import { computeSpawnSlots } from '../physics/computeSpawnSlots'
 import { readTopFace } from '../faceReading/readTopFace'
+import { orientacaoDeVitrine } from '../geometry/orientacaoDeVitrine'
 import {
   MAX_SIMULTANEOUS_DICE,
   SPAWN_CONFIG,
@@ -386,6 +387,28 @@ const SHELF_SPACING = 1.4
  */
 function shelfDieY(dieScale: number): number {
   return CASE_DICE_Y + dieScale / 2 + TABLE_SURFACE_Y
+}
+
+/**
+ * Assenta um dado no seu compartimento do estojo: a posição na prateleira e o MAIOR NÚMERO virado
+ * pra cima E de frente pra quem olha (d4 com 4, d6 com 6, d20 com 20, d100 com 100), a pedido do
+ * usuário.
+ *
+ * Sem a orientação, cada tipo mostrava a face que a orientação de repouso do modelo calhasse de
+ * deixar em cima — que não é escolha nenhuma, é o que sobrou de como a malha foi desenhada.
+ *
+ * Existe como função pelo mesmo motivo do `shelfDieY` logo acima: os dois pontos que montam a
+ * prateleira (a montagem e a remontagem por troca de cor) precisam concordar, e já divergiram uma
+ * vez quando só a altura era compartilhada.
+ */
+function assentarDadoDaPrateleira(
+  mesh: THREE.Mesh,
+  definition: DiceDefinition,
+  posicao: { x: number; z: number }
+): void {
+  mesh.position.set(posicao.x, shelfDieY(definition.scale), posicao.z)
+  const giro = orientacaoDeVitrine(definition, mesh.geometry)
+  mesh.quaternion.set(giro.x, giro.y, giro.z, giro.w)
 }
 
 export function computeShelfPositions(): { x: number; z: number }[] {
@@ -1198,7 +1221,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             material,
             textureCache: mountTextureCache
           })
-          mesh.position.set(positions[i].x, shelfDieY(entry.definition.scale), positions[i].z)
+          assentarDadoDaPrateleira(mesh, entry.definition, positions[i])
           scene.add(mesh)
           return mesh
         })
@@ -2072,7 +2095,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
               material,
               textureCache: rebuildTextureCache
             })
-            newMesh.position.set(positions[i].x, shelfDieY(entry.definition.scale), positions[i].z)
+            assentarDadoDaPrateleira(newMesh, entry.definition, positions[i])
 
             const oldMesh = shelfMeshesRef.current[i]
             scene.remove(oldMesh)
