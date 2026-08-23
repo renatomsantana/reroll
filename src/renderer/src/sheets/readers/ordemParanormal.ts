@@ -115,6 +115,17 @@ const CAMPOS_CONHECIDOS: {
   group: string
   rotulo?: RegExp
   roll?: SheetImportField['roll']
+  /**
+   * Vem MESMO VAZIO — ver `ESQUELETO_DOS_RECURSOS`.
+   *
+   * Campo vazio normalmente é descartado (é o que impede uma ficha em branco de importar duzentas
+   * linhas em branco), mas há um punhado deles que a ficha PRECISA ter mesmo sem valor: PV, PE e
+   * Sanidade têm um par atual/máximo cada, e na ficha do Matias só os máximos estão preenchidos.
+   * Trazer só metade do par deixa a ficha importada dizendo "PV máximo 45" sem lugar nenhum pra
+   * anotar quanto ele tem AGORA — que é o número que muda toda sessão e o motivo de se olhar a
+   * ficha. Foi o que o usuário reportou: "ficou faltando, coloca o máximo e atuais de tudo".
+   */
+  sempre?: boolean
 }[] = [
   { name: 'Personagem', label: 'Personagem', group: 'Identificação', rotulo: /^PERSONAGEM/i },
   { name: 'Jogador', label: 'Jogador', group: 'Identificação' },
@@ -126,12 +137,12 @@ const CAMPOS_CONHECIDOS: {
   { name: 'INT', label: 'Intelecto', group: 'Atributos', roll: 'pool-d20', rotulo: /^INTELECTO/i },
   { name: 'PRE', label: 'Presença', group: 'Atributos', roll: 'pool-d20', rotulo: /^PRESEN[ÇC]A/i },
   { name: 'VIG', label: 'Vigor', group: 'Atributos', roll: 'pool-d20', rotulo: /^VIGOR/i },
-  { name: 'PV', label: 'PV máximo', group: 'Recursos' },
-  { name: 'pvat', label: 'PV atual', group: 'Recursos' },
-  { name: 'PE', label: 'PE máximo', group: 'Recursos' },
-  { name: 'peat', label: 'PE atual', group: 'Recursos' },
-  { name: 'SAN', label: 'Sanidade máxima', group: 'Recursos' },
-  { name: 'sanat', label: 'Sanidade atual', group: 'Recursos' },
+  { name: 'pvat', label: 'PV atual', group: 'Recursos', sempre: true },
+  { name: 'PV', label: 'PV máximo', group: 'Recursos', sempre: true },
+  { name: 'peat', label: 'PE atual', group: 'Recursos', sempre: true },
+  { name: 'PE', label: 'PE máximo', group: 'Recursos', sempre: true },
+  { name: 'sanat', label: 'Sanidade atual', group: 'Recursos', sempre: true },
+  { name: 'SAN', label: 'Sanidade máxima', group: 'Recursos', sempre: true },
   { name: 'Def', label: 'Defesa', group: 'Recursos' },
   { name: 'Desl', label: 'Deslocamento', group: 'Recursos' },
   { name: 'DT', label: 'DT de rituais', group: 'Recursos' },
@@ -198,13 +209,27 @@ export const ordemParanormalReader: SheetReader = {
      * alguns por diagramação — `peat` sai como "DE ESFORÇO" e `Origem` como "o", porque o rótulo
      * impresso mais próximo é um pedaço de outra frase.
      */
-    const conhecidos = CAMPOS_CONHECIDOS.map(({ name, label, group, rotulo, roll }) => {
+    /**
+     * A ficha é DE ALGUÉM, ou é o modelo em branco baixado do site?
+     *
+     * O nome do personagem é o corte: ninguém preenche o nome de uma ficha que não vai usar, e a
+     * ficha em branco de Ordem Paranormal vem com 76 campos já preenchidos de fábrica (zeros,
+     * "Escolha uma Classe", defesa 10) mas nunca com nome. É o que decide se os pares atual/máximo
+     * entram vazios: numa ficha de verdade eles são espaço pra anotar, num modelo em branco seriam
+     * seis linhas vazias a mais na tela de quem só quer ver o que o arquivo tinha.
+     */
+    const temDono = Boolean(valorDeFicha(acharCampo('Personagem', /^PERSONAGEM/i)?.value))
+
+    const conhecidos = CAMPOS_CONHECIDOS.map(({ name, label, group, rotulo, roll, sempre }) => {
       const campo = acharCampo(name, rotulo)
       if (campo) consumidos.add(campo)
       // Mesma régua do genérico (`valorDeFicha`): descarta vazio, `Off` e o texto de instrução que
       // a ficha em branco traz DENTRO do campo ("Escolha uma Classe").
       const valor = valorDeFicha(campo?.value, campo?.type)
-      return valor ? { label, value: valor, group, roll } : null
+      if (valor) return { label, value: valor, group, roll }
+      // O par atual/máximo vem inteiro mesmo com metade em branco — ver `sempre`. Só quando a ficha
+      // é DE ALGUÉM: num modelo em branco (nenhum campo preenchido) isso encheria a tela de vazios.
+      return sempre && temDono ? { label, value: '', group, roll } : null
     }).filter((campo): campo is NonNullable<typeof campo> => campo !== null)
 
     /**
