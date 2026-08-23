@@ -276,3 +276,17 @@
   overflow-y: auto;
   max-height: 140px;
 }
+
+/**
+ * O aviso de que a importação está em beta. Tom de "atenção", não de erro: é uma ressalva sobre o
+ * app, e a tela inteira embaixo dela é justamente a chance de conferir antes de confirmar.
+ */
+.sheet-import-beta {
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--win-text);
+  background: var(--win-face);
+  border: 2px inset var(--win-highlight);
+}

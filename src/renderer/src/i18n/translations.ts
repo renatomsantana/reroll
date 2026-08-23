@@ -297,6 +297,11 @@ export interface TranslationDict {
    */
   sheetImport: {
     title: string
+    /**
+     * O aviso de que a importação de ficha está EM TESTE — ela volta no 1.1.0 marcada como beta.
+     * Fica na tela de conferência porque é ali que a pessoa decide confiar no que foi lido.
+     */
+    betaNotice: string
     recognized: string
     unrecognized: string
     character: string
@@ -330,7 +335,7 @@ export interface TranslationDict {
 export const translations: Record<Language, TranslationDict> = {
   'pt-BR': {
     appTitle: 'Reroll',
-    tabs: { roll: 'Rolagem', style: '🎨 Estilo', sheet: '📜 Ficha', notes: '📝 Anotações' },
+    tabs: { roll: 'Rolagem', style: '🎨 Estilo', sheet: '📜 Ficha (beta)', notes: '📝 Anotações' },
     roller: {
       quantityLabel: 'Quantidade de dados',
       typeLabel: 'Tipo de dado',
@@ -583,6 +588,8 @@ export const translations: Record<Language, TranslationDict> = {
     sheetImport: {
       title: 'Conferir ficha importada',
       recognized: 'Reconhecemos como ficha de',
+      betaNotice:
+        'A importação de ficha está em teste. Ela lê bem as fichas dos sistemas que conhece e pode errar nas outras — confira os campos abaixo antes de confirmar.',
       unrecognized: 'Sistema não reconhecido',
       character: 'Personagem',
       system: 'Sistema',
@@ -641,7 +648,7 @@ export const translations: Record<Language, TranslationDict> = {
   },
   'en-US': {
     appTitle: 'Reroll',
-    tabs: { roll: 'Roll', style: '🎨 Style', sheet: '📜 Sheet', notes: '📝 Notes' },
+    tabs: { roll: 'Roll', style: '🎨 Style', sheet: '📜 Sheet (beta)', notes: '📝 Notes' },
     roller: {
       quantityLabel: 'Number of dice',
       typeLabel: 'Dice type',
@@ -894,6 +901,8 @@ export const translations: Record<Language, TranslationDict> = {
     sheetImport: {
       title: 'Review imported sheet',
       recognized: 'Recognized as a sheet for',
+      betaNotice:
+        'Sheet import is in testing. It reads the systems it knows well and may get others wrong — check the fields below before confirming.',
       unrecognized: 'System not recognized',
       character: 'Character',
       system: 'System',

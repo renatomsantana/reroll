@@ -148,6 +148,13 @@ export function SheetImportModal({
           )}
         </div>
 
+        {/*
+          A IMPORTAÇÃO É BETA, e isso é dito aqui — na tela onde se decide confiar no que foi lido —,
+          e não só no rótulo da aba. O aviso é fixo, e não um `warning` da lista abaixo: aqueles
+          falam do ARQUIVO ("ficha sem formulário", "modelo em branco"), este fala do APP.
+        */}
+        <p className="sheet-import-beta">{t.sheetImport.betaNotice}</p>
+
         {sheet.warnings.length > 0 && (
           <ul className="sheet-import-warnings">
             {sheet.warnings.map((aviso) => (

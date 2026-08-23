@@ -206,8 +206,23 @@
   animation: dice-result-pop 8s ease forwards;
 }
 
+/**
+ * BRANCO FIXO, e não a cor do dado.
+ *
+ * Este rótulo já foi pintado com `--popup-body`, que vinha da cor de corpo do dado escolhida nas
+ * Preferências. A ideia era casar o painel com os dados da mesa; o efeito foi um texto cuja
+ * legibilidade dependia de uma escolha de gosto feita em outra tela. Medido no app do usuário (fundo
+ * de cena preto, dado escuro): a palavra "TOTAL" saía em rgb(0, 0, 0) sobre o painel quase preto —
+ * contraste 1,1, onde 1,0 é invisível. Ele relatou exatamente isso: "o fundo é preto, ele apaga as
+ * letras".
+ *
+ * O painel é escuro POR CONSTRUÇÃO (o gradiente logo acima, fixo), então o texto em cima dele pode e
+ * deve ser fixo também — 19:1 contra o painel, aconteça o que acontecer com as cores dos dados. A
+ * cor escolhida pela pessoa continua mandando no que é DECORAÇÃO: a borda e o brilho, via
+ * `--popup-accent`.
+ */
 .dice-result-popup-label {
-  color: var(--popup-body, #d8d8d8);
+  color: #fff;
   font-size: 12px;
   letter-spacing: 0.05em;
   text-transform: uppercase;

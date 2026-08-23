@@ -1095,12 +1095,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           <div
             key={resultPopup.key}
             className="dice-result-popup"
-            style={
-              {
-                '--popup-accent': wallColor,
-                '--popup-body': diceBodyColor
-              } as CSSProperties
-            }
+            /*
+              Só o ACENTO (borda e brilho) sai das cores da pessoa. O texto do painel é branco fixo
+              — ver o comentário de `.dice-result-popup-label`: quando ele seguia a cor do dado,
+              bastava um dado escuro pra a palavra "TOTAL" sumir no painel preto.
+            */
+            style={{ '--popup-accent': wallColor } as CSSProperties}
             onAnimationEnd={() => setResultPopup(null)}
           >
             <span className="dice-result-popup-label">{t.roller.total}</span>

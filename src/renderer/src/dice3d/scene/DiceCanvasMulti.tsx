@@ -65,6 +65,7 @@ import { DICE_REGISTRY, AVAILABLE_DICE_TYPES } from '../dice-defs/registry'
 import { getGlobalDiceTextureCache, clearDiceTextureCache } from '../materials/textureCache'
 import { createDiceDebugVisuals, type DiceDebugVisuals } from '../debug/createDiceDebugVisuals'
 import { createDiceDebugHud, type DiceDebugHud, type DieDebugSnapshot } from '../debug/DiceDebugHud'
+import { ponteAbertaNoModo } from './ponteAbertaNoModo'
 import './DiceCanvas.css'
 
 /** Ver comentário grande no efeito de troca de cor mais abaixo. */
@@ -975,9 +976,15 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     const onBridgeClickRef = useRef(onBridgeClick)
     onBridgeClickRef.current = onBridgeClick
 
-    /** Espelha `bridgeOpen` pro efeito de montagem, que roda uma vez só — ver o uso na criação da torre. */
-    const bridgeOpenRef = useRef(bridgeOpen)
-    bridgeOpenRef.current = bridgeOpen
+    /**
+     * A ponte ABAIXADA no modo em uso — e não o `bridgeOpen` cru. Quem decide é `ponteAbertaNoModo`:
+     * fora da torre de enfeite a ponte fica sempre abaixada, senão o dado sairia atravessando a
+     * folha levantada (a medição está lá).
+     */
+    const ponteAbaixada = ponteAbertaNoModo(launchMode, bridgeOpen)
+    /** Espelha o valor acima pro efeito de montagem, que roda uma vez só — ver o uso na criação da torre. */
+    const bridgeOpenRef = useRef(ponteAbaixada)
+    bridgeOpenRef.current = ponteAbaixada
 
     /**
      * "Algo que projeta sombra mudou" — ver `shadowMap.autoUpdate` na montagem da cena.
@@ -2100,14 +2107,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
      * animação de entrada, então a primeira execução já cai no `return` de "já está no alvo".
      */
     useEffect(() => {
-      const alvo = bridgeOpen ? 1 : 0
+      const alvo = ponteAbaixada ? 1 : 0
       if (bridgeProgressRef.current === alvo && !bridgeAnimationRef.current) return
       bridgeAnimationRef.current = {
         from: bridgeProgressRef.current,
         to: alvo,
         startMs: sceneElapsedMsRef.current
       }
-    }, [bridgeOpen])
+    }, [ponteAbaixada])
 
     const isFirstColorUpdate = useRef(true)
     useEffect(() => {

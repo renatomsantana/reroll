@@ -60,6 +60,22 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
 
   const totalDiceCount = groups.reduce((sum, g) => sum + g.count, 0)
   const tooManyDice = totalDiceCount > MAX_SIMULTANEOUS_DICE
+  /**
+   * QUANTOS DADOS PODEM CONTAR: no máximo um a menos que o total — com todos contando não existe
+   * regra, é a soma de sempre.
+   *
+   * `keepEfetivo` é o valor que MANDA em tudo: no que aparece, no que os botões fazem e no que é
+   * gravado. Antes, só o mostrador era limitado (`Math.min(...)` na hora de desenhar) e o estado
+   * guardava o número velho, e daí saíam dois defeitos que o usuário viu como "botão bugado":
+   *
+   * 1. um preset de 6 dados guardando "os 5 maiores", reduzido pra 2 dados, mostrava 1 na tela e
+   *    tinha 5 na memória — os três primeiros cliques no "−" não mudavam nada do que se via;
+   * 2. pior, salvar nesse estado PERDIA A REGRA sem avisar: `regraDeManter` comparava os 5 guardados
+   *    com os 2 dados, concluía "não é regra" e gravava o preset somando tudo. A tela dizia "os
+   *    maiores"; o preset gravado somava os dois dados.
+   */
+  const keepMaximo = Math.max(1, totalDiceCount - 1)
+  const keepEfetivo = Math.min(keepCount, keepMaximo)
   const isValid =
     name.trim().length > 0 && groups.every((g) => g.count > 0 && g.sides > 0) && !tooManyDice
 
@@ -90,9 +106,10 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
    */
   function regraDeManter(): KeepRule | undefined {
     if (keepMode === 'all') return undefined
-    const quantos = Math.min(keepCount, totalDiceCount)
-    if (quantos >= totalDiceCount || quantos < 1) return undefined
-    return { mode: keepMode, count: quantos }
+    // Com um dado só não há o que escolher — e é o único caso em que a regra some, porque aí ela
+    // não existe mesmo. Fora dele, o que está na tela (`keepEfetivo`) é o que vai pro disco.
+    if (totalDiceCount < 2) return undefined
+    return { mode: keepMode, count: keepEfetivo }
   }
 
   function handleSubmit() {
@@ -144,7 +161,17 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
         <div className="preset-editor-field">
           <span>{t.presetEditor.dice}</span>
           <div className="preset-editor-groups">
-            {groups.map((group, index) => (
+            {groups.map((group, index) => {
+              /**
+               * O TETO É DO APP, não do grupo: 20 dados por rolagem no total
+               * (`MAX_SIMULTANEOUS_DICE`), somando todos os grupos. O "+" ia até 100 por grupo, e a
+               * pessoa subia clicando até ver o aviso vermelho e descobrir que o Salvar tinha
+               * desligado — trabalho jogado fora por um botão que deixava chegar onde não dá.
+               *
+               * O que sobra pra ESTE grupo é o teto menos o que os outros já ocupam.
+               */
+              const tetoDoGrupo = Math.max(1, MAX_SIMULTANEOUS_DICE - (totalDiceCount - group.count))
+              return (
               <div key={index} className="preset-editor-group-row">
                 {/*
                   Mesma dupla "-" / "+" do rolador, no lugar do campo numérico — pedido do usuário
@@ -166,8 +193,8 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
                   <Button
                     variant="ghost"
                     aria-label="+"
-                    disabled={group.count >= 100}
-                    onClick={() => updateGroup(index, { count: Math.min(100, group.count + 1) })}
+                    disabled={group.count >= tetoDoGrupo}
+                    onClick={() => updateGroup(index, { count: Math.min(tetoDoGrupo, group.count + 1) })}
                   >
                     +
                   </Button>
@@ -189,9 +216,11 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
                   </Button>
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
-          <Button variant="ghost" onClick={addGroup}>
+          {/* Cada grupo novo entra com um dado, então adicionar no teto também estouraria. */}
+          <Button variant="ghost" onClick={addGroup} disabled={totalDiceCount >= MAX_SIMULTANEOUS_DICE}>
             {t.presetEditor.addGroup}
           </Button>
           {tooManyDice && (
@@ -223,17 +252,17 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
                   <Button
                     variant="ghost"
                     aria-label="-"
-                    disabled={keepCount <= 1}
-                    onClick={() => setKeepCount((n) => Math.max(1, n - 1))}
+                    disabled={keepEfetivo <= 1}
+                    onClick={() => setKeepCount(Math.max(1, keepEfetivo - 1))}
                   >
                     -
                   </Button>
-                  <span>{Math.min(keepCount, totalDiceCount - 1)}</span>
+                  <span>{keepEfetivo}</span>
                   <Button
                     variant="ghost"
                     aria-label="+"
-                    disabled={keepCount >= totalDiceCount - 1}
-                    onClick={() => setKeepCount((n) => Math.min(totalDiceCount - 1, n + 1))}
+                    disabled={keepEfetivo >= keepMaximo}
+                    onClick={() => setKeepCount(Math.min(keepMaximo, keepEfetivo + 1))}
                   >
                     +
                   </Button>

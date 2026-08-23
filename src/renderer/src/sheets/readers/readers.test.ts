@@ -168,6 +168,45 @@ describe('leitor genérico — a ficha que ninguém previu', () => {
       ])
     })
 
+    /**
+     * Quando NADA foi lido, não se propõe nome nenhum — nem o do arquivo.
+     *
+     * O palpite pelo nome do arquivo existe e continua valendo ("Elias - ficha.pdf" é indício de
+     * verdade), mas ele pressupõe que exista uma ficha atrás dele. Medido na varredura das fichas
+     * reais: a ficha EM BRANCO de Kids on Bikes é uma arte achatada — zero campos de formulário e
+     * zero rótulos impressos —, e o app propunha criar um personagem chamado "Ficha Kids on Bikes"
+     * com a ficha vazia. Quem confirmasse sem ler a tela ficava com um personagem-título.
+     *
+     * Sem nome proposto, a tela de conferência não deixa confirmar, e ela é quem diz que não veio
+     * nada. É a mesma regra que os leitores dedicados já seguiam.
+     */
+    it('ficha que não rendeu NADA não propõe o nome do arquivo como personagem', () => {
+      const lido = readSheet({
+        fileName: 'Ficha Kids on Bikes.pdf',
+        pageCount: 2,
+        fields: [],
+        /**
+         * É o conteúdo REAL do arquivo, medido: um fragmento de texto na página inteira, a letra
+         * "X" de uma caixinha marcada. O resto da ficha é desenho.
+         */
+        texts: [{ text: 'X', page: 1, x: 300, y: 400, width: 6, height: 10 }]
+      })
+
+      expect(lido.readerId).toBe('generico')
+      expect(lido.fields).toEqual([])
+      expect(lido.presets).toEqual([])
+      expect(lido.characterName).toBe('')
+    })
+
+    it('mas com ALGUMA coisa lida, o nome do arquivo continua sendo o palpite', () => {
+      const lido = arteAnotada([
+        ['Elias Ramos', 81, 739],
+        ['Durão: Se você perder uma rolagem.', 101, 207]
+      ])
+      // Aqui o nome sai do próprio texto; o que importa é que o caminho do palpite não foi cortado.
+      expect(lido.characterName).toBeTruthy()
+    })
+
     it('não intercala as DUAS COLUNAS da página', () => {
       /**
        * Página de duas colunas com as mesmas alturas. Agrupar por altura só produzia "Heróico: Você

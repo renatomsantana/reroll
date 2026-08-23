@@ -23,6 +23,15 @@
  * à mão é do alfa; e as seções que já foram importadas por quem usou as versões anteriores, que
  * continuam na tela e editáveis. Desligar o importador não pode apagar o que ele já trouxe.
  *
- * PRA LIGAR NO BETA: trocar pra `true`. Nenhum outro arquivo precisa mudar.
+ * LIGADO no 1.1.0 — é o beta que esta constante estava esperando.
+ *
+ * O que a varredura das fichas reais mediu antes de ligar (seis arquivos, três sistemas): Ordem
+ * Paranormal sai completa (18 campos, os cinco atributos, dois presets de ataque) e Oblivio também
+ * (21 campos, identificação e corpo). Kids on Bikes NÃO sai — e não é defeito do leitor: aquele PDF
+ * é arte achatada, sem camada de texto, com um único fragmento na página inteira. Nenhum importador
+ * resolve isso sem OCR, e a tela de conferência diz que não veio nada em vez de inventar.
+ *
+ * Por isso a aba vai marcada como BETA (ver o rótulo em `translations.ts` e o aviso em
+ * `SheetImportModal`): o que é lido, é lido bem; o que não é, é dito na cara.
  */
-export const IMPORTACAO_DE_FICHA_LIGADA = false
+export const IMPORTACAO_DE_FICHA_LIGADA = true

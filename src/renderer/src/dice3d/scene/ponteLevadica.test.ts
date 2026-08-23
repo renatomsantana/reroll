@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
+import { ensureRapierReady } from '../physics/rapierContext'
+import { createPhysicsWorld } from '../physics/createPhysicsWorld'
+import { tossDieFromMouth } from '../physics/tossDieFromMouth'
+import { computeTowerBesideLayout } from '../geometry/towerBesideTrayLayout'
+import { DICE_REGISTRY, AVAILABLE_DICE_TYPES } from '../dice-defs/registry'
 
 /**
  * As texturas de tijolo da torre são pintadas num canvas 2D, e o jsdom não implementa `getContext`.
@@ -135,4 +140,87 @@ describe('ponte levadiça', () => {
     ponte.definirAbertura(-3)
     expect(ponte.folha.rotation.z).toBeCloseTo(Math.PI / 2, 6)
   })
+})
+
+/**
+ * POR QUE a ponte só levanta na torre de enfeite — a medição, e não a regra (a regra está em
+ * `ponteAbertaNoModo.test.ts`).
+ *
+ * O dado sai da boca NA HORIZONTAL, apoiado no tabuleiro da ponte, e a dobradiça fica exatamente na
+ * boca. Com a folha em pé, ela é uma tampa no caminho: o teste segue o caminho do dado a partir do
+ * ponto real de largada (`tossDieFromMouth`, o mesmo da produção) e pergunta se ele passa DENTRO do
+ * volume da folha. Abaixada, o caminho passa por cima dela e nada é atravessado.
+ *
+ * A ponte é decorativa, não tem collider — então o dado não bate nela, ele PASSA por dentro da
+ * madeira. É um defeito que só aparece na tela, e por isso precisa de um teste que o veja.
+ */
+describe('a folha levantada fica no caminho do dado', () => {
+  /**
+   * Volume da folha no espaço DELA MESMA: o tampo vai de 0 (dobradiça) ao comprimento, tem a
+   * espessura em `y` e a largura em `z`. Medir no espaço local é o que faz a conta valer nos dois
+   * ângulos sem repetir trigonometria do código de produção.
+   */
+  function dentroDaFolha(folha: THREE.Group, pontoNoMundo: THREE.Vector3): boolean {
+    const caixa = new THREE.Box3().setFromObject(folha)
+    const comprimento = caixa.max.x - caixa.min.x
+    const largura = caixa.max.z - caixa.min.z
+    const espessura = caixa.max.y - caixa.min.y
+    folha.updateMatrixWorld(true)
+    const local = folha.worldToLocal(pontoNoMundo.clone())
+    return (
+      local.x >= 0 &&
+      local.x <= comprimento &&
+      Math.abs(local.z) <= largura / 2 &&
+      local.y >= -espessura &&
+      local.y <= espessura
+    )
+  }
+
+  /** O caminho do dado: da largada em direção ao centro da bandeja, na horizontal. */
+  function caminhoDoDado(partida: THREE.Vector3, direcao: { x: number; z: number }): THREE.Vector3[] {
+    const passos: THREE.Vector3[] = []
+    for (let d = 0; d <= 2; d += 0.05) {
+      passos.push(new THREE.Vector3(partida.x + direcao.x * d, partida.y, partida.z + direcao.z * d))
+    }
+    return passos
+  }
+
+  it.each(AVAILABLE_DICE_TYPES)('d%i atravessa a folha levantada e passa livre com ela abaixada', async (sides) => {
+    await ensureRapierReady()
+    const { ponte } = createTowerBesideTray()
+    const layout = computeTowerBesideLayout()
+    const entrada = DICE_REGISTRY[sides]
+    const world = createPhysicsWorld()
+    const body = entrada.createBody(world)
+    const raio = entrada.definition.scale * entrada.definition.boundingRadius
+
+    /**
+     * Várias largadas por tipo: o ponto varia dentro do vão (`gateArcWidth * 0.18` pra cada lado) e
+     * a altura tem um saltinho sorteado. Uma só poderia cair num extremo e mascarar o resultado.
+     */
+    const partidas: THREE.Vector3[] = []
+    for (let i = 0; i < 12; i++) {
+      tossDieFromMouth(body, { target: { x: 0, z: 0 }, radius: raio })
+      const t = body.translation()
+      partidas.push(new THREE.Vector3(t.x, t.y, t.z))
+    }
+
+    ponte.definirAbertura(0)
+    for (const partida of partidas) {
+      const atravessa = caminhoDoDado(partida, layout.mouthDirection).some((ponto) =>
+        dentroDaFolha(ponte.folha, ponto)
+      )
+      expect(atravessa).toBe(true)
+    }
+
+    ponte.definirAbertura(1)
+    for (const partida of partidas) {
+      const atravessa = caminhoDoDado(partida, layout.mouthDirection).some((ponto) =>
+        dentroDaFolha(ponte.folha, ponto)
+      )
+      expect(atravessa).toBe(false)
+    }
+
+    world.free()
+  }, 30000)
 })
