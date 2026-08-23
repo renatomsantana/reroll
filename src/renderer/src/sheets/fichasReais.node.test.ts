@@ -53,6 +53,23 @@ describe.skipIf(!existsSync(ORDEM))('ficha real de Ordem Paranormal', () => {
     expect(lido.system).toBe('Ordem Paranormal')
     expect(lido.characterName).toBeTruthy()
 
+    /**
+     * OS PARES ATUAL/MÁXIMO VÊM INTEIROS, mesmo com metade em branco no arquivo.
+     *
+     * Nesta ficha só os máximos estão preenchidos (PV 45, PE 12, Sanidade 15) — o jogador nunca
+     * anotou quanto tem AGORA. A importação trazia só essa metade, e a ficha no app ficava sem
+     * lugar pra escrever o número que muda toda sessão. Foi o que o usuário reportou: "ficou
+     * faltando, coloca o máximo e atuais de tudo".
+     */
+    const recursos = new Map(lido.fields.filter((c) => c.group === 'Recursos').map((c) => [c.label, c.value]))
+    expect(recursos.get('PV máximo')).toBe('45')
+    expect(recursos.get('PE máximo')).toBe('12')
+    expect(recursos.get('Sanidade máxima')).toBe('15')
+    expect(recursos.has('PV atual')).toBe(true)
+    expect(recursos.has('PE atual')).toBe(true)
+    expect(recursos.has('Sanidade atual')).toBe(true)
+    expect(recursos.get('PV atual')).toBe('')
+
     // Os cinco atributos, que já sumiram uma vez por nome de campo repetido.
     const atributos = lido.fields.filter((c) => c.group === 'Atributos').map((c) => c.label)
     expect(atributos).toEqual(['Agilidade', 'Força', 'Intelecto', 'Presença', 'Vigor'])
@@ -292,5 +309,26 @@ describe.skipIf(!existsSync(OBLIVIO_BRANCA) || !existsSync(ORDEM_BRANCA))('model
     expect(lido.characterName).toBe('')
     expect(lido.presets).toEqual([])
     expect(lido.warnings).toContain('sem-nome-nem-rolagem')
+  })
+})
+
+/**
+ * O MODELO EM BRANCO não ganha o esqueleto de recursos.
+ *
+ * O par atual/máximo entra vazio porque numa ficha DE ALGUÉM ele é espaço pra anotar. Num modelo
+ * baixado do site seriam seis linhas vazias a mais na tela de quem só quer ver o que o arquivo
+ * tinha — e a ficha em branco de Ordem Paranormal já vem com 76 campos preenchidos de fábrica,
+ * então o corte é o NOME do personagem, que ninguém preenche numa ficha que não vai usar.
+ */
+describe.skipIf(!existsSync(ORDEM_BRANCA))('modelo em branco de Ordem Paranormal', () => {
+  it('não inventa linhas vazias de recurso', async () => {
+    const lido = readSheet(await abrirPdfNoNode(ORDEM_BRANCA))
+    const rotulos = lido.fields.map((c) => c.label)
+
+    expect(lido.characterName).toBe('')
+    expect(rotulos).not.toContain('PV atual')
+    expect(rotulos).not.toContain('Sanidade atual')
+    // O que ele traz continua sendo só o que está escrito de fábrica no arquivo.
+    expect(rotulos).toContain('Defesa')
   })
 })
