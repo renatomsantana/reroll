@@ -150,10 +150,11 @@ vantagem/desvantagem, export/import de presets, atalhos de teclado, entre outros
 - [x] Modificador (+/-) e modo Normal/Vantagem/Desvantagem pra qualquer quantidade de dados
 - [x] Par de dados com cor por posição (maior azul, menor vermelho) quando um grupo tem 2 dados
 - [x] Cada tipo de dado com cor própria nos chips de resultado
-- [ ] Ficha de personagem (Força, Destreza, Constituição, Inteligência, Sabedoria, Carisma) — está
-      escrita e testada, mas SEM entrada na interface a partir da 1.0.9: a importação de PDF ainda
-      erra em ficha de sistema que ela não conhece, e ficha lida errado troca o personagem de
-      alguém. Volta pelo beta (ver a nota da 1.0.9 no `CHANGELOG.md`).
+- [x] Ficha de personagem, com importação de PDF — **em beta a partir da 1.1.0**. Ordem Paranormal
+      e Oblivio são lidas por leitor próprio (medido nas fichas reais: identificação, atributos,
+      recursos e os presets de ataque); qualquer outra cai no leitor genérico, que traz o que
+      estiver rotulado e diz o que não conseguiu ler. Ficha que é ARTE ACHATADA (sem camada de
+      texto) não rende nada, e a tela de conferência avisa em vez de inventar.
 - [x] Modo compacto (janela mini só com o rolador)
 - [x] Limpar histórico
 - [x] Som de rolagem, diferente pra 1 dado (`roll-single.mp3`) e pra vários (`roll-many.mp3`),

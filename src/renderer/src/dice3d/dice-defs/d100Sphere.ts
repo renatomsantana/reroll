@@ -1,64 +1,95 @@
 import type { DiceDefinition, Vector3Tuple } from '@shared/types/dice3d'
-import { fibonacciSpherePoints, jitterPointsOnSphere } from '../geometry/fibonacciSphere'
-import { buildConvexHullFaceTopology } from '../geometry/buildConvexHullFaceTopology'
+import { antipodalDirections } from '../geometry/antipodalDirections'
+import { buildDualFromNormals } from '../geometry/dualPolyhedron'
 import { computePolyhedronFaces, normalizeToCircumradius, type PolyhedronFaceInput } from '../geometry/polyhedronMath'
 
 /**
- * D100 "de verdade" — um único dado esférico com 100 facetas planas
- * (Zocchihedro), como o objeto físico real (ver `assets/dice/d100.png`),
- * em vez do truque tradicional de dois d10 (dezena + unidade) que o app
- * usava antes.
+ * D100 "de verdade" — um único dado esférico com 100 faces planas (Zocchihedro), como o objeto
+ * físico real (ver `assets/dice/d100.png`), em vez do truque tradicional de dois d10 (dezena +
+ * unidade) que o app usava antes.
  *
- * 52 pontos bem distribuídos numa esfera (espiral de Fibonacci) geram,
- * pelo casco convexo, EXATAMENTE 100 faces triangulares — consequência da
- * fórmula de Euler pra poliedros convexos simpliciais: F = 2V - 4, então
- * V=52 → F=100.
+ * ELE É CONSTRUÍDO PELAS NORMAIS, e são duas decisões, não uma:
  *
- * A espiral "crua" (mesmo a variante deslocada, ver `fibonacciSpherePoints`)
- * ainda deixa alguns vértices quase coplanares entre si, o que produz
- * facetas com normais quase idênticas às da vizinha — impossível de
- * distinguir de forma confiável (`readTopFace` marcaria a rolagem como
- * ambígua quase sempre). `jitterPointsOnSphere` quebra essa quase-simetria.
- * A seed/magnitude abaixo vieram de uma busca (script descartável, não
- * versionado) testando várias combinações de N/magnitude/seed e medindo a
- * menor distância angular entre quaisquer duas normais de face resultantes
- * — a maior separação mínima encontrada foi com N=52, magnitude=0.08,
- * seed=108 (gap mínimo ≈ 0,0021 em produto escalar). `AMBIGUOUS_MARGIN`
- * abaixo fica com folga confortável abaixo disso.
+ * 1. as 100 direções são as NORMAIS DAS FACES, e o sólido é a interseção dos semi-espaços delas
+ *    (ver `dualPolyhedron.ts`). Cada face vira a célula de Voronoi da sua direção — áreas parecidas,
+ *    e o pé da perpendicular do centro caindo sempre DENTRO da própria face, ou seja, toda face
+ *    apoia;
+ * 2. as direções vêm em 50 PARES ANTIPODAIS (ver `antipodalDirections.ts`): faces opostas
+ *    paralelas, como em qualquer dado de verdade. É esta que fecha a honestidade, e é a que não era
+ *    óbvia — ver o comentário de lá: sem simetria, o mapa "face de apoio → face lida" não é uma
+ *    bijeção, e sobram faces que não saem nunca por mais iguais que sejam as áreas. Medido com
+ *    Fibonacci sobre a esfera inteira, áreas ótimas e sem simetria: 92 das 100 faces alcançáveis.
+ *
+ * A VERSÃO ANTERIOR fazia o contrário: 52 pontos de Fibonacci com jitter viravam os VÉRTICES, e as
+ * 100 faces triangulares saíam de brinde do casco convexo (F = 2V − 4). O jitter existia por um
+ * motivo real — sem ele, vértices quase coplanares produziam facetas com normais quase idênticas, e
+ * `readTopFace` marcava quase toda rolagem como ambígua. Só que ele resolvia a leitura estragando o
+ * dado, e o preço apareceu na medição (3000 rolagens de física real, agosto/2026):
+ *
+ * - TREZE das cem faces nunca saíram uma única vez. Facetas irregulares num corpo quase esférico
+ *   têm bacias de equilíbrio desiguais, e algumas ficam vazias: o dado tomba pra vizinha antes de
+ *   parar. Não eram raras — eram inalcançáveis;
+ * - a face mais comum saía 4,13% das vezes, quatro vezes o 1% esperado;
+ * - qui-quadrado 2887 contra 148,2 de corte.
+ *
+ * É o mesmo motivo pelo qual um Zocchihedro de verdade é conhecido por não ser honesto. Aqui não
+ * precisa ser: `distribuicaoNaBandejaCheia.test.ts` mede, e `d100.test.ts` fecha a geometria.
+ *
+ * A leitura também ficou folgada: o par de normais mais próximo está a 17,8° (produto escalar
+ * 0,9522), contra os 0,0021 de gap que o jitter conseguia. Ver `AMBIGUOUS_MARGIN` pra por que ela
+ * ainda precisa de um valor próprio.
  */
-const VERTEX_COUNT = 52
-const JITTER_MAGNITUDE = 0.08
-const JITTER_SEED = 108
-/** Bem menor que a margem global (0.08) — ver explicação acima sobre a separação mínima entre normais. */
-const AMBIGUOUS_MARGIN = 0.0015
-
-const RAW_VERTICES: Vector3Tuple[] = jitterPointsOnSphere(
-  fibonacciSpherePoints(VERTEX_COUNT),
-  JITTER_MAGNITUDE,
-  JITTER_SEED
-)
-export const D100_VERTICES = normalizeToCircumradius(RAW_VERTICES, 1)
-
-const FACE_TOPOLOGY = buildConvexHullFaceTopology(D100_VERTICES)
-
-if (FACE_TOPOLOGY.length !== 100) {
-  throw new Error(
-    `Casco convexo do d100 esférico gerou ${FACE_TOPOLOGY.length} faces, esperava exatamente 100 — ajuste VERTEX_COUNT/seed`
-  )
-}
+const FACE_COUNT = 100
 
 /**
- * Não existe um pareamento antípoda "limpo" nesse casco convexo (ao
- * contrário dos poliedros regulares) — a ordem de saída do QuickHull é
- * determinística (mesmos pontos de entrada sempre produzem a mesma ordem),
- * mas arbitrária geometricamente. Os valores 1-100 são atribuídos nessa
- * ordem só pra existir UM mapeamento explícito e fixo — o que importa pra
- * correção é que ele nunca muda depois de definido, não a ordem em si.
+ * Margem de ambiguidade PRÓPRIA — a global (0,08) não serve, e a conta mostra por quê.
+ *
+ * `readTopFace` chama de ambígua a leitura em que a melhor face e a vice ficam a menos de uma
+ * margem de produto escalar uma da outra. Num d20, faces vizinhas estão a mais de 40° e a diferença
+ * é enorme; aqui o par de normais mais próximo está a 17,8°, então um dado APOIADO E PARADO na sua
+ * face já nasce com diferença de apenas 1 − cos(17,8°) = 0,048.
+ *
+ * Com a margem global de 0,08, TODA leitura vira ambígua: medido, 200 mil de 200 mil orientações, e
+ * na física real 255 mil cutucadas seguidas sem um único dado assentar — o dado nunca parava. Este
+ * 0,02 fica em 42% do menor caso de repouso apoiado (0,048), ou seja, sobra folga pros dois lados:
+ * dado deitado nunca é chamado de ambíguo, e dado de fato equilibrado numa aresta (diferença perto
+ * de zero, as duas faces igualmente pra cima) continua sendo pego e cutucado.
  */
-const FACE_INPUTS: PolyhedronFaceInput[] = FACE_TOPOLOGY.map((vertexIndices, i) => ({
-  vertexIndices,
-  value: i + 1
-}))
+const AMBIGUOUS_MARGIN = 0.02
+
+/** As 100 direções que as faces olham — não são vértices, são normais. Ver o comentário acima. */
+export const D100_FACE_NORMALS: Vector3Tuple[] = antipodalDirections(FACE_COUNT / 2)
+
+const DUAL = buildDualFromNormals(D100_FACE_NORMALS)
+
+if (DUAL.faces.length !== FACE_COUNT) {
+  throw new Error(`O dual das direções do d100 gerou ${DUAL.faces.length} faces, esperava ${FACE_COUNT}`)
+}
+
+export const D100_VERTICES = normalizeToCircumradius(DUAL.vertices, 1)
+
+/**
+ * A NUMERAÇÃO segue as duas convenções de um dado de verdade, agora que dá:
+ *
+ * - FACES OPOSTAS SOMAM 101 (como 7 no d6 e 21 no d20). Só é possível porque as direções vêm em
+ *   pares antipodais, e a segunda metade da lista é exatamente a antípoda da primeira: a face
+ *   `i + 50` recebe `101 − valor(i)`;
+ * - NÚMEROS CONSECUTIVOS LONGE UNS DOS OUTROS. As direções saem em ordem de espiral, então numerar
+ *   1, 2, 3... na ordem em que elas vêm poria os consecutivos lado a lado, subindo o dado em
+ *   caracol — o que nenhum dado de verdade faz, e o que denuncia na hora que a coisa foi gerada por
+ *   fórmula. O passo 17 é primo com 50, então percorre os cinquenta valores da metade norte sem
+ *   repetir nenhum e joga cada consecutivo pro outro lado do dado.
+ *
+ * Isto é aparência e tradição, não honestidade: pra a rolagem ser justa o que importa é a geometria
+ * das faces, não qual número está escrito em cada uma.
+ */
+const PASSO_DA_NUMERACAO = 17
+
+const FACE_INPUTS: PolyhedronFaceInput[] = DUAL.faces.map((vertexIndices, i) => {
+  const metade = FACE_COUNT / 2
+  const valorNorte = ((i % metade) * PASSO_DA_NUMERACAO) % metade + 1
+  return { vertexIndices, value: i < metade ? valorNorte : FACE_COUNT + 1 - valorNorte }
+})
 
 export const D100_FACE_INPUTS = FACE_INPUTS
 

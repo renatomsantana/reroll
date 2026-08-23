@@ -64,12 +64,20 @@
   padding: 5px 14px 5px;
 }
 
+/**
+ * O ícone é um SVG em `currentColor` (ver `IconeEngrenagem.tsx`), não mais o emoji ⚙️ — que era
+ * prata e sumia no cinza do modo dia. `display: flex` centraliza o desenho no botão; com emoji, quem
+ * fazia isso era a métrica da fonte, e `font-size` deixou de ter função aqui.
+ */
 .toolbar-settings-btn {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 26px;
   padding: 0;
-  font-size: 14px;
+  color: var(--win-text);
   margin-bottom: 3px;
 }
 

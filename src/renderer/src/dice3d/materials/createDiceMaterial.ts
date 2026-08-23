@@ -47,14 +47,28 @@ export function createDiceMaterial({ map, finish = 'matte' }: CreateDiceMaterial
       // depender de nenhuma passada extra, e já dá a leitura de "vidro" que se espera —
       // menos fisicamente correto, mas realmente visível. `envMapIntensity` mais alto
       // compensa o brilho perdido por não ter mais o clearcoat do plástico.
+      /**
+       * OPACIDADE 0.8 e ambiente 1.0, e não 0.55/1.6 — o vidro estava apagando os números.
+       *
+       * Medido na varredura de fechamento do Alfa (45 paletas × 4 acabamentos × 7 dados, render de
+       * verdade, comparando cada dado com ele mesmo pintado sem número pra isolar a tinta): com
+       * 0.55/1.6 o vidro deixava a força da tinta em 0,18 de mediana, contra 0,52 do fosco e 0,50 do
+       * plástico — e 237 das 315 combinações caíam abaixo de 0,20, ou seja, o defeito era do
+       * MATERIAL, não de nenhuma cor em particular. Com 0.8/1.0 a mediana sobe pra 0,36 e sobram 26.
+       *
+       * A escolha entre 0.75, 0.80 e 0.85 foi olhando o render lado a lado: 0.85 já lê como plástico
+       * fosco, e 0.80 é o ponto em que ainda dá pra ver a translucidez e o número volta a ser preto
+       * no branco. Quem quiser vidro de verdade (refração) precisa da passada extra de
+       * `transmission`, que este renderer não faz — ver o parágrafo abaixo.
+       */
       return new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
         map,
         metalness: 0,
         roughness: 0.05,
         transparent: true,
-        opacity: 0.55,
-        envMapIntensity: 1.6
+        opacity: 0.8,
+        envMapIntensity: 1.0
       })
     case 'matte':
     default:

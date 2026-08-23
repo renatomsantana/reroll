@@ -194,7 +194,27 @@ export function extrairGenerico(
 
   const semRuido = camposSemRepetidos(fields)
   const presetsFinais = semRepetidos(presets)
-  const nome = acharNome(sheet, fields, readerId)
+  /**
+   * "Não havia NADA pra ler", medido em LETRAS e não em número de fragmentos.
+   *
+   * É o que separa dois arquivos que o corte por quantidade de fragmentos confunde: a ficha
+   * datilografada tem dois fragmentos com uns cinquenta caracteres de prosa (e ali o nome do arquivo
+   * é bom palpite, ver `nomeDeArquivoComoPalpite`), enquanto a ficha EM BRANCO de Kids on Bikes tem
+   * um fragmento com UMA letra na página inteira — um "X" de caixinha marcada. Doze letras é o
+   * patamar: abaixo disso não existe ficha nenhuma atrás do arquivo, existe um desenho.
+   */
+  const LETRAS_MINIMAS = 12
+  const letrasNoPdf = sheet.texts.reduce(
+    (soma, texto) => soma + (texto.text.match(/\p{L}/gu)?.length ?? 0),
+    0
+  )
+  const semNadaPraLer = sheet.fields.length === 0 && letrasNoPdf < LETRAS_MINIMAS
+  const nome = acharNome(
+    sheet,
+    fields,
+    readerId,
+    !semNadaPraLer || semRuido.length > 0 || presetsFinais.length > 0
+  )
 
   /**
    * "Parece o modelo em branco" tem que ser dito mesmo quando há campos preenchidos, porque uma
@@ -280,14 +300,21 @@ function anotacaoSobreImagem(
     .filter((bloco) => bloco.trim().length > 0)
     .join('\n\n')
 
+  const presets = presetsDoTexto(sheet)
   return {
     readerId,
     readerLabel,
     confidence,
-    characterName: nome || nomeDeArquivoComoPalpite(sheet.fileName, readerId),
+    characterName:
+      nome ||
+      nomeDeArquivoComoPalpite(
+        sheet.fileName,
+        readerId,
+        fields.length > 0 || presets.length > 0 || rawText.trim().length > 0
+      ),
     system: '',
     fields,
-    presets: presetsDoTexto(sheet),
+    presets,
     rawText,
     warnings: ['arte-com-anotacao']
   }
@@ -393,10 +420,15 @@ function camposSemRepetidos(fields: SheetImportField[]): SheetImportField[] {
  * campo editável, então o custo de errar é uma correção de dois segundos, e o de não sugerir é o
  * usuário digitar tudo.
  */
-function acharNome(sheet: PdfSheet, fields: SheetImportField[], readerId: string): string {
+function acharNome(
+  sheet: PdfSheet,
+  fields: SheetImportField[],
+  readerId: string,
+  leuAlgo = true
+): string {
   const doCampo = palpiteDoCampoDeNome(fields)
   if (doCampo) return doCampo
-  return nomeDeArquivoComoPalpite(sheet.fileName, readerId)
+  return nomeDeArquivoComoPalpite(sheet.fileName, readerId, leuAlgo)
 }
 
 /**
@@ -413,8 +445,23 @@ function acharNome(sheet: PdfSheet, fields: SheetImportField[], readerId: string
  * único indício de nome que existe. Errar custa uma edição; não oferecer nada custa digitação em
  * toda importação de ficha sem campo de nome.
  */
-function nomeDeArquivoComoPalpite(fileName: string, readerId: string): string {
+function nomeDeArquivoComoPalpite(fileName: string, readerId: string, leuAlgo = true): string {
   if (readerId !== 'generico') return ''
+  /**
+   * E nem no genérico, quando a leitura veio VAZIA.
+   *
+   * O palpite pelo nome do arquivo se justifica por ser "o único indício que existe" — mas isso vale
+   * quando existe uma ficha por trás dele. Se nenhum campo e nenhuma rolagem foram lidos, propor o
+   * nome do arquivo cria um personagem chamado "Ficha Kids on Bikes" com a ficha em branco, e a
+   * pessoa só descobre que a importação não leu nada depois de confirmar. Medido na varredura das
+   * fichas reais do beta: era exatamente esse o caso da ficha em branco de Kids on Bikes, que é uma
+   * ARTE achatada — zero campos de formulário e UM fragmento de texto na página inteira, a letra
+   * "X". Uma ficha datilografada sem campo nenhum, mas com parágrafos escritos, continua ganhando o
+   * palpite: ali existe conteúdo, e "Elias - ficha.pdf" é indício de verdade.
+   *
+   * Sem nome proposto, a tela de conferência não deixa confirmar, e é ela que diz que não veio nada.
+   */
+  if (!leuAlgo) return ''
   return fileName.replace(/\.pdf$/i, '').trim()
 }
 

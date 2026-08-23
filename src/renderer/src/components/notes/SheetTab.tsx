@@ -325,9 +325,9 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                   Importar ficha fica ao lado de "Novo personagem" porque é a mesma decisão vista de
                   dois jeitos: criar um personagem do zero, ou criar um a partir de um PDF pronto.
 
-                  DESLIGADO no alfa — ver `IMPORTACAO_DE_FICHA_LIGADA`. O botão some inteiro em vez
-                  de aparecer desabilitado: um botão cinza que nunca liga só faz a pessoa procurar o
-                  que está faltando.
+                  A bandeira `IMPORTACAO_DE_FICHA_LIGADA` continua mandando: desligada, o botão some
+                  inteiro em vez de aparecer cinza — botão que nunca liga só faz a pessoa procurar o
+                  que está faltando. Ligada desde o 1.1.0, que é o beta do scraping.
                 */}
                 {IMPORTACAO_DE_FICHA_LIGADA && (
                   <Button

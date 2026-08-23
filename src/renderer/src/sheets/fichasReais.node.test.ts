@@ -26,6 +26,25 @@ const KIDS = join(PASTA, 'Ficha Kids on Bikes - Preenchida.pdf')
 const KIDS_BRANCA = join(PASTA, 'Ficha Kids on Bikes.pdf')
 
 
+/**
+ * A ficha EM BRANCO de Kids on Bikes — o caso que a varredura de fechamento do Alfa encontrou.
+ *
+ * Ela é uma ARTE achatada: zero campos de formulário e zero rótulos impressos (medido — 41
+ * fragmentos de texto solto na preenchida, nenhum par rótulo/valor na vazia). Não há sistema de
+ * leitura que a resolva, e não é isso que este teste cobra: cobra que, não tendo lido NADA, o app
+ * não proponha criar um personagem chamado "Ficha Kids on Bikes". Era o que ele fazia.
+ */
+describe.skipIf(!existsSync(KIDS_BRANCA))('ficha real em branco de Kids on Bikes', () => {
+  it('não rende campo nenhum, e por isso não propõe nome de personagem', async () => {
+    const lido = readSheet(await abrirPdfNoNode(KIDS_BRANCA))
+
+    expect(lido.readerId).toBe('generico')
+    expect(lido.fields).toEqual([])
+    expect(lido.presets).toEqual([])
+    expect(lido.characterName).toBe('')
+  })
+})
+
 describe.skipIf(!existsSync(ORDEM))('ficha real de Ordem Paranormal', () => {
   it('lê identificação, atributos, recursos e ataques — e nenhum campo de perícia cru', async () => {
     const lido = readSheet(await abrirPdfNoNode(ORDEM))

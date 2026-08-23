@@ -109,8 +109,17 @@ describe('orientação de vitrine — maior número pra cima e de frente', () =>
       for (const face of definition.faces) {
         const topo = topoDasLetrasNaFace(mesh.geometry, face.normal)
         expect(topo, `d${sides}, face ${face.value}`).not.toBeNull()
-        // Perpendicular à normal: o texto é pintado NA face, não saindo dela.
-        expect(Math.abs(escalar(topo!, face.normal))).toBeLessThan(1e-6)
+        /**
+         * Perpendicular à normal: o texto é pintado NA face, não saindo dela.
+         *
+         * A tolerância é 1e-5, e não 1e-6, por causa do d100: as posições saem da `BufferGeometry`
+         * em Float32Array (~1e-7 de precisão relativa), e as faces dele são hexágonos e heptágonos
+         * — sete cantos acumulam mais erro de arredondamento que os três de um triângulo, que é
+         * planar por definição. Medido: 1,02e-6, ou seja, o antigo 1e-6 estava encostado no chão de
+         * ruído do float32, não numa propriedade geométrica. Um milionésimo de desvio não é visível
+         * em número desenhado em face nenhuma.
+         */
+        expect(Math.abs(escalar(topo!, face.normal))).toBeLessThan(1e-5)
         expect(Math.hypot(topo![0], topo![1], topo![2])).toBeCloseTo(1, 6)
       }
     }
