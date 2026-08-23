@@ -100,6 +100,11 @@ export interface TowerBesideTrayHandle {
    * `requestAnimationFrame` próprio continuaria calculando pano invisível pra sempre.
    */
   update: (elapsedSeconds: number) => void
+  /**
+   * A PONTE LEVADIÇA, pra quem quiser abrir e fechar. A cena precisa de duas coisas dela: o alvo do
+   * clique (`folha`) e o controle da animação (`definirAbertura`).
+   */
+  ponte: DrawbridgeHandle
 }
 
 interface BrickFactory {
@@ -499,9 +504,43 @@ function createTorches(radius: number, gateArcWidth: number, gateHeight: number)
  * Sem collider, como todo o resto da torre: nada aqui participa da simulação. O dado nasce na boca
  * (`tossDieFromMouth`) e sobe em arco pra dentro do hexágono, passando ACIMA do tabuleiro.
  */
-function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Material): THREE.Group {
+export interface DrawbridgeHandle {
+  grupo: THREE.Group
+  /**
+   * Só a FOLHA que gira, e é ela o alvo do clique — não o grupo inteiro. As correntes ficam de
+   * fora de propósito: elas são fios finos espalhados pelo vão, e aceitar clique nelas faria a
+   * ponte abrir quando a pessoa mirou na torre atrás.
+   */
+  folha: THREE.Group
+  /**
+   * 1 = abaixada (passagem aberta, como a ponte sempre esteve), 0 = levantada (portão fechado).
+   * Valores no meio são a animação.
+   */
+  definirAbertura: (abertura: number) => void
+}
+
+function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Material): DrawbridgeHandle {
   const { radius, gateArcWidth, gateHeight, seatDistance, apothem } = layout
   const grupo = new THREE.Group()
+
+  /**
+   * A DOBRADIÇA fica na face da casca (`radius`), e o tabuleiro é cortado ali em dois: o pedaço de
+   * dentro (que está enfiado sob o arco) fica parado como soleira, e o de fora é a folha que
+   * levanta.
+   *
+   * Cortar é o que evita o defeito de girar o tabuleiro inteiro em torno de um ponto no meio dele:
+   * o pedaço de dentro desceria por baixo do piso do arco e apareceria pendurado no vão embaixo do
+   * portão, porque o plinto da torre tem o raio da casca (`plinthOverhang` é 0) e não esconderia
+   * nada. Com o corte, o que gira começa exatamente onde a torre acaba.
+   *
+   * Levantada, a folha fica no plano `x = radius`, que é justamente o VÃO do portão: os pilares da
+   * ombreira flanqueiam o vão em ±`gateArcWidth/2` e o tabuleiro tem 0.85 dessa largura, então ela
+   * sobe ENTRE eles, sem raspar em pedra nenhuma. Medido: a folha tem 1.41 de comprimento contra um
+   * vão de 1.49 de altura, ou seja, tampa o portão quase inteiro, como uma ponte levadiça fechada.
+   */
+  const folha = new THREE.Group()
+  folha.position.x = radius
+  grupo.add(folha)
 
   /**
    * Onde o tabuleiro COMEÇA e ONDE TERMINA, em distância do eixo da torre.
@@ -549,6 +588,15 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
    * madeira. Ponte levadiça pendurada nas correntes, sem tocar o outro lado, é o que a foto de
    * referência (`ideias/ponte-levadiça...`) mostra também.
    */
+  /**
+   * Os dois pedaços em que o tabuleiro é cortado pela dobradiça. A SOLEIRA é o que fica sob o arco
+   * e não se mexe; a FOLHA é o que levanta. Somados, dão o mesmo tabuleiro de antes, e com a ponte
+   * abaixada as peças caem exatamente onde sempre estiveram — o corte não é visível, é a emenda
+   * onde a dobradiça está.
+   */
+  const soleiraComprimento = radius - inicio
+  const folhaComprimento = fim - radius
+
   const quantas = 6
   const fatia = largura / quantas
   for (let i = 0; i < quantas; i++) {
@@ -561,7 +609,7 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
      * do desenho ("coloca as listras da ponte de volta"): as duas coisas eram separáveis, e a peça
      * que faltava era o estrado, não a fresta.
      */
-    const prancha = new THREE.Mesh(new THREE.BoxGeometry(comprimento, espessura, fatia * 0.88), deckMaterial)
+    const z = (i + 0.5) * fatia - largura / 2
     /**
      * O tampo fica 0.004 ACIMA do piso do arco, não exatamente nele.
      *
@@ -569,10 +617,26 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
      * z-fighting apareceu como um chuvisco na emenda (visto de cima na renderização). Quatro
      * milésimos separam as duas sem criar degrau: o dado tem 0.56, ele não sente isso.
      */
-    prancha.position.set(inicio + comprimento / 2, -espessura / 2 + 0.004, (i + 0.5) * fatia - largura / 2)
+    const y = -espessura / 2 + 0.004
+
+    const soleira = new THREE.Mesh(
+      new THREE.BoxGeometry(soleiraComprimento, espessura, fatia * 0.88),
+      deckMaterial
+    )
+    soleira.position.set(inicio + soleiraComprimento / 2, y, z)
+    soleira.castShadow = true
+    soleira.receiveShadow = true
+    grupo.add(soleira)
+
+    // Na folha o x é relativo à dobradiça, que já está em `radius`.
+    const prancha = new THREE.Mesh(
+      new THREE.BoxGeometry(folhaComprimento, espessura, fatia * 0.88),
+      deckMaterial
+    )
+    prancha.position.set(folhaComprimento / 2, y, z)
     prancha.castShadow = true
     prancha.receiveShadow = true
-    grupo.add(prancha)
+    folha.add(prancha)
   }
 
   /**
@@ -582,14 +646,24 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
    * É ele que deixa as listras serem listras: sem o estrado, a fresta entre as tábuas é um buraco
    * até o chão; com ele, é uma linha escura de sombra.
    */
-  const estrado = new THREE.Mesh(
-    new THREE.BoxGeometry(comprimento, espessura * 0.55, largura),
+  const estradoY = -espessura - espessura * 0.2
+  const estradoSoleira = new THREE.Mesh(
+    new THREE.BoxGeometry(soleiraComprimento, espessura * 0.55, largura),
     deckMaterial
   )
-  estrado.position.set(inicio + comprimento / 2, -espessura - espessura * 0.2, 0)
+  estradoSoleira.position.set(inicio + soleiraComprimento / 2, estradoY, 0)
+  estradoSoleira.castShadow = true
+  estradoSoleira.receiveShadow = true
+  grupo.add(estradoSoleira)
+
+  const estrado = new THREE.Mesh(
+    new THREE.BoxGeometry(folhaComprimento, espessura * 0.55, largura),
+    deckMaterial
+  )
+  estrado.position.set(folhaComprimento / 2, estradoY, 0)
   estrado.castShadow = true
   estrado.receiveShadow = true
-  grupo.add(estrado)
+  folha.add(estrado)
 
   /**
    * Ferragem FOSCA (metalness 0.2), não polida. Com 0.45, que é o valor da ferragem da torre, as
@@ -602,9 +676,11 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   // tampo (sobressaem 0.01), porque cinta de ponte é chapa pregada, não viga por cima.
   for (const fracao of [0.18, 0.86]) {
     const cinta = new THREE.Mesh(new THREE.BoxGeometry(0.09, espessura * 0.5, largura * 0.99), ferro)
-    cinta.position.set(inicio + comprimento * fracao, -espessura * 0.5 + 0.01, 0)
+    // As duas caem do lado de FORA da dobradiça (0.18 do comprimento já passa dela), então as duas
+    // sobem com a folha — daí o x descontado de `radius`, como o resto do que está aqui dentro.
+    cinta.position.set(inicio + comprimento * fracao - radius, -espessura * 0.5 + 0.01, 0)
     cinta.castShadow = true
-    grupo.add(cinta)
+    folha.add(cinta)
   }
 
   /**
@@ -617,7 +693,14 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
    * pelo pilar, não como corrente. O passo é 1.6 raio de elo, que é o encaixe de uma corrente real.
    */
   const raioElo = 0.045
+  const passoDoElo = raioElo * 1.6
   const elo = new THREE.TorusGeometry(raioElo, 0.013, 6, 10)
+  /**
+   * As correntes ficam FORA da folha, e é isso que faz elas funcionarem: uma corrente presa na
+   * parede e na quina do tabuleiro tem uma ponta parada e outra que se move. Se fossem filhas da
+   * folha, girariam junto e a ponta de cima descolaria da parede.
+   */
+  const correntes: { ancora: THREE.Vector3; elos: THREE.Mesh[] }[] = []
   for (const lado of [-1, 1] as const) {
     /**
      * Um pouco PARA DENTRO da quina do tabuleiro (0.40 da largura, e não 0.46): nos 0.46 a corrente
@@ -633,27 +716,66 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
      * sobra folga de 0.11 pra ela descer livre sem raspar em nada.
      */
     const z = lado * largura * 0.52
-    const de = new THREE.Vector3(radius * 0.98, gateHeight + radius * 0.3, z)
+    const ancora = new THREE.Vector3(radius * 0.98, gateHeight + radius * 0.3, z)
     // Ponta na BORDA de fora do tampo (o `fim`), que é onde a corrente de verdade se prende.
-    const para = new THREE.Vector3(fim, 0, z)
-    const direcao = para.clone().sub(de).normalize()
-    const elos = Math.max(6, Math.round(de.distanceTo(para) / (raioElo * 1.6)))
-    for (let i = 0; i < elos; i++) {
+    const pontaAbaixada = new THREE.Vector3(fim, 0, z)
+    /**
+     * A quantidade de elos sai do MAIOR vão possível, que é com a ponte abaixada — levantar só
+     * aproxima a ponta da âncora. Levantando, os elos que sobram são escondidos e o passo entre os
+     * que ficam continua o mesmo: a corrente ENCURTA, que é o que uma corrente de verdade faz, em
+     * vez de esticar os mesmos elos até virarem uma sanfona.
+     */
+    const maximoDeElos = Math.max(6, Math.round(ancora.distanceTo(pontaAbaixada) / passoDoElo))
+    const elos: THREE.Mesh[] = []
+    for (let i = 0; i < maximoDeElos; i++) {
       const malha = new THREE.Mesh(elo, ferro)
-      malha.position.lerpVectors(de, para, (i + 0.5) / elos)
-      /**
-       * O plano de cada elo CONTÉM a direção da corrente, e os ímpares giram 90° em torno dela — é
-       * assim que uma corrente é feita.
-       *
-       * A primeira versão fazia `lookAt(para)` e `rotateZ`, e saiu uma MOLA: `lookAt` aponta o +Z do
-       * toro pra direção da corrente, o que deixa o anel PERPENDICULAR a ela (um disco visto de
-       * lado), e girar em Z um toro cujo eixo é Z não muda absolutamente nada. Mapeando o +X (que
-       * está no plano do anel) pra direção, o eixo do toro cai perpendicular a ela, que é o certo, e
-       * aí girar em X — agora o eixo da corrente — alterna de verdade.
-       */
-      malha.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), direcao)
-      if (i % 2 === 1) malha.rotateX(Math.PI / 2)
       grupo.add(malha)
+      elos.push(malha)
+    }
+    correntes.push({ ancora, elos })
+  }
+
+  /**
+   * Põe as correntes onde a ponta da folha está no ângulo `anguloRad` (0 = abaixada).
+   *
+   * A ponta se move num arco em volta da dobradiça, e é só isso que a conta faz — a mesma rotação
+   * que a folha sofre, aplicada ao ponto de amarração. Não há como as duas saírem de sincronia
+   * porque as duas leem o mesmo ângulo.
+   */
+  const EIXO_X = new THREE.Vector3(1, 0, 0)
+  const pontaMovel = new THREE.Vector3()
+  const direcaoDaCorrente = new THREE.Vector3()
+  function posicionarCorrentes(anguloRad: number): void {
+    const alcance = fim - radius
+    for (const { ancora, elos } of correntes) {
+      pontaMovel.set(
+        radius + alcance * Math.cos(anguloRad),
+        alcance * Math.sin(anguloRad),
+        ancora.z
+      )
+      direcaoDaCorrente.copy(pontaMovel).sub(ancora)
+      const distancia = direcaoDaCorrente.length()
+      if (distancia < 1e-6) continue
+      direcaoDaCorrente.divideScalar(distancia)
+
+      const visiveis = Math.max(2, Math.min(elos.length, Math.round(distancia / passoDoElo)))
+      elos.forEach((malha, i) => {
+        malha.visible = i < visiveis
+        if (!malha.visible) return
+        malha.position.lerpVectors(ancora, pontaMovel, (i + 0.5) / visiveis)
+        /**
+         * O plano de cada elo CONTÉM a direção da corrente, e os ímpares giram 90° em torno dela — é
+         * assim que uma corrente é feita.
+         *
+         * A primeira versão fazia `lookAt(para)` e `rotateZ`, e saiu uma MOLA: `lookAt` aponta o +Z
+         * do toro pra direção da corrente, o que deixa o anel PERPENDICULAR a ela (um disco visto de
+         * lado), e girar em Z um toro cujo eixo é Z não muda absolutamente nada. Mapeando o +X (que
+         * está no plano do anel) pra direção, o eixo do toro cai perpendicular a ela, que é o certo,
+         * e aí girar em X — agora o eixo da corrente — alterna de verdade.
+         */
+        malha.quaternion.setFromUnitVectors(EIXO_X, direcaoDaCorrente)
+        if (i % 2 === 1) malha.rotateX(Math.PI / 2)
+      })
     }
   }
 
@@ -664,7 +786,20 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
    */
   const radial = new THREE.Vector3(Math.cos(TOWER_BESIDE_GATE_ANGLE), 0, Math.sin(TOWER_BESIDE_GATE_ANGLE))
   grupo.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), radial)
-  return grupo
+
+  /** Meia volta: a folha em pé fecha o vão. Passar disso a jogaria pra dentro do arco. */
+  const ANGULO_LEVANTADA = Math.PI / 2
+
+  function definirAbertura(abertura: number): void {
+    const angulo = (1 - Math.min(1, Math.max(0, abertura))) * ANGULO_LEVANTADA
+    folha.rotation.z = angulo
+    posicionarCorrentes(angulo)
+  }
+
+  // Nasce abaixada, que é como a ponte sempre esteve — e é o que põe as correntes no lugar.
+  definirAbertura(1)
+
+  return { grupo, folha, definirAbertura }
 }
 
 /**
@@ -919,7 +1054,8 @@ export function createTowerBesideTray(
   if (MOSTRA_ARCO_DE_ADUELAS) tower.add(createGateArch(radius, gateArcWidth, gateHeight, brick))
   const tochas = createTorches(radius, gateArcWidth, gateHeight)
   tower.add(tochas.group)
-  tower.add(createDrawbridge(layout, doorMaterial))
+  const ponte = createDrawbridge(layout, doorMaterial)
+  tower.add(ponte.grupo)
   const flag = createFlag(height + radius * 1.9, radius, flagMaterial)
   tower.add(flag.group)
 
@@ -953,6 +1089,7 @@ export function createTowerBesideTray(
     update(segundos) {
       flag.update(segundos)
       tochas.update(segundos)
-    }
+    },
+    ponte
   }
 }

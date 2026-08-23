@@ -16,7 +16,12 @@ import {
   GROUND_RADIUS
 } from './createScene'
 import { createWoodTextures } from './createWoodTexture'
-import { createTowerBesideTray, DEFAULT_TOWER_COLORS, type TowerColors } from './createTowerBesideTray'
+import {
+  createTowerBesideTray,
+  DEFAULT_TOWER_COLORS,
+  type TowerBesideTrayHandle,
+  type TowerColors
+} from './createTowerBesideTray'
 import { traySafeHalfExtent } from '../geometry/trayShape'
 import { createRiebeckPlush } from './createRiebeckPlush'
 import { createTrojanHorse, TROJAN_HORSE_SIZE } from './createTrojanHorse'
@@ -25,8 +30,7 @@ import type { CameraMode } from '@renderer/settings/SettingsContext'
 import {
   applyCameraKeys,
   type CameraFrame,
-  type CameraLimits,
-  type CameraSpeeds
+  type CameraLimits
 } from './applyCameraKeys'
 import { setupDiceEnvironment } from './createDiceEnvironment'
 import { disposeScene, disposeMesh } from './disposeScene'
@@ -334,6 +338,17 @@ export interface DiceCanvasMultiProps {
    * (que é dono do estado `caseOpen`); aqui só se detecta o clique.
    */
   onCaseClick?: () => void
+  /**
+   * Ponte levadiça da torre abaixada (`true`, padrão) ou levantada. Mesma convenção do `caseOpen`:
+   * anima em cima da cena existente e NUNCA remonta nada.
+   */
+  bridgeOpen?: boolean
+  /**
+   * Chamado quando o usuário CLICA na ponte levadiça dentro da cena — pedido do usuário, e só vale
+   * na TORRE DE ENFEITE (ver `onBridgeClickRef` no efeito de montagem). Como no estojo, quem decide
+   * o que fazer é o pai; aqui só se detecta o clique.
+   */
+  onBridgeClick?: () => void
   /**
    * Como o WASD dirige a câmera (ver `CameraMode` em `SettingsContext.tsx`). NÃO entra no `key` de
    * remount: trocar de modo não pode custar uma cena 3D nova.
@@ -890,6 +905,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       debugMode,
       caseOpen = true,
       onCaseClick,
+      bridgeOpen = true,
+      onBridgeClick,
       cameraMode = 'table'
     },
     ref
@@ -903,10 +920,12 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
      * mínimo (só o que a tela usa) pra trocar entre a torre de código e o modelo 3D não exigir mexer
      * aqui.
      */
-    const towerBesideRef = useRef<{
-      updateColors: (colors: TowerColors) => void
-      update: (elapsedSeconds: number) => void
-    } | null>(null)
+    /**
+     * O handle inteiro da torre, e não uma cópia à mão dos dois métodos que a cena usava. A lista
+     * escrita aqui já estava desatualizada assim que a torre ganhou a ponte levadiça — e o jeito de
+     * isso não acontecer de novo é não manter duas descrições do mesmo objeto.
+     */
+    const towerBesideRef = useRef<TowerBesideTrayHandle | null>(null)
     /** Meshes decorativos da prateleira fora do hexágono (ver `computeShelfPositions`). */
     const shelfMeshesRef = useRef<THREE.Mesh[]>([])
     /** Estojo/caixinha de display sob a prateleira (ver `createShelfCaseMesh`) — pedido do usuário. */
@@ -925,6 +944,17 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     const lidProgressRef = useRef(0)
     const lidAnimationRef = useRef<LidAnimation | null>(null)
     /**
+     * Estado atual da PONTE LEVADIÇA: 1 = abaixada (padrão), 0 = levantada.
+     *
+     * Reaproveita a máquina de animação da tampa do estojo (`LidAnimation`/`lidProgressAt`) — é o
+     * mesmo problema, uma peça girando em torno de uma dobradiça, com a mesma necessidade de
+     * inverter no meio do caminho quando alguém clica duas vezes seguidas. Uma segunda versão dela
+     * seria a mesma curva escrita de novo, pra sair de sincronia na primeira vez que uma das duas
+     * fosse ajustada.
+     */
+    const bridgeProgressRef = useRef(1)
+    const bridgeAnimationRef = useRef<LidAnimation | null>(null)
+    /**
      * Mundo físico e HUD de debug espelhados em ref — o efeito de montagem os cria como
      * variáveis locais (`world`/`hud`), mas o efeito de resincronização de dados (ver mais
      * abaixo, `groupsSignature`) roda numa segunda passada de efeito, sem acesso a essas
@@ -941,6 +971,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
 
     const onCaseClickRef = useRef(onCaseClick)
     onCaseClickRef.current = onCaseClick
+
+    const onBridgeClickRef = useRef(onBridgeClick)
+    onBridgeClickRef.current = onBridgeClick
+
+    /** Espelha `bridgeOpen` pro efeito de montagem, que roda uma vez só — ver o uso na criação da torre. */
+    const bridgeOpenRef = useRef(bridgeOpen)
+    bridgeOpenRef.current = bridgeOpen
 
     /**
      * "Algo que projeta sombra mudou" — ver `shadowMap.autoUpdate` na montagem da cena.
@@ -1087,6 +1124,18 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         const tower = createTowerBesideTray(towerColorsRef.current, {}, traySides)
         scene.add(tower.group)
         towerBesideRef.current = tower
+        /**
+         * A ponte nasce abaixada, mas o estado de aberta/fechada vive no React e SOBREVIVE à
+         * remontagem da cena (que acontece ao trocar de modo de lançamento, de forma de bandeja ou
+         * de modo de depuração — ver o `key` em `DiceRoller3D`).
+         *
+         * Sem esta linha, levantar a ponte e trocar a forma da bandeja devolveria uma ponte
+         * abaixada na tela com o app achando que ela está levantada: o clique seguinte animaria de
+         * levantada pra abaixada, ou seja, não faria nada visível, e só o segundo clique
+         * funcionaria. Sem animação aqui de propósito — a cena está nascendo, não há de onde animar.
+         */
+        bridgeProgressRef.current = bridgeOpenRef.current ? 1 : 0
+        tower.ponte.definirAbertura(bridgeProgressRef.current)
       }
       sceneRef.current = scene
       const environment = setupDiceEnvironment(scene, renderer)
@@ -1298,16 +1347,38 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       const pointerDownAt = { x: 0, y: 0 }
       const CLICK_DRAG_TOLERANCE_PX = 5
 
-      function caseUnderPointer(event: PointerEvent): boolean {
-        const shelfCase = shelfCaseMeshRef.current
-        if (!shelfCase) return false
+      function apontarRaio(event: PointerEvent): void {
         const rect = renderer.domElement.getBoundingClientRect()
         pointerNdc.set(
           ((event.clientX - rect.left) / rect.width) * 2 - 1,
           -((event.clientY - rect.top) / rect.height) * 2 + 1
         )
         raycaster.setFromCamera(pointerNdc, camera)
+      }
+
+      function caseUnderPointer(event: PointerEvent): boolean {
+        const shelfCase = shelfCaseMeshRef.current
+        if (!shelfCase) return false
+        apontarRaio(event)
         return raycaster.intersectObject(shelfCase.group, true).length > 0
+      }
+
+      /**
+       * A PONTE LEVADIÇA aceita clique SÓ NA TORRE DE ENFEITE, e a condição é do usuário: no modo
+       * `tower` o dado sai pela boca e passa por cima do tabuleiro, então uma ponte levantada seria
+       * uma parede no caminho da rolagem — e descobrir isso no meio de uma partida é pior do que
+       * não ter o recurso. Na torre de enfeite nada sai pela boca, e a ponte é só enfeite que se
+       * mexe.
+       *
+       * `launchMode` é lido direto da closure de montagem, e isso é correto aqui: o modo entra no
+       * `key` de `DiceRoller3D`, então trocar de modo já remonta a cena inteira com o valor novo.
+       */
+      function bridgeUnderPointer(event: PointerEvent): boolean {
+        if (launchMode !== 'towerDecor') return false
+        const ponte = towerBesideRef.current?.ponte
+        if (!ponte) return false
+        apontarRaio(event)
+        return raycaster.intersectObject(ponte.folha, true).length > 0
       }
 
       function handlePointerDown(event: PointerEvent) {
@@ -1319,12 +1390,17 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         if (event.button !== 0) return
         const moved = Math.hypot(event.clientX - pointerDownAt.x, event.clientY - pointerDownAt.y)
         if (moved > CLICK_DRAG_TOLERANCE_PX) return
+        // O estojo primeiro: ele e a ponte nunca se sobrepõem na tela (o estojo fica atrás da
+        // bandeja, a torre ao lado), mas testar os dois na ordem evita que um clique conte duas
+        // vezes no dia em que a câmera achar um ângulo em que se cruzam.
         if (caseUnderPointer(event)) onCaseClickRef.current?.()
+        else if (bridgeUnderPointer(event)) onBridgeClickRef.current?.()
       }
 
       function handlePointerMove(event: PointerEvent) {
         if (event.buttons !== 0) return
-        renderer.domElement.style.cursor = caseUnderPointer(event) ? 'pointer' : ''
+        const clicavel = caseUnderPointer(event) || bridgeUnderPointer(event)
+        renderer.domElement.style.cursor = clicavel ? 'pointer' : ''
       }
 
       renderer.domElement.addEventListener('pointerdown', handlePointerDown)
@@ -1344,11 +1420,6 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
        */
       const pressedKeys = new Set<string>()
       const CAMERA_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'])
-      const KEY_ORBIT_SPEED = 1.6
-      const KEY_DOLLY_SPEED = 9
-      const KEY_POLAR_SPEED = 1.1
-      /** Velocidade de deslocamento nos modos que ANDAM (`table` e `free`), em unidades por segundo. */
-      const KEY_PAN_SPEED = 9
 
       /** Digitar num campo de texto não pode mexer na câmera (o modificador da rolagem, as anotações, o nome do preset...). */
       function isTypingInField(): boolean {
@@ -1413,12 +1484,6 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
          */
         minCameraY: TABLE_SURFACE_Y + 0.5
       }
-      const cameraSpeeds: CameraSpeeds = {
-        orbit: KEY_ORBIT_SPEED,
-        dolly: KEY_DOLLY_SPEED,
-        polar: KEY_POLAR_SPEED,
-        pan: KEY_PAN_SPEED
-      }
 
       function applyKeyboardCamera(deltaSeconds: number) {
         const mode = cameraModeRef.current
@@ -1451,8 +1516,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             polar: (pressedKeys.has('KeyE') ? 1 : 0) - (pressedKeys.has('KeyQ') ? 1 : 0)
           },
           deltaSeconds,
-          cameraLimits,
-          cameraSpeeds
+          cameraLimits
         )
       }
 
@@ -1700,6 +1764,27 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         }
 
         /**
+         * Ponte levadiça, no mesmo lugar e pelo mesmo motivo da tampa: puramente visual, sem
+         * collider, animada pelo relógio da cena.
+         *
+         * O `sceneElapsedMsRef` NÃO é adiantado aqui — quem faz isso é o bloco da tampa logo acima,
+         * uma vez por quadro. Adiantar de novo faria o relógio andar em dobro nos quadros em que os
+         * dois existem, e as duas animações correriam ao dobro da velocidade sem motivo aparente.
+         */
+        const ponte = towerBesideRef.current?.ponte
+        if (ponte) {
+          const animacao = bridgeAnimationRef.current
+          if (animacao) {
+            bridgeProgressRef.current = lidProgressAt(animacao, sceneElapsedMsRef.current)
+            if (sceneElapsedMsRef.current - animacao.startMs >= CASE_LID_OPEN_DURATION_MS) {
+              bridgeProgressRef.current = animacao.to
+              bridgeAnimationRef.current = null
+            }
+            ponte.definirAbertura(bridgeProgressRef.current)
+          }
+        }
+
+        /**
          * Respiração da pelúcia: sobe/desce alguns milímetros e balança um tiquinho, bem devagar.
          * Sem isso ela lê como um enfeite de resina parado no cenário; com isso, como um bichinho
          * de pelúcia apoiado na mesa. Amplitude minúscula de propósito — não pode competir com os
@@ -1753,6 +1838,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         estavaRolando = rolando
         // A tampa do estojo abrindo/fechando move geometria por vários quadros seguidos.
         if (lidAnimationRef.current) precisaDeSombra = true
+        // Mesma razão da tampa: a ponte projeta sombra, e o mapa não se refaz sozinho a cada quadro.
+        if (bridgeAnimationRef.current) precisaDeSombra = true
         // E qualquer mexida na cena vinda de fora do laço (dado somado, forma trocada).
         if (precisaDeSombraRef.current) {
           precisaDeSombra = true
@@ -2004,6 +2091,23 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         startMs: sceneElapsedMsRef.current
       }
     }, [caseOpen])
+
+    /**
+     * Abrir/fechar a ponte levadiça, com a mesma coreografia da tampa: parte do estado ATUAL, pra
+     * clicar no meio do movimento inverter de onde ele está, sem salto.
+     *
+     * Não precisa da guarda de "primeira passada" que a tampa tem: a ponte nasce abaixada e não tem
+     * animação de entrada, então a primeira execução já cai no `return` de "já está no alvo".
+     */
+    useEffect(() => {
+      const alvo = bridgeOpen ? 1 : 0
+      if (bridgeProgressRef.current === alvo && !bridgeAnimationRef.current) return
+      bridgeAnimationRef.current = {
+        from: bridgeProgressRef.current,
+        to: alvo,
+        startMs: sceneElapsedMsRef.current
+      }
+    }, [bridgeOpen])
 
     const isFirstColorUpdate = useRef(true)
     useEffect(() => {

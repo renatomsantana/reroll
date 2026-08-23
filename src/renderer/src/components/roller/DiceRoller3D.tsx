@@ -360,6 +360,14 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
    * abrir/fechar anima na cena existente, sem remontar nada.
    */
   const [caseOpen, setCaseOpen] = useState(true)
+  /**
+   * Ponte levadiça da torre abaixada/levantada, pelas mesmas razões do estojo logo acima: só se
+   * mexe clicando nela dentro da cena, mora no componente e não nas Preferências, e fica fora do
+   * `key` de `DiceCanvasMulti`.
+   *
+   * Nasce ABAIXADA porque é assim que a ponte sempre existiu — quem quiser fechar, fecha.
+   */
+  const [bridgeOpen, setBridgeOpen] = useState(true)
   const [mode, setMode] = useState<RollMode>('normal')
   const [lastResult, setLastResult] = useState<RollResult | null>(null)
   const [isRolling, setIsRolling] = useState(false)
@@ -1048,6 +1056,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           debugMode={debugMode}
           caseOpen={caseOpen}
           onCaseClick={() => setCaseOpen((open) => !open)}
+          bridgeOpen={bridgeOpen}
+          onBridgeClick={() => setBridgeOpen((aberta) => !aberta)}
           // Fora do `key` acima de propósito: trocar o modo de câmera não remonta a cena.
           cameraMode={cameraMode}
         />
