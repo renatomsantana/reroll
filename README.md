@@ -38,7 +38,7 @@ No lugar do certificado, o que existe é verificável:
 Para conferir o arquivo que você baixou, no PowerShell:
 
 ```powershell
-Get-FileHash .\Reroll-Setup-1.0.10.exe -Algorithm SHA256
+Get-FileHash .\Reroll-Setup-1.0.11.exe -Algorithm SHA256
 ```
 
 O resultado tem que bater com a linha correspondente em `SHA256SUMS.txt`, anexado na mesma release.

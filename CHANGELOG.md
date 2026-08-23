@@ -6,6 +6,38 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [1.0.11] — 2026-08-23
+
+Coisas da mesa: o estojo arrumado, a ponte da torre que abre e fecha, a câmera mais rápida e a
+liberdade de tirar todos os dados da rolagem.
+
+### Adicionado
+
+- **A ponte levadiça da torre abre e fecha com um clique nela**, na cena mesmo — só na **Torre de
+  enfeite**. No modo em que os dados saem pela torre ela continua firme no lugar, e não é
+  frescura: ali o dado passa por cima do tabuleiro, então uma ponte levantada seria uma parede no
+  meio da rolagem, descoberta no meio da partida. Fechada, a folha sobe entre os pilares do portão
+  e tampa o vão; as correntes encurtam junto, como corrente de verdade.
+- **Dá pra ficar sem dado nenhum.** O ✕ agora aparece também no último tipo da lista — antes ele
+  sumia justamente quando fazia mais falta: pra trocar 3d6 por 1d20 era preciso ir tirando um a um
+  até sobrar um, e só então escolher outro. Com a rolagem vazia, o **ROLAR desliga** e diz o
+  porquê, e o Espaço/Enter também não rolam nada.
+
+### Mudado
+
+- **Os dados do estojo mostram o maior número, virado pra quem olha**: d4 com 4, d6 com 6, d20 com
+  20, d100 com 100. Cada um exibia a face que calhasse — que não era escolha, era o que sobrava de
+  como o modelo foi desenhado. O d4 é o de sempre a exceção, e por motivo de dado: nele o número
+  fica no vértice de cima, não numa face.
+- **A câmera do W/A/S/D anda no dobro da velocidade.** Medido contra o tamanho da cena, não no
+  olho: o zoom inteiro cai de 3,7s para 1,7s, a volta completa em torno da bandeja de 3,9s para
+  2,0s, e atravessar a mesa de 3,6s para 1,6s. A régua é uma travessia de ponta a ponta custando
+  uns dois segundos de tecla apertada.
+
+### Interno
+
+- 759 testes (eram 719).
+
 ## [1.0.10] — 2026-08-22
 
 A primeira leva depois do fechamento do alfa: duas fontes pedidas, as anotações reorganizadas em

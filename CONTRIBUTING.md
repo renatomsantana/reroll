@@ -8,7 +8,7 @@ aqui é prática: o que entra precisa funcionar para quem joga, não só para qu
 Se você chegou aqui só para saber se o instalador é confiável, é isto:
 
 ```powershell
-Get-FileHash .\Reroll-Setup-1.0.10.exe -Algorithm SHA256
+Get-FileHash .\Reroll-Setup-1.0.11.exe -Algorithm SHA256
 ```
 
 O resultado tem que bater com a linha correspondente em `SHA256SUMS.txt`, anexado na
@@ -91,7 +91,7 @@ uma delas precisa de uma justificativa muito boa — e de um teste.
 
 1. Suba a versão no `package.json`;
 2. escreva a seção nova do `CHANGELOG.md`;
-3. `git tag v1.0.10 && git push origin v1.0.10`;
+3. `git tag v1.0.11 && git push origin v1.0.11`;
 4. o CI compila, empacota, calcula os SHA-256 e cria a release **como rascunho**;
 5. suba o instalador no [VirusTotal](https://www.virustotal.com/), cole o link do resultado nas notas
    da release, ao lado do resumo;
