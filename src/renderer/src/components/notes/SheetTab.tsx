@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DiceExpression } from '@shared/types/dice'
 import type { SheetSection, SheetSectionField } from '@shared/types/notes'
-import { blockForGroup, type SheetBlockKey } from '@shared/types/sheetBlocks'
+import { blockForGroup, secaoCobreAtributos, type SheetBlockKey } from '@shared/types/sheetBlocks'
 import { rolagemDoCampo } from '@shared/types/sheetRoll'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useNotes } from '@renderer/hooks/useNotes'
@@ -117,7 +117,9 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   for (const secao of notes.sections) {
     const chave = blockForGroup(secao.title)
     if (chave) cobertosPorSecao.add(chave)
-    if (/atributo|attribute/i.test(secao.title)) cobertosPorSecao.add('attributes')
+    // Ver `secaoCobreAtributos`: a lista de palavras cobre os sistemas que chamam atributo de
+    // "Características" ou "Estatísticas", que mostravam o quadro certo e um bloco vazio embaixo.
+    if (secaoCobreAtributos(secao.title)) cobertosPorSecao.add('attributes')
   }
 
   /**
