@@ -67,3 +67,29 @@ export function blockForGroup(group: string): SheetBlockKey | null {
   if (!limpo) return null
   return SHEET_BLOCK_MATCHERS.find((entrada) => entrada.test.test(limpo))?.key ?? null
 }
+
+/**
+ * Esta seção JÁ É o quadro de atributos do personagem? Se for, a ficha não desenha o bloco livre de
+ * atributos embaixo dela (ver `cobertosPorSecao` em `SheetTab.tsx`).
+ *
+ * Existe separada de `SHEET_BLOCK_MATCHERS` de propósito: atributo NÃO vira bloco de texto (ver o
+ * comentário grande lá em cima — número em caixa é como ficha de RPG mostra atributo). O que se
+ * decide aqui é só se o bloco livre sobra ou não.
+ *
+ * A LISTA DE PALAVRAS é o conserto de um defeito medido com quinze fichas de quinze sistemas
+ * (`scripts/quinzePerfis.mjs`): a regra reconhecia só "atributo", então Cthulhu e 3D&T
+ * ("Características"), Cyberpunk e Kids on Bikes ("Estatísticas") mostravam o quadro de valores
+ * certo E um "Atributos" vazio logo abaixo — cinco dos quinze. É exatamente a tela com dois lugares
+ * pedindo a mesma coisa que a regra existia pra evitar; ela só não conhecia as outras palavras.
+ *
+ * `characteristic` e `stat` entram pelas fichas em inglês. Não entram sinônimos frouxos como
+ * "traços" ou "features": em D&D esses são as CARACTERÍSTICAS DE CLASSE, que vão pro bloco de
+ * habilidades (ver o matcher de `abilities`) — esconder o quadro de atributos por causa deles seria
+ * trocar um defeito por outro.
+ */
+const SECAO_DE_ATRIBUTOS =
+  /atributo|attribute|caracter[íi]stica|characteristic|estat[íi]stica|\bstats?\b/i
+
+export function secaoCobreAtributos(titulo: string): boolean {
+  return SECAO_DE_ATRIBUTOS.test(titulo.trim())
+}
