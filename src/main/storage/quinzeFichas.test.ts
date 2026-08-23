@@ -6,6 +6,8 @@ import { MAX_PROFILES } from '@shared/types/profile'
 // @ts-expect-error — o gerador é JS puro de propósito: ele também roda pela linha de comando, fora
 // do app, pra escrever os quinze personagens num `userData`.
 import { QUINZE_PERFIS, notesDoPerfil } from '../../../scripts/quinzePerfis.mjs'
+// @ts-expect-error — mesma razão do de cima: a segunda leva também roda pela linha de comando.
+import { SEGUNDA_LEVA } from '../../../scripts/segundaLeva.mjs'
 
 /**
  * QUINZE PERSONAGENS COM QUINZE FICHAS DIFERENTES — o teto do app (`MAX_PROFILES`) com dado de
@@ -59,6 +61,57 @@ async function abrirOApp() {
 
 afterAll(async () => {
   await fs.rm(userData, { recursive: true, force: true })
+})
+
+/**
+ * A SEGUNDA LEVA — os quinze com LACUNAS (ver `scripts/segundaLeva.mjs`).
+ *
+ * O que este bloco vigia é o que a primeira leva não podia: campo VAZIO sobrevivendo à ida e volta
+ * do disco. Um sanitizador que "limpa" o que está em branco apagaria justamente o espaço que a
+ * pessoa deixou pra preencher no meio da sessão — e o sintoma seria a lacuna sumindo sozinha entre
+ * uma abertura do app e outra, que é o tipo de defeito que ninguém consegue reproduzir.
+ */
+describe('a segunda leva, com lacunas', () => {
+  it('tem quinze, com nomes e ids que não colidem com os da primeira', () => {
+    const segunda = SEGUNDA_LEVA as PerfilDeTeste[]
+    expect(segunda).toHaveLength(MAX_PROFILES)
+
+    const idsDaPrimeira = new Set(PERFIS.map((p) => p.id))
+    expect(segunda.filter((p) => idsDaPrimeira.has(p.id))).toEqual([])
+  })
+
+  it('as lacunas existem — e não é uma ou outra', () => {
+    const campos = (SEGUNDA_LEVA as PerfilDeTeste[]).flatMap((perfil) =>
+      fichaDe(perfil).sections.flatMap((secao: { fields: { value: string }[] }) => secao.fields)
+    )
+    const vazios = campos.filter((campo) => campo.value === '')
+    expect(campos.length).toBeGreaterThan(150)
+    expect(vazios.length).toBeGreaterThan(20)
+  })
+
+  it('campo vazio volta do disco vazio, e não some', async () => {
+    const app = await abrirOApp()
+    const segunda = SEGUNDA_LEVA as PerfilDeTeste[]
+    const lista = segunda.map((perfil, i) => ({
+      id: perfil.id,
+      name: perfil.name,
+      system: perfil.system,
+      photo: null,
+      createdAt: 100 + i
+    }))
+
+    for (const perfil of segunda) {
+      await app.profiles.save({ profiles: lista, activeId: perfil.id })
+      await app.notes.save(fichaDe(perfil))
+    }
+
+    const depois = await abrirOApp()
+    for (const perfil of segunda) {
+      await depois.profiles.save({ profiles: lista, activeId: perfil.id })
+      const ficha = await depois.notes.get()
+      expect(ficha.sections, `lacunas do ${perfil.name}`).toEqual(fichaDe(perfil).sections)
+    }
+  })
 })
 
 describe(`${MAX_PROFILES} personagens, cada um com a ficha dele`, () => {
