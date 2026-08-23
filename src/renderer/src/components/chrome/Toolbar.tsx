@@ -4,7 +4,7 @@ import { appIconImageSmall } from '@renderer/assets/icons'
 import { IconeEngrenagem } from '@renderer/components/common/IconeEngrenagem'
 import './Toolbar.css'
 
-export type AppTab = 'roll' | 'style' | 'sheet' | 'notes'
+export type AppTab = 'roll' | 'style' | 'notes'
 
 interface ToolbarProps {
   activeTab: AppTab
@@ -60,26 +60,16 @@ export function Toolbar({
             {t.tabs.style}
           </button>
           {/*
-            FICHA e ANOTAÇÕES são abas separadas a pedido do usuário. A ficha vem antes porque é o
-            que o personagem É; as anotações são o que aconteceu com ele.
+            A aba FICHA fica FORA da interface — o leitor de PDF, a tela dela e os canais de IPC
+            continuam no repositório (`src/renderer/src/sheets/`, `SheetTab.tsx`), sem porta de
+            entrada. Ela chegou a entrar no 1.1.0 marcada como beta e voltou a sair: a importação
+            traz certo o que traz, mas ainda deixa informação de fora (os valores atuais de PV, PE e
+            Sanidade, entre outros), e ficha importada pela metade é pior que ficha em branco —
+            quem confia no que está na tela não confere o que ficou faltando.
 
-            Ela ficou FORA do alfa (ver o commit "A aba Ficha fica de fora do alfa") porque a
-            importação errava em sistema que ela não conhece, e ficha lida errado é o nome e a
-            história do personagem de alguém saindo trocados. Volta no 1.1.0 marcada como BETA, que
-            é a resposta honesta ao que foi medido nas fichas reais: Ordem Paranormal e Oblívio saem
-            certas, e ficha que é ARTE ACHATADA (sem camada de texto, como a de Kids on Bikes) não
-            rende nada — nenhum importador resolve isso sem OCR. O rótulo avisa antes, e a tela de
-            conferência avisa de novo na hora de confirmar.
+            Recolocar é devolver este botão, o `'sheet'` em `AppTab`, a seção em `App.tsx` e a
+            bandeira `IMPORTACAO_DE_FICHA_LIGADA`.
           */}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'sheet'}
-            className={`toolbar-tab ${activeTab === 'sheet' ? 'toolbar-tab-active' : ''}`}
-            onClick={() => onTabChange('sheet')}
-          >
-            {t.tabs.sheet}
-          </button>
           <button
             type="button"
             role="tab"

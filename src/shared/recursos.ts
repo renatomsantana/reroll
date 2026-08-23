@@ -23,15 +23,17 @@
  * à mão é do alfa; e as seções que já foram importadas por quem usou as versões anteriores, que
  * continuam na tela e editáveis. Desligar o importador não pode apagar o que ele já trouxe.
  *
- * LIGADO no 1.1.0 — é o beta que esta constante estava esperando.
+ * CHEGOU A SER LIGADO, e voltou a DESLIGADO — decisão do usuário depois de olhar a importação
+ * rodando: "ainda tem muitos erros para todas as informações".
  *
- * O que a varredura das fichas reais mediu antes de ligar (seis arquivos, três sistemas): Ordem
- * Paranormal sai completa (18 campos, os cinco atributos, dois presets de ataque) e Oblivio também
- * (21 campos, identificação e corpo). Kids on Bikes NÃO sai — e não é defeito do leitor: aquele PDF
- * é arte achatada, sem camada de texto, com um único fragmento na página inteira. Nenhum importador
- * resolve isso sem OCR, e a tela de conferência diz que não veio nada em vez de inventar.
+ * O motivo, medido: o que o leitor traz está CERTO (os 18 campos de Ordem Paranormal batem campo a
+ * campo com o arquivo; os 23 de Oblivio também, já com o equipamento), mas ele ainda deixa
+ * informação de fora — os valores ATUAIS de PV, PE e Sanidade, entre outros. Uma ficha importada
+ * pela metade é pior que uma ficha em branco: a pessoa confia no que está na tela e não confere o
+ * que ficou faltando.
  *
- * Por isso a aba vai marcada como BETA (ver o rótulo em `translations.ts` e o aviso em
- * `SheetImportModal`): o que é lido, é lido bem; o que não é, é dito na cara.
+ * Continua tudo escrito e testado (os leitores, a tela de conferência, os canais de IPC), e a
+ * suíte cobre inclusive os defeitos consertados nesta rodada. O que está desligado é a PORTA: o
+ * botão de importar e os dois canais que ele usa. Ligar de novo é trocar pra `true`.
  */
-export const IMPORTACAO_DE_FICHA_LIGADA = true
+export const IMPORTACAO_DE_FICHA_LIGADA = false

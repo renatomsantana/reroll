@@ -335,7 +335,7 @@ export interface TranslationDict {
 export const translations: Record<Language, TranslationDict> = {
   'pt-BR': {
     appTitle: 'Reroll',
-    tabs: { roll: 'Rolagem', style: '🎨 Estilo', sheet: '📜 Ficha (beta)', notes: '📝 Anotações' },
+    tabs: { roll: 'Rolagem', style: '🎨 Estilo', sheet: '📜 Ficha', notes: '📝 Anotações' },
     roller: {
       quantityLabel: 'Quantidade de dados',
       typeLabel: 'Tipo de dado',
@@ -648,7 +648,7 @@ export const translations: Record<Language, TranslationDict> = {
   },
   'en-US': {
     appTitle: 'Reroll',
-    tabs: { roll: 'Roll', style: '🎨 Style', sheet: '📜 Sheet (beta)', notes: '📝 Notes' },
+    tabs: { roll: 'Roll', style: '🎨 Style', sheet: '📜 Sheet', notes: '📝 Notes' },
     roller: {
       quantityLabel: 'Number of dice',
       typeLabel: 'Dice type',
