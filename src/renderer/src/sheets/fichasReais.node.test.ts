@@ -106,25 +106,42 @@ describe.skipIf(!existsSync(ORDEM))('ficha real de Ordem Paranormal', () => {
 })
 
 describe.skipIf(!existsSync(OBLIVIO))('ficha real de Oblivio', () => {
-  it('lê os dez atributos e as partes do corpo, sem trazer a regra impressa junto', async () => {
+  it('separa ATRIBUTOS de ASPECTOS, e lê as partes do corpo sem a regra impressa junto', async () => {
     const lido = readSheet(await abrirPdfNoNode(OBLIVIO))
 
     expect(lido.readerId).toBe('oblivio')
     expect(lido.system).toBe('Oblivio')
 
+    /**
+     * Os cinco de cada, como a PÁGINA separa — ela tem os dois títulos, e cada aspecto diz de quais
+     * atributos é derivado ("Coragem … é derivada de Determinação e Mente"). Os dez num grupo só
+     * mostravam um quadro de dez atributos que Oblivio não tem: cinco deles são conta, não escolha.
+     */
     const atributos = lido.fields.filter((c) => c.group === 'Atributos').map((c) => c.label)
-    expect(atributos).toEqual([
-      'Carne',
-      'Força',
-      'Prontidão',
-      'Determinação',
-      'Mente',
-      'Coragem',
-      'Dor',
-      'Fôlego',
-      'Proteção',
-      'Velocidade'
-    ])
+    expect(atributos).toEqual(['Carne', 'Força', 'Prontidão', 'Determinação', 'Mente'])
+
+    const aspectos = lido.fields.filter((c) => c.group === 'Aspectos').map((c) => c.label)
+    expect(aspectos).toEqual(['Coragem', 'Dor', 'Fôlego', 'Proteção', 'Velocidade'])
+
+    /**
+     * O EQUIPAMENTO CARREGADO, que este leitor perdia inteiro — e é a arma do personagem.
+     *
+     * A página escreve "○ Torso:" e o item nas linhas de baixo, então nenhum par "Rótulo: valor" da
+     * mesma linha existia pra achar; e o rótulo ainda colidia com a região de dano do corpo
+     * ("Torso: 0/5"), que vem antes. Ficava tudo de fora: a vestimenta, a lâmina e o dano dela.
+     */
+    const equipamento = lido.fields.filter((c) => c.group === 'Equipamento')
+    expect(equipamento.map((c) => c.label)).toEqual(['Torso', 'Braço Esquerdo'])
+    expect(equipamento[0].value).toContain('Vestimenta Leve')
+    expect(equipamento[1].value).toContain('Lâmina Curta')
+    // As regiões VAZIAS não viram linha: o personagem não carrega nada nos braços direito e pernas.
+    expect(equipamento).toHaveLength(2)
+
+    /** E a arma que diz o próprio dano vira preset, com o nome curto que cabe num botão. */
+    const arma = lido.presets?.find((p) => /Lâmina Curta/.test(p.name))
+    expect(arma?.name).toBe('Lâmina Curta (dano)')
+    expect(arma?.kind).toBe('damage')
+    expect(arma?.expression.groups).toEqual([{ count: 1, sides: 4 }])
     expect(lido.fields.filter((c) => c.group === 'Corpo')).toHaveLength(5)
 
     /**

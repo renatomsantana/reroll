@@ -1,4 +1,5 @@
-import type { PdfSheet } from '@shared/types/sheetImport'
+import type { PdfSheet, SheetImportPreset } from '@shared/types/sheetImport'
+import { parseDiceExpression } from '@shared/dice/parseDiceExpression'
 import { extrairGenerico } from './generic'
 import type { SheetReader } from './types'
 
@@ -15,24 +16,23 @@ import type { SheetReader } from './types'
  */
 
 /**
- * Os dez atributos de Oblivio. São a impressão digital da ficha e, junto, o grupo "Atributos".
+ * ATRIBUTOS e ASPECTOS são coisas DIFERENTES na ficha, e agora são grupos diferentes aqui.
  *
- * A detecção é por eles, e não pela palavra "Oblivio" — que NÃO aparece em lugar nenhum do arquivo,
- * conferido nas duas versões (em branco e preenchida). Dez rótulos específicos aparecendo juntos é
- * estrutura; estrutura não acontece por acaso.
+ * A própria página separa os dois com dois títulos: "Atributos" (Carne, Força, Prontidão,
+ * Determinação, Mente) e, embaixo, "Aspectos" — Coragem, Dor, Fôlego, Proteção e Velocidade, que
+ * são DERIVADOS dos primeiros ("é derivada de Determinação e Mente", diz a ficha em cada um deles).
+ * Este leitor jogava os dez no mesmo grupo, e a conferência mostrava um quadro de dez atributos que
+ * não existe em Oblivio nenhum — cinco deles não são escolha do jogador, são conta.
+ *
+ * A DETECÇÃO continua olhando os dez juntos (`IMPRESSAO_DIGITAL`): é a assinatura do arquivo, e não
+ * muda por causa de como a gente agrupa depois. Ela é por eles, e não pela palavra "Oblivio" — que
+ * NÃO aparece em lugar nenhum do arquivo, conferido nas duas versões (em branco e preenchida).
  */
-const ATRIBUTOS = [
-  'Carne',
-  'Força',
-  'Prontidão',
-  'Determinação',
-  'Mente',
-  'Coragem',
-  'Dor',
-  'Fôlego',
-  'Proteção',
-  'Velocidade'
-]
+const ATRIBUTOS = ['Carne', 'Força', 'Prontidão', 'Determinação', 'Mente']
+
+const ASPECTOS = ['Coragem', 'Dor', 'Fôlego', 'Proteção', 'Velocidade']
+
+const IMPRESSAO_DIGITAL = [...ATRIBUTOS, ...ASPECTOS]
 
 /** Partes do corpo, que na ficha têm dano acumulado por região. */
 const CORPO = ['Torso', 'Braço Direito', 'Braço Esquerdo', 'Perna Direita', 'Perna Esquerda']
@@ -63,6 +63,77 @@ const APARENCIA = ['Descrição', 'Aparência']
  */
 const TAMANHO_DE_HABILIDADE = 25
 
+/**
+ * O EQUIPAMENTO CARREGADO — a parte da ficha que este leitor perdia inteira.
+ *
+ * Medido na ficha real: o personagem carrega uma "Vestimenta Leve" no torso e uma "Lâmina Curta" no
+ * braço esquerdo, com dano 1D4 e um modificador que soma 1d6. Nada disso chegava na importação, e é
+ * o que um jogador mais quer ver na ficha depois dos atributos — é a arma dele.
+ *
+ * A causa era o formato: a página escreve o equipamento como "○ Torso:" seguido do item nas linhas
+ * de baixo, e `camposDoTexto` procura "Rótulo: valor" na MESMA linha. O rótulo "Torso:" ainda por
+ * cima colide com a região de dano do corpo ("Torso: 0/5"), que aparece antes — então mesmo o que
+ * casava era descartado como repetido.
+ *
+ * Por isso a leitura aqui é por REGIÃO da página, e não por par rótulo/valor: do título
+ * "Equipamentos Carregados:" até "Equipamentos Guardados:", cada "○ <Região>:" abre um item e tudo
+ * o que vem até o próximo "○" é o texto dele.
+ */
+const REGIOES_DO_CORPO = /^(Torso|Braço Direito|Braço Esquerdo|Perna Direita|Perna Esquerda):$/
+
+/** O item vira preset quando ele diz o próprio dano — "Dano: 1D4 PE." na ficha real. */
+const DANO_DO_ITEM = /Dano:\s*(\d*[dD]\d+(?:\s*[+-]\s*\d+)?)/
+
+interface ItemCarregado {
+  regiao: string
+  texto: string
+}
+
+/**
+ * O nome do item pro preset: o começo da linha, sem a ficha técnica e sem o parêntese de exemplos.
+ *
+ * Na ficha real o item se chama "Lâmina Curta (Adaga, Faca, Punhal…)" — o parêntese é a lista de
+ * armas que caem naquela categoria, não parte do nome. Um preset chamado "Lâmina Curta (Adaga,
+ * Faca, Punhal…) (dano)" é ilegível no botão, e é o botão que a pessoa vai apertar no meio da mesa.
+ */
+function nomeCurtoDoItem(item: ItemCarregado): string {
+  const semFichaTecnica = item.texto.split(/Espaços de Invent[áa]rio/)[0].trim()
+  const semExemplos = semFichaTecnica.split('(')[0].trim()
+  return semExemplos.length >= 3 ? semExemplos : semFichaTecnica || item.regiao
+}
+
+/**
+ * Os itens carregados, na ordem da página. Vazio quando a ficha não tem a seção (modelo antigo) ou
+ * quando ninguém equipou nada — os dois casos são normais e não merecem aviso.
+ */
+function equipamentoCarregado(sheet: PdfSheet): ItemCarregado[] {
+  const inicio = sheet.texts.findIndex((t) => /Equipamentos Carregados/i.test(t.text))
+  if (inicio < 0) return []
+  const fim = sheet.texts.findIndex(
+    (t, i) => i > inicio && /Equipamentos Guardados|Espaço Livre|Mazelas/i.test(t.text)
+  )
+  const trecho = sheet.texts.slice(inicio + 1, fim > 0 ? fim : undefined)
+
+  const itens: ItemCarregado[] = []
+  let atual: ItemCarregado | null = null
+  for (const fragmento of trecho) {
+    const texto = fragmento.text.trim()
+    if (!texto || texto === '○' || texto === '●') continue
+    const regiao = REGIOES_DO_CORPO.exec(texto)
+    if (regiao) {
+      atual = { regiao: regiao[1], texto: '' }
+      itens.push(atual)
+      continue
+    }
+    if (!atual) continue
+    // Fragmentos colados com espaço: o extrator quebra a linha em pedaços ("Espaços de Inventário",
+    // ": 1. /", "Limite de Estresse:"), e juntá-los devolve a linha como ela está impressa.
+    atual.texto = atual.texto ? `${atual.texto} ${texto}` : texto
+  }
+
+  return itens.filter((item) => item.texto.trim().length > 0)
+}
+
 export const oblivioReader: SheetReader = {
   id: 'oblivio',
   label: 'Oblivio',
@@ -76,7 +147,7 @@ export const oblivioReader: SheetReader = {
         .filter((texto) => texto.endsWith(':'))
         .map((texto) => texto.slice(0, -1).trim())
     )
-    const achados = ATRIBUTOS.filter((nome) => rotulos.has(nome)).length
+    const achados = IMPRESSAO_DIGITAL.filter((nome) => rotulos.has(nome)).length
     if (achados >= 8) return 0.9
     if (achados >= 5) return 0.5
     return 0
@@ -94,11 +165,51 @@ export const oblivioReader: SheetReader = {
       if (IDENTIFICACAO.includes(campo.label)) return { ...campo, group: 'Identificação' }
       if (APARENCIA.includes(campo.label)) return { ...campo, group: 'Aparência' }
       if (ATRIBUTOS.includes(campo.label)) return { ...campo, group: 'Atributos' }
+      if (ASPECTOS.includes(campo.label)) return { ...campo, group: 'Aspectos' }
       if (CORPO.includes(campo.label)) return { ...campo, group: 'Corpo' }
       if (campo.value.length > TAMANHO_DE_HABILIDADE) return { ...campo, group: 'Habilidades' }
       return campo
     })
 
-    return { ...base, system: 'Oblivio', fields }
+    /**
+     * O equipamento entra como grupo "Equipamento", que `blockForGroup` manda pro bloco de
+     * INVENTÁRIO da ficha — é texto de item, não número em caixa, e é lá que se lê.
+     */
+    const itens = equipamentoCarregado(sheet)
+    const camposDeEquipamento = itens.map((item) => ({
+      label: item.regiao,
+      value: item.texto,
+      group: 'Equipamento'
+    }))
+
+    /**
+     * E vira PRESET quando o item diz o próprio dano. Aqui isso é seguro, ao contrário do texto
+     * solto da ficha (ver `presetsDoTexto` no genérico): dentro de "Equipamentos Carregados" um
+     * "Dano: 1D4" é a arma que a pessoa está segurando, não uma regra impressa na página.
+     */
+    const presetsDeArma = itens
+      .map((item): SheetImportPreset | null => {
+        const dano = DANO_DO_ITEM.exec(item.texto)
+        if (!dano) return null
+        // A notação vem do papel ("1D4 PE."), então quem monta a expressão é o mesmo analisador que
+        // o resto do app usa — nada de montar `{ groups: [...] }` na mão aqui.
+        const lido = parseDiceExpression(dano[1])
+        if (!lido) return null
+        const nomeDoItem = nomeCurtoDoItem(item)
+        return {
+          name: `${nomeDoItem} (dano)`,
+          kind: 'damage',
+          expression: lido.expression,
+          source: item.texto.slice(0, 120)
+        }
+      })
+      .filter((preset): preset is SheetImportPreset => preset !== null)
+
+    return {
+      ...base,
+      system: 'Oblivio',
+      fields: [...fields, ...camposDeEquipamento],
+      presets: [...(base.presets ?? []), ...presetsDeArma]
+    }
   }
 }
