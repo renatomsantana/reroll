@@ -226,7 +226,14 @@ export function comDadoAcrescentado(grupos: DiceGroup[], sides: number, teto: nu
 }
 
 /**
- * AJUSTAR a contagem de um grupo. Zero remove o grupo — menos quando é o último, que nunca some.
+ * AJUSTAR a contagem de um grupo. Zero REMOVE o grupo, inclusive quando é o último.
+ *
+ * O último grupo era intocável — "a tela ficaria sem nada pra rolar" —, e o usuário pediu o
+ * contrário: "vamos deixar a opção de remover todos os dados, mas aí o botão de Rolar não
+ * funciona. Que seja fácil retirar e trocar de dados". A trava resolvia o problema errado: ficar
+ * sem dados não é um estado inválido, é o caminho normal pra trocar 3d6 por 1d20 sem ter que
+ * decrementar até 1 e só então poder mexer. Quem impede a rolagem vazia é o botão de Rolar, que
+ * desliga sozinho — ver `semDados` no componente.
  *
  * Mesmo motivo de `comDadoAcrescentado` pro teto ser conferido aqui dentro.
  */
@@ -242,7 +249,7 @@ export function comContagemAjustada(
 
   const proxima = grupo.count + delta
   if (proxima <= 0) {
-    return grupos.length > 1 ? grupos.filter((_, i) => i !== indice) : grupos
+    return grupos.filter((_, i) => i !== indice)
   }
   return grupos.map((g, i) => (i === indice ? { ...g, count: proxima } : g))
 }
@@ -585,6 +592,16 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }
 
   const currentDiceTotal = groups.reduce((sum, g) => sum + g.count, 0)
+  /**
+   * Rolagem VAZIA: dá pra tirar todos os dados (ver `comContagemAjustada`), e nesse estado o botão
+   * de Rolar desliga em vez de rolar coisa nenhuma.
+   *
+   * O ref existe porque o atalho de teclado (Enter/Espaço) é instalado uma vez e enxerga o render
+   * em que nasceu — sem ele, tirar o último dado e apertar Espaço ainda rolaria a lista velha.
+   */
+  const semDados = currentDiceTotal === 0
+  const semDadosRef = useRef(semDados)
+  semDadosRef.current = semDados
 
   function addDie(sides: number) {
     if (isRolling) return
@@ -611,7 +628,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }
 
   function removeGroup(index: number) {
-    if (isRolling || groups.length <= 1) return
+    if (isRolling) return
     setGroups((prev) => prev.filter((_, i) => i !== index))
     setLastResult(null)
   }
@@ -756,7 +773,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }
 
   function handleRollClick() {
-    if (isRolling) return
+    if (isRolling || semDadosRef.current) return
     // Rolagem MANUAL não tem nome de golpe. Limpa aqui também (e não só no `finalizeResult`) pro
     // caso de clicar "Rolar" antes de uma rolagem de preset chegar a assentar.
     sourceNameRef.current = undefined
@@ -852,6 +869,11 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           <div className="dice-roller-3d-roll-body">
             <div className="dice-roller-3d-roll-options">
               <div className="dice-roller-3d-groups">
+                {/*
+                  Bandeja vazia diz o que fazer. Sem esta linha sobra uma faixa em branco onde
+                  antes havia um chip, e "sumiu tudo" lê como defeito em vez de estado.
+                */}
+                {semDados && <span className="dice-roller-3d-sem-dados">{t.roller.noDiceHint}</span>}
                 {groups.map((group, index) => (
                   <div key={`${group.sides}-${index}`} className="dice-roller-3d-group-chip">
                     <span>
@@ -878,16 +900,21 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                     >
                       +
                     </Button>
-                    {groups.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => removeGroup(index)}
-                        disabled={isRolling}
-                        aria-label="✕"
-                      >
-                        ✕
-                      </Button>
-                    )}
+                    {/*
+                      O ✕ aparece SEMPRE, inclusive no único grupo da lista. Ele sumia quando
+                      sobrava um só, e era justamente aí que ele fazia mais falta: pra trocar de
+                      dado era preciso decrementar até 1 e só então clicar noutro tipo. Tirar tudo é
+                      um estado legítimo agora — quem impede a rolagem vazia é o botão de Rolar.
+                    */}
+                    <Button
+                      variant="ghost"
+                      onClick={() => removeGroup(index)}
+                      disabled={isRolling}
+                      aria-label="✕"
+                      title={t.roller.removeDieGroup}
+                    >
+                      ✕
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -987,7 +1014,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
               variant="primary"
               className="dice-roller-3d-roll-btn"
               onClick={handleRollClick}
-              disabled={isRolling}
+              disabled={isRolling || semDados}
+              title={semDados ? t.roller.noDiceHint : undefined}
             >
               {t.roller.rollButton}
             </Button>

@@ -66,9 +66,29 @@ describe('ajustar a contagem de um grupo', () => {
     expect(comContagemAjustada([g(20, 1), g(6, 2)], 0, -1, TETO)).toEqual([g(6, 2)])
   })
 
-  it('o ÚLTIMO grupo nunca some — a tela ficaria sem nada pra rolar', () => {
-    const so = [g(20, 1)]
-    expect(comContagemAjustada(so, 0, -1, TETO)).toBe(so)
+  /**
+   * O último grupo ERA intocável ("a tela ficaria sem nada pra rolar") e passou a poder sair, a
+   * pedido do usuário: "vamos deixar a opção de remover todos os dados, mas aí o botão de Rolar não
+   * funciona. Que seja fácil retirar e trocar de dados".
+   *
+   * A trava resolvia o problema errado. Ficar sem dados não é estado inválido — é o caminho normal
+   * pra trocar 3d6 por 1d20 sem ter que decrementar até 1 primeiro. Quem impede a rolagem vazia é o
+   * botão de Rolar, que desliga sozinho (ver `semDados` em `DiceRoller3D`).
+   */
+  it('o último grupo TAMBÉM sai — a rolagem pode ficar vazia', () => {
+    expect(comContagemAjustada([g(20, 1)], 0, -1, TETO)).toEqual([])
+  })
+
+  it('lista vazia continua sendo lista vazia, sem estourar', () => {
+    expect(comContagemAjustada([], 0, -1, TETO)).toEqual([])
+    expect(comContagemAjustada([], 0, 1, TETO)).toEqual([])
+    expect(totalDeDados([])).toBe(0)
+  })
+
+  it('de vazio, escolher um tipo devolve a rolagem — é o "trocar de dados" do pedido', () => {
+    const vazio = comContagemAjustada([g(6, 1)], 0, -1, TETO)
+    expect(vazio).toEqual([])
+    expect(comDadoAcrescentado(vazio, 20, TETO)).toEqual([g(20, 1)])
   })
 
   it('somar no teto não faz nada; DIMINUIR no teto continua funcionando', () => {
