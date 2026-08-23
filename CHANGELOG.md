@@ -6,22 +6,18 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
-## [1.1.0] — 2026-08-23
+## [1.0.12] — 2026-08-23
 
-O beta abre com a **importação de ficha em PDF** de volta na interface, e com uma rodada de testes
-que virou conserto: o d100 não era um dado honesto, a ponte levadiça podia acabar no caminho dos
-dados, a engrenagem sumia no modo dia e o vidro apagava os números.
+Uma rodada de testes que virou conserto: o d100 não era um dado honesto, o vidro apagava os
+números, a engrenagem sumia no modo dia, a palavra TOTAL sumia no painel, a ponte levadiça podia
+acabar no caminho dos dados e três botões do editor de preset faziam a coisa errada.
 
-### Adicionado
-
-- **A aba Ficha voltou, marcada como beta**, com o botão de **Importar ficha (PDF)**. Ela saiu no
-  fechamento do alfa porque a importação errava em sistema desconhecido; o que mudou é que agora
-  está medido, nas fichas de verdade: **Ordem Paranormal** e **Oblivio** têm leitor próprio e saem
-  completas — identificação, atributos, recursos e os presets de ataque já com a regra do sistema.
-  Qualquer outra cai no leitor genérico, que traz o que estiver rotulado. Ficha que é ARTE ACHATADA
-  (sem camada de texto — a de Kids on Bikes tem UM fragmento na página inteira) não rende nada, e a
-  tela de conferência diz isso em vez de inventar. O rótulo "(beta)" na aba e um aviso na tela de
-  conferência avisam que a leitura ainda pode errar: confira antes de confirmar.
+> **A importação de ficha em PDF continua fora da interface.** Ela chegou a entrar marcada como
+> beta e voltou a sair na mesma rodada de testes: o que o leitor traz está certo — conferido campo
+> a campo contra as fichas reais —, mas ele ainda deixa informação de fora, como os valores ATUAIS
+> de PV, PE e Sanidade. Ficha importada pela metade é pior que ficha em branco, porque quem confia
+> no que está na tela não confere o que ficou faltando. O código todo continua no repositório e
+> coberto por testes; o que está desligado é a porta de entrada.
 
 ### Corrigido
 
@@ -60,10 +56,6 @@ dados, a engrenagem sumia no modo dia e o vidro apagava os números.
     valor guardado não, então os primeiros cliques não mudavam nada na tela;
   - e o pior: salvar depois de reduzir os dados **perdia a regra de manter em silêncio**. A tela
     dizia "os maiores"; o preset gravado somava tudo.
-- **Importar uma ficha ilegível não propõe mais o nome do arquivo como personagem.** A ficha em
-  branco de Kids on Bikes (uma letra de texto na página inteira) fazia o app oferecer criar um
-  personagem chamado "Ficha Kids on Bikes". Ficha datilografada, que tem prosa e nenhum campo,
-  continua ganhando o palpite pelo nome do arquivo — a diferença é medida em letras.
 
 ### Interno
 
@@ -77,7 +69,11 @@ dados, a engrenagem sumia no modo dia e o vidro apagava os números.
   rodada, a tabela dava 1,4% de vermelho por rodada mesmo com todo dado honesto.
 - Varredura de todos os botões do app no Electron: 160 botões distintos nas quatro telas, mais nove
   modais por dentro. Zero erro de página e zero modal travada.
-- 883 testes (eram 759).
+- Quinze personagens de quinze sistemas como material de teste (`scripts/quinzePerfis.mjs`), que é o
+  teto de personagens do app com ficha de verdade dentro — e que já achou dois defeitos: o bloco
+  vazio de "Atributos" duplicando nos sistemas que chamam a mesma coisa de "Características" ou
+  "Estatísticas", e a mistura de Atributos com Aspectos no leitor de Oblivio.
+- 895 testes (eram 759).
 
 ## [1.0.11] — 2026-08-23
 
