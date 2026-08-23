@@ -62,9 +62,12 @@ function preset(id, name, icon, groups, modificador = 0, extras = {}) {
 /**
  * Os quinze. A ordem é a de criação: quem abrir o app encontra o primeiro deles aberto.
  *
- * Os dois primeiros são os que existem em PDF na pasta de fichas do projeto (Ordem Paranormal e
- * Oblivio) — os mesmos nomes e valores que o importador extrai deles, pra o material de teste
- * bater com o que o app produz sozinho. Os outros treze são de sistemas variados, escritos à mão.
+ * Os dois primeiros são CÓPIA FIEL do que o importador extrai dos PDFs da pasta de fichas do
+ * projeto (Ordem Paranormal e Oblivio) — conferido campo a campo contra o arquivo, e não de
+ * memória. A primeira versão deste material tinha valor INVENTADO nesses dois (PV 16 onde a ficha
+ * diz 45, Vigor 1 onde diz 2), e isso é pior do que não ter exemplo: quem compara a importação de
+ * verdade com o "exemplo oficial" conclui que o importador está errado. Os outros treze são de
+ * sistemas variados, escritos à mão, e não têm PDF com que bater.
  */
 export const QUINZE_PERFIS = [
   {
@@ -86,15 +89,17 @@ export const QUINZE_PERFIS = [
           campo('Força', '3', POOL),
           campo('Intelecto', '2', POOL),
           campo('Presença', '4', POOL),
-          campo('Vigor', '1', POOL)
+          campo('Vigor', '2', POOL)
         ]),
         secao('Recursos', [
-          campo('PV máximo', '16'),
-          campo('PE máximo', '3'),
-          campo('Sanidade máxima', '12'),
-          campo('Defesa', '10'),
-          campo('Deslocamento', '9m/6q')
-        ])
+          campo('PV máximo', '45'),
+          campo('PE máximo', '12'),
+          campo('Sanidade máxima', '15'),
+          campo('Defesa', '11'),
+          campo('Deslocamento', '9m/6q'),
+          campo('DT de rituais', '10')
+        ]),
+        secao('Proficiências', [campo('Armas simples', 'sim'), campo('Armas táticas', 'sim')])
       ],
       inventory: 'Faca de cozinha, lanterna, kit de primeiros socorros, celular rachado.',
       appearance: 'Magro, jaleco emprestado, olheiras de dois plantões seguidos.',
@@ -102,10 +107,10 @@ export const QUINZE_PERFIS = [
       pages: [pagina('p1', 3, 'Hospital', 'O corredor da ala leste continua frio mesmo com o aquecedor ligado.')]
     },
     presets: [
-      preset('matais-faca', 'Ataque com Faca (teste)', '🔪', [{ count: 3, sides: 20 }], 0, {
+      preset('matais-faca', 'Ataque com Faca (teste)', '🔪', [{ count: 2, sides: 20 }], 0, {
         keep: { mode: 'highest', count: 1 }
       }),
-      preset('matais-dano', 'Ataque com Faca (dano)', '🩸', [{ count: 1, sides: 6 }], 2)
+      preset('matais-dano', 'Ataque com Faca (dano)', '🩸', [{ count: 2, sides: 6 }])
     ]
   },
   {
@@ -123,18 +128,31 @@ export const QUINZE_PERFIS = [
         secao('Atributos', [
           campo('Carne', '2/10'),
           campo('Força', '1/10'),
-          campo('Prontidão', '3/10'),
-          campo('Determinação', '2/10'),
-          campo('Mente', '1/10')
+          campo('Prontidão', '4/10'),
+          campo('Determinação', '1/10'),
+          campo('Mente', '2/10')
         ]),
-        secao('Corpo', [campo('Dor', '0/10'), campo('Fôlego', '4/10'), campo('Coragem', '2/10')])
+        secao('Aspectos', [
+          campo('Coragem', '1/10'),
+          campo('Dor', '2/10'),
+          campo('Fôlego', '1/10'),
+          campo('Proteção', '3/10'),
+          campo('Velocidade', '2/10')
+        ]),
+        secao('Corpo', [
+          campo('Torso', '0/5'),
+          campo('Braço Direito', '0/3'),
+          campo('Braço Esquerdo', '0/3'),
+          campo('Perna Direita', '0/3'),
+          campo('Perna Esquerda', '0/3')
+        ])
       ],
       abilities: 'Voracidade: primeira vez na cena, dobra o dado.\nEstocada: realiza a Ação de Combate duas vezes.',
       appearance: '1,87m, cabelos loiros, cicatriz no antebraço direito.',
       backstory: 'Voltou da estrada sem lembrar dos três dias que faltam no calendário.',
       pages: [pagina('p1', 5, 'A estrada', 'O posto estava aberto às quatro da manhã. Não havia ninguém no balcão.')]
     },
-    presets: [preset('rodrigo-estocada', 'Estocada', '⚔️', [{ count: 2, sides: 10 }], 1)]
+    presets: [preset('rodrigo-lamina', 'Lâmina Curta (dano)', '🗡️', [{ count: 1, sides: 4 }])]
   },
   {
     id: 'elandra-dnd',

@@ -599,3 +599,98 @@ describe('leitor de Oblivio — ficha SEM formulário', () => {
     expect(lido.fields).toContainEqual({ label: 'Torso', value: '0/5', group: 'Corpo' })
   })
 })
+
+/**
+ * O EQUIPAMENTO CARREGADO da ficha de Oblivio, sem depender do PDF (ele está no `.gitignore`).
+ *
+ * Os fragmentos abaixo são os do arquivo real, medidos: o extrator quebra a linha em pedaços
+ * ("Espaços de Inventário", ": 1. /", "Limite de Estresse:"), e a região vem em duas partes — o
+ * marcador "○" e o rótulo "Torso:". Reproduzir esse picotado é o ponto: um fixture "arrumado"
+ * passaria sem provar que o leitor aguenta o formato de verdade.
+ */
+describe('equipamento carregado (Oblivio)', () => {
+  function linha(text: string, y: number): PdfText {
+    return { text, page: 1, x: 100, y, width: text.length * 6, height: 12 }
+  }
+
+  /** Os dez rótulos que fazem o leitor de Oblivio reconhecer a ficha (ver o `detect` dele). */
+  const IMPRESSAO_DIGITAL = [
+    'Carne:',
+    'Força:',
+    'Prontidão:',
+    'Determinação:',
+    'Mente:',
+    'Coragem:',
+    'Dor:',
+    'Fôlego:',
+    'Proteção:',
+    'Velocidade:'
+  ].map((texto, i) => linha(texto, 700 - i * 20))
+
+  const EQUIPAMENTO: [string, number][] = [
+    ['Equipamentos Carregados:', 400],
+    ['○', 380],
+    ['Torso:', 380],
+    ['Vestimenta Leve', 360],
+    ['Espaços de Inventário', 340],
+    [': 1. /', 340],
+    ['Limite de Estresse:', 340],
+    ['6. /', 340],
+    ['Bônus de Proteção:', 340],
+    ['+1.', 340],
+    ['○', 320],
+    ['Braço Direito:', 320],
+    ['○', 300],
+    ['Braço Esquerdo:', 300],
+    ['Lâmina Curta (Adaga, Faca, Punhal…)', 280],
+    ['Espaços de Inventário', 260],
+    [': 2. /', 260],
+    ['Limite de Estresse:', 260],
+    ['3. /', 260],
+    ['Dano:', 260],
+    ['1D4 PE. /', 260],
+    ['Alcance:', 260],
+    ['1.', 260],
+    ['Equipamentos Guardados:', 200],
+    ['○', 180],
+    ['Perna Direita:', 180]
+  ]
+
+  function fichaCom(linhas: [string, number][]): PdfSheet {
+    return {
+      fileName: 'oblivio.pdf',
+      pageCount: 9,
+      fields: [],
+      texts: [...IMPRESSAO_DIGITAL, ...linhas.map(([t, y]) => linha(t, y))]
+    }
+  }
+
+  it('lê o item de cada região, e ignora as regiões vazias', () => {
+    const lido = readSheet(fichaCom(EQUIPAMENTO))
+    const equipamento = lido.fields.filter((c) => c.group === 'Equipamento')
+
+    expect(equipamento.map((c) => c.label)).toEqual(['Torso', 'Braço Esquerdo'])
+    expect(equipamento[0].value).toContain('Vestimenta Leve')
+    expect(equipamento[1].value).toContain('Lâmina Curta')
+  })
+
+  it('para em "Equipamentos Guardados" — o que está guardado não está em uso', () => {
+    const lido = readSheet(fichaCom(EQUIPAMENTO))
+    expect(lido.fields.filter((c) => c.group === 'Equipamento').map((c) => c.label)).not.toContain('Perna Direita')
+  })
+
+  it('a arma que diz o próprio dano vira preset, com nome curto', () => {
+    const lido = readSheet(fichaCom(EQUIPAMENTO))
+    const arma = lido.presets?.find((p) => /Lâmina/.test(p.name))
+
+    expect(arma?.name).toBe('Lâmina Curta (dano)')
+    expect(arma?.expression.groups).toEqual([{ count: 1, sides: 4 }])
+    // A vestimenta NÃO vira preset: ela não tem dano, tem bônus de proteção.
+    expect(lido.presets?.some((p) => /Vestimenta/.test(p.name))).toBe(false)
+  })
+
+  it('ficha sem a seção de equipamento não ganha campo nenhum a mais', () => {
+    const lido = readSheet(fichaCom([['Mazelas', 400]]))
+    expect(lido.fields.filter((c) => c.group === 'Equipamento')).toEqual([])
+  })
+})
