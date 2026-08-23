@@ -48,11 +48,31 @@ export interface CameraSpeeds {
   pan: number
 }
 
+/**
+ * Velocidades do teclado, DOBRADAS a pedido do usuário ("a câmera WASD está lenta").
+ *
+ * Os números não saíram de "parece melhor": cada um foi medido contra o tamanho da coisa que ele
+ * atravessa, porque velocidade de câmera só quer dizer alguma coisa em relação à cena.
+ *
+ *                          antes            agora
+ *   W/S zoom inteiro       3,7 s            1,7 s     (33,2 unidades entre `minDistance` e `maxDistance`)
+ *   A/D volta completa     3,9 s            2,0 s
+ *   Q/E arco inteiro       1,3 s            0,7 s     (o polar já estava no lugar, acompanha os outros)
+ *   WASD mesa inteira      3,6 s            1,6 s     (32 unidades, o diâmetro de `GROUND_RADIUS`)
+ *
+ * A régua é a mesma pros quatro: uma travessia de ponta a ponta deve custar cerca de dois segundos
+ * de tecla apertada. Mais que isso vira espera; menos, e o passo fica difícil de parar no lugar.
+ *
+ * CUIDADO ao subir mais: perto do zoom máximo (`minDistance` = 1.8, feito pra ler o número gravado
+ * numa face) a velocidade é a mesma que a de longe, então o que é confortável na vista padrão já é
+ * brusco colado num dado. Se um dia precisar de mais velocidade, o caminho é escalar pela distância
+ * da câmera ao alvo, não subir o número plano.
+ */
 export const DEFAULT_CAMERA_SPEEDS: CameraSpeeds = {
-  orbit: 1.6,
-  dolly: 9,
-  polar: 1.1,
-  pan: 9
+  orbit: 3.2,
+  dolly: 20,
+  polar: 2,
+  pan: 20
 }
 
 /** Posição da câmera e ponto pra onde ela olha. Ambos são MUTADOS no lugar. */

@@ -1,6 +1,11 @@
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
-import { applyCameraKeys, type CameraFrame, type CameraLimits } from './applyCameraKeys'
+import {
+  applyCameraKeys,
+  DEFAULT_CAMERA_SPEEDS,
+  type CameraFrame,
+  type CameraLimits
+} from './applyCameraKeys'
 
 /**
  * A câmera do WASD é a única parte da cena que NÃO dá pra conferir com uma captura de tela:
@@ -193,6 +198,58 @@ describe('applyCameraKeys', () => {
         applyCameraKeys(longe, 'dice', { ...NO_KEYS, forward: -1 }, 0.1, LIMITS)
       }
       expect(longe.position.distanceTo(longe.target)).toBeLessThanOrEqual(LIMITS.maxDistance + 1e-6)
+    })
+  })
+
+  /**
+   * QUANTO TEMPO DE TECLA APERTADA, e não quanto vale a constante.
+   *
+   * O usuário reportou a câmera do WASD como lenta, e o conserto foi dobrar as velocidades. Um
+   * teste que afirmasse `dolly === 20` só repetiria o número noutro arquivo: passaria feliz no dia
+   * em que alguém devolvesse o 9, contanto que trocasse os dois lados. O que precisa continuar
+   * verdade é o TEMPO — atravessar a cena de ponta a ponta custa cerca de dois segundos —, e é
+   * isso que está escrito aqui.
+   *
+   * Os limites são frouxos de propósito: eles existem pra pegar uma volta acidental pro que era
+   * antes (3,6 s a 3,9 s de travessia), não pra travar um ajuste fino de gosto.
+   */
+  describe('velocidade: uma travessia inteira custa cerca de dois segundos', () => {
+    /** Segura a tecla por `segundos`, em quadros de 60 fps, e devolve o quadro final. */
+    function segurarTecla(
+      mode: 'table' | 'dice',
+      keys: Partial<{ forward: number; horizontal: number }>,
+      segundos: number
+    ): CameraFrame {
+      const frame = defaultFrame()
+      const passo = 1 / 60
+      for (let t = 0; t < segundos; t += passo) {
+        applyCameraKeys(frame, mode, { ...NO_KEYS, ...keys }, passo, LIMITS)
+      }
+      return frame
+    }
+
+    it('UM segundo de W já leva o passeio até a borda da mesa', () => {
+      const frame = segurarTecla('table', { forward: 1 }, 1)
+      // Com a velocidade antiga (9 u/s) daria 9 unidades — bem aquém da borda, em 15.
+      expect(frame.target.length()).toBeGreaterThan(LIMITS.panRadius * 0.9)
+    })
+
+    it('UM segundo de A varre mais de meia volta', () => {
+      const inicio = defaultFrame()
+      const frame = segurarTecla('dice', { horizontal: 1 }, 1)
+      const anguloInicial = Math.atan2(inicio.position.z, inicio.position.x)
+      const anguloFinal = Math.atan2(frame.position.z, frame.position.x)
+      let varrido = Math.abs(anguloFinal - anguloInicial)
+      if (varrido > Math.PI) varrido = 2 * Math.PI - varrido
+      // Antiga: 1,6 rad num segundo, que não chega em meia volta.
+      expect(varrido).toBeGreaterThan(Math.PI / 2)
+      expect(DEFAULT_CAMERA_SPEEDS.orbit).toBeGreaterThan(Math.PI)
+    })
+
+    it('UM segundo de W no modo dados vence o zoom inteiro', () => {
+      const frame = segurarTecla('dice', { forward: 1 }, 1)
+      // São ~13,6 unidades entre o enquadramento de partida e o `minDistance`: a 9 u/s não dava.
+      expect(frame.position.distanceTo(frame.target)).toBeCloseTo(LIMITS.minDistance, 5)
     })
   })
 })
