@@ -25,26 +25,26 @@
  * Escrever um tipo fora dessa lista não quebra nada e é PIOR do que quebrar: `normalizarTipoDeRolagem`
  * descarta o desconhecido na leitura, e o campo volta do disco sem botão de rolar, calado.
  */
-const ATRIBUTO_DND = 'd20-valor'
-const POOL = 'pool-d20'
-const BONUS = 'd20'
+export const ATRIBUTO_DND = 'd20-valor'
+export const POOL = 'pool-d20'
+export const BONUS = 'd20'
 
-function campo(label, value, roll) {
+export function campo(label, value, roll) {
   const id = `${label}`.toLowerCase().replace(/[^a-z0-9]+/g, '-')
   return roll ? { id, label, value, roll } : { id, label, value }
 }
 
-function secao(title, campos) {
+export function secao(title, campos) {
   return { id: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title, fields: campos }
 }
 
-function pagina(id, dia, titulo, texto) {
+export function pagina(id, dia, titulo, texto) {
   // `createdAt` é fixo e crescente: data inventada na hora faria dois saves iguais nascerem
   // diferentes, e o app mostra essa data na lista de sessões.
   return { id, createdAt: Date.UTC(2026, 7, dia), title: titulo, text: texto }
 }
 
-function preset(id, name, icon, groups, modificador = 0, extras = {}) {
+export function preset(id, name, icon, groups, modificador = 0, extras = {}) {
   return {
     id,
     name,
@@ -460,11 +460,11 @@ export function notesDoPerfil(perfil) {
 }
 
 /** Escreve os quinze no formato exato do `userData` (`profiles.json` + `profiles/<id>/`). */
-export async function escreverEmDisco(pasta) {
+export async function escreverEmDisco(pasta, leva = QUINZE_PERFIS) {
   const { mkdir, writeFile } = await import('node:fs/promises')
   const { join } = await import('node:path')
 
-  const profiles = QUINZE_PERFIS.map((perfil, i) => ({
+  const profiles = leva.map((perfil, i) => ({
     id: perfil.id,
     name: perfil.name,
     system: perfil.system,
@@ -479,14 +479,14 @@ export async function escreverEmDisco(pasta) {
     'utf-8'
   )
 
-  for (const perfil of QUINZE_PERFIS) {
+  for (const perfil of leva) {
     const dir = join(pasta, 'profiles', perfil.id)
     await mkdir(dir, { recursive: true })
     await writeFile(join(dir, 'notes.json'), JSON.stringify(notesDoPerfil(perfil), null, 2), 'utf-8')
     await writeFile(join(dir, 'presets.json'), JSON.stringify(perfil.presets ?? [], null, 2), 'utf-8')
   }
 
-  return { pasta, quantos: QUINZE_PERFIS.length }
+  return { pasta, quantos: leva.length }
 }
 
 // `node scripts/quinzePerfis.mjs <pasta>` — escreve e diz onde.

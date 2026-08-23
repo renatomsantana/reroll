@@ -265,7 +265,8 @@ export const ordemParanormalReader: SheetReader = {
      * vizinho mais próximo do campo é a abreviação do atributo. Com a ficha preenchida em mãos deu
      * pra MEDIR onde o nome fica e casar as 29 linhas — ver o comentário da função.
      */
-    const pericias = periciasTreinadas(sheet)
+    const pericias = periciasTreinadas(sheet, temDono)
+    const lacunas = temDono ? lacunasNumeradas(sheet) : []
     const nex = campoDeNex(acharCampo(CAMPO_DE_NEX))
     const avisos = [...base.warnings]
 
@@ -285,7 +286,7 @@ export const ordemParanormalReader: SheetReader = {
       characterName: personagem || base.characterName,
       system: 'Ordem Paranormal',
       warnings: avisos,
-      fields: [...conhecidos, ...(nex ? [nex] : []), ...pericias, ...restantes],
+      fields: [...conhecidos, ...(nex ? [nex] : []), ...pericias, ...restantes, ...lacunas],
       /**
        * Os presets dos ATAQUES entram na frente e os do genérico continuam atrás: aqueles são
        * dirigidos (sei que aquela coluna é dano), estes são o que sobrou de varrer a ficha atrás de
@@ -411,17 +412,79 @@ function campoDeNex(campo: PdfField | undefined): SheetImportField | null {
  * fica com 29 zeros; importar isso repetiria exatamente o que o usuário já apontou uma vez ("fica
  * uma bagunça, não dá para entender"). Zero aqui não é informação, é a ausência dela.
  */
-function periciasTreinadas(sheet: PdfSheet): SheetImportField[] {
+function periciasTreinadas(sheet: PdfSheet, comLacunas: boolean): SheetImportField[] {
   const campos: SheetImportField[] = []
   for (const campo of sheet.fields) {
     const posicao = CAMPO_DE_PERICIA.exec(campo.name)
     if (!posicao || Number(posicao[2]) !== COLUNA_DA_PERICIA) continue
     const valor = valorDeFicha(campo.value, campo.type)
-    if (!valor || Number(valor) === 0) continue
+    const treinada = valor && Number(valor) !== 0
+    /**
+     * SEM `comLacunas`, só as treinadas entram — é o que uma ficha "de leitura" quer.
+     *
+     * COM ele, as 29 entram, inclusive zeradas: pedido do usuário, e a razão é de mesa — perícia
+     * que não estava treinada passa a estar no meio da sessão, e sem a linha não há onde escrever.
+     * O zero fica de fora do valor de propósito: linha vazia é lacuna pra preencher, e "0" escrito
+     * é afirmação de que a perícia foi conferida.
+     */
+    if (!treinada && !comLacunas) continue
     const nome = nomeDaPericia(sheet, campo)
     if (!nome) continue
-    campos.push({ label: nome, value: valor, group: 'Perícias', fieldName: campo.name })
+    campos.push({
+      label: nome,
+      value: treinada ? valor : '',
+      group: 'Perícias',
+      fieldName: campo.name
+    })
   }
+  return campos
+}
+
+/**
+ * As LACUNAS numeradas da ficha — rituais, itens e ataques.
+ *
+ * Elas existem no arquivo como campos vazios (`RITUAIS 1`… `RITUAIS 20`, `ITEM 1`… `ITEM 11` e a
+ * segunda página deles, e a grade de ataques), e a importação as descartava por estarem em branco.
+ * O pedido do usuário: "coloca lacunas para TUDO que é preenchível, porque às vezes precisamos
+ * preencher no app também mesmo que não tenha, porque é um item novo na sessão".
+ *
+ * O que NÃO entra, e é escolha: os 38 campos sem nome do PDF (`1_2`, `2_2`…), as trinta caixas de
+ * marcação e os círculos de nível de ritual. Lacuna sem nome não é lugar pra escrever — é linha em
+ * branco com um número do lado, e trinta delas fariam a ficha parecer defeito em vez de espaço.
+ */
+function lacunasNumeradas(sheet: PdfSheet): SheetImportField[] {
+  const campos: SheetImportField[] = []
+
+  const numero = (nome: string): number => Number(nome.replace(/\D+/g, '') || 0)
+  const porNome = (padrao: RegExp): PdfField[] =>
+    sheet.fields.filter((c) => padrao.test(c.name)).sort((a, b) => numero(a.name) - numero(b.name))
+
+  for (const campo of porNome(/^RITUAIS \d+$/)) {
+    campos.push({
+      label: `Ritual ${numero(campo.name)}`,
+      value: valorDeFicha(campo.value, campo.type) ?? '',
+      group: 'Rituais',
+      fieldName: campo.name
+    })
+  }
+
+  /**
+   * Os itens vêm em duas páginas com a mesma numeração (`ITEM 1` e `ITEM 1_2`), então a segunda
+   * continua a contagem da primeira em vez de repetir "Item 1" duas vezes na ficha.
+   */
+  const primeiraPagina = porNome(/^ITEM \d+$/)
+  const segundaPagina = sheet.fields
+    .filter((c) => /^ITEM \d+_2$/.test(c.name))
+    .sort((a, b) => numero(a.name) - numero(b.name))
+  ;[...primeiraPagina, ...segundaPagina].forEach((campo, i) => {
+    campos.push({
+      label: `Item ${i + 1}`,
+      value: valorDeFicha(campo.value, campo.type) ?? '',
+      group: 'Itens',
+      fieldName: campo.name
+    })
+  })
+
   return campos
 }
 

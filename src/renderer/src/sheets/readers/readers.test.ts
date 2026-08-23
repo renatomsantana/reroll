@@ -513,11 +513,21 @@ describe('leitor de Ordem Paranormal', () => {
     expect(pericias.some((c) => c.label === 'AGI')).toBe(false)
   })
 
-  it('deixa de fora a perícia NÃO treinada, em vez de despejar 29 zeros na ficha', () => {
+  it('a perícia NÃO treinada vem como LACUNA — a linha existe, o zero não', () => {
     /**
-     * A ficha tem 29 linhas e quem não treinou nada fica com 29 zeros — foi o caso do arquivo real
-     * usado pra calibrar isto. Importar tudo seria repetir a reclamação que o usuário já fez uma vez
-     * ("fica uma bagunça, não dá para entender"): zero aqui não é informação, é a ausência dela.
+     * Esta regra já foi o contrário, e as duas versões vieram do usuário.
+     *
+     * Antes, perícia zerada ficava de fora: a ficha tem 29 linhas, quem não treinou nada fica com 29
+     * zeros, e ele tinha reclamado que a importação "fica uma bagunça, não dá para entender". Zero
+     * ali não é informação, é a ausência dela.
+     *
+     * Depois veio o outro lado, e é de mesa: "coloca lacunas para TUDO que é preenchível, porque às
+     * vezes precisamos preencher no app também mesmo que não tenha, porque é um item novo na
+     * sessão". Perícia que ninguém treinou passa a estar treinada no meio da sessão, e sem a linha
+     * não há onde escrever.
+     *
+     * O que reconcilia os dois é o VALOR: a linha vem, o zero não. Lacuna é espaço pra preencher;
+     * "0" escrito seria uma afirmação que ninguém fez.
      */
     const lidoComZeros = readSheet(
       fichaComPericias([
@@ -526,7 +536,8 @@ describe('leitor de Ordem Paranormal', () => {
         ['MEDICINA', '0']
       ])
     )
-    expect(lidoComZeros.fields.filter((c) => c.group === 'Perícias').map((c) => c.label)).toEqual(['Luta'])
+    const pericias = lidoComZeros.fields.filter((c) => c.group === 'Perícias')
+    expect(pericias.map((c) => `${c.label}=${c.value}`)).toEqual(['Acrobacia=', 'Luta=5', 'Medicina='])
     // E nenhum aviso sobrando dizendo que perícias não são importadas — elas são.
     expect(lidoComZeros.warnings).toEqual([])
   })

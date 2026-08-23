@@ -70,6 +70,24 @@ describe.skipIf(!existsSync(ORDEM))('ficha real de Ordem Paranormal', () => {
     expect(recursos.has('Sanidade atual')).toBe(true)
     expect(recursos.get('PV atual')).toBe('')
 
+    /**
+     * O ESQUELETO INTEIRO da ficha, com as lacunas vazias — pedido do usuário: "coloca lacunas para
+     * TUDO que é preenchível, porque às vezes precisamos preencher no app também mesmo que não
+     * tenha, porque é um item novo na sessão".
+     *
+     * As 29 perícias vêm com o NOME de cada uma (o nome é texto impresso, casado por posição — ver
+     * `nomeDaPericia`), os 20 espaços de ritual e os 22 de item vêm numerados. Nesta ficha todos
+     * estão em branco: o Matias não tem perícia treinada, ritual nem item anotado.
+     */
+    const porGrupo = (nome: string): typeof lido.fields => lido.fields.filter((c) => c.group === nome)
+    expect(porGrupo('Perícias')).toHaveLength(29)
+    expect(porGrupo('Perícias').map((c) => c.label)).toContain('Acrobacia')
+    expect(porGrupo('Perícias').map((c) => c.label)).toContain('Sobrevivência')
+    expect(porGrupo('Rituais')).toHaveLength(20)
+    expect(porGrupo('Itens')).toHaveLength(22)
+    // Vazias de verdade: lacuna é espaço pra escrever, e "0" seria uma afirmação que ninguém fez.
+    expect(porGrupo('Perícias').every((c) => c.value === '')).toBe(true)
+
     // Os cinco atributos, que já sumiram uma vez por nome de campo repetido.
     const atributos = lido.fields.filter((c) => c.group === 'Atributos').map((c) => c.label)
     expect(atributos).toEqual(['Agilidade', 'Força', 'Intelecto', 'Presença', 'Vigor'])
@@ -101,8 +119,8 @@ describe.skipIf(!existsSync(ORDEM))('ficha real de Ordem Paranormal', () => {
     // Nem uma seção "Outros" na ficha montada: era só onde esse par de ruídos ia parar.
     expect(montarFicha(lido.fields).sections.map((s) => s.title)).not.toContain('Outros')
 
-    // Esta ficha não tem perícia treinada: as 29 linhas valem "0" e nenhuma delas vira campo.
-    expect(lido.fields.filter((c) => c.group === 'Perícias')).toEqual([])
+    // Esta ficha não tem perícia treinada: as 29 linhas valem "0" e viram lacuna vazia (ver acima).
+    expect(lido.fields.filter((c) => c.group === 'Perícias').every((c) => c.value === '')).toBe(true)
     // E o aviso de "perícias não são importadas" não existe mais: o único que resta é o da regra
     // do maior dado, conferido logo abaixo.
     expect(lido.warnings).toEqual(['ordem-maior-dado'])
@@ -328,6 +346,10 @@ describe.skipIf(!existsSync(ORDEM_BRANCA))('modelo em branco de Ordem Paranormal
     expect(lido.characterName).toBe('')
     expect(rotulos).not.toContain('PV atual')
     expect(rotulos).not.toContain('Sanidade atual')
+    // Nem as lacunas numeradas: num modelo em branco elas seriam 71 linhas vazias.
+    expect(rotulos).not.toContain('Ritual 1')
+    expect(rotulos).not.toContain('Item 1')
+    expect(lido.fields.filter((c) => c.group === 'Perícias')).toEqual([])
     // O que ele traz continua sendo só o que está escrito de fábrica no arquivo.
     expect(rotulos).toContain('Defesa')
   })
