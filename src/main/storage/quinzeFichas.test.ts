@@ -8,6 +8,8 @@ import { MAX_PROFILES } from '@shared/types/profile'
 import { QUINZE_PERFIS, notesDoPerfil } from '../../../scripts/quinzePerfis.mjs'
 // @ts-expect-error — mesma razão do de cima: a segunda leva também roda pela linha de comando.
 import { SEGUNDA_LEVA } from '../../../scripts/segundaLeva.mjs'
+// @ts-expect-error — a terceira leva, a pesada: muito texto, muitos campos, muitas sessões.
+import { TERCEIRA_LEVA } from '../../../scripts/terceiraLeva.mjs'
 
 /**
  * QUINZE PERSONAGENS COM QUINZE FICHAS DIFERENTES — o teto do app (`MAX_PROFILES`) com dado de
@@ -111,6 +113,95 @@ describe('a segunda leva, com lacunas', () => {
       const ficha = await depois.notes.get()
       expect(ficha.sections, `lacunas do ${perfil.name}`).toEqual(fichaDe(perfil).sections)
     }
+  })
+})
+
+/**
+ * A TERCEIRA LEVA — VOLUME, e principalmente SESSÕES.
+ *
+ * O pedido do usuário foi direto: "coloca sessões, troca perfis para ver se as sessões se mantêm".
+ * O diário é o que mais dói perder, porque é escrito durante o jogo e não existe em lugar nenhum
+ * além dali — e é também o que mais cresce: quinze personagens com cinco sessões cada são setenta e
+ * três páginas de texto num `notes.json` por personagem.
+ *
+ * A troca de personagem é simulada como o app faz: gravar `activeId` e ler de novo. O que se cobra
+ * é que a página escrita na sessão 3 do décimo personagem continue lá depois de passar por todos os
+ * outros e voltar.
+ */
+describe('a terceira leva: volume e sessões que sobrevivem à troca de perfil', () => {
+  const TERCEIRA = TERCEIRA_LEVA as PerfilDeTeste[]
+
+  it('tem volume de verdade: campos, sessões e texto', () => {
+    expect(TERCEIRA).toHaveLength(MAX_PROFILES)
+    const fichas = TERCEIRA.map(fichaDe)
+    const campos = fichas.reduce(
+      (soma: number, ficha: { sections: { fields: unknown[] }[] }) =>
+        soma + ficha.sections.reduce((s: number, secao) => s + secao.fields.length, 0),
+      0
+    )
+    const sessoes = fichas.reduce((soma: number, ficha: { pages: unknown[] }) => soma + ficha.pages.length, 0)
+    const texto = fichas.reduce(
+      (soma: number, ficha: { backstory: string; inventory: string; pages: { text: string }[] }) =>
+        soma + ficha.backstory.length + ficha.inventory.length + ficha.pages.reduce((t, p) => t + p.text.length, 0),
+      0
+    )
+
+    expect(campos).toBeGreaterThan(400)
+    expect(sessoes).toBeGreaterThan(60)
+    expect(texto).toBeGreaterThan(20_000)
+  })
+
+  it('as sessões de cada um continuam lá depois de passar por todos os outros', async () => {
+    const app = await abrirOApp()
+    const lista = TERCEIRA.map((perfil, i) => ({
+      id: perfil.id,
+      name: perfil.name,
+      system: perfil.system,
+      photo: null,
+      createdAt: 500 + i
+    }))
+
+    for (const perfil of TERCEIRA) {
+      await app.profiles.save({ profiles: lista, activeId: perfil.id })
+      await app.notes.save(fichaDe(perfil))
+    }
+
+    // A volta inteira, personagem por personagem, na ordem inversa — e depois um segundo passe.
+    for (const ordem of [[...TERCEIRA].reverse(), TERCEIRA]) {
+      for (const perfil of ordem) {
+        await app.profiles.save({ profiles: lista, activeId: perfil.id })
+        const ficha = await app.notes.get()
+        const esperada = fichaDe(perfil)
+
+        expect(ficha.pages, `sessões de ${perfil.name}`).toEqual(esperada.pages)
+        // O texto longo também: bloco truncado é a outra forma de perder sessão.
+        expect(ficha.backstory).toBe(esperada.backstory)
+        expect(ficha.inventory).toBe(esperada.inventory)
+      }
+    }
+  })
+
+  it('escrever numa sessão de um personagem não mexe na do outro', async () => {
+    const app = await abrirOApp()
+    const [primeiro, segundo] = TERCEIRA
+    const estado = await app.profiles.get()
+
+    await app.profiles.save({ profiles: estado.profiles, activeId: primeiro.id })
+    const antes = await app.notes.get()
+    await app.notes.save({
+      ...antes,
+      pages: [...antes.pages, { id: 'nova', createdAt: 1, title: 'Sessão nova', text: 'Escrita durante o jogo.' }]
+    })
+
+    await app.profiles.save({ profiles: estado.profiles, activeId: segundo.id })
+    const doSegundo = await app.notes.get()
+    expect(doSegundo.pages).toEqual(fichaDe(segundo).pages)
+    expect(JSON.stringify(doSegundo)).not.toContain('Escrita durante o jogo')
+
+    await app.profiles.save({ profiles: estado.profiles, activeId: primeiro.id })
+    const doPrimeiro = await app.notes.get()
+    expect(doPrimeiro.pages).toHaveLength(fichaDe(primeiro).pages.length + 1)
+    expect(doPrimeiro.pages.at(-1)?.title).toBe('Sessão nova')
   })
 })
 

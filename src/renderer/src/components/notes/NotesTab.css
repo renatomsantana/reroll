@@ -441,3 +441,19 @@
   border: 2px inset var(--win-face);
   font-size: 11px;
 }
+
+/**
+ * A faixa do seletor de personagem, acima da barra de formatação.
+ *
+ * Ela fica separada da `notes-toolbar` de propósito: aquela barra é sobre a CANETA (fonte, negrito,
+ * cor), e esta é sobre DE QUEM é o caderno. Misturar as duas põe a troca de personagem a um clique
+ * de distância do itálico, que é o tipo de vizinhança que produz clique errado.
+ */
+.notes-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--win-shadow);
+}
