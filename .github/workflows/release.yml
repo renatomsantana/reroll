@@ -9,7 +9,7 @@
 # COMO PUBLICAR UMA VERSÃO:
 #
 #   1. suba a versão no `package.json` e escreva o `CHANGELOG.md`;
-#   2. `git tag v1.0.11 && git push origin v1.0.11`;
+#   2. `git tag v1.0.12 && git push origin v1.0.12`;
 #   3. este fluxo compila, empacota, calcula o resumo e cria a release como RASCUNHO;
 #   4. abra o rascunho, cole o link do VirusTotal (ver `CONTRIBUTING.md`) e publique.
 #
