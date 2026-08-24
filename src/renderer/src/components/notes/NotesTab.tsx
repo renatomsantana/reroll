@@ -3,7 +3,9 @@ import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useNotes } from '@renderer/hooks/useNotes'
 import { FONT_OPTIONS, useSettings } from '@renderer/settings/SettingsContext'
 import type { Language } from '@shared/types/idioma'
+import { useProfiles } from '@renderer/settings/ProfilesContext'
 import { FontSelect, type FontSelectValue } from '../chrome/FontSelect'
+import { ProfileSelect } from './ProfileSelect'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import './NotesTab.css'
@@ -66,6 +68,7 @@ export function NotesTab() {
   const { language } = useSettings()
   const { notes, saveError, loadError, updateField, updatePage, goToPage, addPage, removePage } =
     useNotes()
+  const profiles = useProfiles()
 
   const page = notes.pages[notes.currentPage]
   const dayLabel = t.notesTab.dayNumber.replace('{n}', String(notes.currentPage + 1))
@@ -100,6 +103,29 @@ export function NotesTab() {
 
   return (
     <Card className="notes-tab">
+      {/*
+        DE QUEM SÃO ESTAS ANOTAÇÕES — o seletor de personagem mora aqui também.
+        
+        Ele existia só dentro da aba Ficha, e a Ficha saiu da interface no fechamento do alfa. O
+        efeito não foi cosmético: o app continuou guardando anotações, presets e aparência POR
+        PERSONAGEM e ficou sem nenhuma porta pra trocar de personagem — quem tivesse mais de um via
+        sempre o primeiro, sem saber que os outros existiam. Medido com quinze personagens
+        instalados: nenhum seletor em tela nenhuma.
+        
+        As anotações são o lugar certo pra ele mesmo com a Ficha ligada: o diário é por personagem, e
+        "de quem é este caderno" é a primeira coisa que se pergunta ao abrir um.
+      */}
+      <div className="notes-profile">
+        <ProfileSelect
+          profiles={profiles.profiles}
+          activeId={profiles.activeId}
+          onSelect={profiles.select}
+          fallbackName={(indice) => t.notesTab.profileUnnamed.replace('{n}', String(indice + 1))}
+          label={t.notesTab.profileSwitch}
+          emptyPhotoLabel={t.notesTab.profilePhotoEmpty}
+        />
+      </div>
+
       <div className="notes-toolbar">
         {/*
           O MESMO seletor das Preferências, e não um `<select>` nativo — que era o que faltava pras
