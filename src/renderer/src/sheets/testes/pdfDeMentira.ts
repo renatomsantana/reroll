@@ -73,6 +73,8 @@ export interface OpcoesPdf {
   /** Páginas declaradas no `/Count` — mentir aqui é um dos defeitos que se quer testar. */
   paginas?: number
   trailerExtra?: string
+  /** Entra dentro do dicionário do catálogo — é por aqui que se planta um `/OpenAction` com JavaScript. */
+  catalogoExtra?: string
 }
 
 /**
@@ -88,7 +90,11 @@ export function pdfDeUmaPagina(opcoes: OpcoesPdf = {}): Uint8Array {
   const referencias = widgets.map((_, i) => `${primeiroWidget + i} 0 R`).join(' ')
 
   const objetos: ObjetoPdf[] = [
-    { corpo: `<< /Type /Catalog /Pages 2 0 R${widgets.length ? ` /AcroForm << /Fields [${referencias}] >>` : ''} >>` },
+    {
+      corpo:
+        `<< /Type /Catalog /Pages 2 0 R${widgets.length ? ` /AcroForm << /Fields [${referencias}] >>` : ''}` +
+        `${opcoes.catalogoExtra ? ` ${opcoes.catalogoExtra}` : ''} >>`
+    },
     { corpo: `<< /Type /Pages /Kids [3 0 R] /Count ${opcoes.paginas ?? 1} >>` },
     {
       corpo:
@@ -149,7 +155,8 @@ export function pdfDeVariasPaginas(paginas: PaginaPdf[]): Uint8Array {
     corpo: `<< /Type /Catalog /Pages 2 0 R${todosOsWidgets.length ? ` /AcroForm << /Fields [${campos}] >>` : ''} >>`
   })
   objetos.push({ corpo: `<< /Type /Pages /Kids [${kids}] /Count ${paginas.length} >>` })
-  objetos.push({ corpo: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>' })
+  // `/WinAnsiEncoding` pelo mesmo motivo do PDF de uma página: sem ele, acento vira lixo.
+  objetos.push({ corpo: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>' })
 
   paginas.forEach((pagina, i) => {
     const idConteudo = PRIMEIRA_PAGINA + i * 2 + 1

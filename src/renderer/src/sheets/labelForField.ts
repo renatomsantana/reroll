@@ -30,27 +30,50 @@ import type { PdfField, PdfSheet, PdfText } from '@shared/types/sheetImport'
 const MAX_DISTANCE = 70
 
 export function labelForField(sheet: PdfSheet, field: PdfField): string | null {
+  let melhor: { distancia: number; texto: string } | null = null
+  for (const texto of sheet.texts) {
+    const distancia = distanciaDoRotulo(field, texto)
+    if (distancia === null) continue
+    if (!melhor || distancia < melhor.distancia) melhor = { distancia, texto: texto.text }
+  }
+  return melhor ? melhor.texto : null
+}
+
+/**
+ * A distância de um texto impresso a um campo pelas regras de vizinhança — ou `null` quando o
+ * texto não pode rotular o campo: outra página, não é rótulo, está à direita E abaixo, ou longe
+ * demais. É a ÚNICA régua: `labelForField` e `rotulosExclusivos` mediam cada um do seu jeito, em
+ * cópia, e a correção da caixa alta (abaixo) teria que ser feita duas vezes — e foi feita numa só,
+ * na primeira tentativa, e o leitor genérico continuou sem ver o rótulo.
+ */
+export function distanciaDoRotulo(field: PdfField, texto: PdfText): number | null {
+  if (texto.page !== field.page) return null
+  if (!ehRotulo(texto)) return null
+
   const [x0, y0, x1, y1] = field.rect
   const cx = (x0 + x1) / 2
   const cy = (y0 + y1) / 2
+  const lx = texto.x + texto.width / 2
+  const ly = texto.y + texto.height / 2
+  const dx = cx - lx
+  const dy = cy - ly
+  // À esquerda (dx > 0) ou acima (dy < 0), com uma folga de 5pt pra tolerar rótulo levemente
+  // desalinhado — ficha diagramada à mão nunca alinha no ponto.
+  if (dx <= -5 && dy >= 5) return null
 
-  let melhor: { distancia: number; texto: string } | null = null
-  for (const texto of sheet.texts) {
-    if (texto.page !== field.page) continue
-    if (!ehRotulo(texto)) continue
-
-    const dx = cx - (texto.x + texto.width / 2)
-    const dy = cy - (texto.y + texto.height / 2)
-    // À esquerda (dx > 0) ou acima (dy < 0), com uma folga de 5pt pra tolerar rótulo levemente
-    // desalinhado — ficha diagramada à mão nunca alinha no ponto.
-    if (dx <= -5 && dy >= 5) continue
-
-    const distancia = Math.hypot(dx, dy)
-    if (distancia > MAX_DISTANCE) continue
-    if (!melhor || distancia < melhor.distancia) melhor = { distancia, texto: texto.text }
-  }
-
-  return melhor ? melhor.texto : null
+  /**
+   * A distância até a BORDA da caixa, e não até o centro dela.
+   *
+   * Pra um campo de uma linha dá no mesmo. Pra um campo ALTO — a caixa de história do personagem,
+   * 140pt de altura — não: o rótulo impresso fica no canto de cima, a 4pt da borda e a 80pt do
+   * centro, e o teto de 70 o deixava de fora por causa da altura da própria caixa. Medido na
+   * quinta leva de PDFs de teste ("HISTÓRIA" sobre uma caixa de 560 a 700): o campo saía com o
+   * nome cru "Historia" tendo o rótulo impresso colado nele.
+   */
+  const px = Math.min(Math.max(lx, x0), x1)
+  const py = Math.min(Math.max(ly, y0), y1)
+  const distancia = Math.hypot(lx - px, ly - py)
+  return distancia > MAX_DISTANCE ? null : distancia
 }
 
 /**
@@ -129,19 +152,9 @@ export function rotulosExclusivos(sheet: PdfSheet): Map<PdfField, string> {
   const pares: Par[] = []
 
   sheet.fields.forEach((field, iCampo) => {
-    const [x0, y0, x1, y1] = field.rect
-    const cx = (x0 + x1) / 2
-    const cy = (y0 + y1) / 2
-
     sheet.texts.forEach((texto, iTexto) => {
-      if (texto.page !== field.page) return
-      if (!ehRotulo(texto)) return
-      const dx = cx - (texto.x + texto.width / 2)
-      const dy = cy - (texto.y + texto.height / 2)
-      if (dx <= -5 && dy >= 5) return
-      const distancia = Math.hypot(dx, dy)
-      if (distancia > MAX_DISTANCE) return
-      pares.push({ campo: iCampo, texto: iTexto, distancia })
+      const distancia = distanciaDoRotulo(field, texto)
+      if (distancia !== null) pares.push({ campo: iCampo, texto: iTexto, distancia })
     })
   })
 

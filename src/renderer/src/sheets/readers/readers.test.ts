@@ -752,3 +752,27 @@ describe('lacunas — os achados da revisão', () => {
     expect(lido.warnings).toContain('formulario-vazio')
   })
 })
+
+/**
+ * O TAMANHO de um nome de rolagem no texto impresso — achado da quinta leva de PDFs de teste.
+ */
+describe('preset do texto — linha de arma mais longa que 28 caracteres', () => {
+  it('a arma com o dado no FIM da linha passa; a regra em corrido, com palavras depois do dado, não', () => {
+    const lido = readSheet(
+      ficha(
+        [],
+        [
+          texto('Faca de cozinha  dano 1d4+2', 72, 425),
+          texto('Espingarda calibre 12  dano 2d6+4', 72, 410),
+          texto('dano de queda é 1d6 por 3 metros e mais', 72, 395),
+          texto('Um parágrafo inteiro de regra que termina com um dado de 20d6', 72, 380)
+        ]
+      )
+    )
+    const nomes = (lido.presets ?? []).map((p) => p.name)
+    expect(nomes).toContain('Faca de cozinha  dano 1d4+2')
+    expect(nomes).toContain('Espingarda calibre 12  dano 2d6+4')
+    expect(nomes.some((n) => n.includes('queda'))).toBe(false)
+    expect(nomes.some((n) => n.includes('parágrafo'))).toBe(false)
+  })
+})

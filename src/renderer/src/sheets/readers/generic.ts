@@ -305,13 +305,36 @@ function presetsDoTexto(sheet: PdfSheet): SheetImportPreset[] {
   const presets: SheetImportPreset[] = []
   for (const texto of sheet.texts) {
     const limpo = texto.text.trim()
-    if (limpo.length > 28) continue
+    if (!cabeComoNomeDeRolagem(limpo)) continue
     if (!ehNomeDeRolagem(limpo)) continue
     const lido = parseDiceExpression(limpo)
     if (!lido) continue
     presets.push({ name: limpo, kind: 'other', expression: lido.expression, source: limpo })
   }
   return presets
+}
+
+/**
+ * A notação de dado no FIM da linha, com nada depois além do modificador — "Espingarda calibre 12
+ * dano 2d6+4". É a forma de toda linha de arma; uma regra escrita em corrido ("dano de queda é 1d6
+ * por 3 metros") tem palavras depois do dado.
+ */
+const TERMINA_COM_DADO = /\d*\s*[dD]\s*\d+(?:\s*[+-]\s*\d+)?\s*$/
+
+/**
+ * O TAMANHO de um nome de rolagem.
+ *
+ * Até 28 caracteres, qualquer linha com dado e nome passa — "Adaga 1d4+2", "Espada Longa 1d8". A
+ * quinta leva de PDFs de teste pegou o que ficava de fora: "Espingarda calibre 12  dano 2d6+4", 33
+ * caracteres, uma arma escrita como toda ficha datilografada escreve, cortada só pelo tamanho.
+ * Subir o teto pra todo mundo abriria a porta pra regra impressa em corrido, que é o que os 28
+ * existem pra barrar; então a linha mais longa só passa quando o DADO FECHA a linha — que é a
+ * forma de arma, e não a de frase. Quarenta e oito é o teto absoluto: mais que isso é parágrafo.
+ */
+function cabeComoNomeDeRolagem(texto: string): boolean {
+  if (texto.length <= 28) return true
+  if (texto.length > 48) return false
+  return TERMINA_COM_DADO.test(texto)
 }
 
 /**
