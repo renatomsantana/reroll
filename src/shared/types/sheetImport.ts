@@ -158,6 +158,19 @@ export const TAMANHO_MAXIMO_DA_FICHA = 80 * 1024 * 1024
 export const MAXIMO_DE_PAGINAS_DA_FICHA = 100
 
 /**
+ * Quantos CAMPOS de formulário e quantos FRAGMENTOS de texto a varredura guarda, no total.
+ *
+ * Os dois tetos acima (bytes e páginas) não cobrem este caso, e ele é o que custa caro: os leitores
+ * fazem conta de distância entre cada campo e cada texto da página (`labelForField`,
+ * `rotulosExclusivos`, `nomeDaPericia`), ou seja, campos × textos. Um PDF de UMA página com cinco
+ * mil campos e duzentos mil fragmentos — cabe em poucos megabytes — são um bilhão de comparações
+ * dentro do renderer, e a janela inteira congela sem botão de cancelar. Medido nas fichas reais:
+ * a maior tem 458 campos e 886 fragmentos. Os tetos são dez e cinquenta vezes isso.
+ */
+export const MAXIMO_DE_CAMPOS_DA_FICHA = 5_000
+export const MAXIMO_DE_TEXTOS_DA_FICHA = 50_000
+
+/**
  * O resultado de escolher um PDF, com o MOTIVO quando não deu.
  *
  * Era `PickedPdf | null`, e o `null` significava só "o usuário fechou o diálogo" — então tudo o que

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MAXIMO_DE_PAGINAS_DA_FICHA } from '@shared/types/sheetImport'
+import { MAXIMO_DE_CAMPOS_DA_FICHA, MAXIMO_DE_PAGINAS_DA_FICHA, MAXIMO_DE_TEXTOS_DA_FICHA } from '@shared/types/sheetImport'
 import { sheetFromPdfDocument, type PdfLikeDocument } from './sheetFromPdfDocument'
 
 /**
@@ -63,5 +63,54 @@ describe('varredura do PDF', () => {
 
     expect(getPage).toHaveBeenCalledTimes(3)
     expect(sheet.texts).toHaveLength(2)
+  })
+})
+
+/**
+ * O TETO DE CAMPOS E DE FRAGMENTOS — achado da revisão do scraping.
+ *
+ * Bytes e páginas já tinham teto; campos e textos não, e é neles que os leitores fazem conta
+ * campo × texto. Uma página só, com cinco mil campos e duzentos mil fragmentos, cabe em poucos
+ * megabytes e congelava a interface inteira. O documento é de mentira pelo mesmo motivo dos testes
+ * de cima: o que se mede é o que a varredura GUARDA, e isso não precisa de PDF nenhum.
+ */
+describe('teto de campos e de fragmentos', () => {
+  function paginaGorda(campos: number, textos: number): PdfLikeDocument {
+    return {
+      numPages: 1,
+      getPage: async () => ({
+        getAnnotations: async () =>
+          Array.from({ length: campos }, (_, i) => ({
+            subtype: 'Widget',
+            fieldName: `campo${i}`,
+            fieldType: 'Tx',
+            fieldValue: String(i),
+            rect: [0, 0, 10, 10]
+          })),
+        getTextContent: async () => ({
+          items: Array.from({ length: textos }, (_, i) => ({ str: `t${i}`, transform: [1, 0, 0, 1, i, i] }))
+        })
+      })
+    }
+  }
+
+  it('guarda tudo quando cabe', async () => {
+    const sheet = await sheetFromPdfDocument('ok.pdf', paginaGorda(500, 900))
+    expect(sheet.fields).toHaveLength(500)
+    expect(sheet.texts).toHaveLength(900)
+  })
+
+  it('para nos tetos quando o arquivo passa deles', async () => {
+    const avisos = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const sheet = await sheetFromPdfDocument(
+      'bomba.pdf',
+      paginaGorda(MAXIMO_DE_CAMPOS_DA_FICHA + 3_000, MAXIMO_DE_TEXTOS_DA_FICHA + 40_000)
+    )
+    expect(sheet.fields).toHaveLength(MAXIMO_DE_CAMPOS_DA_FICHA)
+    expect(sheet.texts).toHaveLength(MAXIMO_DE_TEXTOS_DA_FICHA)
+    // Avisou uma vez por teto, e não uma vez por item excedente.
+    expect(avisos.mock.calls.filter(([m]) => /campos/.test(String(m)))).toHaveLength(1)
+    expect(avisos.mock.calls.filter(([m]) => /fragmentos/.test(String(m)))).toHaveLength(1)
+    avisos.mockRestore()
   })
 })

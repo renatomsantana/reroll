@@ -468,7 +468,8 @@ export async function escreverEmDisco(pasta, leva = QUINZE_PERFIS) {
     id: perfil.id,
     name: perfil.name,
     system: perfil.system,
-    photo: null,
+    // A foto entra quando a leva tem (a quarta, ver `quartaLeva.mjs`); as outras ficam sem.
+    photo: perfil.photo ?? null,
     createdAt: Date.UTC(2026, 7, 1) + i * 60_000
   }))
 
