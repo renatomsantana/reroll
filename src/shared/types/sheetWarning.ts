@@ -34,3 +34,5 @@ export type SheetWarningId =
   | 'dnd5e-magias-sem-nome'
   /** D&D 5e: nenhum nome e nenhum ataque — parece o modelo em branco baixado do site. */
   | 'dnd5e-modelo-em-branco'
+  /** Mais páginas do que uma ficha tem (`MAXIMO_DE_PAGINAS_DA_FICHA`): é um livro, e nada foi lido. */
+  | 'paginas-demais'

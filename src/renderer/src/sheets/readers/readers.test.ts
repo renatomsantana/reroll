@@ -796,3 +796,64 @@ describe('nome pela posição — o título impresso da ficha fica de fora', () 
     }
   })
 })
+
+/**
+ * O que os três LIVROS DE REGRAS de Pathfinder 2e (322 a 466 páginas) ensinaram ao importador,
+ * quando o usuário os pôs na pasta de fichas.
+ */
+describe('livro não é ficha', () => {
+  it('acima do teto de páginas: só o aviso, sem nome, sem campo, sem preset', () => {
+    const livro: PdfSheet = {
+      fileName: 'Pathfinder 2e - GM Core Remaster.pdf',
+      pageCount: 338,
+      fields: [],
+      texts: [texto('Nome: Impostor', 72, 700), texto('Você sofre 5d6 de dano', 72, 680)]
+    }
+    const lido = readSheet(livro)
+    expect(lido.warnings).toEqual(['paginas-demais'])
+    expect(lido.characterName).toBe('')
+    expect(lido.fields).toEqual([])
+    expect(lido.presets).toEqual([])
+  })
+
+  it('o campo "Character Sheet" com uma frase inteira não é nome de personagem', () => {
+    const lido = readSheet(
+      ficha(
+        [],
+        [
+          texto('Character Sheet: Each player will need a character sheet to create their character and to record what happens.', 72, 700),
+          texto('Dice: The players and GM will need at least one set of polyhedral dice.', 72, 680),
+          texto('Adventure: Every table needs an adventure to play.', 72, 660)
+        ]
+      )
+    )
+    // A frase não vira nome. (O que pode sobrar é o palpite pelo nome do ARQUIVO, que é outra regra.)
+    expect(lido.characterName).not.toMatch(/Each player/)
+    expect(lido.characterName.length).toBeLessThanOrEqual(60)
+  })
+
+  it('nome que é frase (com ponto) não é nome', () => {
+    const lido = readSheet(ficha([campo('Nome', 'Ele chegou. E ficou por lá')]))
+    expect(lido.characterName).not.toContain('Ele chegou')
+    const curto = readSheet(ficha([campo('Nome', 'Rilver')]))
+    expect(curto.characterName).toBe('Rilver')
+  })
+
+  it('preset do texto precisa da FORMA de arma: nome antes do dado, no máximo uma palavra depois', () => {
+    const lido = readSheet(
+      ficha(
+        [],
+        [
+          texto('Espada longa 1d8 cortante', 72, 700),
+          texto('Shortbow 1d8 P', 72, 685),
+          texto('2d6 bludgeoning', 72, 670),
+          texto('You take 5d6 damage of the', 72, 655),
+          texto('every 1d20 minutes (1 day)', 72, 640),
+          texto('enfeebled 4 (1 day);', 72, 625)
+        ]
+      )
+    )
+    const nomes = (lido.presets ?? []).map((p) => p.name)
+    expect(nomes).toEqual(['Espada longa 1d8 cortante', 'Shortbow 1d8 P'])
+  })
+})

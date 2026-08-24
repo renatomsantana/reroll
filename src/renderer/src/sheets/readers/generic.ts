@@ -1,4 +1,10 @@
-import type { PdfSheet, SheetImport, SheetImportField, SheetImportPreset } from '@shared/types/sheetImport'
+import {
+  MAXIMO_DE_PAGINAS_DA_FICHA,
+  type PdfSheet,
+  type SheetImport,
+  type SheetImportField,
+  type SheetImportPreset
+} from '@shared/types/sheetImport'
 import type { SheetWarningId } from '@shared/types/sheetWarning'
 import { parseDiceExpression } from '@shared/dice/parseDiceExpression'
 import { labelFromFieldName, rotulosExclusivos } from '../labelForField'
@@ -110,6 +116,15 @@ export function extrairGenerico(
   let rawText: string | undefined
 
   const preenchidos = sheet.fields.filter((campo) => valorDeFicha(campo.value, campo.type) !== null)
+
+  /**
+   * LIVRO, não ficha. Acima do teto de páginas a varredura não leu nada (ver `sheetFromPdfDocument`),
+   * e o que se devolve é o aviso — sem nome, sem campo, sem preset. Sem este corte, os avisos de
+   * "PDF sem texto" e "sem formulário" seriam verdadeiros e enganosos ao mesmo tempo.
+   */
+  if (sheet.pageCount > MAXIMO_DE_PAGINAS_DA_FICHA) {
+    return { readerId, readerLabel, confidence, characterName: '', system: '', fields, presets, warnings: ['paginas-demais'] }
+  }
 
   /**
    * A ficha que é ARTE COM ANOTAÇÃO por cima é um caminho à parte, e não uma variação do de texto.
@@ -316,26 +331,21 @@ function presetsDoTexto(sheet: PdfSheet): SheetImportPreset[] {
 }
 
 /**
- * A notação de dado no FIM da linha, com nada depois além do modificador — "Espingarda calibre 12
- * dano 2d6+4". É a forma de toda linha de arma; uma regra escrita em corrido ("dano de queda é 1d6
- * por 3 metros") tem palavras depois do dado.
- */
-const TERMINA_COM_DADO = /\d*\s*[dD]\s*\d+(?:\s*[+-]\s*\d+)?\s*$/
-
-/**
- * O TAMANHO de um nome de rolagem.
+ * A FORMA de uma linha de arma: um NOME antes do dado, e no máximo UMA palavra depois dele — o tipo
+ * de dano, como em "Espada longa 1d8 cortante" ou "Shortbow 1d8 P".
  *
- * Até 28 caracteres, qualquer linha com dado e nome passa — "Adaga 1d4+2", "Espada Longa 1d8". A
- * quinta leva de PDFs de teste pegou o que ficava de fora: "Espingarda calibre 12  dano 2d6+4", 33
- * caracteres, uma arma escrita como toda ficha datilografada escreve, cortada só pelo tamanho.
- * Subir o teto pra todo mundo abriria a porta pra regra impressa em corrido, que é o que os 28
- * existem pra barrar; então a linha mais longa só passa quando o DADO FECHA a linha — que é a
- * forma de arma, e não a de frase. Quarenta e oito é o teto absoluto: mais que isso é parágrafo.
+ * Esta régua já foi só de TAMANHO (28 caracteres, depois 48 com o dado fechando a linha). Os livros
+ * de regras de Pathfinder 2e mostraram o que passava por ela: "You take 5d6 damage of the", "every
+ * 1d20 minutes (1 day)", "2d6 bludgeoning" — frase com o dado no meio, ou célula de dano sem nome
+ * nenhum antes. A forma de arma é o que toda ficha datilografada escreve ("Faca de cozinha  dano
+ * 1d4+2", "Espingarda calibre 12  dano 2d6+4"), e é o que a frase corrida não tem. Quarenta e oito
+ * caracteres continua sendo o teto: mais que isso é parágrafo.
  */
+const LINHA_DE_ARMA = /^(?:.*?\p{L}.*?)\s+\d*[dD]\d+(?:\s*[+-]\s*\d+)?(?:\s+[\p{L}()]+)?\s*$/u
+
 function cabeComoNomeDeRolagem(texto: string): boolean {
-  if (texto.length <= 28) return true
   if (texto.length > 48) return false
-  return TERMINA_COM_DADO.test(texto)
+  return LINHA_DE_ARMA.test(texto)
 }
 
 /**
@@ -435,6 +445,13 @@ const PALAVRAS_MINIMAS = 4
 
 function leuAlgumaCoisa(sheet: PdfSheet, fields: SheetImportField[], presets: SheetImportPreset[]): boolean {
   if (fields.length > 0 || presets.length > 0) return true
+  /**
+   * Formulário com todos os campos vazios é o MODELO EM BRANCO, por mais texto impresso que tenha —
+   * a ficha oficial de Pathfinder 2e traz instruções de quatro palavras em toda caixa, e ganhava
+   * "RemasterPlayerCoreCharacterSheet Form Fillable" como nome de personagem. O texto só conta como
+   * conteúdo em documento SEM formulário, que é a ficha datilografada.
+   */
+  if (sheet.fields.length > 0) return false
   return sheet.texts.some((texto) => ehLinhaDeConteudo(texto.text))
 }
 
@@ -492,9 +509,31 @@ function nomeDeArquivoComoPalpite(fileName: string, readerId: string, leuAlgo: b
  * Separada de `acharNome` porque os dois caminhos do leitor genérico precisam dela e só um tinha:
  * o de formulário e o de ficha sem formulário. Ver o comentário em `anotacaoSobreImagem`.
  */
+/**
+ * "Character Sheet" e "Ficha de personagem" começam como o rótulo do nome e são o TÍTULO da ficha —
+ * e a palavra que denuncia é "sheet"/"ficha", não "character"/"personagem", que são exatamente os
+ * rótulos legítimos do campo de nome ("Personagem" em Ordem Paranormal, "Character Name" em D&D).
+ */
+const ROTULO_DE_TITULO = /\b(ficha|sheet)\b/i
+
 function palpiteDoCampoDeNome(fields: SheetImportField[]): string {
-  const doCampo = fields.find((campo) => NOME_DO_PERSONAGEM.test(campo.label))
-  return doCampo?.value?.trim() ?? ''
+  const doCampo = fields.find((campo) => NOME_DO_PERSONAGEM.test(campo.label) && !ROTULO_DE_TITULO.test(campo.label))
+  const valor = doCampo?.value?.trim() ?? ''
+  return pareceNomeDePersonagem(valor) ? valor : ''
+}
+
+/**
+ * Um NOME cabe numa linha e não é frase.
+ *
+ * O livro de regras de Pathfinder 2e (466 páginas, lido como se fosse ficha antes do teto de
+ * páginas) tinha na prosa o par "Character Sheet: Each player will need a character sheet to create
+ * their character…", e a frase inteira virou o nome proposto — duzentos caracteres, com ponto final.
+ * Sessenta caracteres cabem em "Alexandre Guilherme de Souza Menezes Filho"; ponto seguido de espaço,
+ * ou no fim, é frase.
+ */
+export function pareceNomeDePersonagem(valor: string): boolean {
+  if (!valor || valor.length > 60) return false
+  return !/\.\s|\.$/.test(valor)
 }
 
 /**
