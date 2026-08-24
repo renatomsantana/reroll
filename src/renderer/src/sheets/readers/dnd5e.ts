@@ -295,14 +295,31 @@ export const dnd5eReader: SheetReader = {
       return null
     }
 
+    /**
+     * A ficha É DE ALGUÉM? O corte é o nome do personagem, como no leitor de Ordem Paranormal: é o
+     * que separa a ficha em uso do modelo em branco baixado do site da Wizards.
+     */
+    const nome = valorDeFicha(porNome.get('charactername')?.value) ?? ''
+    const temDono = nome !== ''
+
     const campos: SheetImportField[] = []
+    /**
+     * `sempre` traz o campo MESMO VAZIO — é o esqueleto de lacunas, pedido do usuário: "coloca
+     * lacunas para TUDO que é preenchível, porque às vezes precisamos preencher no app também mesmo
+     * que não tenha, porque é um item novo na sessão". O leitor de Ordem Paranormal já fazia isso; o
+     * de D&D descartava tudo o que estivesse em branco, e uma ficha de nível 1 com três perícias
+     * treinadas chegava com três linhas de perícia, sem lugar pra anotar a quarta. Só quando a ficha
+     * tem dono: no modelo em branco, seriam quarenta linhas vazias.
+     */
     const push = (
       label: string,
       bruto: string | null,
       group: string,
-      roll?: SheetImportField['roll']
+      roll?: SheetImportField['roll'],
+      sempre = false
     ): void => {
       if (bruto) campos.push({ label, value: bruto, group, roll })
+      else if (sempre && temDono) campos.push({ label, value: '', group, roll })
     }
 
     const grupo = {
@@ -315,23 +332,23 @@ export const dnd5eReader: SheetReader = {
       inventario: nesteIdioma(GRUPOS.inventario)
     }
 
-    for (const campo of IDENTIFICACAO) push(nesteIdioma(campo), valor(campo.name), grupo.identificacao)
+    for (const campo of IDENTIFICACAO) push(nesteIdioma(campo), valor(campo.name), grupo.identificacao, undefined, true)
 
     campos.push(...atributos(valor, nesteIdioma, grupo.atributos))
 
-    for (const campo of SALVAGUARDAS) push(nesteIdioma(campo), valor(campo.name), grupo.salvaguardas, 'd20')
-    for (const campo of PERICIAS) push(nesteIdioma(campo), valor(campo.name), grupo.pericias, 'd20')
-    for (const campo of COMBATE) push(nesteIdioma(campo), valor(campo.name), grupo.combate, campo.roll)
+    for (const campo of SALVAGUARDAS) push(nesteIdioma(campo), valor(campo.name), grupo.salvaguardas, 'd20', true)
+    for (const campo of PERICIAS) push(nesteIdioma(campo), valor(campo.name), grupo.pericias, 'd20', true)
+    for (const campo of COMBATE) push(nesteIdioma(campo), valor(campo.name), grupo.combate, campo.roll, true)
 
     /**
-     * A CD e a classe conjuradora só entram numa ficha que tenha magia. Quem joga de guerreiro não
-     * quer uma seção "Magia" com três campos vazios — e como `push` descarta valor vazio, isso sai
-     * de graça.
+     * A seção de MAGIA entra como lacuna também numa ficha com dono — o guerreiro de hoje é o
+     * multiclasse de amanhã, e a página de conjuração da ficha oficial é preenchível como qualquer
+     * outra. Esta regra já foi "só se tiver magia", e mudou com o pedido das lacunas (ver `push`).
      */
-    push(nesteIdioma(TEXTO.classeConjuradora), valorPorPrefixo(CLASSE_CONJURADORA), grupo.magia)
-    push(nesteIdioma(TEXTO.atributoConjurador), valorPorPrefixo(ATRIBUTO_CONJURADOR), grupo.magia)
-    push(nesteIdioma(TEXTO.cdDeMagia), valorPorPrefixo(CD_DE_MAGIA), grupo.magia)
-    push(nesteIdioma(TEXTO.ataqueMagico), valorPorPrefixo(ATAQUE_MAGICO), grupo.magia, 'd20')
+    push(nesteIdioma(TEXTO.classeConjuradora), valorPorPrefixo(CLASSE_CONJURADORA), grupo.magia, undefined, true)
+    push(nesteIdioma(TEXTO.atributoConjurador), valorPorPrefixo(ATRIBUTO_CONJURADOR), grupo.magia, undefined, true)
+    push(nesteIdioma(TEXTO.cdDeMagia), valorPorPrefixo(CD_DE_MAGIA), grupo.magia, undefined, true)
+    push(nesteIdioma(TEXTO.ataqueMagico), valorPorPrefixo(ATAQUE_MAGICO), grupo.magia, 'd20', true)
 
     for (const campo of TEXTOS) push(nesteIdioma(campo), valor(campo.name), nesteIdioma(campo.grupo))
 
@@ -370,7 +387,6 @@ export const dnd5eReader: SheetReader = {
      * nome com seis atributos vazios. O sinal é o mesmo que o leitor genérico usa: nenhum nome
      * escrito e nenhuma rolagem.
      */
-    const nome = valorDeFicha(porNome.get('charactername')?.value) ?? ''
     if (!nome && presets.length === 0) avisos.push('dnd5e-modelo-em-branco')
 
     return {

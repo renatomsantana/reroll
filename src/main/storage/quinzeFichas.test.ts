@@ -10,6 +10,8 @@ import { QUINZE_PERFIS, notesDoPerfil } from '../../../scripts/quinzePerfis.mjs'
 import { SEGUNDA_LEVA } from '../../../scripts/segundaLeva.mjs'
 // @ts-expect-error — a terceira leva, a pesada: muito texto, muitos campos, muitas sessões.
 import { TERCEIRA_LEVA } from '../../../scripts/terceiraLeva.mjs'
+// @ts-expect-error — a quarta leva: ficha completa, com foto nos três formatos aceitos.
+import { QUARTA_LEVA } from '../../../scripts/quartaLeva.mjs'
 
 /**
  * QUINZE PERSONAGENS COM QUINZE FICHAS DIFERENTES — o teto do app (`MAX_PROFILES`) com dado de
@@ -202,6 +204,54 @@ describe('a terceira leva: volume e sessões que sobrevivem à troca de perfil',
     const doPrimeiro = await app.notes.get()
     expect(doPrimeiro.pages).toHaveLength(fichaDe(primeiro).pages.length + 1)
     expect(doPrimeiro.pages.at(-1)?.title).toBe('Sessão nova')
+  })
+})
+
+/**
+ * A QUARTA LEVA — ficha COMPLETA e FOTO em todos (ver `scripts/quartaLeva.mjs`).
+ *
+ * O que ela testa que as outras não podiam: a foto atravessando a fronteira que a revisão de
+ * segurança acabou de cercar. `normalizeProfiles` só aceita imagem embutida (PNG/JPEG/WebP) — as
+ * quinze vêm nos três formatos de propósito, e a ida e volta pelo repositório tem que devolver cada
+ * uma inteira. Foto que some no caminho é o personagem aparecendo como "sem foto" depois de a
+ * pessoa ter escolhido uma.
+ */
+describe('a quarta leva: ficha completa, com foto', () => {
+  const QUARTA = QUARTA_LEVA as (PerfilDeTeste & { photo: string })[]
+
+  it('tem quinze, todos com foto, nos três formatos', () => {
+    expect(QUARTA).toHaveLength(MAX_PROFILES)
+    const formatos = new Set(QUARTA.map((p) => p.photo.slice(11, 15)))
+    expect(QUARTA.every((p) => p.photo.startsWith('data:image/'))).toBe(true)
+    expect([...formatos].sort()).toEqual(['jpeg', 'png;', 'webp'])
+  })
+
+  it('nenhum campo de ficha fica vazio — é a leva do personagem em dia', () => {
+    const vazios = QUARTA.flatMap((perfil) =>
+      fichaDe(perfil).sections.flatMap((secao: { fields: { label: string; value: string }[] }) =>
+        secao.fields.filter((campo) => campo.value === '').map((campo) => `${perfil.name}: ${campo.label}`)
+      )
+    )
+    expect(vazios).toEqual([])
+  })
+
+  it('a foto vai e volta inteira pelo repositório de perfis, nos três formatos', async () => {
+    const app = await abrirOApp()
+    const lista = QUARTA.map((perfil, i) => ({
+      id: perfil.id,
+      name: perfil.name,
+      system: perfil.system,
+      photo: perfil.photo,
+      createdAt: 900 + i
+    }))
+    await app.profiles.save({ profiles: lista, activeId: QUARTA[0].id })
+
+    const depois = await abrirOApp()
+    const estado = await depois.profiles.get()
+    for (const perfil of QUARTA) {
+      const gravado = estado.profiles.find((p) => p.id === perfil.id)
+      expect(gravado?.photo, `foto de ${perfil.name}`).toBe(perfil.photo)
+    }
   })
 })
 

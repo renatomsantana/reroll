@@ -168,10 +168,30 @@ describe('o que a ficha de D&D 5e entrega', () => {
     })
     // Salvaguarda e perícia têm o mesmo nome em D&D ("Destreza"), e por isso vivem em GRUPOS
     // diferentes: na ficha elas viram duas seções, cada uma com o nome do sistema.
-    const salvaguardas = lido.fields.filter((c) => c.group === 'Salvaguardas').map((c) => c.label)
+    const salvaguardas = lido.fields.filter((c) => c.group === 'Salvaguardas' && c.value).map((c) => c.label)
     expect(salvaguardas).toEqual(['Destreza', 'Carisma'])
-    // Perícia não preenchida não vira linha vazia — a ficha tem dezoito e ninguém treina todas.
-    expect(lido.fields.filter((c) => c.group === 'Perícias')).toHaveLength(3)
+    // Três perícias PREENCHIDAS — as outras quinze vêm como lacuna, ver o teste do esqueleto.
+    expect(lido.fields.filter((c) => c.group === 'Perícias' && c.value)).toHaveLength(3)
+  })
+
+  it('a ficha COM DONO traz o esqueleto inteiro como lacuna; o modelo em branco, não', () => {
+    /**
+     * Pedido do usuário: "coloca lacunas para TUDO que é preenchível, porque às vezes precisamos
+     * preencher no app também mesmo que não tenha, porque é um item novo na sessão". A ficha de
+     * D&D tem dezoito perícias e ninguém treina todas — mas a que não está treinada hoje pode estar
+     * na próxima sessão, e sem a linha não há onde escrever. O leitor de Ordem Paranormal já fazia
+     * isso; este descartava o que estivesse em branco.
+     */
+    const pericias = lido.fields.filter((c) => c.group === 'Perícias')
+    expect(pericias).toHaveLength(18)
+    expect(pericias.filter((c) => c.value === '')).toHaveLength(15)
+    expect(lido.fields.filter((c) => c.group === 'Salvaguardas')).toHaveLength(6)
+    // A lacuna continua rolando: quando a pessoa preencher, o botão de dado já está lá.
+    expect(pericias.every((c) => c.roll === 'd20')).toBe(true)
+
+    // O corte é o nome: o modelo em branco (sem `CharacterName`) não ganha quarenta linhas vazias.
+    const emBranco = readSheet(ficha([...ATRIBUTOS, ...MARCAS]))
+    expect(emBranco.fields.filter((c) => c.group === 'Perícias')).toEqual([])
   })
 
   it('a iniciativa rola, e a CA e o deslocamento NÃO', () => {

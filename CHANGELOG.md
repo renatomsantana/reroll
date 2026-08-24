@@ -31,6 +31,23 @@ Revisão de segurança do app inteiro, com o que foi MEDIDO e não suposto.
   tinham limite; o `.json` era lido inteiro e analisado fosse do tamanho que fosse. Lista maior que
   o teto é recusada dizendo quantos tem — não importa os primeiros quinhentos calado.
 
+- **A varredura do PDF ganha teto de campos (5 mil) e de fragmentos de texto (50 mil).** Bytes e
+  páginas já tinham teto; campos e textos não — e é neles que os leitores fazem conta campo × texto.
+  Uma página só com cinco mil campos e duzentos mil fragmentos cabe em poucos megabytes e congelava
+  a interface inteira sem botão de cancelar. A maior ficha real tem 458 campos e 886 fragmentos.
+
+### Mudado
+
+- **O leitor de D&D 5e também traz as lacunas.** O de Ordem Paranormal já trazia o esqueleto inteiro
+  (perícias, rituais, itens) em ficha com dono; o de D&D descartava tudo o que estivesse em branco, e
+  uma ficha de nível 1 chegava com três perícias e nenhum lugar pra anotar a quarta. Agora as dezoito
+  perícias, as seis salvaguardas, o combate e a página de magia vêm inteiros — vazios onde a ficha
+  está vazia — quando há nome de personagem. O modelo em branco continua enxuto.
+- **Quarta leva de personagens de teste (`scripts/quartaLeva.mjs`): ficha completa e FOTO em todos**,
+  nos três formatos que a fronteira aceita. Conferido no app: as quinze fotos aparecem no seletor,
+  as sessões de cada um continuam iguais depois de passar por todos, e trocar a cor do dado em dois
+  não vaza pros outros treze.
+
 O que foi conferido e está certo, pra não ser reconferido: sandbox, isolamento de contexto e Node
 desligados no renderer; CSP sem `unsafe-eval`; permissões todas negadas; rede só pro caminho da
 atualização (GitHub, HTTPS); navegação e `webview` bloqueados; menu e DevTools fora da versão

@@ -1,5 +1,7 @@
 import {
+  MAXIMO_DE_CAMPOS_DA_FICHA,
   MAXIMO_DE_PAGINAS_DA_FICHA,
+  MAXIMO_DE_TEXTOS_DA_FICHA,
   type PdfField,
   type PdfSheet,
   type PdfText
@@ -120,6 +122,14 @@ export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocumen
         }
         if (anotacao.subtype !== 'Widget') continue
         if (typeof anotacao.fieldName !== 'string' || !anotacao.fieldName) continue
+        // Ver `MAXIMO_DE_CAMPOS_DA_FICHA`: a partir daqui o resto é ignorado, com aviso.
+        if (fields.length >= MAXIMO_DE_CAMPOS_DA_FICHA) {
+          if (fields.length === MAXIMO_DE_CAMPOS_DA_FICHA) {
+            console.warn(`PDF com mais de ${MAXIMO_DE_CAMPOS_DA_FICHA} campos; ignorando o excedente.`)
+            fields.push(...[])
+          }
+          break
+        }
         fields.push({
           name: anotacao.fieldName,
           // `fieldType` vem como `unknown` do pdf.js. Mesmo motivo de `textoDePrimitivo`: um objeto
@@ -138,6 +148,13 @@ export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocumen
       for (const bruto of (await pagina.getTextContent()).items) {
         const item = bruto as { str?: unknown; transform?: unknown; width?: unknown; height?: unknown }
         if (typeof item.str !== 'string' || !item.str.trim()) continue
+        // Ver `MAXIMO_DE_TEXTOS_DA_FICHA`: mesmo teto, pelo mesmo motivo.
+        if (texts.length >= MAXIMO_DE_TEXTOS_DA_FICHA) {
+          if (texts.length === MAXIMO_DE_TEXTOS_DA_FICHA) {
+            console.warn(`PDF com mais de ${MAXIMO_DE_TEXTOS_DA_FICHA} fragmentos de texto; ignorando o excedente.`)
+          }
+          break
+        }
         /**
          * `transform` é a matriz do texto; os índices 4 e 5 são a posição na página, com a origem
          * embaixo à esquerda — o MESMO referencial dos `rect` dos campos, que é o que permite
