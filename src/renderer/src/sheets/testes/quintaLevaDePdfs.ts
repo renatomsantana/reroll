@@ -421,8 +421,10 @@ export const QUINTA_LEVA: FichaDeTeste[] = [
   },
   {
     arquivo: '26-cento-e-uma-paginas.pdf',
-    proposito: 'cento e uma páginas: a varredura para no teto de cem, e o que está na página 101 não entra',
-    espera: { leitor: 'generico', nome: 'Leocádia', minimoDeCampos: 1, proibidos: [/Impostor/] },
+    proposito: 'cento e uma páginas: é livro, não ficha — avisa e não lê nada, nem a página 1',
+    // Esta expectativa já foi "lê as 100 primeiras e o nome vem da página 1". Os livros de regras de
+    // Pathfinder 2e mostraram o que isso rendia; agora, acima do teto, nada é lido.
+    espera: { leitor: 'generico', nome: '', maximoDeCampos: 0, avisos: ['paginas-demais'], proibidos: [/Impostor|Leocádia/] },
     bytes: () =>
       pdfDeVariasPaginas(
         Array.from({ length: 101 }, (_, pagina) => ({

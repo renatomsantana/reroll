@@ -4,6 +4,7 @@ import { genericReader } from './generic'
 import { ordemParanormalReader } from './ordemParanormal'
 import { oblivioReader } from './oblivio'
 import { dnd5eReader } from './dnd5e'
+import { pathfinder2eReader } from './pathfinder2e'
 import type { SheetReader } from './types'
 
 /**
@@ -21,6 +22,7 @@ export const SHEET_READERS: SheetReader[] = [
   ordemParanormalReader,
   oblivioReader,
   dnd5eReader,
+  pathfinder2eReader,
   genericReader
 ]
 

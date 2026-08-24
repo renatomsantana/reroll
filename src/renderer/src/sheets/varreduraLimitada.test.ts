@@ -32,12 +32,26 @@ describe('varredura do PDF', () => {
     expect(sheet.texts).toHaveLength(5)
   })
 
-  it('para no limite quando o arquivo declara páginas demais', async () => {
+  it('acima do teto de páginas não lê NADA — é livro, não ficha', async () => {
+    /**
+     * Esta regra já foi "lê as 100 primeiras e para". Os livros de regras de Pathfinder 2e (322 a
+     * 466 páginas) mostraram o que isso rendia: campos tirados da prosa, presets de regra e um nome
+     * de personagem com uma frase inteira. Agora o documento acima do teto volta vazio, com o
+     * `pageCount` real, e o leitor avisa (`paginas-demais`).
+     */
     const { doc, getPage } = documentoDeMentira(50_000)
     const sheet = await sheetFromPdfDocument('bomba.pdf', doc)
 
-    expect(getPage).toHaveBeenCalledTimes(MAXIMO_DE_PAGINAS_DA_FICHA)
-    expect(sheet.texts).toHaveLength(MAXIMO_DE_PAGINAS_DA_FICHA)
+    expect(getPage).not.toHaveBeenCalled()
+    expect(sheet.texts).toEqual([])
+    expect(sheet.fields).toEqual([])
+    expect(sheet.pageCount).toBe(50_000)
+
+    // No teto exato, lê tudo.
+    const noLimite = documentoDeMentira(MAXIMO_DE_PAGINAS_DA_FICHA)
+    const lida = await sheetFromPdfDocument('grande.pdf', noLimite.doc)
+    expect(noLimite.getPage).toHaveBeenCalledTimes(MAXIMO_DE_PAGINAS_DA_FICHA)
+    expect(lida.texts).toHaveLength(MAXIMO_DE_PAGINAS_DA_FICHA)
   })
 
   it('devolve o número REAL de páginas, e não o número lido', async () => {

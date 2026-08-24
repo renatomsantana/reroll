@@ -166,3 +166,19 @@ describe('parseTestBonus — a coluna TESTE, que traz só o bônus', () => {
     expect(parseTestBonus('1d20+7')).toBeNull()
   })
 })
+
+describe('o "d" colado nos números — achado dos livros de regras de Pathfinder 2e', () => {
+  it('"enfeebled 4" e "colored 20" não são dados', () => {
+    expect(parseDiceExpression('enfeebled 4 (1 day)')).toBeNull()
+    expect(parseDiceExpression('colored 20')).toBeNull()
+    // Com a quantidade na frente, o espaço em volta do "d" continua valendo — é assim que ficha datilografada escreve.
+    expect(parseDiceExpression('Dano: 1 d 8')?.expression.groups).toEqual([{ sides: 8, count: 1 }])
+  })
+
+  it('o que toda ficha escreve continua lendo', () => {
+    expect(parseDiceExpression('Espada d8')?.expression.groups).toEqual([{ sides: 8, count: 1 }])
+    expect(parseDiceExpression('d20')?.expression.groups).toEqual([{ sides: 20, count: 1 }])
+    expect(parseDiceExpression('1D8+2')?.expression.modifiers).toEqual([{ type: 'flat', value: 2 }])
+    expect(parseDiceExpression('2d6 + 3')?.expression.modifiers).toEqual([{ type: 'flat', value: 3 }])
+  })
+})

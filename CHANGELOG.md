@@ -6,6 +6,40 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [Não publicado]
+
+O que as fichas de Pathfinder 2e que o usuário pôs na pasta ensinaram ao importador — uma
+preenchida (o Rilver), três modelos em branco, a ficha oficial da Paizo e três livros de regras.
+
+### Adicionado
+
+- **Leitor de Pathfinder 2e** (`readers/pathfinder2e.ts`), pra família de fichas preenchíveis
+  "Ficha Editável com Cálculos" — a que tem nomes de campo com significado (`Character Name`,
+  `STRENGTH STAT`, `FORTITUDE`, `MELEE STRIKE 1 DAMAGE`). Identificação, atributos (o modificador,
+  com sinal), salvaguardas, as dezesseis perícias e os dois Conhecimentos, percepção, CA, CD de
+  classe, PV máximo (e PV atual como lacuna, que o modelo não tem), deslocamento, pontos de herói,
+  ataques corpo a corpo e à distância como presets de ataque e dano, proficiências, magia quando há,
+  ações e reações, talentos, inventário com volume e moedas. Total de perícia ou salvaguarda que o
+  PDF deixou vazio (ele calcula por JavaScript e só grava quando alguém toca) é refeito da soma dos
+  componentes — conferido na ficha real: 7 = Destreza 4 + proficiência 3. A grade à distância do
+  modelo numera nome e dano em `4/5/6` e o bônus em `1/2/3`; o leitor lê as duas numerações.
+  A ficha oficial da Paizo nomeia os campos como `text_15gujr` e fica no leitor genérico.
+
+### Corrigido
+
+- **Livro não é ficha.** Um PDF com mais de 100 páginas não é lido — antes a varredura lia as 100
+  primeiras, e os livros de regras de Pathfinder (322 a 466 páginas) rendiam "campos" tirados da
+  prosa, presets de regra ("You take 5d6 damage of the") e um nome de personagem com uma frase
+  inteira. Agora a conferência diz "é um livro, não uma ficha" e não traz nada.
+- **"enfeebled 4" não é 1d4.** A notação de dado sem quantidade na frente só vale com o `d` colado
+  no número e fora de palavra; "2 d 6" com a quantidade continua lendo.
+- **Nome de personagem não é frase**: um campo "Character Sheet" com duzentos caracteres e ponto
+  final não vira nome; e um formulário todo em branco não ganha o nome do arquivo, por mais texto
+  impresso que tenha (a oficial da Paizo em branco propunha "RemasterPlayerCoreCharacterSheet Form
+  Fillable").
+- **Preset do texto impresso exige a forma de arma**: nome antes do dado e no máximo uma palavra
+  depois ("Espada longa 1d8 cortante"); "2d6 bludgeoning" e "every 1d20 minutes" ficam de fora.
+
 ## [1.1.0-beta.1] — 2026-08-24
 
 Começa o BETA — entregue À MÃO a alguns testadores, sem publicação no GitHub: quem está no 1.0.12

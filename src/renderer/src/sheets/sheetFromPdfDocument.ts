@@ -93,10 +93,18 @@ export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocumen
    * `sem-formulario` (ver `sheetWarning.ts`) dizem "nenhuma das N páginas tinha texto", e mentir o N
    * pra 100 transformaria um aviso correto numa informação errada sobre o arquivo da pessoa.
    */
-  const ate = Math.min(pageCount, MAXIMO_DE_PAGINAS_DA_FICHA)
-  if (pageCount > ate) {
-    console.warn(`PDF com ${pageCount} páginas; lendo só as ${ate} primeiras.`)
+  /**
+   * Acima do teto NÃO se lê nada. Esta regra já foi "lê as 100 primeiras": medido com os três livros
+   * de regras de Pathfinder 2e (322 a 466 páginas) que o usuário pôs na pasta de fichas, isso rendia
+   * "campos" tirados da prosa, presets de regra ("You take 5d6 damage of the") e um nome de
+   * personagem com uma frase inteira. Um PDF com mais de 100 páginas é um livro, não uma ficha; o
+   * leitor avisa (`paginas-demais`, ver `sheetWarning.ts`) a partir do `pageCount`.
+   */
+  if (pageCount > MAXIMO_DE_PAGINAS_DA_FICHA) {
+    console.warn(`PDF com ${pageCount} páginas — acima do teto de ${MAXIMO_DE_PAGINAS_DA_FICHA}; não é ficha.`)
+    return { fileName, pageCount, fields, texts }
   }
+  const ate = pageCount
 
   for (let numeroPagina = 1; numeroPagina <= ate; numeroPagina++) {
     /**

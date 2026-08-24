@@ -65,6 +65,24 @@ export interface ParsedDiceExpression {
  */
 const TOKEN = /(\d*)\s*[dD]\s*(\d+)|([+-])\s*(\d+)(?![\d\s]*[dD]\s*\d)/g
 
+/**
+ * Um `d` SEM quantidade na frente só é dado se estiver colado no número de lados e não for o fim de
+ * uma palavra: "d8" e "Espada d8" são dados; "enfeebled 4" e "colored 20" não. Os dois últimos
+ * casavam a expressão acima (o `\s*` depois do `d` existe pra "2 d 6", escrito assim em ficha
+ * datilografada) e os livros de regras de Pathfinder 2e renderam presets como "enfeebled 4 (1 day);"
+ * por causa disso. Com uma quantidade na frente ("2 d 6", "3D10") o espaço continua valendo.
+ */
+function ehDadoDeVerdade(input: string, match: RegExpExecArray): boolean {
+  const [inteiro, quantidade] = match
+  if (quantidade !== '' && quantidade !== undefined) return true
+  // O casamento pode começar no espaço antes do `d` (o `\s*` da expressão): " d8" é "d8".
+  const semEspaco = inteiro.trimStart()
+  if (!/^[dD]\d/.test(semEspaco)) return false
+  const inicioDoD = match.index + (inteiro.length - semEspaco.length)
+  const anterior = inicioDoD > 0 ? input[inicioDoD - 1] : ''
+  return !/\p{L}/u.test(anterior)
+}
+
 export function parseDiceExpression(input: string): ParsedDiceExpression | null {
   if (!input) return null
 
@@ -80,6 +98,7 @@ export function parseDiceExpression(input: string): ParsedDiceExpression | null 
     const [inteiro, quantidade, lados, sinal, valor] = match
 
     if (lados !== undefined) {
+      if (!ehDadoDeVerdade(input, match)) continue
       const sides = Number(lados)
       const count = quantidade === '' || quantidade === undefined ? 1 : Number(quantidade)
       // Tipo que o app não rola, ou quantidade impossível: para a leitura aqui. Não é "ignora e

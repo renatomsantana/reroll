@@ -646,7 +646,9 @@ export const translations: Record<Language, TranslationDict> = {
         'dnd5e-magias-sem-nome':
           'Esta ficha tem magias escritas na página de conjuração. O PDF guarda cada linha delas sem nome nenhum (só a posição na página), então não dá pra trazer o nome de cada magia — as que estiverem na caixa "Ataques e Magias" da primeira página vieram, e o resto você escreve no bloco de habilidades.',
         'dnd5e-modelo-em-branco':
-          'Não achei nome de personagem nem nenhum ataque nesta ficha — ela parece ser o modelo em branco. Confira o que veio abaixo antes de importar.'
+          'Não achei nome de personagem nem nenhum ataque nesta ficha — ela parece ser o modelo em branco. Confira o que veio abaixo antes de importar.',
+        'paginas-demais':
+          'Este PDF tem mais de 100 páginas — é um livro, não uma ficha de personagem. Nada foi lido dele.'
       }
     },
     errorBoundary: {
@@ -963,7 +965,9 @@ export const translations: Record<Language, TranslationDict> = {
         'dnd5e-magias-sem-nome':
           'This sheet has spells written on the spellcasting page. The PDF stores each of those lines with no name at all (only its position on the page), so the name of each spell cannot be brought over — whatever is in the "Attacks & Spellcasting" box on page one did come through, and you can write the rest in the abilities block.',
         'dnd5e-modelo-em-branco':
-          'I found no character name and no attack in this sheet — it looks like the blank template. Check what came through before importing.'
+          'I found no character name and no attack in this sheet — it looks like the blank template. Check what came through before importing.',
+        'paginas-demais':
+          'This PDF has more than 100 pages — it is a book, not a character sheet. Nothing was read from it.'
       }
     },
     errorBoundary: {
