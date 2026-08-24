@@ -6,7 +6,74 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
-## [Não publicado]
+## [1.0.12] — 2026-08-23
+
+**Última versão da fase alfa.** Uma rodada de testes que virou conserto: o d100 não era um dado honesto, o vidro apagava os
+números, a engrenagem sumia no modo dia, a palavra TOTAL sumia no painel, a ponte levadiça podia
+acabar no caminho dos dados e três botões do editor de preset faziam a coisa errada.
+
+> **A importação de ficha em PDF continua fora da interface.** Ela chegou a entrar marcada como
+> beta e voltou a sair na mesma rodada de testes: o que o leitor traz está certo — conferido campo
+> a campo contra as fichas reais —, mas ele ainda deixa informação de fora, como os valores ATUAIS
+> de PV, PE e Sanidade. Ficha importada pela metade é pior que ficha em branco, porque quem confia
+> no que está na tela não confere o que ficou faltando. O código todo continua no repositório e
+> coberto por testes; o que está desligado é a porta de entrada.
+
+### Corrigido
+
+- **O d100 agora é um dado honesto.** Ele tirava treze dos cem números NUNCA — não "raramente":
+  em 3000 rolagens medidas, treze faces não saíram uma única vez, enquanto a mais sortuda saía
+  quatro vezes mais que o esperado. A culpa era da forma: as facetas irregulares de um corpo quase
+  esférico apoiam de jeitos diferentes, e algumas simplesmente tombam pra vizinha antes de o dado
+  parar. É o mesmo motivo pelo qual o d100 esférico de plástico, na vida real, é conhecido por não
+  ser confiável. O dado foi refeito a partir das cem DIREÇÕES que as faces olham, em cinquenta pares
+  opostos — faces paralelas duas a duas e somando 101, como manda qualquer dado de verdade. Agora
+  todas as cem saem, e a distribuição passa no teste de honestidade junto com os outros seis. De
+  quebra, ele precisa de bem menos "cutucada" pra decidir a face: 55 em 3000 rolagens, contra 367.
+- **O acabamento de vidro apagava os números.** Medido nas 45 paletas × 4 acabamentos × 7 dados
+  (render de verdade, comparando cada dado com ele mesmo pintado sem número pra isolar a tinta): no
+  vidro, 237 das 315 combinações ficavam abaixo do limiar de leitura, contra 3 no fosco. Não era
+  cor, era o material — 55% de opacidade misturava o número com o fundo. Agora são 80%, escolhido
+  olhando os renders lado a lado: o dado continua translúcido e o número volta a aparecer.
+- **A palavra "TOTAL" sumia no painel do resultado.** O rótulo era pintado com a COR DO DADO
+  escolhida nas Preferências — casava com a mesa, mas fazia a legibilidade depender de uma escolha
+  de gosto feita em outra tela. Com dado escuro e fundo preto, saía preto no quase-preto: contraste
+  1,1, onde 1,0 é invisível. Agora o texto do painel é branco fixo (contraste 14,4), e a cor
+  escolhida continua mandando na borda e no brilho.
+- **A engrenagem das Preferências some no modo dia.** O ⚙️ é um bitmap colorido do Segoe UI Emoji,
+  prata claro: contraste 1,02 contra o cinza da barra. Emoji colorido não aceita cor, então não
+  havia como escurecê-lo. Agora a engrenagem é desenhada e herda a cor do texto: preta no dia
+  (contraste 11,5) e clara na noite (9,2). De quebra fica mais 98 — aquele Windows não tinha emoji.
+- **A ponte levadiça não fica mais no caminho da rolagem.** Fechar a ponte na Torre de enfeite e
+  depois trocar pro modo em que os dados saem pela torre deixava a folha em pé bem na boca — e sem
+  jeito de abrir, porque naquele modo o clique na ponte é ignorado de propósito. Os dados saíam
+  atravessando a madeira. Agora a ponte só fica fechada no enfeite; ao voltar pra lá, ela está como
+  você deixou.
+- **Três defeitos nos botões do editor de preset**, todos encontrados clicando um por um:
+  - o "+" da quantidade ia até 100 por grupo, num app que rola 20 dados: dava pra subir clicando,
+    ver o aviso vermelho e só então descobrir que o Salvar tinha desligado. Agora ele para no teto;
+  - o "−" de "quantos contam" ficava clicável sem efeito visível: o mostrador era limitado e o
+    valor guardado não, então os primeiros cliques não mudavam nada na tela;
+  - e o pior: salvar depois de reduzir os dados **perdia a regra de manter em silêncio**. A tela
+    dizia "os maiores"; o preset gravado somava tudo.
+
+### Interno
+
+- A matriz de rolagens virou teste: cada formato de bandeja × cada tipo de lançamento (bandeja e
+  boca da torre) × cada tipo de dado, sempre com os 20 do teto e duas rolagens seguidas, mais um
+  saco misto dos sete tipos. Aleatoriedade intacta — nada de semente fixa —, e quando falha, o teste
+  despeja posição e velocidade do dado em vez de só dizer "18 de 20". 15 rodadas, zero falhas.
+- Teste de honestidade com a bandeja cheia, por tipo e por lançamento: metade dos vinte dados
+  assenta apoiada noutro dado ou na parede, e nenhum teste via isso antes. O corte do qui-quadrado
+  passou a ser seis sigmas da própria distribuição, e não a tabela de alpha — com quatorze casos por
+  rodada, a tabela dava 1,4% de vermelho por rodada mesmo com todo dado honesto.
+- Varredura de todos os botões do app no Electron: 160 botões distintos nas quatro telas, mais nove
+  modais por dentro. Zero erro de página e zero modal travada.
+- Quinze personagens de quinze sistemas como material de teste (`scripts/quinzePerfis.mjs`), que é o
+  teto de personagens do app com ficha de verdade dentro — e que já achou dois defeitos: o bloco
+  vazio de "Atributos" duplicando nos sistemas que chamam a mesma coisa de "Características" ou
+  "Estatísticas", e a mistura de Atributos com Aspectos no leitor de Oblivio.
+- 895 testes (eram 759).
 
 Revisão de segurança do app inteiro, com o que foi MEDIDO e não suposto.
 
@@ -83,75 +150,6 @@ vulnerabilidade; e o pdf.js 6.2 já não tem o caminho de `eval` da CVE-2024-436
 O que fica como recomendação, e não como conserto: **assinar o executável** antes de distribuir
 mais largamente. Sem assinatura, a atualização automática confia só no HTTPS do GitHub — quem
 tomar a conta publica uma "atualização" que roda em todo mundo.
-
-## [1.0.12] — 2026-08-23
-
-Uma rodada de testes que virou conserto: o d100 não era um dado honesto, o vidro apagava os
-números, a engrenagem sumia no modo dia, a palavra TOTAL sumia no painel, a ponte levadiça podia
-acabar no caminho dos dados e três botões do editor de preset faziam a coisa errada.
-
-> **A importação de ficha em PDF continua fora da interface.** Ela chegou a entrar marcada como
-> beta e voltou a sair na mesma rodada de testes: o que o leitor traz está certo — conferido campo
-> a campo contra as fichas reais —, mas ele ainda deixa informação de fora, como os valores ATUAIS
-> de PV, PE e Sanidade. Ficha importada pela metade é pior que ficha em branco, porque quem confia
-> no que está na tela não confere o que ficou faltando. O código todo continua no repositório e
-> coberto por testes; o que está desligado é a porta de entrada.
-
-### Corrigido
-
-- **O d100 agora é um dado honesto.** Ele tirava treze dos cem números NUNCA — não "raramente":
-  em 3000 rolagens medidas, treze faces não saíram uma única vez, enquanto a mais sortuda saía
-  quatro vezes mais que o esperado. A culpa era da forma: as facetas irregulares de um corpo quase
-  esférico apoiam de jeitos diferentes, e algumas simplesmente tombam pra vizinha antes de o dado
-  parar. É o mesmo motivo pelo qual o d100 esférico de plástico, na vida real, é conhecido por não
-  ser confiável. O dado foi refeito a partir das cem DIREÇÕES que as faces olham, em cinquenta pares
-  opostos — faces paralelas duas a duas e somando 101, como manda qualquer dado de verdade. Agora
-  todas as cem saem, e a distribuição passa no teste de honestidade junto com os outros seis. De
-  quebra, ele precisa de bem menos "cutucada" pra decidir a face: 55 em 3000 rolagens, contra 367.
-- **O acabamento de vidro apagava os números.** Medido nas 45 paletas × 4 acabamentos × 7 dados
-  (render de verdade, comparando cada dado com ele mesmo pintado sem número pra isolar a tinta): no
-  vidro, 237 das 315 combinações ficavam abaixo do limiar de leitura, contra 3 no fosco. Não era
-  cor, era o material — 55% de opacidade misturava o número com o fundo. Agora são 80%, escolhido
-  olhando os renders lado a lado: o dado continua translúcido e o número volta a aparecer.
-- **A palavra "TOTAL" sumia no painel do resultado.** O rótulo era pintado com a COR DO DADO
-  escolhida nas Preferências — casava com a mesa, mas fazia a legibilidade depender de uma escolha
-  de gosto feita em outra tela. Com dado escuro e fundo preto, saía preto no quase-preto: contraste
-  1,1, onde 1,0 é invisível. Agora o texto do painel é branco fixo (contraste 14,4), e a cor
-  escolhida continua mandando na borda e no brilho.
-- **A engrenagem das Preferências some no modo dia.** O ⚙️ é um bitmap colorido do Segoe UI Emoji,
-  prata claro: contraste 1,02 contra o cinza da barra. Emoji colorido não aceita cor, então não
-  havia como escurecê-lo. Agora a engrenagem é desenhada e herda a cor do texto: preta no dia
-  (contraste 11,5) e clara na noite (9,2). De quebra fica mais 98 — aquele Windows não tinha emoji.
-- **A ponte levadiça não fica mais no caminho da rolagem.** Fechar a ponte na Torre de enfeite e
-  depois trocar pro modo em que os dados saem pela torre deixava a folha em pé bem na boca — e sem
-  jeito de abrir, porque naquele modo o clique na ponte é ignorado de propósito. Os dados saíam
-  atravessando a madeira. Agora a ponte só fica fechada no enfeite; ao voltar pra lá, ela está como
-  você deixou.
-- **Três defeitos nos botões do editor de preset**, todos encontrados clicando um por um:
-  - o "+" da quantidade ia até 100 por grupo, num app que rola 20 dados: dava pra subir clicando,
-    ver o aviso vermelho e só então descobrir que o Salvar tinha desligado. Agora ele para no teto;
-  - o "−" de "quantos contam" ficava clicável sem efeito visível: o mostrador era limitado e o
-    valor guardado não, então os primeiros cliques não mudavam nada na tela;
-  - e o pior: salvar depois de reduzir os dados **perdia a regra de manter em silêncio**. A tela
-    dizia "os maiores"; o preset gravado somava tudo.
-
-### Interno
-
-- A matriz de rolagens virou teste: cada formato de bandeja × cada tipo de lançamento (bandeja e
-  boca da torre) × cada tipo de dado, sempre com os 20 do teto e duas rolagens seguidas, mais um
-  saco misto dos sete tipos. Aleatoriedade intacta — nada de semente fixa —, e quando falha, o teste
-  despeja posição e velocidade do dado em vez de só dizer "18 de 20". 15 rodadas, zero falhas.
-- Teste de honestidade com a bandeja cheia, por tipo e por lançamento: metade dos vinte dados
-  assenta apoiada noutro dado ou na parede, e nenhum teste via isso antes. O corte do qui-quadrado
-  passou a ser seis sigmas da própria distribuição, e não a tabela de alpha — com quatorze casos por
-  rodada, a tabela dava 1,4% de vermelho por rodada mesmo com todo dado honesto.
-- Varredura de todos os botões do app no Electron: 160 botões distintos nas quatro telas, mais nove
-  modais por dentro. Zero erro de página e zero modal travada.
-- Quinze personagens de quinze sistemas como material de teste (`scripts/quinzePerfis.mjs`), que é o
-  teto de personagens do app com ficha de verdade dentro — e que já achou dois defeitos: o bloco
-  vazio de "Atributos" duplicando nos sistemas que chamam a mesma coisa de "Características" ou
-  "Estatísticas", e a mistura de Atributos com Aspectos no leitor de Oblivio.
-- 895 testes (eram 759).
 
 ## [1.0.11] — 2026-08-23
 
