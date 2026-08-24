@@ -39,6 +39,24 @@ export const DEFAULT_DICE_SIDES: readonly number[] = [4, 6, 8, 10, 12, 20, 100]
 export const MAX_SIMULTANEOUS_DICE = 20
 
 /**
+ * Quantos presets um personagem pode ter, e o tamanho do nome e do ícone de cada um.
+ *
+ * Vale pros TRÊS caminhos que gravam preset — o editor, a importação de arquivo e a importação de
+ * ficha —, e é cobrado no repositório, que é onde os três se encontram. A revisão de código pegou o
+ * teto anterior no lugar errado: só a importação de arquivo era limitada (500 por vez), então o
+ * próprio ciclo do app quebrava — exportar um personagem com 600 presets e não conseguir importar
+ * o próprio backup. Com o teto no total do personagem, tudo o que o app exporta ele importa de
+ * volta num personagem vazio.
+ *
+ * Dois mil é vinte vezes o que uma mesa acumula; o nome tem o mesmo teto do nome de personagem; o
+ * ícone é um emoji, e os mais longos do seletor (sequências com ZWJ) não passam de uma dúzia de
+ * unidades — 32 sobra.
+ */
+export const MAXIMO_DE_PRESETS_POR_PERSONAGEM = 2_000
+export const TAMANHO_MAXIMO_DO_NOME_DO_PRESET = 200
+export const TAMANHO_MAXIMO_DO_ICONE_DO_PRESET = 32
+
+/**
  * Quantas vezes um MESMO dado pode explodir em cadeia (ver `ExplodeRule` em `types/dice.ts`).
  *
  * Vive aqui, junto do outro teto, porque os dois protegem da mesma coisa por caminhos diferentes: um

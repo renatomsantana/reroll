@@ -705,3 +705,50 @@ describe('equipamento carregado (Oblivio)', () => {
     expect(lido.fields.filter((c) => c.group === 'Equipamento')).toEqual([])
   })
 })
+
+/**
+ * Dois achados da revisão de código sobre as LACUNAS, cada um com o cenário que escapou dos testes
+ * de então — que só cobriam a ficha em branco.
+ */
+describe('lacunas — os achados da revisão', () => {
+  it('ritual e item PREENCHIDOS entram uma vez só, com o nome da lacuna', () => {
+    /**
+     * O genérico achava "RITUAIS 1" pelo nome do campo e `lacunasNumeradas` acrescentava "Ritual 1"
+     * por cima: o mesmo ritual, duas linhas, dois rótulos. Passava porque o teste da ficha real só
+     * conferia o caso vazio (`not.toContain('Ritual 1')`).
+     */
+    const lido = readSheet(
+      ficha([
+        campo('Personagem', 'Riebeck'),
+        ...ATRIBUTOS,
+        campo('RITUAIS 1', 'Enfeitiçar'),
+        campo('ITEM 3', 'Lanterna'),
+        campo('ITEM 2_2', 'Corda')
+      ])
+    )
+    const rituais = lido.fields.filter((c) => c.group === 'Rituais' && c.value)
+    expect(rituais).toEqual([{ label: 'Ritual 1', value: 'Enfeitiçar', group: 'Rituais', fieldName: 'RITUAIS 1' }])
+    expect(lido.fields.some((c) => /^RITUAIS|^ITEM/.test(c.label))).toBe(false)
+
+    const itens = lido.fields
+      .filter((c) => c.group === 'Itens' && c.value)
+      .map((c) => `${c.label}=${c.value} (${c.fieldName})`)
+    // A numeração é pela POSIÇÃO na ordem numérica dos campos, primeira página e depois a segunda:
+    // na ficha real, que tem todos os campos, isso coincide com o número impresso.
+    expect(itens).toEqual(['Item 1=Lanterna (ITEM 3)', 'Item 2=Corda (ITEM 2_2)'])
+  })
+
+  it('formulário em branco, SEM texto impresso, não ganha o nome do arquivo como personagem', () => {
+    /**
+     * A regra anterior exigia "nenhum campo de formulário" pra chamar o arquivo de vazio — e um
+     * modelo preenchível em branco tem cinquenta campos, todos vazios, e nenhuma letra na página.
+     * Ele passava pelo buraco e propunha "Ficha Kids on Bikes" como nome do personagem.
+     */
+    const vazios = Array.from({ length: 50 }, (_, i) => campo(`campo_${i}`, ''))
+    const lido = readSheet(ficha(vazios, [], 'Ficha Kids on Bikes.pdf'))
+    expect(lido.readerId).toBe('generico')
+    expect(lido.fields).toEqual([])
+    expect(lido.characterName).toBe('')
+    expect(lido.warnings).toContain('formulario-vazio')
+  })
+})

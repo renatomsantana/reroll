@@ -2,7 +2,14 @@ import { promises as fs } from 'fs'
 import { ipcMain } from 'electron'
 import type { Preset, PresetInput } from '@shared/types/preset'
 import { IpcChannels } from '@shared/ipcChannels'
-import { DEFAULT_DICE_SIDES, MAX_EXPLOSOES_POR_DADO, MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
+import {
+  DEFAULT_DICE_SIDES,
+  MAX_EXPLOSOES_POR_DADO,
+  MAX_SIMULTANEOUS_DICE,
+  MAXIMO_DE_PRESETS_POR_PERSONAGEM,
+  TAMANHO_MAXIMO_DO_ICONE_DO_PRESET,
+  TAMANHO_MAXIMO_DO_NOME_DO_PRESET
+} from '@shared/diceRegistry'
 import { PresetsRepository } from '../storage/PresetsRepository'
 import { escolherArquivo, escolherOndeSalvar } from './dialogos'
 
@@ -18,7 +25,11 @@ export function isValidPresetInput(value: unknown): value is PresetInput {
   const preset = value as Record<string, unknown>
 
   if (typeof preset.name !== 'string' || preset.name.trim() === '') return false
+  // Teto de tamanho nos dois textos: é por aqui que passam os três caminhos que gravam preset, e um
+  // nome de dez megabytes num `presets.json` editado à mão é lido inteiro em toda abertura.
+  if (preset.name.length > TAMANHO_MAXIMO_DO_NOME_DO_PRESET) return false
   if (preset.icon !== undefined && typeof preset.icon !== 'string') return false
+  if (typeof preset.icon === 'string' && preset.icon.length > TAMANHO_MAXIMO_DO_ICONE_DO_PRESET) return false
 
   const expression = preset.expression as Record<string, unknown> | undefined
   if (typeof expression !== 'object' || expression === null) return false
@@ -156,7 +167,11 @@ export function registerPresetsHandlers(repository: PresetsRepository): void {
  * o tipo de coisa que a pessoa só descobre no meio da sessão.
  */
 export const TAMANHO_MAXIMO_DO_ARQUIVO_DE_PRESETS = 2 * 1024 * 1024
-export const MAXIMO_DE_PRESETS_POR_IMPORTACAO = 500
+/**
+ * O mesmo teto do personagem, e não um teto próprio da importação — ver
+ * `MAXIMO_DE_PRESETS_POR_PERSONAGEM`: assim tudo o que o app exporta ele importa de volta.
+ */
+export const MAXIMO_DE_PRESETS_POR_IMPORTACAO = MAXIMO_DE_PRESETS_POR_PERSONAGEM
 
 /** A leitura sem o diálogo, separada pra ser testada com arquivos de verdade. */
 export async function lerPresetsDoArquivo(caminho: string): Promise<PresetInput[]> {
@@ -175,7 +190,7 @@ export async function lerPresetsDoArquivo(caminho: string): Promise<PresetInput[
   }
   if (parsed.length > MAXIMO_DE_PRESETS_POR_IMPORTACAO) {
     throw new Error(
-      `O arquivo tem ${parsed.length} presets; o máximo por importação é ${MAXIMO_DE_PRESETS_POR_IMPORTACAO}.`
+      `O arquivo tem ${parsed.length} presets; um personagem guarda no máximo ${MAXIMO_DE_PRESETS_POR_IMPORTACAO}.`
     )
   }
 

@@ -48,6 +48,32 @@ Revisão de segurança do app inteiro, com o que foi MEDIDO e não suposto.
   as sessões de cada um continuam iguais depois de passar por todos, e trocar a cor do dado em dois
   não vaza pros outros treze.
 
+### Corrigido (revisão de código do 1.0.12)
+
+Dez achados da revisão automática, três deles consequência dos consertos de segurança acima:
+
+- **A importação de ficha voltou a ser tudo-ou-nada.** O teto das anotações podia estourar DEPOIS
+  de o personagem ter sido criado e aberto, deixando um personagem novo e vazio com um erro na tela.
+  A falha agora desfaz o perfil.
+- **O teto de presets mudou de lugar: 2.000 por personagem, cobrado no repositório** — onde o
+  editor, a importação de arquivo e a importação de ficha se encontram. O teto anterior (500 por
+  importação) quebrava o ciclo do próprio app: exportar 600 presets e não conseguir importar o
+  backup. Tudo o que o app exporta ele importa de volta. Nome e ícone de preset ganham teto também.
+- **Ritual ou item preenchido entrava duas vezes na ficha de Ordem Paranormal** — como "RITUAIS 1"
+  pelo leitor genérico e como "Ritual 1" pela lacuna. Os testes só cobriam a ficha em branco.
+- **Formulário em branco sem texto impresso não ganha mais o nome do arquivo como personagem.** A
+  regra anterior só cobria a arte achatada; um modelo preenchível com cinquenta campos vazios passava
+  pelo buraco. E a regra de "leu alguma coisa" virou uma função só pros dois caminhos do genérico,
+  que tinham fórmulas diferentes.
+- **Regra de manter sem efeito não vira regra de verdade ao salvar.** "Usar os 3 maiores" de 3 dados
+  (ou `count` zero num arquivo editado à mão) abria no editor como "2 maiores", e renomear o preset
+  gravava isso. Agora abre como "todos os dados", que é o que ela sempre foi.
+- O teto das anotações passa a medir o arquivo como ele vai pro disco (com indentação); a foto do
+  personagem é validada pelo prefixo em vez de varrer 17 MB de base64 a cada tecla no nome; e a
+  regra de "rótulo escrito pela pessoa" deixou de existir em cópia dupla.
+- **Um `.pdf` que não começa com `%PDF-` é recusado antes de atravessar o IPC** (Stage 0 do spec de
+  importação): vídeo renomeado, executável, zip.
+
 O que foi conferido e está certo, pra não ser reconferido: sandbox, isolamento de contexto e Node
 desligados no renderer; CSP sem `unsafe-eval`; permissões todas negadas; rede só pro caminho da
 atualização (GitHub, HTTPS); navegação e `webview` bloqueados; menu e DevTools fora da versão

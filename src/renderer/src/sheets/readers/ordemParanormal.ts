@@ -60,6 +60,10 @@ const COLUNA_DA_PERICIA = 1
  */
 const CAMPO_DE_BONUS = /^Bns\d*\./
 
+/** As lacunas numeradas da ficha — `RITUAIS 1`…`20`, `ITEM 1`…`11` e a segunda página `ITEM 1_2`. */
+const CAMPO_DE_RITUAL = /^RITUAIS \d+$/
+const CAMPO_DE_ITEM = /^ITEM \d+(_2)?$/
+
 /**
  * `NEXPE` — o menu que a ficha usa pro NEX. O valor dele traz DOIS números na mesma string, com um
  * punhado de espaços entre eles ("5         1"): o NEX em porcentagem e o limite de PE por turno,
@@ -255,7 +259,14 @@ export const ordemParanormalReader: SheetReader = {
         nome !== CAMPO_DE_NEX &&
         posicaoNaGrade(nome) === null &&
         !CAMPO_DE_PERICIA.test(nome) &&
-        !CAMPO_DE_BONUS.test(nome))
+        !CAMPO_DE_BONUS.test(nome) &&
+        /**
+         * As lacunas numeradas são de `lacunasNumeradas`, e SÓ dela. Sem esta linha um ritual
+         * preenchido entrava duas vezes: como "RITUAIS 1" pelo genérico e como "Ritual 1" pela
+         * lacuna — achado da revisão de código, e coberto pelo teste do ritual preenchido.
+         */
+        !CAMPO_DE_RITUAL.test(nome) &&
+        !CAMPO_DE_ITEM.test(nome))
     const restantes = base.fields.filter((campo) => foraDaLista(campo.fieldName))
 
     /**
@@ -459,7 +470,7 @@ function lacunasNumeradas(sheet: PdfSheet): SheetImportField[] {
   const porNome = (padrao: RegExp): PdfField[] =>
     sheet.fields.filter((c) => padrao.test(c.name)).sort((a, b) => numero(a.name) - numero(b.name))
 
-  for (const campo of porNome(/^RITUAIS \d+$/)) {
+  for (const campo of porNome(CAMPO_DE_RITUAL)) {
     campos.push({
       label: `Ritual ${numero(campo.name)}`,
       value: valorDeFicha(campo.value, campo.type) ?? '',
@@ -473,9 +484,7 @@ function lacunasNumeradas(sheet: PdfSheet): SheetImportField[] {
    * continua a contagem da primeira em vez de repetir "Item 1" duas vezes na ficha.
    */
   const primeiraPagina = porNome(/^ITEM \d+$/)
-  const segundaPagina = sheet.fields
-    .filter((c) => /^ITEM \d+_2$/.test(c.name))
-    .sort((a, b) => numero(a.name) - numero(b.name))
+  const segundaPagina = porNome(/^ITEM \d+_2$/)
   ;[...primeiraPagina, ...segundaPagina].forEach((campo, i) => {
     campos.push({
       label: `Item ${i + 1}`,

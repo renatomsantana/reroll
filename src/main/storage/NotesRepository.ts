@@ -53,7 +53,9 @@ export class NotesRepository {
    */
   async save(notes: NotesData): Promise<NotesData> {
     const limpo = normalizeNotes(notes)
-    const tamanho = Buffer.byteLength(JSON.stringify(limpo), 'utf-8')
+    // Medido na MESMA forma em que o `JsonFileStore` grava (com indentação): a revisão de código
+    // pegou a medida compacta, que deixava passar pro disco mais do que o teto prometia.
+    const tamanho = Buffer.byteLength(JSON.stringify(limpo, null, 2), 'utf-8')
     if (tamanho > TETO_DAS_ANOTACOES_EM_BYTES) {
       const mb = Math.round(TETO_DAS_ANOTACOES_EM_BYTES / (1024 * 1024))
       throw new Error(`As anotações passaram do limite de ${mb} MB e não foram gravadas.`)

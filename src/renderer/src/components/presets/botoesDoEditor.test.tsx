@@ -201,3 +201,50 @@ describe('botões do editor de preset', () => {
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
 })
+
+/**
+ * Achado da revisão de código: uma regra de manter SEM EFEITO ("usar os 3 maiores" de 3 dados,
+ * ou `count` zero de um `presets.json` editado à mão) virava regra de verdade só de abrir e salvar
+ * o preset pra renomear — porque o mostrador prende o valor em `total − 1` e o que está na tela é o
+ * que se grava. Prender é certo; o erro era a regra inerte chegar ao mostrador como escolha.
+ */
+describe('regra de manter que não faz nada', () => {
+  it('abre como "todos os dados", e salvar não inventa uma regra', () => {
+    const onSave = vi.fn()
+    comProvedor(
+      <PresetEditorModal
+        preset={presetDe([{ count: 3, sides: 6 }], { mode: 'highest', count: 3 })}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    )
+    expect(comoSelecao(screen.getByLabelText('No total, usar')).value).toBe('all')
+
+    fireEvent.click(screen.getByText('Salvar'))
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onSave.mock.calls[0][0].expression.keep).toBeUndefined()
+  })
+
+  it('count zero de um arquivo editado à mão também abre como "todos"', () => {
+    comProvedor(
+      <PresetEditorModal
+        preset={presetDe([{ count: 3, sides: 6 }], { mode: 'lowest', count: 0 })}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    )
+    expect(comoSelecao(screen.getByLabelText('No total, usar')).value).toBe('all')
+  })
+
+  it('a regra COM efeito continua abrindo como estava', () => {
+    comProvedor(
+      <PresetEditorModal
+        preset={presetDe([{ count: 3, sides: 6 }], { mode: 'highest', count: 2 })}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    )
+    expect(comoSelecao(screen.getByLabelText('No total, usar')).value).toBe('highest')
+    expect(contador('Quantos dados contam').valor()).toBe('2')
+  })
+})

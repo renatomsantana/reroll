@@ -78,6 +78,8 @@ describe('ler o PDF escolhido', () => {
   it('arquivo exatamente no limite ainda é aceito — o limite não pode comer o caso de borda', async () => {
     const caminho = join(pasta, 'no-limite.pdf')
     const alca = await fs.open(caminho, 'w')
+    await alca.write('%PDF-1.4\n')
+    // `truncate` pra cima estende com zeros: o cabeçalho fica, o tamanho bate no limite exato.
     await alca.truncate(TAMANHO_MAXIMO_DA_FICHA)
     await alca.close()
 
@@ -85,14 +87,19 @@ describe('ler o PDF escolhido', () => {
     expect(resultado.ok).toBe(true)
   })
 
-  it('arquivo vazio passa daqui — quem recusa PDF vazio é o pdf.js, com a mensagem certa', async () => {
+  it('arquivo vazio é recusado aqui como ilegível — zero bytes não é um PDF', async () => {
+    /**
+     * Esta regra já foi "quem recusa PDF vazio é o pdf.js": os bytes atravessavam o IPC pra
+     * falharem do outro lado. Com a conferência da assinatura `%PDF-` (Stage 0 do spec de
+     * importação), a recusa vem daqui, com o mesmo motivo que a tela já sabia mostrar.
+     */
     const caminho = join(pasta, 'vazio.pdf')
     await fs.writeFile(caminho, Buffer.alloc(0))
 
     const resultado = await lerPdfEscolhido(caminho)
-    expect(resultado.ok).toBe(true)
-    if (!resultado.ok) return
-    expect(resultado.bytes.length).toBe(0)
+    expect(resultado.ok).toBe(false)
+    if (resultado.ok) return
+    expect(resultado.motivo).toBe('ilegivel')
   })
 
   it('nome com acento, espaço e parêntese volta inteiro', async () => {
@@ -104,5 +111,28 @@ describe('ler o PDF escolhido', () => {
     expect(resultado.ok).toBe(true)
     if (!resultado.ok) return
     expect(resultado.fileName).toBe(nome)
+  })
+})
+
+/**
+ * A ASSINATURA do formato — Stage 0 do spec da importação: "verify the `%PDF-` magic bytes, not
+ * just the extension". Um `.pdf` renomeado é a coisa mais comum que chega num diálogo de arquivo.
+ */
+describe('assinatura %PDF-', () => {
+  it('um arquivo renomeado pra .pdf é recusado como ilegível, antes de atravessar o IPC', async () => {
+    const caminho = join(pasta, 'video.pdf')
+    await fs.writeFile(caminho, Buffer.from('RIFF\u0000\u0000\u0000\u0000AVI LIST'))
+    const resultado = await lerPdfEscolhido(caminho)
+    expect(resultado.ok).toBe(false)
+    if (resultado.ok) return
+    expect(resultado.motivo).toBe('ilegivel')
+    if (resultado.motivo !== 'ilegivel') return
+    expect(resultado.detalhe).toMatch(/%PDF-/)
+  })
+
+  it('cabeçalho com lixo antes do %PDF- passa — o padrão tolera até 1024 bytes', async () => {
+    const caminho = join(pasta, 'com-lixo.pdf')
+    await fs.writeFile(caminho, Buffer.from('\r\n\r\nlixo do gerador\n%PDF-1.4\n'))
+    expect((await lerPdfEscolhido(caminho)).ok).toBe(true)
   })
 })
