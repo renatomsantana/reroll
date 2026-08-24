@@ -6,12 +6,14 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
-## [Não publicado] — 1.1.0-beta.1
+## [1.1.0-beta.1] — 2026-08-24
 
-Começa o BETA. O alfa fechou no 1.0.12; o que muda de fase é a importação de ficha em PDF, que
-volta à interface marcada como beta, e a base pra ela crescer segundo o spec de importação
-(`AGENT_SPEC_pdf-import.md`): validação do arquivo, leitura, modelos por sistema, geração de
-presets e a tela de conferência — cada etapa um módulo puro com os próprios testes.
+Começa o BETA — entregue À MÃO a alguns testadores, sem publicação no GitHub: quem está no 1.0.12
+não recebe esta versão pelo atualizador. O alfa fechou no 1.0.12; o que muda de fase é a
+importação de ficha em PDF, que volta à interface marcada como beta, e a base pra ela crescer
+segundo o spec de importação (`AGENT_SPEC_pdf-import.md`): validação do arquivo, leitura, modelos
+por sistema, geração de presets e a tela de conferência — cada etapa um módulo puro com os próprios
+testes.
 
 ### Adicionado
 
@@ -53,6 +55,29 @@ presets e a tela de conferência — cada etapa um módulo puro com os próprios
   personagem ativo — foto 3×4 e nome (na Rolagem, da altura do botão ROLAR) —, só de leitura: a troca acontece num lugar só, e as
   outras abas lembram de quem se trata. (O seletor tinha entrado nas Anotações no 1.0.12, quando a
   Ficha estava fora da interface.)
+
+### Conhecido nesta beta
+
+- A bandeja ainda não rola tudo o que a gramática lê: rerolar (`r<2`), contar sucessos (`#>=5`),
+  alvo no fim (`>= 15`) e referência à ficha (`@STR.mod`) são recusados no editor de preset, com o
+  motivo escrito, em vez de rolarem.
+- A tela de conferência ainda não marca campo de confiança baixa ("confira estes") nem mostra o PDF
+  ao lado — é olhar a lista e comparar com a ficha.
+- O histórico de rolagens é da sessão do app, não do personagem, e some ao fechar.
+- As mensagens da gramática de rolagem saem em português também na interface em inglês.
+- Ficha que é IMAGEM sem camada de texto (digitalizada, foto) não rende nada — não há OCR. Numa arte
+  com anotação por cima, o nome sai como está escrito nela (minúsculas inclusive).
+
+### Para quem testa
+
+- O instalador é `Reroll-Setup-1.1.0-beta.1.exe`, entregue junto do SHA-256 dele. Antes de
+  instalar: `Get-FileHash .\Reroll-Setup-1.1.0-beta.1.exe -Algorithm SHA256` e compare.
+- Vale tentar: importar a SUA ficha (aba Ficha → "Importar ficha (PDF)") e conferir campo a campo na
+  tela de conferência antes de criar o personagem; trocar de personagem na Ficha e ver o crachá
+  acompanhar nas Anotações e na Rolagem; criar um preset pelo campo Fórmula (`4d6kh3 + 2`); anotar
+  sessões, fechar e abrir o app.
+- Achou problema? Anote o sistema da ficha, o que a conferência mostrou e o que esperava — e, se
+  puder, mande o PDF junto.
 
 ## [1.0.12] — 2026-08-23
 
