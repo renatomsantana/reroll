@@ -254,13 +254,13 @@ export default function App() {
                     enquanto a pessoa escrevia nas Anotações.
                   */
                   shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen}
-                  /* De quem são os dados — o crachá mini, ao lado do ROLAR (ver `ProfileBadge.tsx`). */
+                  /* De quem são os dados — o crachá ao lado do ROLAR (ver `ProfileBadge.tsx`). */
                   badge={
                     <ProfileBadge
                       profile={profiles.active}
                       fallbackName={t.notesTab.profileUnnamed.replace('{n}', String(indiceDoAtivo + 1))}
                       emptyPhotoLabel={t.notesTab.profilePhotoEmpty}
-                      mini
+                      variant="roll"
                     />
                   }
                 />

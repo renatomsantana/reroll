@@ -19,15 +19,19 @@ interface ProfileBadgeProps {
   /** Nome mostrado quando o personagem ainda não tem um — "Personagem 2", pela posição. */
   fallbackName: string
   emptyPhotoLabel: string
-  /** A versão MINI, da barra de rolagem: foto de 18×24 e fonte menor. */
-  mini?: boolean
+  /**
+   * Onde o crachá está. Nas Anotações a foto é a miniatura do seletor (27×36); na barra de
+   * rolagem ela cresce até a altura do botão ROLAR (39×52) — pedido do usuário ("aumenta a imagem
+   * da rolagem"), medido: o corpo da caixa "Rolagem" tem 57 px, então 52 cabe sem empurrar nada.
+   */
+  variant?: 'notes' | 'roll'
 }
 
-export function ProfileBadge({ profile, fallbackName, emptyPhotoLabel, mini = false }: ProfileBadgeProps) {
+export function ProfileBadge({ profile, fallbackName, emptyPhotoLabel, variant = 'notes' }: ProfileBadgeProps) {
   const nome = profile.name || fallbackName
   return (
     <div
-      className={`profile-badge ${mini ? 'profile-badge-mini' : ''}`}
+      className={`profile-badge ${variant === 'roll' ? 'profile-badge-roll' : ''}`}
       title={profile.system ? `${nome} — ${profile.system}` : nome}
       data-testid="profile-badge"
     >

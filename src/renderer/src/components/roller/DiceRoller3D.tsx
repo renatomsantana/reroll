@@ -72,8 +72,8 @@ interface DiceRoller3DProps {
   shortcutsEnabled?: boolean
   /**
    * O crachá do personagem ativo (foto e nome), desenhado ao lado do ROLAR — pedido do usuário
-   * ("em Rolagem colocar também uma mini fotinha e nome"). Vem de fora porque quem sabe de
-   * personagem é o `App`; a bandeja só reserva o lugar.
+   * ("em Rolagem colocar também uma fotinha e nome", e depois "aumenta a imagem da rolagem"). Vem
+   * de fora porque quem sabe de personagem é o `App`; a bandeja só reserva o lugar.
    */
   badge?: ReactNode
 }

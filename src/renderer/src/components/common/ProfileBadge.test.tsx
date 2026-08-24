@@ -44,10 +44,12 @@ describe('o crachá do personagem', () => {
     expect(document.querySelector('.profile-select')).toBeNull()
   })
 
-  it('a versão mini só muda a classe — o conteúdo é o mesmo', () => {
-    render(<ProfileBadge profile={perfil({ photo: FOTO })} fallbackName="Personagem 1" emptyPhotoLabel="sem foto" mini />)
+  it('a versão da barra de rolagem só muda a classe — o conteúdo é o mesmo', () => {
+    render(
+      <ProfileBadge profile={perfil({ photo: FOTO })} fallbackName="Personagem 1" emptyPhotoLabel="sem foto" variant="roll" />
+    )
     const cracha = screen.getByTestId('profile-badge')
-    expect(cracha.className).toContain('profile-badge-mini')
+    expect(cracha.className).toContain('profile-badge-roll')
     expect(cracha.textContent).toBe('Aurora Valente')
     expect(cracha.querySelector('img')?.getAttribute('src')).toBe(FOTO)
   })
