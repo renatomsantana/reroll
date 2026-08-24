@@ -1,0 +1,7 @@
+/* O d20 vermelho no lugar de emoji — alinhado à linha de texto como um caractere estaria. */
+.icone-reroll {
+  display: inline-block;
+  vertical-align: -3px;
+  object-fit: contain;
+  flex-shrink: 0;
+}

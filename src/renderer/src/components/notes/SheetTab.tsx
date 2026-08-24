@@ -14,6 +14,7 @@ import { useSheetImport } from '../../sheets/useSheetImport'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import './SheetTab.css'
+import { IconeReroll } from '../common/IconeReroll'
 
 /**
  * A FICHA do personagem, em aba própria — separada das Anotações a pedido do usuário: "vamos botar
@@ -228,7 +229,7 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
         disabled={rollDisabled}
         onClick={() => onRoll(expressao, nome)}
       >
-        🎲
+        <IconeReroll tamanho={14} />
       </button>
     )
   }

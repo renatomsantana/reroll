@@ -3,6 +3,7 @@ import { colorForDice } from '@shared/diceRegistry'
 import { mantidosPorGrupo } from '@shared/dice/manterDados'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import './HistoryEntry.css'
+import { IconeReroll } from '@renderer/components/common/IconeReroll'
 
 function formatTime(timestamp: number, locale: string): string {
   return new Date(timestamp).toLocaleTimeString(locale, {
@@ -73,7 +74,7 @@ export function HistoryEntry({ result }: { result: RollResult }) {
                 {roll.value}
                 {/* A marca de explosão fica GRUDADA no número, e não no fim da linha: é aquele
                     dado que explodiu, não a rolagem inteira. */}
-                {roll.cadeia && <span className="history-entry-explodiu">💥</span>}
+                {roll.cadeia && <span className="history-entry-explodiu"><IconeReroll tamanho={12} /></span>}
               </span>
             </span>
           )

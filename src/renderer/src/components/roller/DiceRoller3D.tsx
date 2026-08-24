@@ -36,6 +36,7 @@ import { TRAY_SHAPE_SIDES } from '@renderer/dice3d/geometry/trayShape'
 import { Button } from '../common/Button'
 import { CameraModeSwitch } from './CameraModeSwitch'
 import './DiceRoller3D.css'
+import { IconeReroll } from '@renderer/components/common/IconeReroll'
 
 /** `buildD*Visual`/`buildPolyhedronVisual` esperam a cor do corpo como hex numérico (ex.: 0xf2ead6), não string CSS. */
 function hexStringToNumber(hex: string): number {
@@ -962,6 +963,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                     disabled={isRolling}
                     title={t.roller.explodeHint}
                   >
+                    <IconeReroll tamanho={14} className="dice-roller-3d-icone" />
                     {t.roller.explode}
                   </Button>
                 </div>

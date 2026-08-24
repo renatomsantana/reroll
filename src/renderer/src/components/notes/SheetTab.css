@@ -53,11 +53,13 @@
 .sheet-textarea {
   width: 100%;
   /*
-   * Altura FIXA, não elástica: dentro de um contêiner que rola, um `textarea` que cresce com
-   * `flex: 1` não tem contra o que crescer e colapsa pra altura mínima. 150px são ~9 linhas, que é
-   * o que cabe de inventário ou lista de habilidades sem rolar por dentro.
+   * Cresce com o CONTEÚDO (`field-sizing: content`), a partir de ~9 linhas: pedido do usuário —
+   * "precisa ter espaço suficiente pra ler tudo que está escrito na caixa". Esta altura já foi fixa
+   * em 150px, porque um `textarea` com `flex: 1` dentro de um contêiner que rola colapsava; com o
+   * tamanho vindo do conteúdo, e não do flex, ele não tem contra o que colapsar.
    */
-  height: 150px;
+  field-sizing: content;
+  min-height: 150px;
   resize: vertical;
   font-size: 12px;
   line-height: 1.45;
@@ -66,7 +68,7 @@
 
 /* A história é onde se escreve parágrafo — mais alta e na largura toda. */
 .sheet-group-wide .sheet-textarea {
-  height: 200px;
+  min-height: 200px;
 }
 
 .sheet-group-profile {
@@ -209,9 +211,14 @@
   color: var(--win-text);
 }
 
+/*
+ * As linhas "rótulo + valor" fluem e CRESCEM com o que está escrito, em vez da grade de colunas
+ * iguais: pedido do usuário ("campos poderiam ser maiores para caber as palavras"). Uma linha ocupa
+ * no mínimo 240px e o que o valor precisar além disso; a que não cabe ao lado desce.
+ */
 .sheet-section-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px 12px;
 }
 
@@ -220,25 +227,41 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  min-width: 0;
+  /*
+   * A base é o CONTEÚDO (`auto`), com 240px de piso — e não `240px` de base: com a base fixa, quatro
+   * linhas na mesma fileira ganhavam sobra em partes iguais e a linha de ataque ("+7 · 1d8 P — 10
+   * arrows. 60 ft. Deadly d10.") continuava cortada dentro do campo. Medido na ficha do Rilver.
+   */
+  flex: 1 1 auto;
+  min-width: 240px;
+  max-width: 100%;
 }
 
 /*
- * O rótulo tem largura fixa e corta com reticências: os nomes vêm da ficha e variam demais
- * ("Sanidade máxima", "PV", "Braço Esquerdo"). Sem o teto, um rótulo comprido empurrava o campo de
- * valor pra fora da coluna. O `title` no elemento mostra o nome inteiro ao passar o mouse.
+ * O rótulo aparece INTEIRO — "Talentos e habilidades de classe" não vira "Talentos e ha…". Só um
+ * rótulo absurdo (mais de 260px) corta, e o `title` no elemento mostra o nome inteiro ao passar o
+ * mouse. Esta regra já foi "108px fixos com reticências", quando a linha vivia numa grade de
+ * colunas iguais e um rótulo comprido empurrava o valor pra fora dela.
+ *
+ * SÓ o rótulo: o embrulho do valor (`.sheet-field-value`) também é um `span`, e esta regra o
+ * pegava junto — teto de 260px e reticências no VALOR, que era exatamente o corte da linha de ataque
+ * do Rilver que sobrou depois de tudo o mais crescer. Medido: o embrulho vinha com `flex: 0 0 auto`
+ * e 260px de largura, herdados daqui.
  */
-.sheet-section-field span {
-  flex: 0 0 108px;
+.sheet-section-field > span:not(.sheet-field-value) {
+  flex: 0 0 auto;
+  max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--win-text-muted);
 }
 
+/* O valor é do tamanho do que está escrito (`field-sizing`), com um piso pra caber a digitação. */
 .sheet-section-field input {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  field-sizing: content;
+  min-width: 120px;
 }
 
 /*
@@ -250,13 +273,20 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
+/*
+ * Mesma régua do campo sem botão (`.sheet-section-field input`): a largura vem do conteúdo. Esta
+ * regra vem DEPOIS daquela e tem a mesma especificidade, então era ela que valia — com `flex: 1` e
+ * `min-width: 0`, a linha de ataque do Rilver ("+7 · 1d8 P — 10 arrows. 60 ft. Deadly d10.") continuava
+ * cortada mesmo depois de a fileira crescer. Medido na ficha dele.
+ */
 .sheet-field-value input {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  field-sizing: content;
+  min-width: 120px;
 }
 
 /*
@@ -308,9 +338,15 @@
  * A grade se ajusta sozinha ao espaço (`auto-fill`), então cinco atributos de Ordem Paranormal e dez
  * de Oblivio se organizam sem ninguém dizer quantas colunas usar.
  */
+/*
+ * Cada caixa é do tamanho do que tem dentro — o rótulo ("Conhecimento (Warfare)", "Percepção
+ * passiva") e o valor ("9m/6q", "5d10+2d6") aparecem INTEIROS. Pedido do usuário: "campos poderiam
+ * ser maiores para caber as palavras". Era uma grade de colunas iguais de 96px que cortava o rótulo
+ * com reticências; agora as caixas fluem, com 96px de piso e o conteúdo como medida.
+ */
 .sheet-section-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -319,15 +355,15 @@
   flex-direction: column;
   align-items: stretch;
   gap: 2px;
-  min-width: 0;
+  width: max-content;
+  min-width: 96px;
+  max-width: 100%;
 }
 
 .sheet-stat span {
   font-size: 10px;
   color: var(--win-text-muted);
   text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -337,10 +373,12 @@
  */
 .sheet-stat input {
   width: 100%;
+  field-sizing: content;
+  min-width: 5ch;
   text-align: center;
   font-size: 16px;
   font-family: 'Courier New', Courier, monospace;
-  padding: 4px 2px;
+  padding: 4px 6px;
 }
 
 /*

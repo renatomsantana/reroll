@@ -40,6 +40,18 @@ preenchida (o Rilver), três modelos em branco, a ficha oficial da Paizo e três
 - **Preset do texto impresso exige a forma de arma**: nome antes do dado e no máximo uma palavra
   depois ("Espada longa 1d8 cortante"); "2d6 bludgeoning" e "every 1d20 minutes" ficam de fora.
 
+### Mudado
+
+- **Todo emoji virou o d20 vermelho do Reroll** (`IconeReroll.tsx`): as abas, o botão Explode, a
+  marca de explosão no histórico, os botões de rolar da ficha e o ícone padrão dos presets (o emoji
+  que a pessoa escolhe num preset continua sendo dela). O lápis de editar virou desenho (SVG), como
+  a engrenagem já era. As opções de tema e de modo de resultado perderam o emoji do texto.
+- **As caixas da Ficha crescem com o que está escrito.** Pedido do usuário depois de olhar a ficha
+  do Rilver: o rótulo ("Conhecimento (Warfare)") e o valor ("+7 · 1d8 P — 10 arrows. 60 ft.")
+  aparecem inteiros; os quadros de atributo têm 96px de piso e o conteúdo como medida; os blocos de
+  texto (habilidades, inventário, história) crescem a partir de ~9 linhas em vez de rolar por dentro.
+  Medido nas três fichas reais: nenhum rótulo ou valor cortado.
+
 ## [1.1.0-beta.1] — 2026-08-24
 
 Começa o BETA — entregue À MÃO a alguns testadores, sem publicação no GitHub: quem está no 1.0.12
