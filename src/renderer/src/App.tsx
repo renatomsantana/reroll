@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DiceExpression, RollResult } from '@shared/types/dice'
 import type { Preset, PresetInput } from '@shared/types/preset'
-import { rollExpression } from '@renderer/domain/dice/diceEngine'
+import { rolarFormula, rollExpression } from '@renderer/domain/dice/diceEngine'
+import { botaoDeExplodeVisivel } from '@renderer/domain/dice/explodeDoSistema'
+import { analisarFormula } from '@shared/dice/formula'
 import { usePresets } from '@renderer/hooks/usePresets'
 import { useRollHistory } from '@renderer/hooks/useRollHistory'
 import { useUpdateStatus } from '@renderer/hooks/useUpdateStatus'
@@ -105,7 +107,8 @@ export default function App() {
    */
   function handleCompactPresetRoll(preset: Preset) {
     // `sourceName` é o que faz o histórico registrar QUAL preset foi, e não só "1d20 + 5".
-    const result = { ...rollExpression(preset.expression), sourceName: preset.name }
+    const result = rolarPresetSemFisica(preset)
+    if (!result) return
     setCompactLastResult(result)
     // Som aqui, junto com o cálculo do resultado — é o mais perto que o roller compacto
     // (instantâneo, sem física) tem de um "início" de rolagem.
@@ -133,6 +136,21 @@ export default function App() {
   }
 
   function handlePresetRoll(preset: Preset) {
+    /**
+     * PRESET DE FÓRMULA rola pela gramática, em ondas na cena (ver `rolagemPorEtapas.ts`). O texto
+     * gravado passou pela validação ao ser salvo; se mesmo assim não ler (um `presets.json`
+     * editado à mão depois disso), o clique não rola OUTRA coisa no lugar — fica no console.
+     */
+    if (preset.formula) {
+      const lida = analisarFormula(preset.formula)
+      if (!lida.ok) {
+        console.error(`Preset de fórmula não lê: "${preset.formula}" — ${lida.mensagem}`)
+        return
+      }
+      roller3DRef.current?.rollFormula(lida.formula, preset.name)
+      return
+    }
+    if (!preset.expression) return
     const modifierTotal = preset.expression.modifiers.reduce((sum, m) => sum + m.value, 0)
     // O nome vai junto só pro histórico registrar QUAL golpe foi (ver `sourceName` em `RollResult`).
     // A regra de manter ("role 3d20 e use o maior") vai junto porque quem soma o total é a cena.
@@ -143,6 +161,22 @@ export default function App() {
       preset.expression.keep,
       preset.expression.explode
     )
+  }
+
+  /**
+   * O preset resolvido na hora, sem cena — o caminho do modo compacto, pros DOIS tipos de preset:
+   * expressão pelo `rollExpression` de sempre, fórmula pelo `rolarFormula` (o mesmo RNG). `null`
+   * quando não há o que rolar (arquivo editado à mão) — e aí não se rola outra coisa no lugar.
+   */
+  function rolarPresetSemFisica(preset: Preset): RollResult | null {
+    if (preset.formula) {
+      const lida = analisarFormula(preset.formula)
+      const result = lida.ok ? rolarFormula(lida.formula, preset.name) : null
+      if (!result) console.error(`Preset de fórmula não rola: "${preset.formula}"`)
+      return result
+    }
+    if (!preset.expression) return null
+    return { ...rollExpression(preset.expression), sourceName: preset.name }
   }
 
   async function handleSavePreset(input: PresetInput) {
@@ -248,6 +282,8 @@ export default function App() {
                   ref={roller3DRef}
                   onRoll={addToHistory}
                   onRollingChange={setIsAnyRollInProgress}
+                  /* O botão Explode só aparece com perfil de D&D — ver `explodeDoSistema.ts`. */
+                  explodeVisivel={botaoDeExplodeVisivel(profiles.active?.system ?? '')}
                   /*
                     Atalhos SÓ com a aba de rolagem na tela. Ela fica montada e escondida nas outras
                     (ver o comentário do `display` acima), e sem isto o Espaço rolava os dados

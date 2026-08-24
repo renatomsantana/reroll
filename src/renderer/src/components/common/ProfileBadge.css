@@ -47,8 +47,11 @@
 }
 
 /*
- * Na barra de rolagem a foto é maior que no seletor: 39×52 (3×4), o que cabe nos 57 px do corpo da
- * caixa "Rolagem" — MEDIDO, não chutado — sem empurrar o botão ROLAR nem a bandeja.
+ * Na barra de rolagem a foto é maior que no seletor: 48×64 (3×4). Já foi 39×52, medido pra caber
+ * nos 57 px que o corpo da caixa "Rolagem" tinha; o usuário pediu maior de novo ("aumenta um pouco
+ * mais"), e agora é a foto que manda na altura: o corpo é `align-items: stretch`, então a caixa
+ * cresce os ~7 px que faltam e o ROLAR — que estica junto — acompanha, em vez de a foto ser
+ * espremida pra dentro do que havia.
  */
 .profile-badge-roll {
   gap: 8px;
@@ -56,6 +59,6 @@
 }
 
 .profile-badge-roll .profile-badge-photo {
-  width: 39px;
-  height: 52px;
+  width: 48px;
+  height: 64px;
 }

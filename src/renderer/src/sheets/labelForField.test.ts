@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PdfField, PdfSheet, PdfText } from '@shared/types/sheetImport'
-import { labelForField } from './labelForField'
+import { labelForField, labelFromFieldName } from './labelForField'
 
 /**
  * O rótulo impresso mais perto do campo — e "perto" medido da BORDA da caixa, não do centro.
@@ -45,5 +45,20 @@ describe('rótulo impresso de um campo', () => {
     const perto = texto('HISTÓRIA', 100, 744)
     const longe = texto('APARÊNCIA', 100, 790)
     expect(labelForField(folha([historia], [longe, perto]), historia)).toBe('HISTÓRIA')
+  })
+})
+
+describe('labelFromFieldName — nomes automáticos de exportador', () => {
+  it('o tipo do controle com sufixo aleatório não é rótulo', () => {
+    // O padrão da ficha oficial de Pathfinder 2e (Paizo): `text_15gujr`, `checkbox_5xofc`.
+    for (const nome of ['text_15gujr', 'text_4r5t', 'checkbox_5xofc', 'radio_1', 'dropdown_ab2', 'Text_9Z']) {
+      expect(labelFromFieldName(nome), `"${nome}" não deveria virar rótulo`).toBeNull()
+    }
+  })
+
+  it('nome legítimo que só COMEÇA parecido continua valendo', () => {
+    for (const nome of ['Texto', 'Textos da campanha', 'Datas', 'Lista de desejos', 'Radiografia']) {
+      expect(labelFromFieldName(nome), `"${nome}" é nome de gente`).toBe(nome)
+    }
   })
 })

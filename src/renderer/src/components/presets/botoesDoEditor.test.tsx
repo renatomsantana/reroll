@@ -290,8 +290,10 @@ describe('o campo de fórmula', () => {
     expect(comoSelecao(screen.getByLabelText('Tipo de dado')).value).toBe('20')
     expect(comoCampo(screen.getByLabelText('Fórmula')).value).toBe('1d3')
 
+    // Reroll deixou de ser recusa: vira MODO FÓRMULA — o aviso troca e os controles saem de cena.
     fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '2d6r<2' } })
-    expect(screen.getByText(/Rerolar/)).toBeTruthy()
+    expect(screen.getByText(/rola pelo texto da fórmula/)).toBeTruthy()
+    expect(screen.queryByLabelText('Tipo de dado')).toBeNull()
     fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '1d20+@STR.mod' } })
     expect(screen.getByText(/valor da ficha/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '1d' } })
@@ -316,5 +318,70 @@ describe('o campo de fórmula', () => {
       keep: { mode: 'lowest', count: 1 },
       explode: undefined
     })
+  })
+})
+
+/**
+ * O MODO FÓRMULA — o preset que só a gramática descreve (ver `formulaPropria` no editor e
+ * `formula` em `preset.ts`): reroll, contagem, alvo, multiplicação, manter por grupo deixaram de
+ * ser recusa e viraram preset de verdade, rolado por etapas na cena.
+ */
+describe('o modo fórmula do editor', () => {
+  it('salvar no modo fórmula grava a fórmula canônica, sem expressão', () => {
+    const onSave = vi.fn()
+    comProvedor(<PresetEditorModal preset={null} onSave={onSave} onCancel={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Rajada' } })
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '6d6#>=5' } })
+    fireEvent.click(screen.getByText('Salvar'))
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onSave.mock.calls[0][0].formula).toBe('6d6#>=5')
+    expect(onSave.mock.calls[0][0].expression).toBeUndefined()
+  })
+
+  it('o alvo no fim também é modo fórmula, e a forma gravada é a canônica', () => {
+    const onSave = vi.fn()
+    comProvedor(<PresetEditorModal preset={null} onSave={onSave} onCancel={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Teste' } })
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '1d20+5>=15' } })
+    expect(screen.getByText(/rola pelo texto da fórmula/)).toBeTruthy()
+    fireEvent.click(screen.getByText('Salvar'))
+    expect(onSave.mock.calls[0][0].formula).toBe('1d20 + 5 >= 15')
+  })
+
+  it('editar um preset de fórmula abre no modo fórmula, e voltar pra expressão apaga a fórmula', () => {
+    const onSave = vi.fn()
+    comProvedor(
+      <PresetEditorModal
+        preset={{ id: 'p1', name: 'Sorte', formula: '2d6r<2', createdAt: 0, updatedAt: 0 }}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    )
+    expect(comoCampo(screen.getByLabelText('Fórmula')).value).toBe('2d6r<2')
+    expect(screen.getByText(/rola pelo texto da fórmula/)).toBeTruthy()
+    expect(screen.queryByLabelText('Tipo de dado')).toBeNull()
+
+    // O texto que a expressão SABE dizer devolve os controles — e o salvar grava expressão.
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '2d6+1' } })
+    expect(screen.queryByText(/rola pelo texto da fórmula/)).toBeNull()
+    expect(comoSelecao(screen.getByLabelText('Tipo de dado')).value).toBe('6')
+    fireEvent.click(screen.getByText('Salvar'))
+    expect(onSave.mock.calls[0][0].formula).toBeUndefined()
+    expect(onSave.mock.calls[0][0].expression).toEqual({
+      groups: [{ sides: 6, count: 2 }],
+      modifiers: [{ type: 'flat', value: 1 }],
+      keep: undefined,
+      explode: undefined
+    })
+  })
+
+  it('fórmula com erro no meio da digitação desliga o Salvar; a última aceita fica guardada', () => {
+    const onSave = vi.fn()
+    comProvedor(<PresetEditorModal preset={null} onSave={onSave} onCancel={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'X' } })
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '2d6r<2' } })
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '2d6r<' } })
+    const salvar = comoBotao(screen.getByText('Salvar'))
+    expect(salvar.disabled).toBe(true)
   })
 })

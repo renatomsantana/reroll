@@ -88,6 +88,15 @@ function ehRotulo(texto: PdfText): boolean {
   const limpo = texto.text.trim()
   if (!limpo) return false
   if (limpo.length > 28) return false
+  /**
+   * UMA letra solta também não é rótulo. HONESTIDADE SOBRE ESTA GUARDA: o caso que a motivou (o
+   * título "espaçado" desenhado letra a letra, oitava leva) não a exercita — medido com o dump, o
+   * pdf.js remonta os comandos da mesma linha num fragmento só ("F O R Ç A"), que rotula direito.
+   * Ela fica pelo caso que o extrator NÃO remonta (letra em linha própria, texto vertical): ali a
+   * letra mais próxima viraria o rótulo do campo, com cara de dado lido. O menor rótulo de verdade
+   * nas fichas reais tem duas letras ("CA", "PV"); o custo é uma comparação.
+   */
+  if (limpo.length < 2) return false
   // Linha só de pontuação/traços (as guias pontilhadas das fichas) não diz nada.
   if (!/[\p{L}]/u.test(limpo)) return false
   return true
@@ -116,7 +125,24 @@ export function labelFromFieldName(name: string): string | null {
    * deduplicação, ou seja, o lixo estava escondido atrás de outro defeito.
    */
   if (/^[A-Za-zÀ-ú]+\d*(\.\d+)+$/.test(limpo)) return null
-  return limpo
+  /**
+   * Nomes AUTOMÁTICOS de exportador de formulário: o TIPO do controle mais um sufixo aleatório.
+   *
+   * A ficha oficial de Pathfinder 2e (Paizo) nomeia os 517 campos assim — `text_15gujr`,
+   * `checkbox_5xofc` — e um campo preenchido SEM rótulo impresso por perto entrava na conferência
+   * rotulado "text_4r5t" (sexta leva de PDFs de teste). Isso não informa nada e ainda tira a
+   * confiança do resto da leitura. O separador é obrigatório no padrão de propósito: "Texto" e
+   * "Datas" são nomes legítimos que alguém dá a um campo; `text_...` é máquina falando.
+   */
+  if (/^(text|textarea|checkbox|check|radio|radiobutton|combo|combobox|dropdown|list|listbox|button|signature|date|image|untitled)[_-][a-z0-9]+$/i.test(limpo)) {
+    return null
+  }
+  /**
+   * Underscore vira espaço: `Propositos_Pessoais` é como o AUTOR da ficha nomeia campo (visto na
+   * ficha real de Assimilação), e o underscore é sintaxe de editor, não escrita de gente. Só a
+   * troca — sem inventar caixa nem acento, que são do autor.
+   */
+  return limpo.replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 /**

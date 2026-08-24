@@ -103,11 +103,11 @@ describe.skipIf(!existsSync(ORDEM) || !existsSync(KIDS))('importar ficha de verd
      * só `groups` e `modifiers`, o preset volta somando — com o rótulo certo e o total errado.
      */
     const gravados = await presets.getAll()
-    expect(gravados.find((p) => p.name.endsWith('(teste)'))!.expression.keep).toEqual({
+    expect(gravados.find((p) => p.name.endsWith('(teste)'))!.expression!.keep).toEqual({
       mode: 'highest',
       count: 1
     })
-    expect(gravados.find((p) => p.name.endsWith('(dano)'))!.expression.keep).toBeUndefined()
+    expect(gravados.find((p) => p.name.endsWith('(dano)'))!.expression!.keep).toBeUndefined()
 
     // Nada de nome de campo cru vazando pra ficha gravada.
     const rotulos = ficha.sections.flatMap((s) => s.fields.map((c) => c.label))

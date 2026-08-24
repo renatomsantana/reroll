@@ -7,7 +7,9 @@ import {
   textoDeModificadorAceito,
   textoDoModificadorAjustado
 } from '@shared/dice/modificador'
-import { expressaoParaFormula, textoParaExpressao } from '@shared/dice/formulaParaExpressao'
+import { expressaoParaFormula, formulaParaExpressao } from '@shared/dice/formulaParaExpressao'
+import { analisarFormula, escreverFormula } from '@shared/dice/formula'
+import { conferirFormulaPraBandeja } from '@shared/dice/rolagemPorEtapas'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
 import { Button } from '../common/Button'
@@ -32,7 +34,7 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
   const [name, setName] = useState(preset?.name ?? '')
   const [icon, setIcon] = useState(preset?.icon ?? '')
   const [groups, setGroups] = useState<DiceGroup[]>(
-    preset?.expression.groups.length ? preset.expression.groups : [emptyGroup()]
+    preset?.expression?.groups.length ? preset.expression.groups : [emptyGroup()]
   )
   /**
    * O modificador vive como TEXTO — ver `shared/dice/modificador.ts`. Guardar o número convertido a
@@ -40,7 +42,7 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
    * teste com penalidade), porque o sinal de menos sozinho virava zero na hora.
    */
   const [textoDoModificador, setTextoDoModificador] = useState(
-    String(preset?.expression.modifiers.reduce((sum, m) => sum + m.value, 0) ?? 0)
+    String(preset?.expression?.modifiers.reduce((sum, m) => sum + m.value, 0) ?? 0)
   )
   const modifier = modificadorDoTexto(textoDoModificador)
   /**
@@ -59,8 +61,8 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
    * está na tela é o que se grava. Prender é certo; o erro era deixar uma regra inerte chegar ao
    * mostrador como se fosse uma escolha.
    */
-  const dadosNoInicio = (preset?.expression.groups ?? []).reduce((soma, g) => soma + g.count, 0)
-  const regraInicial = preset?.expression.keep
+  const dadosNoInicio = (preset?.expression?.groups ?? []).reduce((soma, g) => soma + g.count, 0)
+  const regraInicial = preset?.expression?.keep
   const regraTemEfeito =
     regraInicial !== undefined && regraInicial.count >= 1 && regraInicial.count < dadosNoInicio
   const [keepMode, setKeepMode] = useState<KeepRule['mode'] | 'all'>(regraTemEfeito ? regraInicial.mode : 'all')
@@ -70,7 +72,7 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
    * (`MAX_EXPLOSOES_POR_DADO`) e não uma escolha de quem monta o preset — ninguém quer decidir
    * "quantas vezes no máximo" pra salvar um ataque de espada.
    */
-  const [explode, setExplode] = useState(Boolean(preset?.expression.explode))
+  const [explode, setExplode] = useState(Boolean(preset?.expression?.explode))
 
   const totalDiceCount = groups.reduce((sum, g) => sum + g.count, 0)
   const tooManyDice = totalDiceCount > MAX_SIMULTANEOUS_DICE
@@ -90,8 +92,6 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
    */
   const keepMaximo = Math.max(1, totalDiceCount - 1)
   const keepEfetivo = Math.max(1, Math.min(keepCount, keepMaximo))
-  const isValid =
-    name.trim().length > 0 && groups.every((g) => g.count > 0 && g.sides > 0) && !tooManyDice
 
   /**
    * O CAMPO DE FÓRMULA — a gramática de rolagem (`shared/dice/formula.ts`) dentro do editor, o que
@@ -114,23 +114,56 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
       keep: regraDeManter(),
       explode: explode ? { maxChain: MAX_EXPLOSOES_POR_DADO } : undefined
     }) ?? ''
-  const [textoDaFormula, setTextoDaFormula] = useState(formulaDosBotoes)
+  /**
+   * MODO FÓRMULA: a rolagem que só o texto descreve — reroll, contagem, alvo, multiplicação,
+   * manter por grupo. Não-nulo é a fórmula ACEITA, na forma canônica, e é ela que o Salvar grava
+   * (ver `formula` em `preset.ts`); os controles de dados saem de cena, porque mostrariam uma
+   * rolagem que não é esta. Escrever uma fórmula que os botões sabem dizer volta ao modo de sempre
+   * — os dois modos são o mesmo campo, e quem manda é o que está escrito nele.
+   */
+  const [formulaPropria, setFormulaPropria] = useState<string | null>(preset?.formula ?? null)
+  const [textoDaFormula, setTextoDaFormula] = useState(preset?.formula ?? formulaDosBotoes)
   const [erroDaFormula, setErroDaFormula] = useState<string | null>(null)
 
+  // Depois dos estados de fórmula de propósito: no modo fórmula, o que decide o Salvar é o campo.
+  const isValid =
+    name.trim().length > 0 &&
+    (formulaPropria !== null
+      ? erroDaFormula === null
+      : groups.every((g) => g.count > 0 && g.sides > 0) && !tooManyDice)
+
   useEffect(() => {
+    // No modo fórmula os botões estão fora de cena — a forma deles não pode reescrever o texto.
+    if (formulaPropria !== null) return
     if (document.activeElement === campoDaFormula.current) return
     setTextoDaFormula(formulaDosBotoes)
     setErroDaFormula(null)
+    // A dependência é só a forma dos botões: é ela que este efeito espelha no campo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formulaDosBotoes])
 
   function aplicarFormula(texto: string) {
     setTextoDaFormula(texto)
-    const reduzida = textoParaExpressao(texto)
-    if (!reduzida.ok) {
-      setErroDaFormula(reduzida.motivo)
+    const lida = analisarFormula(texto)
+    if (!lida.ok) {
+      setErroDaFormula(lida.mensagem)
+      return
+    }
+    // A régua única da bandeja — a mesma da validação no main process (ver `rolagemPorEtapas.ts`):
+    // tipo que não existe, termo maior que uma onda, referência à ficha (que ainda não rola).
+    const motivoDaBandeja = conferirFormulaPraBandeja(lida.formula)
+    if (motivoDaBandeja) {
+      setErroDaFormula(motivoDaBandeja)
       return
     }
     setErroDaFormula(null)
+    const reduzida = formulaParaExpressao(lida.formula)
+    if (!reduzida.ok) {
+      // A expressão não diz isto — o preset vira DE FÓRMULA, e o hint embaixo do campo avisa.
+      setFormulaPropria(escreverFormula(lida.formula))
+      return
+    }
+    setFormulaPropria(null)
     const { expression } = reduzida
     setGroups(expression.groups)
     setTextoDoModificador(String(expression.modifiers.reduce((soma, m) => soma + m.value, 0)))
@@ -178,6 +211,12 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
 
   function handleSubmit() {
     if (!isValid) return
+    // Um dos dois, nunca ambos — ver `preset.ts`. No modo fórmula grava-se a forma canônica ACEITA,
+    // não o que está no campo neste instante (que pode ser um rascunho com erro, e aí nem salva).
+    if (formulaPropria !== null) {
+      onSave({ name: name.trim(), icon: icon.trim() || undefined, formula: formulaPropria })
+      return
+    }
     onSave({
       name: name.trim(),
       icon: icon.trim() || undefined,
@@ -231,7 +270,7 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
             value={textoDaFormula}
             onChange={(e) => aplicarFormula(e.target.value)}
             onBlur={() => {
-              if (!erroDaFormula) setTextoDaFormula(formulaDosBotoes)
+              if (!erroDaFormula) setTextoDaFormula(formulaPropria ?? formulaDosBotoes)
             }}
             placeholder={t.presetEditor.formulaPlaceholder}
             aria-label={t.presetEditor.formula}
@@ -239,11 +278,19 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
           />
           {erroDaFormula ? (
             <p className="preset-editor-warning">{erroDaFormula}</p>
+          ) : formulaPropria !== null ? (
+            <p className="preset-editor-hint">{t.presetEditor.formulaOnlyHint}</p>
           ) : (
             <p className="preset-editor-hint">{t.presetEditor.formulaHint}</p>
           )}
         </div>
 
+        {/*
+          No modo FÓRMULA os controles de dados saem de cena inteiros: eles descrevem uma
+          `DiceExpression`, e esta rolagem não é uma — mostrá-los seria mostrar outra rolagem.
+        */}
+        {formulaPropria === null && (
+          <>
         <div className="preset-editor-field">
           <span>{t.presetEditor.dice}</span>
           <div className="preset-editor-groups">
@@ -413,6 +460,8 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
             </Button>
           </div>
         </div>
+          </>
+        )}
 
         <div className="preset-editor-actions">
           <Button variant="secondary" onClick={onCancel}>

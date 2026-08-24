@@ -15,7 +15,14 @@ import {
   textoDeModificadorAceito,
   textoDoModificadorAjustado
 } from '@shared/dice/modificador'
-import { rollExpression, rollWithMode } from '@renderer/domain/dice/diceEngine'
+import { rolarFormula, rollExpression, rollWithMode } from '@renderer/domain/dice/diceEngine'
+import type { Formula } from '@shared/dice/formula'
+import {
+  avancarRolagem,
+  gruposDaFormula,
+  resultadoParaRollResult,
+  type FaceColhida
+} from '@shared/dice/rolagemPorEtapas'
 import { webglDisponivel } from '@renderer/dice3d/utils/webglDisponivel'
 import { DEFAULT_DICE_SIDES, MAX_EXPLOSOES_POR_DADO, colorForDice } from '@shared/diceRegistry'
 import { expressionLabel, type RollMode } from '@renderer/domain/dice/diceEngine'
@@ -59,6 +66,12 @@ export interface DiceRoller3DHandle {
     /** "Tirou o máximo, rola de novo" — ver `ExplodeRule`. Ausente quer dizer que não explode. */
     explode?: ExplodeRule
   ) => void
+  /**
+   * Rola um preset de FÓRMULA — a gramática inteira, em ondas na cena (ver `rolagemPorEtapas.ts`):
+   * cada pedido da avaliação vira um arremesso, do jeito que a explosão já encena. `sourceName` é
+   * o nome do preset, pro histórico, como no `rollGroups`.
+   */
+  rollFormula: (formula: Formula, sourceName?: string) => void
 }
 
 interface DiceRoller3DProps {
@@ -77,6 +90,14 @@ interface DiceRoller3DProps {
    * de fora porque quem sabe de personagem é o `App`; a bandeja só reserva o lugar.
    */
   badge?: ReactNode
+  /**
+   * O botão Explode aparece? Quem decide é o `App`, pelo SISTEMA do personagem ativo (ver
+   * `explodeDoSistema.ts`) — pedido do usuário: o interruptor só aparece com perfil de D&D.
+   * Ausente é visível, que é o comportamento de sempre. Esconder também DESLIGA o interruptor
+   * (efeito abaixo): um explode ligado atrás de um botão invisível rolaria diferente do que a
+   * tela mostra. Preset com regra explosiva continua explodindo em qualquer sistema.
+   */
+  explodeVisivel?: boolean
 }
 
 const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
@@ -288,7 +309,7 @@ export function comContagemAjustada(
  * compacta (300×230) foi desenhada de propósito pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange, shortcutsEnabled = true, badge },
+  { onRoll, onRollingChange, shortcutsEnabled = true, badge, explodeVisivel },
   ref
 ) {
   const t = useTranslation()
@@ -409,6 +430,15 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const [explode, setExplode] = useState(false)
   /** A regra da rolagem EM CURSO — mesma razão do `keepRef`: ela é lida quando os dados assentam. */
   const explodeRef = useRef<ExplodeRule | undefined>(undefined)
+
+  /**
+   * Botão escondido é interruptor DESLIGADO. Trocar pra um personagem que não é de D&D com o
+   * explode ligado deixaria a regra viva atrás de um botão que não existe — a rolagem manual
+   * explodindo sem nada na tela dizendo isso.
+   */
+  useEffect(() => {
+    if (explodeVisivel === false) setExplode(false)
+  }, [explodeVisivel])
   /**
    * A onda de explosão que está na cena AGORA, ou `null` quando é a queda normal.
    *
@@ -419,6 +449,13 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const [ondaDeExplosao, setOndaDeExplosao] = useState<DiceGroup[] | null>(null)
   /** O que cada dado desta rolagem já mostrou, entre uma onda e outra. Ver `DadoEmCadeia`. */
   const cadeiasRef = useRef<DadoEmCadeia[]>([])
+  /**
+   * A rolagem de FÓRMULA em curso: a fórmula e o diário de faces já colhidas (ver
+   * `rolagemPorEtapas.ts`). Num ref pelas mesmas razões do `keepRef` — quem a lê é o
+   * `handleMultiResult`, segundos depois, quando os dados assentam. `null` fora de uma rolagem de
+   * fórmula, e é o `null` que devolve o assentamento ao caminho de sempre.
+   */
+  const sessaoDeFormulaRef = useRef<{ formula: Formula; faces: FaceColhida[] } | null>(null)
 
   /** Começa uma rolagem do zero: nenhuma onda pendente, nenhuma cadeia herdada da anterior. */
   function limparCadeias(): void {
@@ -528,6 +565,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       setExplode(Boolean(explodeDoPreset))
       // Rolagem nova, cadeias novas: o que sobrou de uma explosão anterior não pode entrar nesta.
       limparCadeias()
+      // Uma sessão de fórmula pendurada capturaria o assentamento desta rolagem — morre aqui.
+      sessaoDeFormulaRef.current = null
       // Presets não carregam modo de vantagem/desvantagem — sempre volta a 'normal'
       // pra não herdar um modo deixado ligado de uma rolagem manual anterior.
       setMode('normal')
@@ -565,6 +604,57 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
         const diceCount = newGroups.reduce((sum, g) => sum + g.count, 0)
         rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(diceCount), rollSoundDelay(launchMode))
+      }
+    },
+    rollFormula: (formula, sourceName) => {
+      // A mesma regra do `rollGroups`: a torre é uma fila, e cortá-la no meio prende dados.
+      if (isRolling && launchMode === 'tower') return
+      sourceNameRef.current = sourceName
+      // Fórmula não usa as regras da rolagem de sempre: manter e contar vêm por marca, prontas
+      // (ver `resultadoParaRollResult`), e a explosão é da própria gramática (`!` no termo).
+      keepRef.current = undefined
+      explodeRef.current = undefined
+      setExplode(false)
+      limparCadeias()
+      sessaoDeFormulaRef.current = null
+      setMode('normal')
+      setTextoDoModificador('0')
+      // A barra mostra DO QUE a rolagem é feita; as ondas dizem o que está caindo agora.
+      setGroups(gruposDaFormula(formula))
+      setLastResult(null)
+      setRollError(false)
+      setResultPopup(null)
+
+      // Sem física a gramática resolve inteira no clique, com o mesmo RNG do modo rápido.
+      if (semFisica) {
+        const resultado = rolarFormula(formula)
+        if (!resultado) {
+          setRollError(true)
+          return
+        }
+        if (soundEnabled) playRollSound(resultado.groups.reduce((soma, g) => soma + g.rolls.length, 0))
+        finalizeResult(resultado)
+        return
+      }
+
+      // O primeiro pedido da avaliação é a primeira onda. Fórmula sem dado não chega aqui (a
+      // validação recusa), então qualquer coisa que não seja um pedido é defeito — erro visível.
+      const passo = avancarRolagem(formula, [])
+      if (passo.tipo !== 'precisa') {
+        setRollError(true)
+        return
+      }
+      sessaoDeFormulaRef.current = { formula, faces: [] }
+      setOndaDeExplosao([{ sides: passo.pedido.lados, count: passo.pedido.quantidade }])
+      setIsRolling(true)
+      setPresetRollSeq((n) => n + 1)
+      pendingPresetRollRef.current = true
+      if (soundEnabled) {
+        if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
+        rollSoundTimeoutRef.current = window.setTimeout(
+          () => playRollSound(passo.pedido.quantidade),
+          rollSoundDelay(launchMode)
+        )
       }
     }
   }))
@@ -699,6 +789,43 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       setIsRolling(true)
       return
     }
+    /**
+     * ROLAGEM DE FÓRMULA: o assentamento alimenta o diário e a avaliação diz o que vem — outra
+     * onda (um reroll, um elo de explosão, o próximo termo) ou o resultado pronto. Vem ANTES do
+     * caminho de sempre porque a sessão é dona da rolagem inteira: as cadeias de explosão da cena
+     * não valem aqui (a explosão da fórmula é da gramática, onda a onda).
+     */
+    const sessao = sessaoDeFormulaRef.current
+    if (sessao) {
+      // A face entra como caiu; se o tipo não for o pedido, a própria avaliação acusa (falha).
+      for (const queda of result.rolls) sessao.faces.push({ lados: queda.sides, face: queda.value })
+      const passo = avancarRolagem(sessao.formula, sessao.faces)
+      if (passo.tipo === 'precisa') {
+        // Mesmo caminho da onda de explosão: troca os dados da cena e arremessa depois do resync.
+        setOndaDeExplosao([{ sides: passo.pedido.lados, count: passo.pedido.quantidade }])
+        pendingPresetRollRef.current = true
+        setPresetRollSeq((n) => n + 1)
+        if (soundEnabled) {
+          if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
+          rollSoundTimeoutRef.current = window.setTimeout(
+            () => playRollSound(passo.pedido.quantidade),
+            rollSoundDelay(launchMode)
+          )
+        }
+        return
+      }
+      sessaoDeFormulaRef.current = null
+      limparCadeias()
+      if (passo.tipo === 'falha') {
+        // Diário fora de ordem é defeito do guia, nunca da pessoa — erro visível, não outro número.
+        console.error(`A rolagem de fórmula falhou: ${passo.mensagem}`)
+        setIsRolling(false)
+        setRollError(true)
+        return
+      }
+      finalizeResult(resultadoParaRollResult(sessao.formula, passo.resultado))
+      return
+    }
     const keep = keepRef.current
     const regraExplosiva = explodeRef.current
     const expression = {
@@ -797,6 +924,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     // A regra da rolagem em curso é a do interruptor NESTE instante; ver `explodeRef`.
     explodeRef.current = explode ? { maxChain: MAX_EXPLOSOES_POR_DADO } : undefined
     limparCadeias()
+    // Rolagem manual por cima de uma de fórmula: a sessão velha não pode capturar o assentamento.
+    sessaoDeFormulaRef.current = null
     setRollError(false)
     setResultPopup(null)
 
@@ -955,18 +1084,22 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                   Fora do `isSingleGroup`: explodir vale pra qualquer rolagem, inclusive misturando
                   tipos (2d6 + 1d20 com os dois explodindo é o normal em vários sistemas). É o que o
                   separa da vantagem, que só faz sentido com um tipo só.
+
+                  E só com perfil de D&D (`explodeVisivel`) — ver o comentário da prop.
                 */}
-                <div className="dice-roller-3d-mode">
-                  <Button
-                    selected={explode}
-                    onClick={alternarExplosao}
-                    disabled={isRolling}
-                    title={t.roller.explodeHint}
-                  >
-                    <IconeReroll tamanho={14} className="dice-roller-3d-icone" />
-                    {t.roller.explode}
-                  </Button>
-                </div>
+                {(explodeVisivel ?? true) && (
+                  <div className="dice-roller-3d-mode">
+                    <Button
+                      selected={explode}
+                      onClick={alternarExplosao}
+                      disabled={isRolling}
+                      title={t.roller.explodeHint}
+                    >
+                      <IconeReroll tamanho={14} className="dice-roller-3d-icone" />
+                      {t.roller.explode}
+                    </Button>
+                  </div>
+                )}
 
                 {/*
                   `div` e não `label`: o rótulo roubaria o clique dos botões pro campo de dentro

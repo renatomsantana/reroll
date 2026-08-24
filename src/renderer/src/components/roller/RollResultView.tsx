@@ -20,8 +20,12 @@ export function RollResultView({ result }: RollResultViewProps) {
     )
   }
 
-  // `null` quando a rolagem não tem regra de manter — aí a marcação de par continua como era.
-  const mantidos = result.keep ? mantidosPorGrupo(result.groups, result.keep) : null
+  /**
+   * A marca de "conta pro total": pronta no resultado quando a rolagem veio de uma FÓRMULA (regras
+   * por termo, contagem — ver `mantidos` em `RollResult`), refeita de `keep` na rolagem de sempre,
+   * `null` quando não há regra — aí a marcação de par continua como era.
+   */
+  const mantidos = result.mantidos ?? (result.keep ? mantidosPorGrupo(result.groups, result.keep) : null)
 
   return (
     <Card className="roll-result">
@@ -84,6 +88,16 @@ export function RollResultView({ result }: RollResultViewProps) {
       <div className="roll-result-total">
         {t.roller.total}: <strong>{result.total}</strong>
       </div>
+      {/* O alvo da fórmula (">= 15") julga a rolagem inteira — o veredito sai embaixo do total. */}
+      {result.sucesso !== undefined && (
+        <div
+          className={`roll-result-julgamento ${
+            result.sucesso ? 'roll-result-sucesso' : 'roll-result-fracasso'
+          }`}
+        >
+          {result.sucesso ? `✓ ${t.roller.success}` : `✗ ${t.roller.failure}`}
+        </div>
+      )}
     </Card>
   )
 }

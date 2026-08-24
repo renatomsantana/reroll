@@ -102,4 +102,30 @@ export interface RollResult {
    * quais deles entraram no total.
    */
   keep?: KeepRule
+  /**
+   * A FÓRMULA que rolou, na forma canônica, quando a rolagem veio de um preset de fórmula (ver
+   * `rolagemPorEtapas.ts`). A presença dela é o que diz às telas que este resultado não é a soma
+   * simples de `groups` + `modifierTotal` — pode haver multiplicação, contagem, alvo — e que as
+   * marcas prontas (`mantidos`, `rerolados`) são a leitura certa, não as regras `keep`/`explode`.
+   */
+  formulaTexto?: string
+  /**
+   * A rolagem inteira contra o alvo da fórmula (`>= 15` no fim): sucesso ou fracasso. Ausente
+   * quando a fórmula não tem alvo — aí não há julgamento nenhum a mostrar.
+   */
+  sucesso?: boolean
+  /**
+   * Quais dados CONTAM pro total, dado a dado, na forma de `groups` — a marca pronta de um
+   * resultado de fórmula. Nas regras da gramática o manter é POR TERMO (e `#` conta em vez de
+   * somar), então a tela não tem como refazer a conta a partir de `keep`, que é da rolagem
+   * inteira: a marca vem pronta, e é a única garantia de que o que aparece como "conta" é o que
+   * entrou no total. Só existe quando algum dado ficou de fora.
+   */
+  mantidos?: boolean[][]
+  /**
+   * A face DESCARTADA por reroll (`r<2`) de cada dado, na forma de `groups` — `null` onde não
+   * houve reroll. Sem isto, a segunda queda aparece sozinha e a primeira some sem explicação;
+   * com a marca, a tela pode dizer "rerolou: caiu 1, ficou 4". Só existe quando algum rerolou.
+   */
+  rerolados?: (number | null)[][]
 }

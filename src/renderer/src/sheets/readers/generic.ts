@@ -35,8 +35,13 @@ import type { SheetReader } from './types'
  * produziria agrupamento errado com cara de certo.
  */
 
-/** Rótulo de campo que quase sempre carrega o nome do personagem, em português e inglês. */
-const NOME_DO_PERSONAGEM = /^(nome|personagem|character|name|char)\b/i
+/**
+ * Rótulo de campo que quase sempre carrega o nome do personagem — português, inglês e espanhol.
+ * O espanhol entrou pela sétima leva de PDFs de teste: uma "Hoja de Personaje" com "Nombre: Paco"
+ * caía no nome do ARQUIVO tendo o nome escrito duas linhas acima, porque "nombre" não casa com
+ * "nome" (o `\b` para no `b`). Ficha em espanhol é vizinho de porta de quem joga RPG no Brasil.
+ */
+const NOME_DO_PERSONAGEM = /^(nome|nombre|personagem|personaje|character|name|char)\b/i
 
 /**
  * Marcas de valor VAZIO num formulário. `Off` é o estado desmarcado de caixa de seleção no PDF, e

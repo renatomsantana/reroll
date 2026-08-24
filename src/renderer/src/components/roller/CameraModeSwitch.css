@@ -14,7 +14,8 @@
   padding: 0;
   color: #fff;
   background: none;
-  border: none;
+  /* `border: 0`, não `none`: o `button:active` global ressuscita a largura `medium` — ver PresetCard.css. */
+  border: 0;
   cursor: pointer;
   /* 0.2 → 0.12 → 0.06 → 0.16: baixado três vezes e subido um pouco no fim, quando o usuário achou
      que tinha sumido demais. Discreto o bastante pra não competir com a cena, visível o bastante

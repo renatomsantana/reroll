@@ -124,6 +124,23 @@ export function createNotesPage(text = ''): NotesPage {
 }
 
 /**
+ * TETO de caracteres de UMA sessão de anotações — pedido do usuário ("vamos colocar um limite de
+ * 2000 caracteres em anotações, agora que vi que não tinha").
+ *
+ * Vale pro que se DIGITA: o campo para no teto, e o que se cola entra cortado nele, com o contador
+ * ao lado do campo dizendo onde se está. O que JÁ ESTÁ gravado acima do teto não é cortado na
+ * leitura — a mesma regra do teto de personagens: arquivo antigo não perde conteúdo por causa de um
+ * número novo; ele só não cresce mais. (O teto total do arquivo, 16 MB na gravação, continua sendo
+ * a última linha de defesa — ver `NotesRepository.save`.)
+ */
+export const TAMANHO_MAXIMO_DA_ANOTACAO = 2_000
+
+/** O texto digitado, preso no teto — a régua única do campo e de qualquer gravação por código. */
+export function textoDeAnotacaoLimitado(texto: string): string {
+  return texto.length <= TAMANHO_MAXIMO_DA_ANOTACAO ? texto : texto.slice(0, TAMANHO_MAXIMO_DA_ANOTACAO)
+}
+
+/**
  * Formato antigo do `notes.json`: um bloco de texto só, chamado `notes`, mais o `backstory`. Quem
  * já usava o app tem isso gravado, então ele vira a PRIMEIRA PÁGINA do diário em vez de sumir —
  * ninguém perde o que escreveu por causa de uma mudança de tela.

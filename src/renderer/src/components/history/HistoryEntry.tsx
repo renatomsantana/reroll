@@ -20,12 +20,18 @@ export function HistoryEntry({ result }: { result: RollResult }) {
    * Sem a marca, uma rolagem com regra de manter fica se contradizendo na própria linha: "[4, 17, 9]
    * = 17". Quem lê soma os três, dá 30, e passa a desconfiar do histórico inteiro.
    */
-  const marcas = result.keep ? mantidosPorGrupo(result.groups, result.keep) : null
+  /**
+   * Resultado de FÓRMULA traz a marca PRONTA (`mantidos`): as regras da gramática são por termo, e
+   * `#` conta em vez de somar — refazer a conta aqui a partir de `keep` daria a marca errada.
+   */
+  const marcas = result.mantidos ?? (result.keep ? mantidosPorGrupo(result.groups, result.keep) : null)
   const allRolls = result.groups.flatMap((g, gi) =>
     g.rolls.map((value, i) => ({
       sides: g.sides,
       value,
       conta: marcas ? marcas[gi][i] : true,
+      /** A face descartada por reroll (`r<2`), quando houve — vai pro `title`, como a explosão. */
+      rerolado: result.rerolados?.[gi]?.[i] ?? null,
       /**
        * As faces que compuseram este dado, quando ele EXPLODIU. Sem isto, um d6 aparece no histórico
        * valendo 14 — a pessoa olha o número, sabe que um d6 não faz 14, e desconfia do resto da
@@ -64,6 +70,7 @@ export function HistoryEntry({ result }: { result: RollResult }) {
                 title={
                   [
                     `d${roll.sides}`,
+                    roll.rerolado !== null ? `rerolou: caiu ${roll.rerolado}` : null,
                     roll.cadeia ? `explodiu: ${roll.cadeia.join(' + ')}` : null,
                     roll.conta ? null : 'não conta pro total'
                   ]
@@ -81,7 +88,19 @@ export function HistoryEntry({ result }: { result: RollResult }) {
         })}
         ]
       </span>
-      <span className="history-entry-total">= {result.total}</span>
+      <span className="history-entry-total">
+        = {result.total}
+        {/* O julgamento do alvo (">= 15") vem colado no total — é ELE que foi julgado. */}
+        {result.sucesso !== undefined && (
+          <span
+            className={result.sucesso ? 'history-entry-sucesso' : 'history-entry-fracasso'}
+            title={result.sucesso ? 'sucesso' : 'fracasso'}
+          >
+            {' '}
+            {result.sucesso ? '✓' : '✗'}
+          </span>
+        )}
+      </span>
     </div>
   )
 }

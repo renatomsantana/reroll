@@ -1,4 +1,4 @@
-import { existsSync } from 'fs'
+import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 import { readSheet } from './readers/index'
@@ -353,4 +353,81 @@ describe.skipIf(!existsSync(ORDEM_BRANCA))('modelo em branco de Ordem Paranormal
     // O que ele traz continua sendo só o que está escrito de fábrica no arquivo.
     expect(rotulos).toContain('Defesa')
   })
+})
+
+/**
+ * A FICHA DA COMUNIDADE de Ordem Paranormal — a do Vincenzo, que ensinou o segundo modelo do
+ * sistema ao leitor (ver `extrairFichaDaComunidade`). O que se cobra é o que foi MEDIDO no
+ * arquivo: o total de perícia refeito dos componentes (medicina 10+5=15), a lista traduzindo
+ * índice pra rótulo (classe "2" = Especialista) e a grade de armas virando preset.
+ */
+const VINCENZO = join(PASTA, 'ficha vincenzo.pdf')
+
+describe.skipIf(!existsSync(VINCENZO))('ficha real da comunidade de Ordem Paranormal', () => {
+  it('identidade traduzida, perícias refeitas, armas em preset e itens numerados', async () => {
+    const lido = readSheet(await abrirPdfNoNode(VINCENZO))
+
+    expect(lido.readerId).toBe('ordem-paranormal')
+    expect(lido.characterName).toBe('Vincenzo Moretti')
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'NEX', value: '65%' }))
+    // A LISTA guarda o índice ("2"); o rótulo vem das opções do próprio campo.
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Classe', value: 'Especialista' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Origem', value: 'Agente de Saúde' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Trilha', value: 'Médico de Combate' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Proteção', value: 'Leve' }))
+
+    // b_medicina não está gravado no arquivo: 15 = treino 10 + outros 5, conferido no PDF.
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Medicina', value: '15', group: 'Perícias' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'PV atual', value: '51' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Carga', value: '18/30' }))
+
+    expect(lido.presets.map((p) => p.name)).toContain('pistola molto poggers (dano)')
+    expect(lido.presets.map((p) => p.name)).toContain('martello (dano)')
+
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Item 4', value: 'kit médico', group: 'Itens' }))
+    // Nada da grade de perícias vaza com nome cru de campo.
+    const rotulos = lido.fields.map((c) => c.label)
+    expect(rotulos.some((r) => /^[tbo]_|^atq_|^dano_arma/.test(r))).toBe(false)
+  }, 60_000)
+})
+
+/**
+ * A ficha de D&D 5e TRADUZIDA (a do Go): o modelo mantém os nomes de campo oficiais, então o
+ * leitor de D&D a reconhece — e é isso que o teste segura no lugar.
+ */
+const GO = join(PASTA, 'ficha Go.pdf')
+
+describe.skipIf(!existsSync(GO))('ficha real de D&D 5e traduzida', () => {
+  it('é reconhecida pelo leitor de D&D, com atributos e perícias', async () => {
+    const lido = readSheet(await abrirPdfNoNode(GO))
+    expect(lido.readerId).toBe('dnd5e')
+    expect(lido.characterName).toBe('Go')
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Destreza', value: '16', group: 'Atributos' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Furtividade', value: '+3', group: 'Perícias' }))
+  }, 60_000)
+})
+
+/**
+ * A ficha de ASSIMILAÇÃO (a do Kieran): sistema que ninguém cadastrou, formulário com nomes de
+ * campo escritos pelo autor. O genérico tem que render o nome e os campos legíveis — com o
+ * underscore do editor virando espaço no rótulo.
+ */
+const KIERAN = (() => {
+  try {
+    const nome = readdirSync(PASTA).find((n) => n.startsWith('Assimila') && n.endsWith('.pdf'))
+    return nome ? join(PASTA, nome) : ''
+  } catch {
+    return ''
+  }
+})()
+
+describe.skipIf(!KIERAN || !existsSync(KIERAN))('ficha real de Assimilação — sistema desconhecido', () => {
+  it('o genérico rende nome, campos legíveis e o underscore vira espaço', async () => {
+    const lido = readSheet(await abrirPdfNoNode(KIERAN))
+    expect(lido.readerId).toBe('generico')
+    expect(lido.characterName).toBe('Kieran Saad')
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Propositos Pessoais' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Saude', value: '18' }))
+    expect(lido.fields.some((c) => c.label.includes('_'))).toBe(false)
+  }, 60_000)
 })
