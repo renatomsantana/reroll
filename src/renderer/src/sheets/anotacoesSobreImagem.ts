@@ -158,16 +158,32 @@ function paragrafosCrus(sheet: PdfSheet): Paragrafo[] {
      * linhas chegam alternadas (esquerda, direita, esquerda…), e olhar apenas o anterior faria toda
      * linha começar um parágrafo novo.
      */
-    const continuacao = [...paragrafos]
-      .reverse()
-      .find(
-        (p) =>
-          p.page === linha.page &&
-          Math.abs(p.x - linha.x) <= MARGEM &&
-          p.y - linha.y > 0 &&
-          linha.altura !== null &&
-          p.y - linha.y <= linha.altura * FATOR_DE_ENTRELINHA
-      )
+    /**
+     * Linha que é ela mesma um "Rótulo: valor" COMEÇA parágrafo, nunca continua o de cima.
+     *
+     * `camposDoTexto` já tinha essa regra (ver `linhasSeguintes` lá) e aqui faltava — e o efeito
+     * apareceu no corpus fabricado: uma ficha datilografada de poucas linhas, que cai neste caminho
+     * por ter texto esparso, virava UM campo só com a ficha inteira dentro ("Nome = Otávio Lins
+     * Ocupacao: Fotógrafo Idade: 29 Sanidade: 58"). Quatro campos viravam um, e o nome do
+     * personagem saía com a ficha grudada nele.
+     *
+     * Não atrapalha a arte anotada, que é o que este caminho existe pra ler: ali a continuação é
+     * pedaço de frase ("rolagem de combate, adicione +3"), e pedaço de frase não tem rótulo.
+     */
+    const comecaCampoNovo = ehRotuloDaPessoa(texto)
+
+    const continuacao = comecaCampoNovo
+      ? undefined
+      : [...paragrafos]
+          .reverse()
+          .find(
+            (p) =>
+              p.page === linha.page &&
+              Math.abs(p.x - linha.x) <= MARGEM &&
+              p.y - linha.y > 0 &&
+              linha.altura !== null &&
+              p.y - linha.y <= linha.altura * FATOR_DE_ENTRELINHA
+          )
     if (continuacao) {
       continuacao.linhas.push(texto)
       continuacao.y = linha.y
@@ -247,6 +263,20 @@ function alturaUtil(item: PdfText): number | null {
 /** Rótulo digitado pela própria pessoa, na forma "Heróico: você não precisa…". */
 const ROTULO_E_VALOR = /^([^:]{2,28})\s*:\s*(\S[\s\S]*)$/
 
+/**
+ * O texto começa com um rótulo que a PESSOA escreveu?
+ *
+ * Mesma régua que `camposDeAnotacao` usa pra decidir o que vira campo, extraída porque a remontagem
+ * de parágrafos precisa dela ANTES: linha que é "Rótulo: valor" começa parágrafo novo em vez de
+ * continuar o de cima. Sem isso, uma ficha datilografada de poucas linhas — que cai neste caminho
+ * por ter texto esparso — virava um campo só com a ficha inteira dentro.
+ */
+function ehRotuloDaPessoa(texto: string): boolean {
+  const match = ROTULO_E_VALOR.exec(texto)
+  const label = match?.[1].trim()
+  return Boolean(match && label && /^[\p{L}]/u.test(label) && label.split(/\s+/).length <= 4)
+}
+
 /** A partir daqui o valor é descrição, não dado solto. Mesmo número do leitor de Oblivio. */
 const TAMANHO_DE_HABILIDADE = 25
 
@@ -279,7 +309,7 @@ export function camposDeAnotacao(paragrafos: string[]): {
     const match = ROTULO_E_VALOR.exec(paragrafo)
     const label = match?.[1].trim()
     // Rótulo começa com letra e é curto; frase inteira antes dos dois-pontos é texto, não nome.
-    if (match && label && /^[\p{L}]/u.test(label) && label.split(/\s+/).length <= 4) {
+    if (match && label && ehRotuloDaPessoa(paragrafo)) {
       const value = match[2].trim()
       /**
        * Parágrafo nomeado pela própria pessoa é HABILIDADE, e vai pro bloco de habilidades.

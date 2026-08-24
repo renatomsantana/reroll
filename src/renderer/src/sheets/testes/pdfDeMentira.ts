@@ -97,7 +97,16 @@ export function pdfDeUmaPagina(opcoes: OpcoesPdf = {}): Uint8Array {
         `${widgets.length ? ` /Annots [${referencias}]` : ''} >>`
     },
     { corpo: fluxoDeTexto(linhas) },
-    { corpo: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>' },
+    /**
+     * `/WinAnsiEncoding` é o que faz ACENTO virar acento.
+     *
+     * Sem ele a fonte usa a codificação padrão do PostScript, em que o byte 0xE7 (o "ç" em latin1)
+     * é o sinal de CEDILHA solto — e a leitura devolvia "FOR˙A" no lugar de "FORÇA", "Prontidªo" no
+     * lugar de "Prontidão". Isso fazia o corpus de teste parecer um defeito do importador quando era
+     * defeito do arquivo fabricado aqui: o leitor de Oblivio não reconhecia "For a" como "Força" e
+     * jogava metade dos atributos pro grupo errado, com razão.
+     */
+    { corpo: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>' },
     ...widgets.map((corpo) => ({ corpo }))
   ]
 
