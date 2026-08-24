@@ -21,6 +21,41 @@ files:
   - package.json
   - build/icons/**/*
 asar: true
+# ---------------------------------------------------------------------------------------------
+# FUSES: o que o BINÁRIO do Electron aceita fazer, decidido no empacotamento e gravado dentro do
+# executável — não dá pra ligar de volta por variável de ambiente, argumento ou arquivo.
+#
+# Achado da revisão de segurança do 1.0.12, MEDIDO no instalado:
+#
+#     ELECTRON_RUN_AS_NODE=1 Reroll.exe -e "console.log(process.versions.node)"   → 24.18.1
+#
+# Ou seja, o executável que vai pros amigos era um Node.js completo a uma variável de ambiente de
+# distância: qualquer script que rodasse na máquina podia usar o `Reroll.exe` como intérprete pra
+# executar o que quisesse com a cara de um app conhecido (é o truque clássico pra passar por lista
+# branca de antivírus — e este app já foi confundido com malware uma vez, ver `index.ts`).
+#
+# - `runAsNode`: fecha exatamente isso.
+# - `enableNodeOptionsEnvironmentVariable`: `NODE_OPTIONS=--require=x.js` injetaria código no
+#   processo principal antes do app.
+# - `enableNodeCliInspectArguments`: `--inspect` abriria o depurador do processo principal, com o
+#   disco e o sistema inteiro ao alcance de quem se conectasse.
+# - `onlyLoadAppFromAsar`: sem isto, uma pasta `app/` deixada ao lado do `app.asar` tem precedência
+#   sobre ele — trocar o app inteiro sem tocar no arquivo empacotado.
+# - `enableCookieEncryption`: o app não usa cookie; ligado por ser o padrão recomendado.
+#
+# O que NÃO está ligado, de propósito: `enableEmbeddedAsarIntegrityValidation`. Ele faria o
+# executável recusar um `app.asar` cujo hash não bata com o gravado no `.exe` — e o ciclo de
+# entrega deste projeto copia SÓ o `app.asar` por cima da instalação (ver a memória do projeto).
+# Ligar quebraria essa entrega em silêncio: o app simplesmente não abriria. Fica como recomendação
+# pro dia em que o executável for assinado e a entrega passar a ser sempre pelo instalador.
+#
+# Só vale no EMPACOTADO: `npm run dev` roda o Electron de `node_modules`, sem fuse nenhum.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+  enableCookieEncryption: true
 # Os ícones da janela ficam FORA do asar. `BrowserWindow({ icon })` e `nativeImage.createFromPath`
 # leem o arquivo pelo lado nativo, que não enxerga o conteúdo empacotado do asar — dentro dele o
 # caminho existe pro Node e não existe pro Windows, e o resultado é a janela instalada aparecendo
@@ -81,7 +116,8 @@ publish:
   provider: github
   owner: renatomsantana
   repo: reroll
-  # A release publicada não é rascunho nem pré-lançamento. (Pré-lançamento em si o app aceitaria: a
-  # versão instalada tem sufixo `-alpha`, e nesse caso o `electron-updater` liga o `allowPrerelease`
-  # sozinho — mas rascunho ele não enxerga de jeito nenhum.)
+  # A release publicada não é rascunho nem pré-lançamento. Pré-lançamento o app aceita porque
+  # `updater.ts` liga `allowPrerelease` À MÃO — este comentário dizia que o `electron-updater` ligava
+  # sozinho pelo sufixo `-alpha`, e foi medido que não liga (ver o comentário de lá). Rascunho ele
+  # não enxerga de jeito nenhum.
   releaseType: release

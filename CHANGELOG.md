@@ -6,6 +6,41 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [Não publicado]
+
+Revisão de segurança do app inteiro, com o que foi MEDIDO e não suposto.
+
+### Segurança
+
+- **O `Reroll.exe` deixa de ser um Node.js disfarçado.** Medido no instalado:
+  `ELECTRON_RUN_AS_NODE=1 Reroll.exe -e "..."` executava qualquer script com a cara do app — o
+  truque clássico pra passar por lista branca de antivírus, num app que já foi confundido com
+  malware uma vez. Os fuses do Electron agora são gravados no binário no empacotamento: `runAsNode`,
+  `NODE_OPTIONS` e `--inspect` desligados, carregamento só de dentro do `app.asar`. A validação de
+  integridade do asar ficou de fora de propósito — ela quebraria a entrega que copia só o `app.asar`
+  por cima da instalação; volta quando o executável for assinado.
+- **As anotações passam a ser conferidas ao gravar.** Era o único canal que escrevia no disco
+  exatamente o que a tela mandava, sem normalizar nem limitar — e grava a cada tecla. Agora normaliza
+  antes de gravar e recusa, com aviso na tela, o que passar de 16 MB; o que estava no disco continua
+  intacto.
+- **A foto do personagem só entra se for imagem embutida (PNG/JPEG/WebP) e do tamanho que o seletor
+  aceitaria.** O seletor tinha teto de 12 MB; o canal de gravação e o `profiles.json` não tinham
+  nenhum, e a foto é lida inteira em toda abertura do app. Nome e sistema ganham o mesmo teto de 200
+  caracteres da importação de ficha.
+- **A importação de presets tem teto: 2 MB de arquivo e 500 presets por vez.** O PDF e a imagem já
+  tinham limite; o `.json` era lido inteiro e analisado fosse do tamanho que fosse. Lista maior que
+  o teto é recusada dizendo quantos tem — não importa os primeiros quinhentos calado.
+
+O que foi conferido e está certo, pra não ser reconferido: sandbox, isolamento de contexto e Node
+desligados no renderer; CSP sem `unsafe-eval`; permissões todas negadas; rede só pro caminho da
+atualização (GitHub, HTTPS); navegação e `webview` bloqueados; menu e DevTools fora da versão
+instalada; id de personagem saneado antes de virar pasta; nenhum processo externo; `npm audit` sem
+vulnerabilidade; e o pdf.js 6.2 já não tem o caminho de `eval` da CVE-2024-4367.
+
+O que fica como recomendação, e não como conserto: **assinar o executável** antes de distribuir
+mais largamente. Sem assinatura, a atualização automática confia só no HTTPS do GitHub — quem
+tomar a conta publica uma "atualização" que roda em todo mundo.
+
 ## [1.0.12] — 2026-08-23
 
 Uma rodada de testes que virou conserto: o d100 não era um dado honesto, o vidro apagava os

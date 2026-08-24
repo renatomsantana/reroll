@@ -105,6 +105,34 @@ function idServeComoPasta(id: string): boolean {
  * PASTA (ver `ProfilesRepository.activeDirectory`). Um sobrescreve as anotações do outro a cada
  * tecla, e da tela isso lê como "troquei de personagem e as informações sumiram".
  */
+/**
+ * A FOTO só entra se for uma imagem embutida, e de tamanho que o app aceitaria escolher.
+ *
+ * O campo é gravado como data URL e vai direto pra um `<img src>`. A CSP (`img-src 'self' data:`)
+ * já impede qualquer outro esquema de carregar, então isto não é o que segura um `javascript:` — é o
+ * que segura o TAMANHO. O seletor de foto recusa arquivo acima de 12 MB (ver
+ * `TAMANHO_MAXIMO_DA_IMAGEM`), mas o canal `profiles:save` e o `profiles.json` no disco não
+ * passavam por limite nenhum: uma foto de 60 MB em base64 seria lida inteira em toda abertura do
+ * app. 17 MB de texto é 12 MB de imagem em base64, com folga pro cabeçalho.
+ *
+ * Formato fora da lista ou grande demais vira `null` — o personagem fica sem foto, e não some.
+ */
+const FOTO_EMBUTIDA = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/
+export const TAMANHO_MAXIMO_DA_FOTO = 17 * 1024 * 1024
+
+/** Nome e sistema são rótulos de tela; 200 caracteres é o mesmo teto da importação de ficha. */
+export const TAMANHO_MAXIMO_DO_NOME = 200
+
+function fotoValida(foto: unknown): string | null {
+  if (typeof foto !== 'string') return null
+  if (foto.length > TAMANHO_MAXIMO_DA_FOTO) return null
+  return FOTO_EMBUTIDA.test(foto) ? foto : null
+}
+
+function rotulo(valor: unknown): string {
+  return typeof valor === 'string' ? valor.slice(0, TAMANHO_MAXIMO_DO_NOME) : ''
+}
+
 export function normalizeProfiles(raw: unknown): ProfilesState {
   const data = raw as Partial<ProfilesState> | null
   const brutos = Array.isArray(data?.profiles) ? data.profiles : []
@@ -123,9 +151,9 @@ export function normalizeProfiles(raw: unknown): ProfilesState {
       id,
       // Tipo errado é o mesmo que ausente: o nome vai pra tela e pro `trim()` de quem grava a ficha,
       // e um número ali estoura longe daqui, com uma pilha que não aponta pro arquivo.
-      name: typeof entrada.name === 'string' ? entrada.name : '',
-      system: typeof entrada.system === 'string' ? entrada.system : '',
-      photo: typeof entrada.photo === 'string' ? entrada.photo : null,
+      name: rotulo(entrada.name),
+      system: rotulo(entrada.system),
+      photo: fotoValida(entrada.photo),
       createdAt: typeof entrada.createdAt === 'number' && Number.isFinite(entrada.createdAt) ? entrada.createdAt : 0
     })
   }
