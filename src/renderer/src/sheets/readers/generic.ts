@@ -6,6 +6,7 @@ import { camposDoTexto } from '../camposDoTexto'
 import {
   TEXTO_MINIMO,
   camposDeAnotacao,
+  ehTituloDeFicha,
   palpiteDeNome,
   pareceAnotacaoSobreImagem,
   regioesDaFicha
@@ -422,23 +423,26 @@ function camposSemRepetidos(fields: SheetImportField[]): SheetImportField[] {
  * (ver `nomeDeArquivoComoPalpite`), e é UMA regra pros dois caminhos do genérico — a revisão de
  * código pegou duas fórmulas diferentes, uma por caminho, que já tinham divergido.
  *
- * Três sinais, qualquer um basta: um campo importado, uma rolagem, ou texto de verdade na página. O
- * texto é medido em LETRAS, e não em fragmentos ou em campos de formulário: a ficha datilografada
- * tem dois fragmentos com cinquenta caracteres de prosa (e ali o palpite é bom); a ficha em branco
- * de Kids on Bikes tem UM "X" de caixinha marcada; e um formulário em branco tem cinquenta campos
- * vazios e nenhuma letra — os dois últimos não são ficha de ninguém, e nenhum ganha nome. Doze
- * letras é o patamar: abaixo disso é desenho, não documento.
+ * Três sinais, qualquer um basta: um campo importado, uma rolagem, ou uma LINHA DE CONTEÚDO na
+ * página — quatro palavras ou mais que não sejam o título impresso da ficha. A ficha datilografada
+ * tem parágrafos de prosa (e ali o palpite é bom); a ficha em branco de Kids on Bikes tem UM "X" de
+ * caixinha marcada; um formulário em branco tem cinquenta campos vazios e nenhuma letra; e um
+ * modelo achatado tem "KIDS ON BIKES" sobre "CHARACTER SHEET" e mais nada — nenhum desses é ficha
+ * de ninguém, e nenhum ganha nome. Esta régua já foi "doze letras na página", e o modelo com o
+ * título impresso passava por ela com doze letras exatas (quinta leva de PDFs de teste).
  */
-const LETRAS_MINIMAS = 12
+const PALAVRAS_MINIMAS = 4
 
 function leuAlgumaCoisa(sheet: PdfSheet, fields: SheetImportField[], presets: SheetImportPreset[]): boolean {
   if (fields.length > 0 || presets.length > 0) return true
-  let letras = 0
-  for (const texto of sheet.texts) {
-    letras += texto.text.match(/\p{L}/gu)?.length ?? 0
-    if (letras >= LETRAS_MINIMAS) return true
-  }
-  return false
+  return sheet.texts.some((texto) => ehLinhaDeConteudo(texto.text))
+}
+
+/** Uma linha de CONTEÚDO escrito: quatro palavras ou mais, e não o título impresso da ficha. */
+function ehLinhaDeConteudo(texto: string): boolean {
+  if (ehTituloDeFicha(texto)) return false
+  const palavras = texto.split(/\s+/).filter((palavra) => /\p{L}/u.test(palavra))
+  return palavras.length >= PALAVRAS_MINIMAS
 }
 
 function acharNome(sheet: PdfSheet, fields: SheetImportField[], readerId: string, leuAlgo: boolean): string {

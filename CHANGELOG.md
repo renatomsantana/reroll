@@ -40,7 +40,12 @@ presets e a tela de conferência — cada etapa um módulo puro com os próprios
   - a linha de arma com mais de 28 caracteres ("Espingarda calibre 12  dano 2d6+4") não virava
     preset — agora passa quando o dado FECHA a linha, que é a forma de arma e não a de regra;
   - o rótulo impresso de uma caixa ALTA (a história do personagem) ficava de fora, porque a distância
-    era medida do centro da caixa — agora é da borda, e a régua é uma só pros dois lugares que mediam.
+    era medida do centro da caixa — agora é da borda, e a régua é uma só pros dois lugares que mediam;
+  - o TÍTULO impresso da ficha ("KIDS ON BIKES / CHARACTER SHEET") era proposto como nome do
+    personagem numa arte achatada — visto na importação pela tela, com os quinze PDFs passando pelo
+    botão "Importar ficha (PDF)" de verdade;
+  - o teto de 2.000 campos por seção era cortado CALADO na gravação: a conferência mostrava 5.000 e o
+    disco recebia 2.000. Agora a conferência diz quantos ficam de fora, e o número é um só nos dois lados.
 
 ### Mudado
 

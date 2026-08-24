@@ -776,3 +776,23 @@ describe('preset do texto — linha de arma mais longa que 28 caracteres', () =>
     expect(nomes.some((n) => n.includes('parágrafo'))).toBe(false)
   })
 })
+
+/**
+ * O TÍTULO da ficha não é nome de personagem — achado da quinta leva, na importação pela tela.
+ */
+describe('nome pela posição — o título impresso da ficha fica de fora', () => {
+  it('arte achatada com "KIDS ON BIKES / CHARACTER SHEET" no alto não propõe nome', () => {
+    const lido = readSheet(
+      ficha([], [texto('KIDS ON BIKES', 200, 760), texto('CHARACTER SHEET', 200, 740), texto('X', 120, 500)])
+    )
+    expect(lido.characterName).toBe('')
+    expect(lido.fields).toEqual([])
+  })
+
+  it('"FICHA DE PERSONAGEM" e "Investigator" também não', () => {
+    for (const titulo of ['FICHA DE PERSONAGEM', 'Investigator', 'Personagem']) {
+      const lido = readSheet(ficha([], [texto(titulo, 200, 760), texto('X', 120, 500)]))
+      expect(lido.characterName, titulo).toBe('')
+    }
+  })
+})

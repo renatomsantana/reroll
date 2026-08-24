@@ -295,8 +295,10 @@ export const QUINTA_LEVA: FichaDeTeste[] = [
   },
   {
     arquivo: '21-kids-on-bikes-arte-com-titulo.pdf',
-    proposito: 'arte achatada com o TÍTULO impresso: tem letras, mas nenhum campo — não pode inventar ficha',
-    espera: { leitor: 'generico', maximoDeCampos: 0 },
+    proposito: 'arte achatada com o TÍTULO impresso: tem letras, mas nenhum campo — não pode inventar ficha nem nome',
+    // O título da ficha ("KIDS ON BIKES CHARACTER SHEET") chegou a ser proposto como nome do
+    // personagem na importação pela tela. Vazio: a tela pede o nome, e é isso que se quer.
+    espera: { leitor: 'generico', nome: '', maximoDeCampos: 0 },
     bytes: () =>
       pdfDeUmaPagina({
         linhas: [linha('KIDS ON BIKES', 760, 200), linha('CHARACTER SHEET', 740, 200), linha('X', 500, 120), linha('/', 480, 300)]
