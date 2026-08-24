@@ -65,6 +65,10 @@ export interface TranslationDict {
     dice: string
     addGroup: string
     modifier: string
+    /** O campo de FÓRMULA — a gramática de rolagem (`shared/dice/formula.ts`) dentro do editor. */
+    formula: string
+    formulaPlaceholder: string
+    formulaHint: string
     cancel: string
     save: string
     tooManyDice: string
@@ -335,7 +339,7 @@ export interface TranslationDict {
 export const translations: Record<Language, TranslationDict> = {
   'pt-BR': {
     appTitle: 'Reroll',
-    tabs: { roll: 'Rolagem', style: '🎨 Estilo', sheet: '📜 Ficha', notes: '📝 Anotações' },
+    tabs: { roll: 'Rolagem', style: '🎨 Estilo', sheet: '📜 Ficha (beta)', notes: '📝 Anotações' },
     roller: {
       quantityLabel: 'Quantidade de dados',
       typeLabel: 'Tipo de dado',
@@ -391,6 +395,9 @@ export const translations: Record<Language, TranslationDict> = {
       dice: 'Dados',
       addGroup: '+ Adicionar grupo de dados',
       modifier: 'Modificador (+/-)',
+      formula: 'Fórmula',
+      formulaPlaceholder: '1d20 + 5 · 4d6kh3 · 2d20kl1 · 1d6!',
+      formulaHint: 'Escreva a rolagem e os botões abaixo acompanham. kh3 usa os 3 maiores, kl1 o menor, ! explode no máximo.',
       cancel: 'Cancelar',
       save: 'Salvar',
       tooManyDice: 'Máximo de {max} dados no total (soma de todos os grupos).',
@@ -648,7 +655,7 @@ export const translations: Record<Language, TranslationDict> = {
   },
   'en-US': {
     appTitle: 'Reroll',
-    tabs: { roll: 'Roll', style: '🎨 Style', sheet: '📜 Sheet', notes: '📝 Notes' },
+    tabs: { roll: 'Roll', style: '🎨 Style', sheet: '📜 Sheet (beta)', notes: '📝 Notes' },
     roller: {
       quantityLabel: 'Number of dice',
       typeLabel: 'Dice type',
@@ -704,6 +711,9 @@ export const translations: Record<Language, TranslationDict> = {
       dice: 'Dice',
       addGroup: '+ Add dice group',
       modifier: 'Modifier (+/-)',
+      formula: 'Formula',
+      formulaPlaceholder: '1d20 + 5 · 4d6kh3 · 2d20kl1 · 1d6!',
+      formulaHint: 'Type the roll and the buttons below follow. kh3 keeps the 3 highest, kl1 the lowest, ! explodes on the max.',
       cancel: 'Cancel',
       save: 'Save',
       tooManyDice: 'Maximum of {max} dice total (sum of all groups).',

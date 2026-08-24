@@ -7,6 +7,7 @@ import {
   textoDeModificadorAceito,
   textoDoModificadorAjustado
 } from '@shared/dice/modificador'
+import { expressaoParaFormula, textoParaExpressao } from '@shared/dice/formulaParaExpressao'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
 import { Button } from '../common/Button'
@@ -92,6 +93,56 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
   const isValid =
     name.trim().length > 0 && groups.every((g) => g.count > 0 && g.sides > 0) && !tooManyDice
 
+  /**
+   * O CAMPO DE FÓRMULA — a gramática de rolagem (`shared/dice/formula.ts`) dentro do editor, o que
+   * o spec chama de "the universal escape hatch for any system": quem sabe escrever "4d6kh3 + 2"
+   * não precisa clicar, e os botões continuam lá pra quem não sabe. Os dois falam do MESMO preset:
+   * o texto preenche os botões, e os botões reescrevem o texto, na forma canônica, a cada mudança.
+   *
+   * O texto só NÃO é reescrito enquanto a pessoa está digitando nele — senão "4d6k" (que ainda não
+   * lê) viraria "4d6" debaixo do dedo. Ao sair do campo fica a forma canônica do que foi aceito; o
+   * que não foi aceito fica escrito, com o motivo embaixo, e os botões não mudam. O motivo vem da
+   * ponte (`formulaParaExpressao.ts`): ou a fórmula não lê, ou diz algo que o rolador desta versão
+   * ainda não faz — e cada um desses casos é dito com o nome, em vez de um preset que rola diferente
+   * do que está escrito.
+   */
+  const campoDaFormula = useRef<HTMLInputElement>(null)
+  const formulaDosBotoes =
+    expressaoParaFormula({
+      groups,
+      modifiers: modifier !== 0 ? [{ type: 'flat', value: modifier }] : [],
+      keep: regraDeManter(),
+      explode: explode ? { maxChain: MAX_EXPLOSOES_POR_DADO } : undefined
+    }) ?? ''
+  const [textoDaFormula, setTextoDaFormula] = useState(formulaDosBotoes)
+  const [erroDaFormula, setErroDaFormula] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (document.activeElement === campoDaFormula.current) return
+    setTextoDaFormula(formulaDosBotoes)
+    setErroDaFormula(null)
+  }, [formulaDosBotoes])
+
+  function aplicarFormula(texto: string) {
+    setTextoDaFormula(texto)
+    const reduzida = textoParaExpressao(texto)
+    if (!reduzida.ok) {
+      setErroDaFormula(reduzida.motivo)
+      return
+    }
+    setErroDaFormula(null)
+    const { expression } = reduzida
+    setGroups(expression.groups)
+    setTextoDoModificador(String(expression.modifiers.reduce((soma, m) => soma + m.value, 0)))
+    if (expression.keep) {
+      setKeepMode(expression.keep.mode)
+      setKeepCount(expression.keep.count)
+    } else {
+      setKeepMode('all')
+    }
+    setExplode(Boolean(expression.explode))
+  }
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onCancel()
@@ -169,6 +220,28 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
             />
             <EmojiPicker onSelect={setIcon} />
           </div>
+        </div>
+
+        <div className="preset-editor-field">
+          <span>{t.presetEditor.formula}</span>
+          <input
+            ref={campoDaFormula}
+            type="text"
+            className="preset-editor-formula"
+            value={textoDaFormula}
+            onChange={(e) => aplicarFormula(e.target.value)}
+            onBlur={() => {
+              if (!erroDaFormula) setTextoDaFormula(formulaDosBotoes)
+            }}
+            placeholder={t.presetEditor.formulaPlaceholder}
+            aria-label={t.presetEditor.formula}
+            spellCheck={false}
+          />
+          {erroDaFormula ? (
+            <p className="preset-editor-warning">{erroDaFormula}</p>
+          ) : (
+            <p className="preset-editor-hint">{t.presetEditor.formulaHint}</p>
+          )}
         </div>
 
         <div className="preset-editor-field">

@@ -10,30 +10,29 @@
 /**
  * IMPORTAR FICHA DE PDF — o "scraping" da seção 3 da spec.
  *
- * DESLIGADO no fechamento do alfa, a pedido do usuário ("ignora tudo de scraping agora, deixa o
- * scraping offline"), e a decisão é de ESCOPO, não de qualidade: o leitor de Ordem Paranormal, o de
- * D&D 5e, o de Oblivio, o genérico e a tela de conferência estão escritos, testados e funcionando.
- * Eles são o BETA, e o alfa fecha sem eles pra que a versão que vai pros amigos seja só o que já
- * está rodado à exaustão.
+ * LIGADO no 1.1.0-beta. A aba Ficha volta à interface marcada como "(beta)", com o botão de
+ * importar e os dois canais de IPC que ele usa (`sheets:pickPdf` e `sheets:apply`).
  *
- * O que fica desligado: o botão de importar na aba Ficha e os dois canais de IPC que ele usa
- * (`sheets:pickPdf` e `sheets:apply`) — o app instalado não tem por onde abrir um PDF.
+ * A história desta bandeira, porque ela já virou três vezes:
  *
- * O que CONTINUA valendo: a aba Ficha inteira (perfil, blocos, seções), porque uma ficha preenchida
- * à mão é do alfa; e as seções que já foram importadas por quem usou as versões anteriores, que
- * continuam na tela e editáveis. Desligar o importador não pode apagar o que ele já trouxe.
+ * 1. LIGADA no primeiro 1.1.0 e DESLIGADA na mesma rodada, pelo usuário, depois de olhar a
+ *    importação rodando: "ainda tem muitos erros para todas as informações". O que o leitor trazia
+ *    estava certo campo a campo, mas deixava informação de fora — os valores ATUAIS de PV, PE e
+ *    Sanidade, entre outros —, e ficha importada pela metade é pior que ficha em branco, porque
+ *    quem confia no que está na tela não confere o que ficou faltando.
+ * 2. DESLIGADA no fechamento do alfa (1.0.12), decisão de ESCOPO: a versão que vai pros amigos é
+ *    só o que já está rodado à exaustão. Uma ficha preenchida à mão continuou sendo do alfa.
+ * 3. LIGADA de novo aqui, depois do que foi consertado e MEDIDO nas fichas reais: os pares
+ *    atual/máximo vêm inteiros mesmo com metade em branco; toda ficha com dono traz o esqueleto de
+ *    lacunas (tudo o que é preenchível, mesmo vazio, porque "às vezes precisamos preencher no app
+ *    também"); Oblívio traz Aspectos e Equipamento; ritual e item preenchidos entram uma vez só;
+ *    um modelo em branco não ganha o nome do arquivo como personagem; o PDF tem teto de campos,
+ *    fragmentos, páginas e tamanho, e assinatura `%PDF-` conferida antes de atravessar o IPC.
  *
- * CHEGOU A SER LIGADO, e voltou a DESLIGADO — decisão do usuário depois de olhar a importação
- * rodando: "ainda tem muitos erros para todas as informações".
+ * O que continua sendo verdade: o rótulo "(beta)" na aba e o aviso na tela de conferência avisam
+ * que a leitura pode errar em sistema que o app não conhece, e ficha que é ARTE ACHATADA (sem
+ * camada de texto) não rende nada sem OCR — que é o item 1c do spec e ainda não existe.
  *
- * O motivo, medido: o que o leitor traz está CERTO (os 18 campos de Ordem Paranormal batem campo a
- * campo com o arquivo; os 23 de Oblivio também, já com o equipamento), mas ele ainda deixa
- * informação de fora — os valores ATUAIS de PV, PE e Sanidade, entre outros. Uma ficha importada
- * pela metade é pior que uma ficha em branco: a pessoa confia no que está na tela e não confere o
- * que ficou faltando.
- *
- * Continua tudo escrito e testado (os leitores, a tela de conferência, os canais de IPC), e a
- * suíte cobre inclusive os defeitos consertados nesta rodada. O que está desligado é a PORTA: o
- * botão de importar e os dois canais que ele usa. Ligar de novo é trocar pra `true`.
+ * Desligar é trocar pra `false`: some o botão e somem os canais, dos dois lados.
  */
-export const IMPORTACAO_DE_FICHA_LIGADA = false
+export const IMPORTACAO_DE_FICHA_LIGADA = true

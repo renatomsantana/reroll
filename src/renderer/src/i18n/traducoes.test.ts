@@ -45,6 +45,7 @@ const IGUAIS_DE_PROPOSITO = new Map<string, string>([
   ['roller.mode.normal', '"Normal" se escreve igual nos dois'],
   ['roller.explode', 'emoji + "Explode", que é a mesma palavra'],
   ['presetEditor.explode', 'idem'],
+  ['presetEditor.formulaPlaceholder', 'notação de dado (1d20 + 5, 4d6kh3) é a mesma nos dois idiomas'],
   ['roller.modifier', '"Mod:" é a mesma abreviação nos dois'],
   ['roller.total', '"Total" se escreve igual nos dois'],
   ['presets.title', '"Presets" já é o termo usado em português no jargão de RPG'],
