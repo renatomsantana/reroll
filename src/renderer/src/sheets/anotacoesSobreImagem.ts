@@ -1,4 +1,5 @@
 import type { PdfSheet, PdfText, SheetImportField } from '@shared/types/sheetImport'
+import { ehRotuloPlausivel } from './camposDoTexto'
 
 /**
  * A ficha que é uma IMAGEM com texto escrito por cima.
@@ -271,10 +272,17 @@ const ROTULO_E_VALOR = /^([^:]{2,28})\s*:\s*(\S[\s\S]*)$/
  * continuar o de cima. Sem isso, uma ficha datilografada de poucas linhas — que cai neste caminho
  * por ter texto esparso — virava um campo só com a ficha inteira dentro.
  */
-function ehRotuloDaPessoa(texto: string): boolean {
+function rotuloDaPessoa(texto: string): { label: string; value: string } | null {
   const match = ROTULO_E_VALOR.exec(texto)
-  const label = match?.[1].trim()
-  return Boolean(match && label && /^[\p{L}]/u.test(label) && label.split(/\s+/).length <= 4)
+  if (!match) return null
+  const label = match[1].trim()
+  // A régua do que é rótulo é UMA, a de `camposDoTexto` — a revisão de código pegou uma cópia dela
+  // aqui, e cópia é o jeito de as duas leituras da ficha passarem a discordar.
+  return ehRotuloPlausivel(label) ? { label, value: match[2].trim() } : null
+}
+
+function ehRotuloDaPessoa(texto: string): boolean {
+  return rotuloDaPessoa(texto) !== null
 }
 
 /** A partir daqui o valor é descrição, não dado solto. Mesmo número do leitor de Oblivio. */
@@ -306,11 +314,9 @@ export function camposDeAnotacao(paragrafos: string[]): {
   const consumidos = new Set<string>()
 
   for (const paragrafo of paragrafos) {
-    const match = ROTULO_E_VALOR.exec(paragrafo)
-    const label = match?.[1].trim()
-    // Rótulo começa com letra e é curto; frase inteira antes dos dois-pontos é texto, não nome.
-    if (match && label && ehRotuloDaPessoa(paragrafo)) {
-      const value = match[2].trim()
+    const rotulado = rotuloDaPessoa(paragrafo)
+    if (rotulado) {
+      const { label, value } = rotulado
       /**
        * Parágrafo nomeado pela própria pessoa é HABILIDADE, e vai pro bloco de habilidades.
        *

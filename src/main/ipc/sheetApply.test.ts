@@ -99,6 +99,38 @@ describe('importar ficha cria o personagem inteiro', () => {
     expect((await presets.getAll()).map((p) => p.name)).toEqual(['Faca (teste)', 'Faca (dano)'])
   })
 
+  it('a importação que ESTOURA o teto das anotações não deixa personagem fantasma', async () => {
+    /**
+     * Achado da revisão de código: a conferência na porta garante a FORMA do payload, mas a
+     * gravação das anotações ganhou um teto de tamanho, e `LIMITES_DA_FICHA` admite mais do que
+     * ele. O perfil era criado e ativado, a ficha estourava, e a pessoa ficava num personagem novo e
+     * vazio — o desfecho que a conferência existe pra impedir. Agora a falha desfaz o perfil.
+     */
+    const aplicar = handlers.get(IpcChannels.sheetsApply)!
+    const antes = await profiles.get()
+
+    // Dentro de cada limite de campo, acima do teto total: 100 seções × 90 campos × 2000 chars.
+    const valor = 'x'.repeat(2000)
+    const gorda = {
+      characterName: 'Fantasma',
+      system: 'Teste',
+      notes: {
+        blocks: {},
+        sections: Array.from({ length: 100 }, (_, s) => ({
+          title: `Seção ${s}`,
+          fields: Array.from({ length: 90 }, (_, f) => ({ label: `campo ${f}`, value: valor }))
+        }))
+      },
+      presets: []
+    }
+    await expect(aplicar(null, gorda as never)).rejects.toThrow(/limite/)
+
+    const depois = await profiles.get()
+    expect(depois.profiles.map((p) => p.id)).toEqual(antes.profiles.map((p) => p.id))
+    expect(depois.activeId).toBe(antes.activeId)
+    expect(depois.profiles.some((p) => p.name === 'Fantasma')).toBe(false)
+  })
+
   it('a segunda importação não encosta no personagem da primeira', async () => {
     /**
      * O risco real: os repositórios de anotações e presets escrevem na pasta do perfil ATIVO. Se a

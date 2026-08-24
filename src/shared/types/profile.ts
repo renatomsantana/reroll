@@ -117,7 +117,14 @@ function idServeComoPasta(id: string): boolean {
  *
  * Formato fora da lista ou grande demais vira `null` — o personagem fica sem foto, e não some.
  */
-const FOTO_EMBUTIDA = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/
+/**
+ * Só o PREFIXO é conferido, de propósito. A primeira versão varria o base64 inteiro com um `+$`
+ * ancorado, e `normalizeProfiles` roda no renderer e no main a cada gravação da lista — inclusive a
+ * cada tecla no nome do personagem. Quinze fotos de 10 MB eram 150 MB de string varridos por
+ * tecla. O que importa pra segurança é o esquema e o tipo; o conteúdo, quem julga é o decodificador
+ * de imagem do Chromium, que não executa nada.
+ */
+const FOTO_EMBUTIDA = /^data:image\/(png|jpeg|webp);base64,/
 export const TAMANHO_MAXIMO_DA_FOTO = 17 * 1024 * 1024
 
 /** Nome e sistema são rótulos de tela; 200 caracteres é o mesmo teto da importação de ficha. */

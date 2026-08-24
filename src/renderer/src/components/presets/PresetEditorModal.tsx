@@ -49,8 +49,21 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
    * menores" não deveria zerar o "quantos contam" que ela acabou de ajustar. `modo` em `'all'` é a
    * ausência de regra, que é o comportamento de sempre.
    */
-  const [keepMode, setKeepMode] = useState<KeepRule['mode'] | 'all'>(preset?.expression.keep?.mode ?? 'all')
-  const [keepCount, setKeepCount] = useState(preset?.expression.keep?.count ?? 1)
+  /**
+   * Uma regra guardada que NÃO faz nada — "usar os 3 maiores" de 3 dados, ou `count` zero de um
+   * `presets.json` editado à mão — abre como "todos os dados", que é o que ela sempre foi.
+   *
+   * Achado da revisão de código: abrir e salvar (só pra renomear) um preset assim transformava a
+   * regra inerte numa regra de verdade, porque o mostrador prende o valor em `total − 1` e o que
+   * está na tela é o que se grava. Prender é certo; o erro era deixar uma regra inerte chegar ao
+   * mostrador como se fosse uma escolha.
+   */
+  const dadosNoInicio = (preset?.expression.groups ?? []).reduce((soma, g) => soma + g.count, 0)
+  const regraInicial = preset?.expression.keep
+  const regraTemEfeito =
+    regraInicial !== undefined && regraInicial.count >= 1 && regraInicial.count < dadosNoInicio
+  const [keepMode, setKeepMode] = useState<KeepRule['mode'] | 'all'>(regraTemEfeito ? regraInicial.mode : 'all')
+  const [keepCount, setKeepCount] = useState(regraTemEfeito ? regraInicial.count : 1)
   /**
    * DADOS EXPLOSIVOS no preset. Booleano e não número: o teto da cadeia é do app
    * (`MAX_EXPLOSOES_POR_DADO`) e não uma escolha de quem monta o preset — ninguém quer decidir
@@ -75,7 +88,7 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
    *    maiores"; o preset gravado somava os dois dados.
    */
   const keepMaximo = Math.max(1, totalDiceCount - 1)
-  const keepEfetivo = Math.min(keepCount, keepMaximo)
+  const keepEfetivo = Math.max(1, Math.min(keepCount, keepMaximo))
   const isValid =
     name.trim().length > 0 && groups.every((g) => g.count > 0 && g.sides > 0) && !tooManyDice
 

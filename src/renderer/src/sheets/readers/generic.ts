@@ -194,27 +194,7 @@ export function extrairGenerico(
 
   const semRuido = camposSemRepetidos(fields)
   const presetsFinais = semRepetidos(presets)
-  /**
-   * "Não havia NADA pra ler", medido em LETRAS e não em número de fragmentos.
-   *
-   * É o que separa dois arquivos que o corte por quantidade de fragmentos confunde: a ficha
-   * datilografada tem dois fragmentos com uns cinquenta caracteres de prosa (e ali o nome do arquivo
-   * é bom palpite, ver `nomeDeArquivoComoPalpite`), enquanto a ficha EM BRANCO de Kids on Bikes tem
-   * um fragmento com UMA letra na página inteira — um "X" de caixinha marcada. Doze letras é o
-   * patamar: abaixo disso não existe ficha nenhuma atrás do arquivo, existe um desenho.
-   */
-  const LETRAS_MINIMAS = 12
-  const letrasNoPdf = sheet.texts.reduce(
-    (soma, texto) => soma + (texto.text.match(/\p{L}/gu)?.length ?? 0),
-    0
-  )
-  const semNadaPraLer = sheet.fields.length === 0 && letrasNoPdf < LETRAS_MINIMAS
-  const nome = acharNome(
-    sheet,
-    fields,
-    readerId,
-    !semNadaPraLer || semRuido.length > 0 || presetsFinais.length > 0
-  )
+  const nome = acharNome(sheet, fields, readerId, leuAlgumaCoisa(sheet, semRuido, presetsFinais))
 
   /**
    * "Parece o modelo em branco" tem que ser dito mesmo quando há campos preenchidos, porque uma
@@ -305,13 +285,7 @@ function anotacaoSobreImagem(
     readerId,
     readerLabel,
     confidence,
-    characterName:
-      nome ||
-      nomeDeArquivoComoPalpite(
-        sheet.fileName,
-        readerId,
-        fields.length > 0 || presets.length > 0 || rawText.trim().length > 0
-      ),
+    characterName: nome || nomeDeArquivoComoPalpite(sheet.fileName, readerId, leuAlgumaCoisa(sheet, fields, presets)),
     system: '',
     fields,
     presets,
@@ -420,12 +394,31 @@ function camposSemRepetidos(fields: SheetImportField[]): SheetImportField[] {
  * campo editável, então o custo de errar é uma correção de dois segundos, e o de não sugerir é o
  * usuário digitar tudo.
  */
-function acharNome(
-  sheet: PdfSheet,
-  fields: SheetImportField[],
-  readerId: string,
-  leuAlgo = true
-): string {
+/**
+ * A leitura RENDEU alguma coisa? É o que decide se o nome do arquivo pode servir de palpite de nome
+ * (ver `nomeDeArquivoComoPalpite`), e é UMA regra pros dois caminhos do genérico — a revisão de
+ * código pegou duas fórmulas diferentes, uma por caminho, que já tinham divergido.
+ *
+ * Três sinais, qualquer um basta: um campo importado, uma rolagem, ou texto de verdade na página. O
+ * texto é medido em LETRAS, e não em fragmentos ou em campos de formulário: a ficha datilografada
+ * tem dois fragmentos com cinquenta caracteres de prosa (e ali o palpite é bom); a ficha em branco
+ * de Kids on Bikes tem UM "X" de caixinha marcada; e um formulário em branco tem cinquenta campos
+ * vazios e nenhuma letra — os dois últimos não são ficha de ninguém, e nenhum ganha nome. Doze
+ * letras é o patamar: abaixo disso é desenho, não documento.
+ */
+const LETRAS_MINIMAS = 12
+
+function leuAlgumaCoisa(sheet: PdfSheet, fields: SheetImportField[], presets: SheetImportPreset[]): boolean {
+  if (fields.length > 0 || presets.length > 0) return true
+  let letras = 0
+  for (const texto of sheet.texts) {
+    letras += texto.text.match(/\p{L}/gu)?.length ?? 0
+    if (letras >= LETRAS_MINIMAS) return true
+  }
+  return false
+}
+
+function acharNome(sheet: PdfSheet, fields: SheetImportField[], readerId: string, leuAlgo: boolean): string {
   const doCampo = palpiteDoCampoDeNome(fields)
   if (doCampo) return doCampo
   return nomeDeArquivoComoPalpite(sheet.fileName, readerId, leuAlgo)
@@ -445,7 +438,7 @@ function acharNome(
  * único indício de nome que existe. Errar custa uma edição; não oferecer nada custa digitação em
  * toda importação de ficha sem campo de nome.
  */
-function nomeDeArquivoComoPalpite(fileName: string, readerId: string, leuAlgo = true): string {
+function nomeDeArquivoComoPalpite(fileName: string, readerId: string, leuAlgo: boolean): string {
   if (readerId !== 'generico') return ''
   /**
    * E nem no genérico, quando a leitura veio VAZIA.

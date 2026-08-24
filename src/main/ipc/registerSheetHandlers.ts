@@ -51,6 +51,14 @@ export async function lerPdfEscolhido(caminho: string): Promise<PdfEscolhido> {
   try {
     const buffer = await fs.readFile(caminho)
     /**
+     * A ASSINATURA do formato, e não só a extensão — pedido do spec da importação (Stage 0). Um
+     * `.pdf` que não começa com `%PDF-` é outra coisa renomeada: um vídeo, um executável, um zip.
+     * O pdf.js recusaria de qualquer jeito, mas recusaria DEPOIS de os bytes atravessarem o IPC e
+     * chegarem ao renderer; aqui a recusa é antes, com o motivo certo na tela ("ilegível") em vez
+     * de um erro de análise.
+     */
+    if (!ehPdf(buffer)) return { ok: false, motivo: 'ilegivel', detalhe: 'não é um PDF (assinatura %PDF- ausente)' }
+    /**
      * Bytes puros, sem base64: o IPC do Electron serializa `Uint8Array` por conta própria, e uma
      * ficha de RPG passa fácil dos 4 MB — base64 inflaria isso em um terço à toa.
      */
@@ -58,6 +66,16 @@ export async function lerPdfEscolhido(caminho: string): Promise<PdfEscolhido> {
   } catch (causa) {
     return { ok: false, motivo: 'ilegivel', detalhe: (causa as Error).message }
   }
+}
+
+/**
+ * Todo PDF começa com `%PDF-` (a versão vem logo depois: `%PDF-1.7`). Alguns geradores põem lixo
+ * ou uma quebra de linha antes, e o padrão tolera até 1024 bytes de cabeçalho — por isso a busca é
+ * no COMEÇO do arquivo, e não só nos cinco primeiros bytes.
+ */
+export function ehPdf(bytes: Uint8Array): boolean {
+  const cabecalho = Buffer.from(bytes.subarray(0, 1024)).toString('latin1')
+  return cabecalho.includes('%PDF-')
 }
 
 /**
@@ -248,6 +266,29 @@ export function registerSheetHandlers(
         : [...estado.profiles, novo]
       await profiles.save({ profiles: lista, activeId: novo.id })
 
+      /**
+       * TUDO OU NADA, de verdade — a revisão de código pegou o buraco: a conferência na porta
+       * garante a FORMA do payload, mas a gravação das anotações passou a ter um teto de tamanho
+       * (ver `NotesRepository.save`), e `LIMITES_DA_FICHA` admite mais do que ele. Uma ficha dentro
+       * dos limites de campo e acima do teto total criava o personagem, ativava, e estourava na
+       * ficha — a pessoa ficava num personagem novo e vazio, com um erro na tela. É exatamente o
+       * desfecho que a conferência existe pra impedir.
+       *
+       * Por isso o que vem depois do perfil roda dentro de um `try`, e a falha DESFAZ o perfil:
+       * a lista volta a ser a de antes (personagem novo some; nome e sistema de um atualizado
+       * voltam), e o erro sobe pra tela como sempre. O que pode sobrar é uma pasta órfã com
+       * presets já gravados, que nenhum personagem aponta — melhor que um personagem fantasma.
+       */
+      try {
+        await gravarFichaEPresets()
+      } catch (causa) {
+        await profiles.save(estado)
+        throw causa
+      }
+      return novo
+
+      async function gravarFichaEPresets(): Promise<void> {
+
       const blocos = payload.notes.blocks
       if (payload.notes.sections.length > 0 || Object.keys(blocos).length > 0) {
         const atuais = await notes.get()
@@ -353,7 +394,7 @@ ${novoTexto}` : novoTexto
         await presets.create(preset)
       }
 
-      return novo
+      }
     }
   )
 }

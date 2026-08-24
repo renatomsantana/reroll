@@ -160,7 +160,7 @@ function linhasSeguintes(emOrdem: PdfText[], inicio: number): PdfText[] {
  * ("Voracidade: Primeira vez na cena dobre sua Dor"). O corte por palavras é o que separa um rótulo
  * de campo do começo de um parágrafo.
  */
-function ehRotuloPlausivel(texto: string): boolean {
+export function ehRotuloPlausivel(texto: string): boolean {
   const limpo = texto.trim()
   if (limpo.length < 2 || limpo.length > 28) return false
   /**

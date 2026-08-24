@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { join } from 'path'
 import type { Preset, PresetInput } from '@shared/types/preset'
+import { MAXIMO_DE_PRESETS_POR_PERSONAGEM } from '@shared/diceRegistry'
 import { JsonFileStore } from './JsonFileStore'
 import type { ProfilesRepository } from './ProfilesRepository'
 
@@ -35,6 +36,7 @@ export class PresetsRepository {
 
   async create(input: PresetInput): Promise<Preset> {
     const presets = await this.store().read()
+    conferirTeto(presets.length + 1)
     const now = Date.now()
     const preset: Preset = {
       id: randomUUID(),
@@ -77,6 +79,7 @@ export class PresetsRepository {
   /** Adiciona vários presets de uma vez (importação), sempre com id/timestamps novos. */
   async importMany(inputs: PresetInput[]): Promise<Preset[]> {
     const presets = await this.store().read()
+    conferirTeto(presets.length + inputs.length)
     const now = Date.now()
     const imported: Preset[] = inputs.map((input) => ({
       id: randomUUID(),
@@ -89,5 +92,18 @@ export class PresetsRepository {
     const next = [...presets, ...imported]
     await this.store().write(next)
     return next
+  }
+}
+
+/**
+ * O teto de presets do personagem, cobrado onde os três caminhos de gravação se encontram — ver
+ * `MAXIMO_DE_PRESETS_POR_PERSONAGEM`. A regra é sobre CRESCER: um arquivo que já veio do disco com
+ * mais do que o teto continua legível, editável e apagável; o que não passa é ganhar mais um.
+ */
+function conferirTeto(totalDepois: number): void {
+  if (totalDepois > MAXIMO_DE_PRESETS_POR_PERSONAGEM) {
+    throw new Error(
+      `Limite de ${MAXIMO_DE_PRESETS_POR_PERSONAGEM} presets por personagem atingido — apague alguns antes de criar ou importar outros.`
+    )
   }
 }
