@@ -3,7 +3,6 @@ import { useSettings } from '@renderer/settings/SettingsContext'
 import { appIconImageSmall } from '@renderer/assets/icons'
 import { IconeEngrenagem } from '@renderer/components/common/IconeEngrenagem'
 import './Toolbar.css'
-import { IconeReroll } from '@renderer/components/common/IconeReroll'
 
 export type AppTab = 'roll' | 'style' | 'sheet' | 'notes'
 
@@ -58,7 +57,6 @@ export function Toolbar({
             className={`toolbar-tab ${activeTab === 'style' ? 'toolbar-tab-active' : ''}`}
             onClick={() => onTabChange('style')}
           >
-            <IconeReroll className="toolbar-tab-icon" />
             {t.tabs.style}
           </button>
           {/*
@@ -80,7 +78,6 @@ export function Toolbar({
             className={`toolbar-tab ${activeTab === 'sheet' ? 'toolbar-tab-active' : ''}`}
             onClick={() => onTabChange('sheet')}
           >
-            <IconeReroll className="toolbar-tab-icon" />
             {t.tabs.sheet}
           </button>
           <button
@@ -90,7 +87,6 @@ export function Toolbar({
             className={`toolbar-tab ${activeTab === 'notes' ? 'toolbar-tab-active' : ''}`}
             onClick={() => onTabChange('notes')}
           >
-            <IconeReroll className="toolbar-tab-icon" />
             {t.tabs.notes}
           </button>
         </div>

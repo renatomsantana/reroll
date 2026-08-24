@@ -124,8 +124,9 @@ export function CompactWidget({ presets, result, onRoll }: CompactWidgetProps) {
               className="compact-preset"
               onClick={() => onRoll(preset)}
               /* O nome é cortado com reticências num botão estreito; o `title` devolve o nome
-                 inteiro e a expressão sem gastar altura, que é o que falta aqui. */
-              title={`${preset.name} — ${expressionLabel(preset.expression)}`}
+                 inteiro e a expressão sem gastar altura, que é o que falta aqui. Preset de
+                 fórmula mostra a fórmula — ela É a descrição da rolagem. */
+              title={`${preset.name} — ${preset.formula ?? (preset.expression ? expressionLabel(preset.expression) : '—')}`}
             >
               {preset.icon && <span className="compact-preset-icon">{preset.icon}</span>}
               <span className="compact-preset-name">{preset.name}</span>

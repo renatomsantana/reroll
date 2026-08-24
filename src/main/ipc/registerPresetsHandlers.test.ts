@@ -144,3 +144,29 @@ describe('isValidPresetInput', () => {
     })
   })
 })
+
+describe('isValidPresetInput — preset de fórmula', () => {
+  it('aceita fórmula que lê e cabe na bandeja', () => {
+    expect(isValidPresetInput({ name: 'Rajada', formula: '6d6#>=5' })).toBe(true)
+    expect(isValidPresetInput({ name: 'Teste', formula: '1d20+5 >= 15' })).toBe(true)
+    expect(isValidPresetInput({ name: 'Sorte', formula: '2d6r<2' })).toBe(true)
+    expect(isValidPresetInput({ name: 'Crítico', formula: '(1d8+2)*2' })).toBe(true)
+  })
+
+  it('rejeita fórmula que não lê', () => {
+    expect(isValidPresetInput({ name: 'X', formula: '1d' })).toBe(false)
+    expect(isValidPresetInput({ name: 'X', formula: '' })).toBe(false)
+    expect(isValidPresetInput({ name: 'X', formula: 5 })).toBe(false)
+  })
+
+  it('rejeita fórmula que a bandeja não joga', () => {
+    expect(isValidPresetInput({ name: 'X', formula: '1d30' })).toBe(false)
+    expect(isValidPresetInput({ name: 'X', formula: '21d6' })).toBe(false)
+    expect(isValidPresetInput({ name: 'X', formula: '1d20+@STR.mod' })).toBe(false)
+    expect(isValidPresetInput({ name: 'X', formula: '5+3' })).toBe(false)
+  })
+
+  it('rejeita fórmula e expressão juntas — dois retratos da mesma rolagem podem discordar', () => {
+    expect(isValidPresetInput({ ...validPreset(), formula: '1d20+5' })).toBe(false)
+  })
+})

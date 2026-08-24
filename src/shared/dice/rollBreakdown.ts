@@ -10,6 +10,22 @@ import { mantidosPorGrupo } from './manterDados'
  */
 export function rollBreakdown(result: RollResult): string {
   /**
+   * Resultado de FÓRMULA não é uma soma: pode haver multiplicação entre grupos e contagem dentro
+   * deles (ver `formulaTexto` em `RollResult`), então juntar tudo com "+" escreveria uma equação
+   * que não bate com o total. A linha vira uma LISTA das faces — vírgula dentro do grupo, "·"
+   * entre grupos —, com o descartado entre parênteses; a conta quem diz é o rótulo, que é a
+   * própria fórmula.
+   */
+  if (result.formulaTexto) {
+    return result.groups
+      .map((g, gi) =>
+        g.rolls
+          .map((valor, i) => (result.mantidos && !result.mantidos[gi][i] ? `(${valor})` : String(valor)))
+          .join(', ')
+      )
+      .join(' · ')
+  }
+  /**
    * Com regra de manter, o dado DESCARTADO vai entre parênteses.
    *
    * Sem isso a linha se contradiz na cara da pessoa: "4+17+9" ao lado de um total 17. Ela some os

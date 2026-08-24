@@ -63,3 +63,14 @@
   margin-left: 2px;
   vertical-align: super;
 }
+
+/* O julgamento do alvo de uma fórmula (">= 15"), colado no total — é ele que foi julgado. */
+.history-entry-sucesso {
+  color: #2e8b57;
+  font-weight: bold;
+}
+
+.history-entry-fracasso {
+  color: #c0392b;
+  font-weight: bold;
+}

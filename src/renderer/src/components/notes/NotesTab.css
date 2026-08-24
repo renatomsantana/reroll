@@ -406,3 +406,15 @@
   margin-bottom: 6px;
   border-bottom: 1px solid var(--win-shadow);
 }
+
+/* O contador da sessão: quantos dos 2.000 caracteres já foram — entrou junto do teto. */
+.notes-contador {
+  align-self: flex-end;
+  font-size: 10px;
+  color: var(--win-text-muted);
+}
+
+.notes-contador-cheio {
+  color: #c0392b;
+  font-weight: bold;
+}

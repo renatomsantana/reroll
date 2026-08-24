@@ -60,11 +60,35 @@ function retangulo(valor: unknown): [number, number, number, number] {
  * O valor de um campo, que o pdf.js entrega de três formas diferentes conforme o tipo: texto puro,
  * lista (seleção múltipla) ou o estado de uma caixa/botão.
  */
-function valorDoCampo(anotacao: { fieldValue?: unknown }): string {
+function valorDoCampo(anotacao: { fieldValue?: unknown; options?: unknown }): string {
   const valor = anotacao.fieldValue
-  if (typeof valor === 'string') return valor
-  if (Array.isArray(valor)) return valor.filter((v) => typeof v === 'string').join(', ')
+  if (typeof valor === 'string') return rotuloDaOpcao(valor, anotacao.options)
+  if (Array.isArray(valor)) {
+    return valor
+      .filter((v): v is string => typeof v === 'string')
+      .map((v) => rotuloDaOpcao(v, anotacao.options))
+      .join(', ')
+  }
   return textoDePrimitivo(valor)
+}
+
+/**
+ * Campo de LISTA guarda o valor de EXPORTAÇÃO, que pode não ser o rótulo que a pessoa vê.
+ *
+ * Medido na ficha da comunidade de Ordem Paranormal (a do Vincenzo): `classe` guardava `"2"` e as
+ * opções diziam `2 = "Especialista"`; `origem "2" = "Agente de Saúde"`. Sem esta tradução a
+ * conferência mostrava "CLASSE = 2", que não é informação de ninguém. A ficha oficial não muda:
+ * lá o valor de exportação É o rótulo, e a tradução devolve o mesmo texto.
+ */
+function rotuloDaOpcao(valor: string, options: unknown): string {
+  if (!Array.isArray(options)) return valor
+  for (const bruta of options) {
+    const opcao = bruta as { exportValue?: unknown; displayValue?: unknown }
+    if (opcao?.exportValue === valor && typeof opcao.displayValue === 'string') {
+      return opcao.displayValue
+    }
+  }
+  return valor
 }
 
 /**
@@ -127,9 +151,20 @@ export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocumen
           fieldType?: unknown
           fieldValue?: unknown
           rect?: unknown
+          annotationFlags?: unknown
+          options?: unknown
         }
         if (anotacao.subtype !== 'Widget') continue
         if (typeof anotacao.fieldName !== 'string' || !anotacao.fieldName) continue
+        /**
+         * Campo que a pessoa NÃO VÊ não é ficha de ninguém. As bandeiras 2 (HIDDEN) e 32 (NOVIEW)
+         * são como formulário calculado esconde os campos internos — a família "Editável com
+         * Cálculos" de Pathfinder guarda totais de JavaScript assim, e sem este corte um
+         * "TOTAL_INTERNO = 999" entrava na conferência com cara de dado lido (sexta leva de PDFs
+         * de teste). O que está visível no papel continua entrando igual.
+         */
+        const bandeiras = numero(anotacao.annotationFlags)
+        if ((bandeiras & 2) !== 0 || (bandeiras & 32) !== 0) continue
         // Ver `MAXIMO_DE_CAMPOS_DA_FICHA`: a partir daqui o resto é ignorado, com aviso.
         if (fields.length >= MAXIMO_DE_CAMPOS_DA_FICHA) {
           if (fields.length === MAXIMO_DE_CAMPOS_DA_FICHA) {

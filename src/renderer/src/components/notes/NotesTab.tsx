@@ -4,6 +4,7 @@ import { useNotes } from '@renderer/hooks/useNotes'
 import { FONT_OPTIONS, useSettings } from '@renderer/settings/SettingsContext'
 import type { Language } from '@shared/types/idioma'
 import { useProfiles } from '@renderer/settings/ProfilesContext'
+import { TAMANHO_MAXIMO_DA_ANOTACAO, textoDeAnotacaoLimitado } from '@shared/types/notes'
 import { FontSelect, type FontSelectValue } from '../chrome/FontSelect'
 import { ProfileBadge } from '../common/ProfileBadge'
 import { Button } from '../common/Button'
@@ -260,9 +261,24 @@ export function NotesTab() {
           <textarea
             className="notes-textarea"
             value={page.text}
-            onChange={(e) => updatePage({ text: e.target.value })}
+            /*
+             * O TETO da sessão (ver `TAMANHO_MAXIMO_DA_ANOTACAO`): o `maxLength` para a digitação
+             * no limite, e o corte no `onChange` cobre o que entra por outro caminho (arrastar
+             * texto pra dentro, por exemplo). Sessão antiga MAIOR que o teto continua inteira —
+             * só não cresce mais.
+             */
+            maxLength={TAMANHO_MAXIMO_DA_ANOTACAO}
+            onChange={(e) => updatePage({ text: textoDeAnotacaoLimitado(e.target.value) })}
             style={textStyle}
           />
+          {/* O contador diz onde se está ANTES de o campo parar de aceitar — cheio, avisa em cor. */}
+          <div
+            className={`notes-contador ${
+              page.text.length >= TAMANHO_MAXIMO_DA_ANOTACAO ? 'notes-contador-cheio' : ''
+            }`}
+          >
+            {page.text.length}/{TAMANHO_MAXIMO_DA_ANOTACAO}
+          </div>
         </div>
       </div>
     </Card>

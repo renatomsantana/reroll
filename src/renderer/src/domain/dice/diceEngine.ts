@@ -7,6 +7,8 @@ import type {
   RollResult
 } from '@shared/types/dice'
 import { rotuloDeManter, totalMantido, valoresDosGrupos } from '@shared/dice/manterDados'
+import { avaliarFormula, type Formula } from '@shared/dice/formula'
+import { resultadoParaRollResult } from '@shared/dice/rolagemPorEtapas'
 
 /**
  * Sorteia um inteiro uniforme em [1, sides] usando crypto.getRandomValues,
@@ -102,6 +104,22 @@ export function rollExpression(expression: DiceExpression): RollResult {
     keep: expression.keep,
     explode: expression.explode
   }
+}
+
+/**
+ * A FÓRMULA rolada sem física — o mesmo RNG de `rollExpression`, guiando a gramática inteira.
+ *
+ * É o caminho do modo rápido e do modo compacto pros presets de fórmula: a avaliação pede as faces
+ * e o `rollDie` responde na hora, sem ondas. `null` quando a avaliação falha (referência à ficha
+ * num preset que passou por fora da validação) — quem chama decide o que mostrar; rolar outra
+ * coisa no lugar é que não dá.
+ */
+export function rolarFormula(formula: Formula, sourceName?: string): RollResult | null {
+  const resultado = avaliarFormula(formula, {
+    dados: (lados, quantidade) => Array.from({ length: quantidade }, () => rollDie(lados))
+  })
+  if (!resultado.ok) return null
+  return resultadoParaRollResult(formula, resultado, sourceName)
 }
 
 export function singleGroupExpression(count: number, sides: number, modifier = 0): DiceExpression {

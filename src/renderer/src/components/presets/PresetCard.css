@@ -21,7 +21,14 @@
   gap: 7px;
   padding: 4px 4px 4px 7px;
   background: none;
-  border: none;
+  /*
+   * `border: 0`, e NUNCA `border: none` num botão: o none zera o estilo mas deixa a largura no
+   * `medium` (3px) — e o `button:active` global põe `border-style: inset`, que RESSUSCITA esses
+   * 3px no clique. Medido no reteste de botões: o conteúdo pulava (4, 2.5) onde devia andar
+   * (1, 1), e o probe mostrou o ícone a 11px da borda com padding de 8. Com a largura zerada, o
+   * estilo que o global põe não tem espessura pra pintar.
+   */
+  border: 0;
   color: inherit;
   cursor: pointer;
   text-align: left;
@@ -30,8 +37,19 @@
   min-width: 0;
 }
 
-.preset-card-main:active {
-  background: var(--win-shadow);
+/*
+ * O clique AFUNDA O CARTÃO, como um botão do 98 — e não escurece nada. O escurecer
+ * (`background: var(--win-shadow)`) era o gesto de outro sistema visual, e foi o que o usuário
+ * apontou como "não natural". O botão de rolar não tem borda própria (ele é a área principal do
+ * cartão), então quem inverte o degrau é o CARTÃO em volta — só quando o clique é no rolar
+ * (`:has`), não no lápis nem no ✕ — e o conteúdo anda o 1px de sempre.
+ */
+.preset-card:has(.preset-card-main:active:not(:disabled)) {
+  border-style: inset;
+}
+
+.preset-card-main:active:not(:disabled) {
+  padding: 5px 3px 3px 8px;
 }
 
 .preset-card-icon {
@@ -83,7 +101,8 @@
   align-items: center;
   justify-content: center;
   background: none;
-  border: none;
+  /* `border: 0` pelo mesmo motivo do `.preset-card-main` logo acima: o global ressuscita `none`. */
+  border: 0;
   color: var(--win-text);
   font-size: 10px;
   line-height: 1;
@@ -92,6 +111,11 @@
 
 .preset-card-action:hover:not(:disabled) {
   background: var(--win-shadow);
+}
+
+/* O clique no lápis/✕ também afunda o glifo 1px — centrado por flex, o padding assimétrico basta. */
+.preset-card-action:active:not(:disabled) {
+  padding: 2px 0 0 2px;
 }
 
 .preset-card-action:disabled {

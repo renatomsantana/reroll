@@ -50,7 +50,10 @@ export function PresetCard({
         <span className="preset-card-icon">{preset.icon || <IconeReroll tamanho={17} />}</span>
         <span className="preset-card-text">
           <span className="preset-card-name">{preset.name}</span>
-          <span className="preset-card-expression">{expressionLabel(preset.expression)}</span>
+          {/* Preset de fórmula mostra a própria fórmula — ela É a descrição da rolagem. */}
+          <span className="preset-card-expression">
+            {preset.formula ?? (preset.expression ? expressionLabel(preset.expression) : '—')}
+          </span>
         </span>
       </button>
       {/*

@@ -1,0 +1,58 @@
+REROLL — O QUE MUDOU DESDE A VERSÃO 0.1.3
+==========================================
+
+Você está com a 0.1.3 (a primeira que distribuí). Ao abrir o app, ele vai
+perguntar se quer atualizar — é só aceitar. A versão nova é a 1.0.11.
+Nada do que você já tem se perde: personagens, anotações e presets ficam
+onde estão.
+
+O QUE TEM DE NOVO NA MESA
+-------------------------
+- TORRE DE DADOS de castelo: os dados podem cair por dentro dela, saindo
+  pela boca — ou ela fica de enfeite na mesa, com ponte levadiça que abre
+  e fecha com um clique.
+- ESTOJO DE DADOS na cena, que abre e fecha, com os dados arrumados
+  mostrando o número maior.
+- FORMATOS DE BANDEJA: triângulo, quadrado, hexágono e círculo.
+- DADOS EXPLOSIVOS: tirou o valor máximo, o dado volta e cai de novo — as
+  quedas somam. Liga por rolagem ou fica gravado num preset.
+- Até 20 DADOS por rolagem (eram 15), medido pra caber sem dado fugindo.
+- Dá pra tirar TODOS os dados da rolagem e montar outra do zero, rápido.
+- A câmera (W/A/S/D) anda no dobro da velocidade.
+
+PERSONAGENS
+-----------
+- Até 15 PERSONAGENS, cada um com foto, sistema, anotações, presets e a
+  aparência da mesa DELE (cores de dado, bandeja, torre, fundo). Trocar de
+  personagem troca tudo junto; voltar traz tudo de volta como estava.
+- As ANOTAÇÕES viraram uma lista de sessões, com data e navegação por
+  coluna — chega de clicar seta dezessete vezes.
+
+APARÊNCIA E CONFORTO
+--------------------
+- TEMA DIA / NOITE / SISTEMA (acompanha o Windows sozinho).
+- Mais fontes na lista, com créditos de quem pediu cada uma.
+- MODO RÁPIDO: só o número, sem a cena 3D — e num computador que não roda
+  o 3D, o app entra nesse modo sozinho e explica.
+- MODIFICADOR NEGATIVO funciona em todo lugar (dava pra rolar +2, não -2;
+  agora a arma amaldiçoada tem vez).
+- O app ficou bem mais leve: a cena não gasta processador escondida, e as
+  abas abrem mais rápido.
+
+POR DENTRO (mas que te afeta)
+-----------------------------
+- ATUALIZAÇÃO MOSTRA O QUE MUDOU antes de você aceitar, não só o número.
+- Muitos consertos de canto: personagem que sumia da lista, preset que
+  perdia a regra ao salvar, rolagem que passava do teto de dados clicando
+  rápido, DevTools aberto por atalho — tudo fechado.
+- Segurança: o motor do app (Electron) foi atualizado da versão antiga sem
+  suporte pra atual, e o instalador é publicado com o código de conferência
+  (SHA-256) ao lado.
+
+E VEM POR AÍ
+------------
+- A aba FICHA: importar a ficha do seu personagem em PDF e o app se moldar
+  a ela — já funciona por aqui e está em teste fechado (beta). Quando
+  estiver redonda, chega pra todo mundo pelo mesmo atualizador.
+
+Qualquer coisa estranha depois de atualizar, me chama.

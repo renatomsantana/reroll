@@ -857,3 +857,88 @@ describe('livro não é ficha', () => {
     expect(nomes).toEqual(['Espada longa 1d8 cortante', 'Shortbow 1d8 P'])
   })
 })
+
+describe('leitor de Ordem Paranormal — a ficha da comunidade', () => {
+  /**
+   * O SEGUNDO modelo do mesmo sistema, chegado na ficha real do Vincenzo: atributos `atr_*`,
+   * perícias em três campos (t_/o_/b_, com o total calculado por JavaScript), grade de armas
+   * `atq_name/dano_arma`, e Classe/Origem como lista (o índice vira rótulo na varredura).
+   */
+  const sheet = ficha([
+    campo('Nome do Personagem', 'Vincenzo Moretti'),
+    campo('Nome', 'Guga'),
+    campo('atr_agi', '1'),
+    campo('atr_for', '1'),
+    campo('atr_int', '5'),
+    campo('atr_pre', '3'),
+    campo('atr_vig', '1'),
+    campo('NivelExposicao', '65'),
+    campo('classe', 'Especialista'),
+    campo('origem', 'Agente de Saúde'),
+    campo('PV', '65'),
+    campo('pv_atual', '51'),
+    campo('t_medicina', '10'),
+    campo('o_medicina', '5'),
+    campo('b_diplomacia', '10'),
+    campo('t_luta', '0'),
+    campo('atq_name0', 'pistola molto poggers'),
+    campo('dano_arma0', '1d12'),
+    campo('critico_arma0', '18'),
+    campo('atq_name1', 'martello'),
+    campo('dano_arma1', '1d6'),
+    campo('Habilidade_1', 'Conhecimento Aplicado'),
+    campo('HABILIDADES  RITUAIS 1.0.0', 'Velocità Mortale'),
+    campo('Custo 1.0.0', '3PE'),
+    campo('Página 1.0.0', '150'),
+    campo('ITEM 1', 'kit médico'),
+    campo('morte', '10'),
+    campo('corte', '0')
+  ])
+  const lido = readSheet(sheet)
+
+  it('é reconhecida como Ordem Paranormal, com o nome do agente', () => {
+    expect(lido.readerId).toBe('ordem-paranormal')
+    expect(lido.system).toBe('Ordem Paranormal')
+    expect(lido.characterName).toBe('Vincenzo Moretti')
+  })
+
+  it('atributos rolam a regra do sistema, e o NEX sai legível', () => {
+    expect(lido.fields).toContainEqual(
+      expect.objectContaining({ label: 'Intelecto', value: '5', group: 'Atributos', roll: 'pool-d20' })
+    )
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'NEX', value: '65%' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Classe', value: 'Especialista' }))
+  })
+
+  it('perícia usa o total calculado; total vazio refaz treino + outros; zero vira lacuna', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Diplomacia', value: '10', group: 'Perícias' }))
+    // b_medicina não está gravado: 15 = t_medicina 10 + o_medicina 5, a conta que o PDF faria.
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Medicina', value: '15' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Luta', value: '' }))
+  })
+
+  it('cada arma vira resumo e preset de dano, e nada da grade vaza cru', () => {
+    expect(lido.presets.map((p) => p.name)).toContain('martello (dano)')
+    expect(lido.presets.map((p) => p.name)).toContain('pistola molto poggers (dano)')
+    expect(lido.fields).toContainEqual(
+      expect.objectContaining({ label: 'pistola molto poggers', value: '1d12 · crítico 18', group: 'Ataques' })
+    )
+    expect(lido.fields.some((c) => /^(t|b|o)_|^atq_|^dano_/.test(c.label))).toBe(false)
+  })
+
+  it('habilidades, ritual com custo e página, itens e só as resistências não-zero', () => {
+    expect(lido.fields).toContainEqual(
+      expect.objectContaining({ label: 'Velocità Mortale', value: 'custo 3PE · pág. 150' })
+    )
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Item 1', value: 'kit médico', group: 'Itens' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Morte', value: '10', group: 'Resistências' }))
+    expect(lido.fields.some((c) => c.label === 'Corte')).toBe(false)
+  })
+
+  it('a ficha OFICIAL continua no caminho de sempre — os dois modelos convivem', () => {
+    const oficial = ficha([campo('Personagem', 'Riebeck'), ...ATRIBUTOS, ...ataque(0, 'Faca', '+7', '1d4+2')])
+    const lidoOficial = readSheet(oficial)
+    expect(lidoOficial.readerId).toBe('ordem-paranormal')
+    expect(lidoOficial.fields).toContainEqual(expect.objectContaining({ label: 'Agilidade', value: '2' }))
+  })
+})

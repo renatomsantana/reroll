@@ -10,6 +10,8 @@ import {
   TAMANHO_MAXIMO_DO_ICONE_DO_PRESET,
   TAMANHO_MAXIMO_DO_NOME_DO_PRESET
 } from '@shared/diceRegistry'
+import { analisarFormula } from '@shared/dice/formula'
+import { conferirFormulaPraBandeja } from '@shared/dice/rolagemPorEtapas'
 import { PresetsRepository } from '../storage/PresetsRepository'
 import { escolherArquivo, escolherOndeSalvar } from './dialogos'
 
@@ -30,6 +32,21 @@ export function isValidPresetInput(value: unknown): value is PresetInput {
   if (preset.name.length > TAMANHO_MAXIMO_DO_NOME_DO_PRESET) return false
   if (preset.icon !== undefined && typeof preset.icon !== 'string') return false
   if (typeof preset.icon === 'string' && preset.icon.length > TAMANHO_MAXIMO_DO_ICONE_DO_PRESET) return false
+
+  /**
+   * PRESET DE FÓRMULA: o texto da gramática no lugar da expressão (ver `preset.ts`). A régua é a
+   * MESMA do editor — a fórmula tem que ler (`analisarFormula`) e caber na bandeja
+   * (`conferirFormulaPraBandeja`) —, porque um `presets.json` editado à mão ou importado de
+   * arquivo é entrada de fora: uma fórmula que não rola gravada aqui viraria um botão morto, e uma
+   * com d30 levaria a cena junto. Fórmula E expressão ao mesmo tempo também não passa: dois
+   * retratos da mesma rolagem podem discordar, e aí o preset rola diferente do que está escrito.
+   */
+  if (preset.formula !== undefined) {
+    if (typeof preset.formula !== 'string') return false
+    if (preset.expression !== undefined) return false
+    const lida = analisarFormula(preset.formula)
+    return lida.ok && conferirFormulaPraBandeja(lida.formula) === null
+  }
 
   const expression = preset.expression as Record<string, unknown> | undefined
   if (typeof expression !== 'object' || expression === null) return false

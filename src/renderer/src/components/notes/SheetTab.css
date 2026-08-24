@@ -228,12 +228,13 @@
   gap: 6px;
   font-size: 11px;
   /*
-   * A base é o CONTEÚDO (`auto`), com 240px de piso — e não `240px` de base: com a base fixa, quatro
-   * linhas na mesma fileira ganhavam sobra em partes iguais e a linha de ataque ("+7 · 1d8 P — 10
-   * arrows. 60 ft. Deadly d10.") continuava cortada dentro do campo. Medido na ficha do Rilver.
+   * A linha ABRAÇA o conteúdo (`flex: 0 1 auto`) em vez de repartir a sobra da fileira — pedido do
+   * usuário: "se for coisas pequenas, apenas um número, não precisa ser um campo grande". Com o
+   * `flex: 1` de antes, um campo valendo "3" esticava até encher a fileira; a linha de ataque
+   * comprida continua inteira porque quem mede o campo é o conteúdo (`field-sizing`), não o flex.
    */
-  flex: 1 1 auto;
-  min-width: 240px;
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 100%;
 }
 
@@ -257,11 +258,17 @@
   color: var(--win-text-muted);
 }
 
-/* O valor é do tamanho do que está escrito (`field-sizing`), com um piso pra caber a digitação. */
+/*
+ * O valor é do tamanho do que está escrito (`field-sizing`), com um piso pequeno: "3" ocupa o de um
+ * "3", e o campo cresce DEBAIXO DO DEDO conforme se digita — é o `field-sizing: content` que
+ * garante o "aberto o suficiente pra ler" pedido pelo usuário, não um piso largo que engordava
+ * todo número da ficha. 8ch cabe um "12/15" e dá alvo de clique num campo vazio.
+ */
 .sheet-section-field input {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   field-sizing: content;
-  min-width: 120px;
+  min-width: 8ch;
+  max-width: 100%;
 }
 
 /*
@@ -284,9 +291,10 @@
  * cortada mesmo depois de a fileira crescer. Medido na ficha dele.
  */
 .sheet-field-value input {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   field-sizing: content;
-  min-width: 120px;
+  min-width: 8ch;
+  max-width: 100%;
 }
 
 /*
@@ -322,10 +330,11 @@
 }
 
 .sheet-roll:not(:disabled):active {
-  /* Afunda ao clique, como todo botão do Windows 98 — o relevo inverte. */
+  /* Afunda ao clique, como todo botão do Windows 98 — o relevo inverte E o dado anda 1px. */
   box-shadow:
     inset 1px 1px 0 var(--win-shadow),
     inset -1px -1px 0 var(--win-highlight);
+  padding: 2px 0 0 2px;
 }
 
 /*

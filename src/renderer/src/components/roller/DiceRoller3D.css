@@ -56,6 +56,20 @@
   padding: 5px 7px 3px 9px;
 }
 
+/*
+ * O dado MARCADO afunda de verdade: borda invertida E rótulo deslocado — o mesmo par do clique.
+ *
+ * Este padding compacto (4px 8px, pra caber sete botões) tem a MESMA especificidade do
+ * `.btn-selected` de `Button.css` e este arquivo importa depois, então o deslocamento do marcado
+ * era cancelado aqui: o botão ficava com a borda afundada e o rótulo parado — e, no clique, o
+ * rótulo afundava DE NOVO, contradizendo a regra "botão já marcado não tem pra onde afundar".
+ * Mesmo desenho que o bloco de modos já usa logo abaixo. Achado no reteste de botões pedido pelo
+ * usuário ("estão se afundando errado").
+ */
+.dice-roller-3d-types .btn-selected:not(:disabled) {
+  padding: 5px 7px 3px 9px;
+}
+
 .dice-roller-3d-roll-body {
   display: flex;
   align-items: stretch;
@@ -149,6 +163,16 @@
  * resolve também a altura: o traço do menos e a cruz do mais têm alturas de glifo diferentes, e
  * padding igual não produz centro igual.
  */
+/*
+ * O "−"/"+" AFUNDA DE VERDADE: o `padding: 0` daqui cancelava o deslocamento do `:active` (a regra
+ * do ghost tem a mesma especificidade e este arquivo importa depois), então a borda invertia com o
+ * glifo parado no lugar. Com o glifo centrado por flex, este padding assimétrico o empurra 1px pra
+ * baixo/direita — o mesmo gesto de todo botão do 98.
+ */
+.dice-roller-3d-group-chip .btn:active:not(:disabled) {
+  padding: 2px 0 0 2px;
+}
+
 .dice-roller-3d-group-chip .btn {
   font-size: 11px;
   min-width: auto;
@@ -377,6 +401,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * O `:active` daqui não precisa de conserto — MEDIDO no reteste de botões: o do ghost
+ * (`.btn-ghost:active:not(:disabled)`, especificidade maior que esta regra) vence o zero e
+ * desloca o sinal (1, 1), como manda o 98.
+ */
 .dice-roller-3d-modifier-btn {
   min-width: 24px;
   padding-left: 0;

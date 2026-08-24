@@ -52,3 +52,17 @@
   color: var(--win-accent);
   font-size: 19px;
 }
+
+/* O veredito do alvo da fórmula (">= 15"), embaixo do total que ele julgou. */
+.roll-result-julgamento {
+  text-align: center;
+  font-weight: bold;
+}
+
+.roll-result-sucesso {
+  color: #2e8b57;
+}
+
+.roll-result-fracasso {
+  color: #c0392b;
+}

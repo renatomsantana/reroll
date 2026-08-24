@@ -163,7 +163,14 @@
 }
 
 /* O degrau seco do 98 ao apertar — sem transição, que suavizar aqui lê como moderno. */
-.compact-preset:active {
+/*
+ * O `:not(:disabled)` não é enfeite, é ESPECIFICIDADE: a regra global de `global.css` é
+ * `button:active:not(:disabled)` (0,2,1) e vencia esta aqui como era, `.compact-preset:active`
+ * (0,2,0) — o padding global de botão largo (13px à esquerda) valia no lugar deste, e o rótulo
+ * dava um PULO de 8px pra direita no clique. Medido no reteste de botões: o conteúdo andava
+ * (8, 1.5) onde o 98 manda (1, 1).
+ */
+.compact-preset:active:not(:disabled) {
   border: 2px inset var(--win-highlight);
   padding: 3px 4px 1px 6px;
 }

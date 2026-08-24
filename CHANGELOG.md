@@ -10,8 +10,37 @@ Cada versão publicada tem o SHA-256 do instalador na página da release — con
 
 O que as fichas de Pathfinder 2e que o usuário pôs na pasta ensinaram ao importador — uma
 preenchida (o Rilver), três modelos em branco, a ficha oficial da Paizo e três livros de regras.
+E a bandeja passou a falar a gramática: o preset de fórmula.
 
 ### Adicionado
+
+- **O preset de FÓRMULA — a bandeja rola o que a gramática lê.** O primeiro item do "Conhecido
+  nesta beta" sai da lista: rerolar (`2d6r<2`), contar sucessos (`6d6#>=5`), alvo no fim
+  (`1d20+5 >= 15`, que vira Sucesso/Fracasso na tela), multiplicação (`(1d8+2)*2`), dado subtraído
+  e manter por grupo (`2d20kl1 + 1d4`) deixaram de ser recusados no editor e viraram preset de
+  verdade. O que os botões sabem dizer continua gravado como sempre (`expression`); o que só o
+  texto descreve é gravado como fórmula (`formula`, na forma canônica), um dos dois e nunca ambos —
+  dois retratos da mesma rolagem podem discordar, e aí o preset rolaria diferente do que está
+  escrito. No editor, escrever uma dessas fórmulas troca o aviso de recusa pelo modo fórmula: os
+  controles de dados saem de cena (eles descreveriam OUTRA rolagem) e voltam se o texto voltar a
+  caber neles. Só a referência à ficha (`@STR.mod`) segue recusada, com a mesma mensagem: o preset
+  ainda não lê a ficha na hora de rolar.
+- **Como rola: em ondas, com dados de verdade** (`shared/dice/rolagemPorEtapas.ts`). A avaliação da
+  gramática é síncrona e a cena leva segundos — a ligação é por REPLAY: um diário de faces colhidas,
+  reavaliado a cada onda; o que falta vira o próximo arremesso, o mesmo gesto que a explosão já
+  encenava. `2d6r<2` cai como 2d6 e o dado que pediu reroll volta sozinho; uma fórmula de dois
+  termos cai em duas levas, como uma pessoa rolaria na mesa. No modo rápido e no compacto a mesma
+  gramática resolve na hora, com o mesmo RNG de sempre. Validação num lugar só
+  (`conferirFormulaPraBandeja`), cobrada no editor e no main process (criar, editar, importar
+  arquivo): fórmula que não lê, tipo que a bandeja não tem, termo maior que uma onda (20 dados) e
+  referência à ficha não chegam ao disco. 24 testes novos do motor, mais os do editor e da
+  validação.
+- **O resultado conta a história toda.** Histórico e painel marcam dado a dado o que contou pro
+  total — com marca PRONTA no resultado (`mantidos`), porque nas regras por termo e na contagem a
+  tela não teria como refazer a conta —, o reroll diz a face descartada ("rerolou: caiu 1"), a
+  explosão mostra a cadeia como antes, e o alvo julga a rolagem inteira: ✓ Sucesso / ✗ Fracasso
+  junto do total. No compacto, resultado de fórmula vira lista de faces ("3, 6, (2)"), não uma soma
+  que mentiria onde há multiplicação ou contagem.
 
 - **Leitor de Pathfinder 2e** (`readers/pathfinder2e.ts`), pra família de fichas preenchíveis
   "Ficha Editável com Cálculos" — a que tem nomes de campo com significado (`Character Name`,
@@ -25,8 +54,135 @@ preenchida (o Rilver), três modelos em branco, a ficha oficial da Paizo e três
   modelo numera nome e dano em `4/5/6` e o bônus em `1/2/3`; o leitor lê as duas numerações.
   A ficha oficial da Paizo nomeia os campos como `text_15gujr` e fica no leitor genérico.
 
+### Adicionado (continuação)
+
+- **A sexta leva de PDFs de teste: mais oito fabricados** (`testes/sextaLevaDePdfs.ts`), fechando o
+  buraco maior do corpus — o leitor de Pathfinder 2e não tinha NENHUM caso fabricado, só as fichas
+  reais que moram fora do repositório. A "Editável com Cálculos" preenchida (total vazio refeito
+  dos componentes, atributo negativo, a grade à distância torta, pontos de herói em caixa, moedas,
+  o duplo espaço e o erro de digitação do modelo), o modelo em branco, a estilo-oficial da Paizo
+  (nomes `text_15gujr` caem no genérico), rótulo impresso na posição que não rotula, campo oculto
+  com botão de imprimir, valor em UTF-16 com BOM, valor herdado do campo pai (`/Parent`) e uma
+  Kids on Bikes datilografada ("Músculos: d12" vira campo e preset). `ESCREVER_PDFS=1` escreve os
+  trinta e oito. Dois defeitos que ela achou, consertados:
+
+- **A sétima leva: quinze sistemas que o app nunca viu** (`testes/setimaLevaDePdfs.ts`), todos pelo
+  leitor genérico — Savage Worlds (dado por atributo, "d8" vira preset), Cthulhu em formulário
+  (porcentagens, nenhum preset inventado), Vampiro V5 (bolinhas "•••" atravessam), Fate, GURPS
+  ("2d-1" não vira rolagem torta), Cyberpunk RED, Blades in the Dark ("3/9"), Tormenta20 em branco,
+  Daggerheart, OSR B/X (THAC0), M&M, Numenera, Monster of the Week (bônus negativo), Shadowrun,
+  Troika! e Cairn — dezesseis casos, do 39 ao 55.
+- **Troca e destroca de personagem tem teste de visual** (`trocaDeVisual.test.tsx`) — pergunta do
+  usuário: "troca e destroca mantém os mesmos designs?". Mantém, e agora está provado: pinta A,
+  troca pra B, pinta B, volta pra A e cada um fica com as próprias cores e modo de lançamento —
+  inclusive depois de fechar e reabrir. O visual mora fora dos arquivos por perfil (localStorage,
+  ver `PROFILE_LOOK_KEYS`) e não tinha ida-e-volta testada.
+- **`NOVIDADES-DESDE-0.1.3.txt`**: o resumo pros usuários da 0.1.3 do que mudou até a 1.0.11, em
+  linguagem de gente, pronto pra mandar junto do "é só aceitar a atualização".
+
+- **A oitava leva: a estrutura que todo PDF real tem** (`testes/oitavaLevaDePdfs.ts`, casos 56–63)
+  — o corpus inteiro era de PDF sem compressão, que é como se fabrica arquivo legível a olho e como
+  nenhum exportador grava. Entraram: fluxo de conteúdo com FlateDecode, campo de ASSINATURA digital
+  (o `/V` é dicionário, não texto de ninguém), arquivo ANEXADO dentro do PDF (ignorado, como o spec
+  manda), título desenhado letra a letra (o pdf.js remonta "F O R Ç A" e ele é o rótulo — medido
+  com o dump), D&D TRADUZIDA (nomes de campo em português caem no genérico com os rótulos
+  impressos e o preset do dano), valor com CRLF e tab, duas fichas no mesmo arquivo (o nome
+  proposto é o da primeira) e dinheiro/data/peso que parecem rolagem e não são.
+- **O ciclo "apaga e sobe de novo" tem teste de ponta a ponta**
+  (`apagarEImportarDeNovo.node.test.ts`) — pedido do usuário. Importa a ficha fabricada pelo
+  caminho inteiro (bytes → pdf.js → leitor → conferência → IPC), escreve um dia de diário, APAGA o
+  personagem, importa o MESMO PDF: a segunda vem tão completa quanto a primeira (mesmos campos,
+  mesmos presets — a deduplicação é por pasta, e pasta nova não herda nada), o diário do apagado
+  não vaza pro novo, a pasta dele fica no disco como sempre, e o ciclo aguenta repetição.
+
+### Adicionado (anotações)
+
+- **Teto de 2.000 caracteres por sessão de anotações** (`TAMANHO_MAXIMO_DA_ANOTACAO`) — pedido do
+  usuário ("agora que vi que não tinha"). O campo para no teto, o que se cola entra cortado nele, e
+  um contador discreto ("1.234/2000") avisa antes — vermelho quando enche. Sessão antiga MAIOR que
+  o teto não é cortada na leitura: arquivo velho não perde conteúdo por causa de número novo, só
+  não cresce mais. O teto total do arquivo (16 MB na gravação) segue como última defesa.
+
+### Adicionado (o ciclo inteiro, testado com as fichas reais)
+
+- **"Apaga todos e testa de novo"** (`apagarTodosEImportarDeNovo.node.test.ts`) — pedido do
+  usuário, com as SETE fichas preenchidas da pasta (Ordem oficial e da comunidade, D&D traduzida,
+  Assimilação, Oblívio, Kids on Bikes, Pathfinder do Rilver): importa todas, confere a assinatura
+  de cada sistema, escreve um diário, APAGA TODOS os personagens, importa tudo de novo — e a
+  segunda rodada sai IDÊNTICA à primeira, campo a campo, bloco a bloco, preset a preset. Nada vaza
+  dos apagados; as pastas de quem teve algo gravado ficam no disco (índice se recupera, dado não).
+- **"Fechar sem salvar" não existe — e agora está provado** (`trocaDeVisual.test.tsx`): o ciclo da
+  pergunta do usuário ("fecha o app, abre de novo, troca as cores, esquece de salvar, fecha de
+  novo") virou três testes — trocar a cor e fechar NA HORA (o `pagehide` grava o que o debounce de
+  300ms não teve tempo de gravar), trocar e usar por um instante (o debounce grava sozinho), e o
+  ciclo inteiro com três sessões.
+
+### Adicionado (fichas novas na pasta)
+
+- **A FICHA DA COMUNIDADE de Ordem Paranormal** (`extrairFichaDaComunidade`) — o segundo modelo do
+  mesmo sistema, chegado na ficha real do Vincenzo: atributos `atr_*`, perícias em três campos
+  (treino/outros/total calculado por JavaScript — total vazio se refaz da soma, conferido:
+  medicina 10+5=15), grade de armas de seis linhas sem coluna de teste, NEX, patente, carga
+  atual/máxima, resistências, seis habilidades e a grade de rituais com custo e página
+  ("Velocità Mortale · custo 3PE · pág. 150"). Os `ITEM 1…11` têm os mesmos nomes do modelo
+  oficial e as lacunas numeradas servem às duas. A oficial continua no caminho de sempre.
+- **Campo de LISTA traduz índice pra rótulo** (`rotuloDaOpcao` em `sheetFromPdfDocument.ts`): a
+  ficha da comunidade guarda Classe/Origem/Trilha como listas que exportam índice — "CLASSE = 2"
+  não é informação de ninguém; as opções do próprio campo dizem que 2 é "Especialista", e agora a
+  varredura lê ("Agente de Saúde", "Médico de Combate", proteção "Leve"). A ficha oficial não
+  muda: lá o valor de exportação já é o rótulo.
+- **Underscore vira espaço no rótulo de nome de campo** (`labelFromFieldName`): a ficha real de
+  Assimilação (a do Kieran) nomeia campos como `Propositos_Pessoais` — sintaxe de editor, não
+  escrita de gente.
+- **Três fichas reais novas com teste de ponta a ponta** (`fichasReais.node.test.ts`): a da
+  comunidade de Ordem (Vincenzo), a de D&D 5e TRADUZIDA (a do Go — o modelo mantém os nomes de
+  campo oficiais e o leitor de D&D a reconhece inteiro: 63 campos, grupos certos) e a de
+  Assimilação (sistema desconhecido rendendo 27 campos legíveis pelo genérico).
+
 ### Corrigido
 
+- **Os botões afundam como o 98 manda — todos, medido pixel a pixel.** Reteste pedido pelo usuário
+  ("os botões dos dados estão se afundando errado, os dos presets também"). Quatro causas, cada uma
+  achada com régua (`scripts/afundarDosBotoes.mjs`, abaixo):
+  - o **dado marcado** ficava com a borda afundada e o rótulo parado — o padding compacto da barra
+    vencia o do `.btn-selected` por ordem de import — e, no clique, afundava DE NOVO. Agora marcado
+    é afundado de verdade, e clicar nele não mexe (mesma regra do bloco de modos);
+  - o **"−"/"+" dos chips** invertia a borda com o glifo parado (o `padding: 0` do chip cancelava o
+    deslocamento do clique). Agora o glifo anda o 1px de sempre;
+  - o **cartão de preset** só escurecia — gesto de outro sistema visual. Agora o clique no rolar
+    AFUNDA O CARTÃO (borda invertida via `:has`, só quando o clique é no rolar) e o conteúdo anda
+    1px; o lápis e o ✕ afundam o glifo; o dado da Ficha também;
+  - a mais escondida: **`border: none` num botão ressuscita no clique** — o `none` zera o estilo e
+    deixa a largura no `medium` (3px), e o `button:active` global põe `border-style: inset`, que
+    materializa 3px de borda: o conteúdo do cartão pulava (4, 2.5). No compacto era a versão de
+    especificidade: `button:active:not(:disabled)` (0,2,1) vencia `.compact-preset:active` (0,2,0)
+    e aplicava o padding global de 13px — o rótulo pulava 8px. `border: 0` e `:not(:disabled)` nos
+    lugares certos, com o porquê escrito em cada um.
+
+### Interno (reteste de botões)
+
+- **`scripts/afundarDosBotoes.mjs`** — a régua do afundar, reutilizável: janela oculta do Electron
+  com o CSS DE PRODUÇÃO (o bundle de `out/renderer`), mouse apertado de verdade (`sendInputEvent`),
+  e o veredito por correlação de pixels (que (dx, dy) explica o quadro apertado como o solto
+  deslocado — o certo é (1, 1), e marcado clicado é (0, 0)) mais a sonda de layout (rects direto do
+  motor). Onze famílias de botão; sai com erro se alguma afundar errado. Rodar depois de
+  `npx electron-vite build`: `npx electron scripts/afundarDosBotoes.mjs`. Depois dos consertos:
+  11 de 11 com deslocamento pixel-perfeito (erro 0.0).
+
+- **Letra avulsa não rotula campo** (`labelForField.ts`): guarda nova em `ehRotulo` — fragmento de
+  um caractere não vira rótulo. Honestidade: o caso que a motivou o pdf.js resolve sozinho
+  (remonta as letras da mesma linha), então ela cobre o que ele não remonta; o menor rótulo real
+  tem duas letras ("CA", "PV").
+- **"Nombre:" também é campo de nome** (`generic.ts`): ficha em espanhol caía no nome do ARQUIVO
+  tendo "Nombre: Paco" escrito duas linhas acima — "nome" não casa com "nombre". Entraram
+  `nombre` e `personaje` na régua, achado pela sétima leva.
+- **Nome automático de exportador não é rótulo** (`labelForField.ts`): campo preenchido sem rótulo
+  impresso por perto entrava na conferência como "text_4r5t = 13" — o padrão da ficha oficial da
+  Paizo, tipo do controle + sufixo aleatório. O separador é obrigatório no filtro: "Texto" e
+  "Datas" continuam sendo nomes de gente.
+- **Campo OCULTO não é ficha de ninguém** (`sheetFromPdfDocument.ts`): formulário calculado guarda
+  totais internos em campos com a bandeira HIDDEN/NOVIEW, e um "TOTAL_INTERNO = 999" entrava na
+  conferência com cara de dado lido. O que a pessoa não vê no papel não entra.
 - **Livro não é ficha.** Um PDF com mais de 100 páginas não é lido — antes a varredura lia as 100
   primeiras, e os livros de regras de Pathfinder (322 a 466 páginas) rendiam "campos" tirados da
   prosa, presets de regra ("You take 5d6 damage of the") e um nome de personagem com uma frase
@@ -42,10 +198,29 @@ preenchida (o Rilver), três modelos em branco, a ficha oficial da Paizo e três
 
 ### Mudado
 
-- **Todo emoji virou o d20 vermelho do Reroll** (`IconeReroll.tsx`): as abas, o botão Explode, a
-  marca de explosão no histórico, os botões de rolar da ficha e o ícone padrão dos presets (o emoji
-  que a pessoa escolhe num preset continua sendo dela). O lápis de editar virou desenho (SVG), como
-  a engrenagem já era. As opções de tema e de modo de resultado perderam o emoji do texto.
+- **As caixas da Ficha abraçam o conteúdo** — pedido do usuário: "se for coisas pequenas, apenas um
+  número, não precisa ser um campo grande; se precisa digitar, precisa estar aberto o suficiente
+  pra ler". O campo de lista deixou de esticar até encher a fileira (`flex: 0 1 auto`, piso de
+  8ch): "3" ocupa o de um "3", e o campo cresce debaixo do dedo conforme se digita
+  (`field-sizing: content`). Os blocos de texto continuam abertos como estavam.
+- **A foto do crachá da Rolagem cresceu de novo** ("aumenta um pouco mais"): 39×52 → 48×64, e agora
+  é a foto que manda na altura do corpo da caixa — o ROLAR estica junto (`align-items: stretch`)
+  em vez de a foto caber no que havia.
+- **O botão Explode só aparece com perfil de D&D** (`explodeDoSistema.ts`) — pedido do usuário:
+  "apenas aparecer quando uma ficha/perfil de D&D for escolhida". O sistema do personagem ativo é
+  texto livre, então a conferência é por conteúdo ("D&D 5e", "D & D", "dnd", "Dungeons & Dragons",
+  em qualquer caixa). Esconder também desliga o interruptor: explode ligado atrás de um botão
+  invisível rolaria diferente do que a tela mostra. Preset com regra explosiva (e o `!` da
+  gramática) continua explodindo em qualquer sistema — regra gravada rola como está escrita —, e a
+  caixa "Dados explosivos" do editor continua lá. Outro sistema que use explosão como regra central
+  entra na lista no dia em que for pedido.
+- **O d20 vermelho do Reroll** (`IconeReroll.tsx`) **entrou no botão Explode, na marca de explosão
+  do histórico, nos botões de rolar da ficha e no ícone padrão dos presets** (o emoji que a pessoa
+  escolhe num preset continua sendo dela). O lápis de editar virou desenho (SVG), como a engrenagem
+  já era. As opções de tema e de modo de resultado perderam o emoji do texto. As ABAS tinham
+  entrado nessa leva e voltaram atrás a pedido do usuário — "os emojis de estilo/ficha/anotações
+  você mantém, eu queria apenas os dados da ficha": 🎨 Estilo, 📜 Ficha (beta) e 📝 Anotações
+  seguem com os emojis deles.
 - **As caixas da Ficha crescem com o que está escrito.** Pedido do usuário depois de olhar a ficha
   do Rilver: o rótulo ("Conhecimento (Warfare)") e o valor ("+7 · 1d8 P — 10 arrows. 60 ft.")
   aparecem inteiros; os quadros de atributo têm 96px de piso e o conteúdo como medida; os blocos de

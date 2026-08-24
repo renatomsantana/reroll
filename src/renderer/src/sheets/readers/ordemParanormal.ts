@@ -1,6 +1,7 @@
 import type {
   PdfField,
   PdfSheet,
+  SheetImport,
   SheetImportField,
   SheetImportPreset
 } from '@shared/types/sheetImport'
@@ -164,6 +165,12 @@ const CAMPOS_CONHECIDOS: {
  */
 const CAMPOS_IGNORADOS = new Set(['DEZ'])
 
+/**
+ * Os cinco atributos da FICHA DA COMUNIDADE — a marca que separa os dois modelos. Ver
+ * `extrairFichaDaComunidade`, no fim do arquivo.
+ */
+const ATRIBUTOS_DA_COMUNIDADE = ['atr_agi', 'atr_for', 'atr_int', 'atr_pre', 'atr_vig']
+
 export const ordemParanormalReader: SheetReader = {
   id: 'ordem-paranormal',
   label: 'Ordem Paranormal',
@@ -182,11 +189,21 @@ export const ordemParanormalReader: SheetReader = {
     const atributos = ['AGI', 'FOR', 'INT', 'PRE', 'VIG'].filter((nome) => nomes.has(nome)).length
     const temAtaques = sheet.fields.some((campo) => posicaoNaGrade(campo.name) !== null)
     if (atributos === 5 && temAtaques) return 0.95
-    if (atributos >= 4) return 0.6
+    // A ficha DA COMUNIDADE (ver `extrairFichaDaComunidade`): outra estrutura, o mesmo sistema.
+    const daComunidade = ATRIBUTOS_DA_COMUNIDADE.filter((nome) => nomes.has(nome)).length
+    if (daComunidade === 5) return 0.95
+    if (atributos >= 4 || daComunidade >= 4) return 0.6
     return 0
   },
 
-  extract: (sheet) => {
+  extract: (sheet) =>
+    ATRIBUTOS_DA_COMUNIDADE.filter((nome) => sheet.fields.some((c) => c.name === nome)).length >= 4
+      ? extrairFichaDaComunidade(sheet)
+      : extrairFichaOficial(sheet)
+}
+
+function extrairFichaOficial(sheet: PdfSheet): SheetImport {
+  {
     const base = extrairGenerico(sheet, 'ordem-paranormal', 'Ordem Paranormal', 0.95)
 
     /**
@@ -535,4 +552,256 @@ function apresentarPericia(bruto: string): string | null {
   if (!limpo) return null
   const minusculo = limpo.toLocaleLowerCase('pt-BR')
   return minusculo.charAt(0).toLocaleUpperCase('pt-BR') + minusculo.slice(1)
+}
+
+// ---------------------------------------------------------------------------------------------
+// A FICHA DA COMUNIDADE
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * O SEGUNDO modelo de ficha que Ordem Paranormal tem na prática: a editável da comunidade, que
+ * chegou aqui na ficha real do Vincenzo. Outra estrutura, o mesmo sistema:
+ *
+ * - os atributos são `atr_agi`…`atr_vig` (minúsculos, com prefixo), não `AGI`…`VIG`;
+ * - cada perícia tem TRÊS campos: `t_<perícia>` (treinamento), `o_<perícia>` (outros) e
+ *   `b_<perícia>` (o bônus TOTAL, calculado por JavaScript dentro do PDF). Como na família
+ *   "Editável com Cálculos" de Pathfinder, o total calculado só fica gravado quando alguém tocou o
+ *   campo — vazio, ele se refaz da soma dos componentes. CONFERIDO na ficha real três vezes:
+ *   atletismo 10+2=12, medicina 10+5=15, diplomacia 10+0=10;
+ * - a grade de armas é `atq_name<i>` / `dano_arma<i>` / `critico_arma<i>` / `alcance_arma<i>`,
+ *   seis linhas, SEM coluna de teste (o teste é a perícia de Pontaria/Luta);
+ * - Classe, Origem e Trilha são LISTAS que exportam índice ("2") — o rótulo legível vem das opções
+ *   do próprio campo, que a varredura traduz (ver `rotuloDaOpcao` em `sheetFromPdfDocument.ts`);
+ * - `ITEM 1`…`ITEM 11` e a segunda página `_2` têm OS MESMOS nomes da ficha oficial — as lacunas
+ *   numeradas (`lacunasNumeradas`) servem às duas sem mudar nada.
+ */
+const ATRIBUTOS_B: { name: string; label: string }[] = [
+  { name: 'atr_agi', label: 'Agilidade' },
+  { name: 'atr_for', label: 'Força' },
+  { name: 'atr_int', label: 'Intelecto' },
+  { name: 'atr_pre', label: 'Presença' },
+  { name: 'atr_vig', label: 'Vigor' }
+]
+
+/** As 28 perícias do modelo, na grafia dos nomes de campo (sem acento) → o rótulo de gente. */
+const PERICIAS_DA_COMUNIDADE: { slug: string; label: string }[] = [
+  { slug: 'acrobacia', label: 'Acrobacia' },
+  { slug: 'adestramento', label: 'Adestramento' },
+  { slug: 'artes', label: 'Artes' },
+  { slug: 'atletismo', label: 'Atletismo' },
+  { slug: 'atualidades', label: 'Atualidades' },
+  { slug: 'ciencias', label: 'Ciências' },
+  { slug: 'crime', label: 'Crime' },
+  { slug: 'diplomacia', label: 'Diplomacia' },
+  { slug: 'enganacao', label: 'Enganação' },
+  { slug: 'fortitude', label: 'Fortitude' },
+  { slug: 'furtividade', label: 'Furtividade' },
+  { slug: 'iniciativa', label: 'Iniciativa' },
+  { slug: 'intimidacao', label: 'Intimidação' },
+  { slug: 'intuicao', label: 'Intuição' },
+  { slug: 'investigacao', label: 'Investigação' },
+  { slug: 'luta', label: 'Luta' },
+  { slug: 'medicina', label: 'Medicina' },
+  { slug: 'ocultismo', label: 'Ocultismo' },
+  { slug: 'percepcao', label: 'Percepção' },
+  { slug: 'pilotagem', label: 'Pilotagem' },
+  { slug: 'pontaria', label: 'Pontaria' },
+  { slug: 'profissao', label: 'Profissão' },
+  { slug: 'reflexos', label: 'Reflexos' },
+  { slug: 'religiao', label: 'Religião' },
+  { slug: 'sobrevivencia', label: 'Sobrevivência' },
+  { slug: 'tatica', label: 'Tática' },
+  { slug: 'tecnologia', label: 'Tecnologia' },
+  { slug: 'vontade', label: 'Vontade' }
+]
+
+const RESISTENCIAS_B: { name: string; label: string }[] = [
+  { name: 'corte', label: 'Corte' },
+  { name: 'perfuracao', label: 'Perfuração' },
+  { name: 'impacto', label: 'Impacto' },
+  { name: 'balistica', label: 'Balística' },
+  { name: 'mental', label: 'Mental' },
+  { name: 'conhecimento', label: 'Conhecimento' },
+  { name: 'energia', label: 'Energia' },
+  { name: 'sangue', label: 'Sangue' },
+  { name: 'morte', label: 'Morte' }
+]
+
+/** A grade de habilidades e rituais: `HABILIDADES  RITUAIS 1.<linha>.<coluna>` (dois espaços). */
+const GRADE_DE_HABILIDADES = /^HABILIDADES\s+RITUAIS\s+1\.(\d+)\.(\d+)$/
+
+/** O que ESTE modelo consome — o resto do genérico passa, sem rótulo roubado de vizinho. */
+const CONSUMIDOS_B: RegExp[] = [
+  /^atr_/,
+  /^[tbo]_[a-z]+$/,
+  /^(atq_name|dano_arma|critico_arma|alcance_arma|espaco_arma)\d+$/,
+  /^(pv|pe|san|def|dt_ritual)_?[a-z]*$/,
+  /^(PV|PE|San)$/,
+  /^(defesa|esquiva|deslocamento|NivelExposicao|patente|mod_extra|pontos_prestigio)$/,
+  /^(origem|classe|trilha\d)$/,
+  /^protecaolistbox1$/,
+  /^carga_(max|atual)$/,
+  /^categoria_\d+$/,
+  /^Categoria \d+$/,
+  /^Espaços \d+(_2)?$/,
+  /^limite_\d$/,
+  /^Habilidade_\d$/,
+  /^Pagina_Hab_\d$/,
+  /^HABILIDADES\s+RITUAIS /,
+  /^Custo /,
+  /^Página /,
+  /^LIMITE DE$/,
+  /^Nome( do Personagem)?$/,
+  /^(corte|perfuracao|impacto|balistica|mental|conhecimento|energia|sangue|morte)$/
+]
+
+function extrairFichaDaComunidade(sheet: PdfSheet): SheetImport {
+  const base = extrairGenerico(sheet, 'ordem-paranormal', 'Ordem Paranormal', 0.95)
+
+  const porNome = new Map<string, PdfField>()
+  for (const campo of sheet.fields) if (!porNome.has(campo.name)) porNome.set(campo.name, campo)
+  const bruto = (nome: string): string | null => {
+    const campo = porNome.get(nome)
+    return campo ? valorDeFicha(campo.value, campo.type) : null
+  }
+  const inteiro = (texto: string | null): number | null => {
+    if (texto === null) return null
+    const limpo = texto.replace(/\s+/g, '')
+    return /^[+-]?\d+$/.test(limpo) ? Number(limpo) : null
+  }
+
+  const personagem = bruto('Nome do Personagem') ?? ''
+  const temDono = personagem !== ''
+
+  const campos: SheetImportField[] = []
+  /** Empurra com valor; ou vazio, quando é lacuna (`sempre`) numa ficha com dono. */
+  const push = (
+    label: string,
+    valor: string | null,
+    group: string,
+    roll?: SheetImportField['roll'],
+    sempre = false,
+    fieldName?: string
+  ): void => {
+    if (valor) campos.push({ label, value: valor, group, roll, fieldName })
+    else if (sempre && temDono) campos.push({ label, value: '', group, roll, fieldName })
+  }
+
+  // Identificação — Classe/Origem/Trilha chegam já traduzidas de índice pra rótulo pela varredura.
+  push('Personagem', personagem || null, 'Identificação', undefined, true, 'Nome do Personagem')
+  push('Jogador', bruto('Nome'), 'Identificação', undefined, false, 'Nome')
+  const nex = inteiro(bruto('NivelExposicao'))
+  push('NEX', nex === null ? bruto('NivelExposicao') : `${nex}%`, 'Identificação', undefined, true, 'NivelExposicao')
+  push('Classe', bruto('classe'), 'Identificação', undefined, true, 'classe')
+  push('Origem', bruto('origem'), 'Identificação', undefined, true, 'origem')
+  const trilha = bruto('trilha1') ?? bruto('trilha2') ?? bruto('trilha3')
+  push('Trilha', trilha, 'Identificação')
+  push('Patente', bruto('patente'), 'Identificação')
+
+  for (const atributo of ATRIBUTOS_B) {
+    push(atributo.label, bruto(atributo.name), 'Atributos', 'pool-d20', true, atributo.name)
+  }
+
+  // Recursos: os pares atual/máximo vêm inteiros numa ficha com dono, como no modelo oficial.
+  push('PV atual', bruto('pv_atual'), 'Recursos', undefined, true, 'pv_atual')
+  push('PV máximo', bruto('PV'), 'Recursos', undefined, true, 'PV')
+  push('PE atual', bruto('pe_atual'), 'Recursos', undefined, true, 'pe_atual')
+  push('PE máximo', bruto('PE'), 'Recursos', undefined, true, 'PE')
+  push('Sanidade atual', bruto('san_atual'), 'Recursos', undefined, true, 'san_atual')
+  push('Sanidade máxima', bruto('San'), 'Recursos', undefined, true, 'San')
+  push('PE por rodada', bruto('pe_rodada'), 'Recursos', undefined, true, 'pe_rodada')
+  push('Defesa', bruto('defesa'), 'Recursos', undefined, true, 'defesa')
+  push('Esquiva', bruto('esquiva'), 'Recursos')
+  push('Proteção', bruto('protecaolistbox1'), 'Recursos')
+  push('Deslocamento', bruto('deslocamento'), 'Recursos')
+  push('DT de rituais', bruto('dt_ritual'), 'Recursos')
+  const cargaAtual = bruto('carga_atual')
+  const cargaMax = bruto('carga_max')
+  push('Carga', cargaAtual && cargaMax ? `${cargaAtual}/${cargaMax}` : (cargaAtual ?? cargaMax), 'Recursos')
+  push('Pontos de prestígio', bruto('pontos_prestigio'), 'Recursos')
+
+  /**
+   * O bônus da perícia: o total calculado (`b_`) ou, com ele vazio, treinamento + outros — a mesma
+   * conta que o JavaScript do PDF faria. Zero entra como lacuna ('' com dono), igual ao modelo
+   * oficial: linha vazia é espaço pra preencher, "0" escrito seria afirmação.
+   */
+  for (const pericia of PERICIAS_DA_COMUNIDADE) {
+    const total =
+      inteiro(bruto(`b_${pericia.slug}`)) ??
+      (bruto(`t_${pericia.slug}`) !== null || bruto(`o_${pericia.slug}`) !== null
+        ? (inteiro(bruto(`t_${pericia.slug}`)) ?? 0) + (inteiro(bruto(`o_${pericia.slug}`)) ?? 0)
+        : null)
+    push(pericia.label, total ? String(total) : null, 'Perícias', undefined, true, `b_${pericia.slug}`)
+  }
+
+  // Ataques: seis linhas; o dano vira preset e a linha vira resumo, como no leitor de Pathfinder.
+  const presets: SheetImportPreset[] = []
+  for (let i = 0; i <= 5; i++) {
+    const nomeDaArma = bruto(`atq_name${i}`)
+    if (!nomeDaArma) continue
+    const dano = bruto(`dano_arma${i}`) ?? ''
+    const critico = bruto(`critico_arma${i}`)
+    const alcance = bruto(`alcance_arma${i}`)
+    const resumo = [dano, critico && `crítico ${critico}`, alcance && `alcance ${alcance}`]
+      .filter(Boolean)
+      .join(' · ')
+    campos.push({ label: nomeDaArma, value: resumo, group: 'Ataques', fieldName: `atq_name${i}` })
+    const expressao = parseDiceExpression(dano)
+    if (expressao) {
+      presets.push({ name: `${nomeDaArma} (dano)`, kind: 'damage', expression: expressao.expression, source: dano })
+    }
+  }
+
+  for (let i = 1; i <= 6; i++) {
+    push(`Habilidade ${i}`, bruto(`Habilidade_${i}`), 'Habilidades', undefined, false, `Habilidade_${i}`)
+  }
+
+  /**
+   * A grade de habilidades e rituais: a coluna 0 é o nome, a 1 o detalhe, e `Custo`/`Página` da
+   * mesma linha completam. "Velocità Mortale · custo 3PE · pág. 150" numa linha só.
+   */
+  const linhasDaGrade = new Map<number, Map<number, string>>()
+  for (const campo of sheet.fields) {
+    const posicao = GRADE_DE_HABILIDADES.exec(campo.name)
+    if (!posicao) continue
+    const valor = valorDeFicha(campo.value, campo.type)
+    if (!valor) continue
+    const linha = Number(posicao[1])
+    const colunas = linhasDaGrade.get(linha) ?? new Map<number, string>()
+    colunas.set(Number(posicao[2]), valor)
+    linhasDaGrade.set(linha, colunas)
+  }
+  for (const [linha, colunas] of [...linhasDaGrade].sort((a, b) => a[0] - b[0])) {
+    const titulo = colunas.get(0)
+    if (!titulo) continue
+    const custo = bruto(`Custo 1.${linha}.0`)
+    const pagina = bruto(`Página 1.${linha}.0`)
+    const detalhe = [colunas.get(1), custo && custo !== '-' && `custo ${custo}`, pagina && `pág. ${pagina}`]
+      .filter(Boolean)
+      .join(' · ')
+    campos.push({ label: titulo, value: detalhe, group: 'Habilidades e rituais' })
+  }
+
+  for (const resistencia of RESISTENCIAS_B) {
+    const valor = inteiro(bruto(resistencia.name))
+    if (valor !== null && valor !== 0) {
+      campos.push({ label: resistencia.label, value: String(valor), group: 'Resistências', fieldName: resistencia.name })
+    }
+  }
+
+  const lacunas = temDono ? lacunasNumeradas(sheet) : []
+
+  const consumido = (nome: string | undefined): boolean =>
+    nome !== undefined &&
+    (CONSUMIDOS_B.some((padrao) => padrao.test(nome)) || CAMPO_DE_ITEM.test(nome))
+  const restantes = base.fields.filter((campo) => !consumido(campo.fieldName))
+
+  return {
+    ...base,
+    characterName: personagem || base.characterName,
+    system: 'Ordem Paranormal',
+    warnings: base.warnings,
+    fields: [...campos, ...lacunas, ...restantes],
+    presets: [...presets, ...base.presets.filter((preset) => !consumido(preset.fieldName))]
+  }
 }

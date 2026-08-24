@@ -20,7 +20,7 @@ export interface FichaDeTeste {
   proposito: string
   bytes: () => Uint8Array
   espera: {
-    leitor: 'ordem-paranormal' | 'oblivio' | 'dnd5e' | 'generico'
+    leitor: 'ordem-paranormal' | 'oblivio' | 'dnd5e' | 'pathfinder2e' | 'generico'
     /** Nome do personagem, quando o arquivo permite deduzir um. */
     nome?: string
     /** Piso de campos importados — o teste cobra "pelo menos isso". */

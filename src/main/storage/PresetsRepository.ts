@@ -43,6 +43,7 @@ export class PresetsRepository {
       name: input.name,
       icon: input.icon,
       expression: input.expression,
+      formula: input.formula,
       createdAt: now,
       updatedAt: now
     }
@@ -61,7 +62,10 @@ export class PresetsRepository {
       ...presets[index],
       name: input.name,
       icon: input.icon,
+      // Os DOIS, sempre — o preset guarda um só (ver `preset.ts`), e editar um preset de fórmula
+      // pra virar um de botões precisa APAGAR a fórmula antiga; o spread acima a deixaria viva.
       expression: input.expression,
+      formula: input.formula,
       updatedAt: Date.now()
     }
 
@@ -86,6 +90,7 @@ export class PresetsRepository {
       name: input.name,
       icon: input.icon,
       expression: input.expression,
+      formula: input.formula,
       createdAt: now,
       updatedAt: now
     }))
