@@ -30,6 +30,13 @@ presets e a tela de conferência — cada etapa um módulo puro com os próprios
   ficha, multiplicação, manter por grupo) fica escrito com o motivo, em vez de virar um preset que
   rola diferente do que está escrito.
 
+### Mudado
+
+- **O seletor de personagem fica só na Ficha.** Nas Anotações e na Rolagem entra um crachá do
+  personagem ativo — fotinha 3×4 e nome —, só de leitura: a troca acontece num lugar só, e as
+  outras abas lembram de quem se trata. (O seletor tinha entrado nas Anotações no 1.0.12, quando a
+  Ficha estava fora da interface.)
+
 ## [1.0.12] — 2026-08-23
 
 **Última versão da fase alfa.** Uma rodada de testes que virou conserto: o d100 não era um dado honesto, o vidro apagava os

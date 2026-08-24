@@ -1,4 +1,13 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode
+} from 'react'
 import type { DiceGroup, DiceGroupResult, ExplodeRule, KeepRule, RollResult } from '@shared/types/dice'
 import { totalMantido, valoresDosGrupos } from '@shared/dice/manterDados'
 import {
@@ -61,6 +70,12 @@ interface DiceRoller3DProps {
    * Anotações.
    */
   shortcutsEnabled?: boolean
+  /**
+   * O crachá do personagem ativo (foto e nome), desenhado ao lado do ROLAR — pedido do usuário
+   * ("em Rolagem colocar também uma mini fotinha e nome"). Vem de fora porque quem sabe de
+   * personagem é o `App`; a bandeja só reserva o lugar.
+   */
+  badge?: ReactNode
 }
 
 const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
@@ -272,7 +287,7 @@ export function comContagemAjustada(
  * compacta (300×230) foi desenhada de propósito pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange, shortcutsEnabled = true },
+  { onRoll, onRollingChange, shortcutsEnabled = true, badge },
   ref
 ) {
   const t = useTranslation()
@@ -1010,6 +1025,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
               </div>
             </div>
 
+            {badge && <div className="dice-roller-3d-badge">{badge}</div>}
             <Button
               variant="primary"
               className="dice-roller-3d-roll-btn"

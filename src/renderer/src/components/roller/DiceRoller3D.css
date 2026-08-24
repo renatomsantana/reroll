@@ -83,6 +83,16 @@
   padding: 7px 17px 5px 19px;
 }
 
+/* O crachá do personagem, encostado no ROLAR: `margin-left: auto` leva os dois pra ponta direita. */
+.dice-roller-3d-badge {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  align-self: center;
+  display: flex;
+  align-items: center;
+}
+
 .dice-roller-3d-row {
   display: flex;
   align-items: center;

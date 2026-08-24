@@ -1,0 +1,63 @@
+/**
+ * O crachá do personagem: foto e nome, e mais nada — nem caixa afundada, nem seta, porque não é
+ * um controle (ver `ProfileBadge.tsx`). Só a foto tem moldura, a mesma das miniaturas do seletor.
+ */
+.profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 260px;
+  color: var(--win-text);
+  font-size: 12px;
+  cursor: default;
+  user-select: none;
+}
+
+/* 27×36 como no seletor: a foto que a pessoa reconhece na lista é a mesma que ela vê aqui. */
+.profile-badge-photo {
+  flex: 0 0 auto;
+  width: 27px;
+  height: 36px;
+  object-fit: cover;
+  display: block;
+  background: var(--win-face);
+  box-shadow:
+    inset -1px -1px 0 var(--win-highlight),
+    inset 1px 1px 0 var(--win-shadow);
+}
+
+.profile-badge-photo-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  line-height: 1.05;
+  text-align: center;
+  color: var(--win-text-muted);
+  overflow: hidden;
+}
+
+.profile-badge-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: bold;
+}
+
+/* A versão MINI da barra de rolagem: cabe na altura dos botões de ajuste ao lado do ROLAR. */
+.profile-badge-mini {
+  gap: 5px;
+  max-width: 200px;
+  font-size: 11px;
+}
+
+.profile-badge-mini .profile-badge-photo {
+  width: 18px;
+  height: 24px;
+}
+
+.profile-badge-mini .profile-badge-photo-empty {
+  font-size: 6px;
+}
