@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { RollResult } from '@shared/types/dice'
+import type { DiceExpression, RollResult } from '@shared/types/dice'
 import type { Preset, PresetInput } from '@shared/types/preset'
 import { rollExpression } from '@renderer/domain/dice/diceEngine'
 import { usePresets } from '@renderer/hooks/usePresets'
@@ -17,6 +17,7 @@ import { CompactWidget } from '@renderer/components/compact/CompactWidget'
 import { PresetList } from '@renderer/components/presets/PresetList'
 import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModal'
 import { HistoryModal } from '@renderer/components/history/HistoryModal'
+import { SheetTab } from '@renderer/components/notes/SheetTab'
 import { NotesTab } from '@renderer/components/notes/NotesTab'
 import { StyleTab } from '@renderer/components/style/StyleTab'
 import { UpdatePrompt } from '@renderer/components/chrome/UpdatePrompt'
@@ -109,6 +110,22 @@ export default function App() {
       playRollSound(diceCount)
     }
     addToHistory(result)
+  }
+
+  /**
+   * Rolagem disparada da FICHA — um atributo, uma perícia, o dano de uma arma (ver `sheetRoll.ts`).
+   *
+   * Ela troca pra aba de Rolagem antes de rolar, e isso não é enfeite: os dados caem na bandeja 3D,
+   * que mora lá. Sem a troca, o clique na ficha faria os dados rolarem numa tela que a pessoa não
+   * está vendo — o botão pareceria quebrado enquanto o app fazia exatamente o que foi pedido.
+   *
+   * Não custa remontagem nenhuma: a aba de Rolagem fica montada o tempo todo, só escondida (ver o
+   * comentário do `display` mais abaixo), então o `roller3DRef` já aponta pra uma cena viva.
+   */
+  function handleSheetRoll(expression: DiceExpression, name: string) {
+    const modifierTotal = expression.modifiers.reduce((sum, m) => sum + m.value, 0)
+    setActiveTab('roll')
+    roller3DRef.current?.rollGroups(expression.groups, modifierTotal, name, expression.keep, expression.explode)
   }
 
   function handlePresetRoll(preset: Preset) {
@@ -262,6 +279,13 @@ export default function App() {
                 <section className="app-section">
                   <StyleTab />
                 </section>
+              )}
+              {activeTab === 'sheet' && (
+                <SheetTab
+                  onRoll={handleSheetRoll}
+                  /* Mesma trava da lista de presets — ver o comentário do `rollDisabled` de lá. */
+                  rollDisabled={isAnyRollInProgress && launchMode === 'tower'}
+                />
               )}
 
               {activeTab === 'notes' && (

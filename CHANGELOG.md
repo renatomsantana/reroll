@@ -6,6 +6,30 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [Não publicado] — 1.1.0-beta.1
+
+Começa o BETA. O alfa fechou no 1.0.12; o que muda de fase é a importação de ficha em PDF, que
+volta à interface marcada como beta, e a base pra ela crescer segundo o spec de importação
+(`AGENT_SPEC_pdf-import.md`): validação do arquivo, leitura, modelos por sistema, geração de
+presets e a tela de conferência — cada etapa um módulo puro com os próprios testes.
+
+### Adicionado
+
+- **A aba Ficha volta, como "📜 Ficha (beta)".** Com o botão de importar PDF e a tela de
+  conferência, e com o que foi consertado desde que ela saiu: os pares atual/máximo vêm inteiros
+  mesmo com metade em branco; toda ficha com dono traz o esqueleto de lacunas (tudo o que é
+  preenchível, mesmo vazio); Oblívio traz Aspectos e Equipamento; ritual e item preenchidos entram
+  uma vez só; modelo em branco não ganha o nome do arquivo como personagem; teto de campos,
+  fragmentos, páginas e tamanho por PDF; assinatura `%PDF-` conferida antes de atravessar o IPC.
+- **A gramática de rolagem** (`shared/dice/formula.ts`) — item 1 da ordem de construção do spec,
+  "uma notação só pra tudo o que rola": `1d20+5`, `4d6kh3`, `2d20kl1`, `4d6dl1`, `1d6!`, `2d6r<2`,
+  `6d6#>=5`, `d%`, `(1d8+2)*2`, `@STR.mod`, e um alvo no fim (`>= 15`). Módulo puro: leitura com a
+  posição do erro, avaliação com fonte de dados injetada, ida-e-volta em texto — 44 testes.
+- **O campo "Fórmula" no editor de preset.** Escrever preenche os botões; os botões reescrevem o
+  texto. O que o rolador desta versão ainda não faz (rerolar, contar sucessos, alvo, referência à
+  ficha, multiplicação, manter por grupo) fica escrito com o motivo, em vez de virar um preset que
+  rola diferente do que está escrito.
+
 ## [1.0.12] — 2026-08-23
 
 **Última versão da fase alfa.** Uma rodada de testes que virou conserto: o d100 não era um dado honesto, o vidro apagava os

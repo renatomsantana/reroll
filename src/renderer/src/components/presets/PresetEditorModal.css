@@ -151,3 +151,8 @@
   padding-right: 0;
   font-weight: bold;
 }
+
+/* A fórmula em fonte de máquina de escrever: "4d6kh3 + 2" se lê melhor com os caracteres alinhados. */
+.preset-editor-formula {
+  font-family: 'Courier New', Courier, monospace;
+}

@@ -248,3 +248,73 @@ describe('regra de manter que não faz nada', () => {
     expect(contador('Quantos dados contam').valor()).toBe('2')
   })
 })
+
+/**
+ * O CAMPO DE FÓRMULA — a gramática de rolagem dentro do editor. O texto e os botões descrevem o
+ * mesmo preset, então cada teste mexe num lado e confere o outro.
+ */
+describe('o campo de fórmula', () => {
+  it('escrever a fórmula preenche os botões, e o campo mostra a forma canônica', () => {
+    comProvedor(<PresetEditorModal preset={presetDe([{ count: 1, sides: 20 }])} onSave={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '4d6kh3+2' } })
+    expect(contador('Quantidade de dados').valor()).toBe('4')
+    expect(comoSelecao(screen.getByLabelText('Tipo de dado')).value).toBe('6')
+    expect(comoSelecao(screen.getByLabelText('No total, usar')).value).toBe('highest')
+    expect(contador('Quantos dados contam').valor()).toBe('3')
+    expect(comoCampo(screen.getByLabelText('Modificador (+/-)')).value).toBe('2')
+    expect(comoCampo(screen.getByLabelText('Fórmula')).value).toBe('4d6kh3 + 2')
+  })
+
+  it('os botões reescrevem a fórmula', () => {
+    comProvedor(
+      <PresetEditorModal
+        preset={presetDe([{ count: 2, sides: 20 }], { mode: 'highest', count: 1 })}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    )
+    expect(comoCampo(screen.getByLabelText('Fórmula')).value).toBe('2d20kh1')
+    fireEvent.click(contador('Quantidade de dados').mais)
+    expect(comoCampo(screen.getByLabelText('Fórmula')).value).toBe('3d20kh1')
+    fireEvent.click(screen.getByLabelText('Aumentar o modificador'))
+    expect(comoCampo(screen.getByLabelText('Fórmula')).value).toBe('3d20kh1 + 1')
+    fireEvent.click(screen.getByLabelText('Dados explosivos'))
+    expect(comoCampo(screen.getByLabelText('Fórmula')).value).toBe('3d20kh1! + 1')
+  })
+
+  it('o que a bandeja não rola fica escrito com o motivo, e os botões não mudam', () => {
+    comProvedor(<PresetEditorModal preset={presetDe([{ count: 1, sides: 20 }])} onSave={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '1d3' } })
+    expect(screen.getByText(/não tem d3/)).toBeTruthy()
+    expect(contador('Quantidade de dados').valor()).toBe('1')
+    expect(comoSelecao(screen.getByLabelText('Tipo de dado')).value).toBe('20')
+    expect(comoCampo(screen.getByLabelText('Fórmula')).value).toBe('1d3')
+
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '2d6r<2' } })
+    expect(screen.getByText(/Rerolar/)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '1d20+@STR.mod' } })
+    expect(screen.getByText(/valor da ficha/)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '1d' } })
+    expect(screen.getByText(/sem número de lados/)).toBeTruthy()
+
+    // Corrigir apaga o aviso e preenche.
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '2d6' } })
+    expect(screen.queryByText(/sem número de lados/)).toBeNull()
+    expect(contador('Quantidade de dados').valor()).toBe('2')
+    expect(comoSelecao(screen.getByLabelText('Tipo de dado')).value).toBe('6')
+  })
+
+  it('salvar grava o que a fórmula disse', () => {
+    const onSave = vi.fn()
+    comProvedor(<PresetEditorModal preset={presetDe([{ count: 1, sides: 20 }])} onSave={onSave} onCancel={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Fórmula'), { target: { value: '2d20kl1 - 1' } })
+    fireEvent.click(screen.getByText('Salvar'))
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onSave.mock.calls[0][0].expression).toEqual({
+      groups: [{ sides: 20, count: 2 }],
+      modifiers: [{ type: 'flat', value: -1 }],
+      keep: { mode: 'lowest', count: 1 },
+      explode: undefined
+    })
+  })
+})
