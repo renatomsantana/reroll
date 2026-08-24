@@ -46,18 +46,16 @@
   font-weight: bold;
 }
 
-/* A versão MINI da barra de rolagem: cabe na altura dos botões de ajuste ao lado do ROLAR. */
-.profile-badge-mini {
-  gap: 5px;
-  max-width: 200px;
-  font-size: 11px;
+/*
+ * Na barra de rolagem a foto é maior que no seletor: 39×52 (3×4), o que cabe nos 57 px do corpo da
+ * caixa "Rolagem" — MEDIDO, não chutado — sem empurrar o botão ROLAR nem a bandeja.
+ */
+.profile-badge-roll {
+  gap: 8px;
+  max-width: 240px;
 }
 
-.profile-badge-mini .profile-badge-photo {
-  width: 18px;
-  height: 24px;
-}
-
-.profile-badge-mini .profile-badge-photo-empty {
-  font-size: 6px;
+.profile-badge-roll .profile-badge-photo {
+  width: 39px;
+  height: 52px;
 }

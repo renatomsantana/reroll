@@ -33,7 +33,7 @@ presets e a tela de conferência — cada etapa um módulo puro com os próprios
 ### Mudado
 
 - **O seletor de personagem fica só na Ficha.** Nas Anotações e na Rolagem entra um crachá do
-  personagem ativo — fotinha 3×4 e nome —, só de leitura: a troca acontece num lugar só, e as
+  personagem ativo — foto 3×4 e nome (na Rolagem, da altura do botão ROLAR) —, só de leitura: a troca acontece num lugar só, e as
   outras abas lembram de quem se trata. (O seletor tinha entrado nas Anotações no 1.0.12, quando a
   Ficha estava fora da interface.)
 
