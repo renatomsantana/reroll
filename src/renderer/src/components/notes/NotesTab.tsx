@@ -5,7 +5,7 @@ import { FONT_OPTIONS, useSettings } from '@renderer/settings/SettingsContext'
 import type { Language } from '@shared/types/idioma'
 import { useProfiles } from '@renderer/settings/ProfilesContext'
 import { FontSelect, type FontSelectValue } from '../chrome/FontSelect'
-import { ProfileSelect } from './ProfileSelect'
+import { ProfileBadge } from '../common/ProfileBadge'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import './NotesTab.css'
@@ -69,6 +69,7 @@ export function NotesTab() {
   const { notes, saveError, loadError, updateField, updatePage, goToPage, addPage, removePage } =
     useNotes()
   const profiles = useProfiles()
+  const indiceDoAtivo = Math.max(0, profiles.profiles.findIndex((p) => p.id === profiles.activeId))
 
   const page = notes.pages[notes.currentPage]
   const dayLabel = t.notesTab.dayNumber.replace('{n}', String(notes.currentPage + 1))
@@ -104,24 +105,17 @@ export function NotesTab() {
   return (
     <Card className="notes-tab">
       {/*
-        DE QUEM SÃO ESTAS ANOTAÇÕES — o seletor de personagem mora aqui também.
-        
-        Ele existia só dentro da aba Ficha, e a Ficha saiu da interface no fechamento do alfa. O
-        efeito não foi cosmético: o app continuou guardando anotações, presets e aparência POR
-        PERSONAGEM e ficou sem nenhuma porta pra trocar de personagem — quem tivesse mais de um via
-        sempre o primeiro, sem saber que os outros existiam. Medido com quinze personagens
-        instalados: nenhum seletor em tela nenhuma.
-        
-        As anotações são o lugar certo pra ele mesmo com a Ficha ligada: o diário é por personagem, e
-        "de quem é este caderno" é a primeira coisa que se pergunta ao abrir um.
+        DE QUEM É ESTE CADERNO — o crachá do personagem ativo, e não o seletor.
+
+        O seletor chegou a morar aqui: quando a Ficha saiu da interface no fechamento do alfa, o app
+        ficou sem nenhuma porta pra trocar de personagem, e as Anotações receberam a dele. Com a
+        Ficha de volta no beta, o usuário decidiu onde cada coisa fica: a TROCA só na Ficha, e as
+        Anotações só lembram de quem se trata — "fotinha, nome e sobrenome". Ver `ProfileBadge.tsx`.
       */}
       <div className="notes-profile">
-        <ProfileSelect
-          profiles={profiles.profiles}
-          activeId={profiles.activeId}
-          onSelect={profiles.select}
-          fallbackName={(indice) => t.notesTab.profileUnnamed.replace('{n}', String(indice + 1))}
-          label={t.notesTab.profileSwitch}
+        <ProfileBadge
+          profile={profiles.active}
+          fallbackName={t.notesTab.profileUnnamed.replace('{n}', String(indiceDoAtivo + 1))}
           emptyPhotoLabel={t.notesTab.profilePhotoEmpty}
         />
       </div>

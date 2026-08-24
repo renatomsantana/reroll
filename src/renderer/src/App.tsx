@@ -6,6 +6,7 @@ import { usePresets } from '@renderer/hooks/usePresets'
 import { useRollHistory } from '@renderer/hooks/useRollHistory'
 import { useUpdateStatus } from '@renderer/hooks/useUpdateStatus'
 import { useSettings } from '@renderer/settings/SettingsContext'
+import { useProfiles } from '@renderer/settings/ProfilesContext'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { playRollSound } from '@renderer/audio/rollSound'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
@@ -14,6 +15,7 @@ import { StatusBar } from '@renderer/components/chrome/StatusBar'
 import { SettingsPanel } from '@renderer/components/chrome/SettingsPanel'
 import { DiceRoller3D, type DiceRoller3DHandle } from '@renderer/components/roller/DiceRoller3D'
 import { CompactWidget } from '@renderer/components/compact/CompactWidget'
+import { ProfileBadge } from '@renderer/components/common/ProfileBadge'
 import { PresetList } from '@renderer/components/presets/PresetList'
 import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModal'
 import { HistoryModal } from '@renderer/components/history/HistoryModal'
@@ -27,6 +29,8 @@ import './App.css'
 export default function App() {
   const { soundEnabled, compactMode, launchMode } = useSettings()
   const t = useTranslation()
+  const profiles = useProfiles()
+  const indiceDoAtivo = Math.max(0, profiles.profiles.findIndex((p) => p.id === profiles.activeId))
   const [showSplash, setShowSplash] = useState(true)
   const [activeTab, setActiveTab] = useState<AppTab>('roll')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -250,6 +254,15 @@ export default function App() {
                     enquanto a pessoa escrevia nas Anotações.
                   */
                   shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen}
+                  /* De quem são os dados — o crachá mini, ao lado do ROLAR (ver `ProfileBadge.tsx`). */
+                  badge={
+                    <ProfileBadge
+                      profile={profiles.active}
+                      fallbackName={t.notesTab.profileUnnamed.replace('{n}', String(indiceDoAtivo + 1))}
+                      emptyPhotoLabel={t.notesTab.profilePhotoEmpty}
+                      mini
+                    />
+                  }
                 />
               </section>
 
