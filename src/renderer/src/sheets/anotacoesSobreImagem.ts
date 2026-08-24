@@ -411,5 +411,25 @@ export function palpiteDeNome(paragrafos: string[]): string {
   const primeiro = paragrafos[0]?.trim() ?? ''
   if (!primeiro || primeiro.length > 40) return ''
   if (!/[\p{L}]{2}/u.test(primeiro)) return ''
+  if (ehTituloDeFicha(primeiro)) return ''
+  /**
+   * "KIDS ON BIKES" em cima de "CHARACTER SHEET": o nome do JOGO, em caixa alta, seguido do
+   * subtítulo que diz que aquilo é uma ficha. É o cabeçalho impresso do modelo, e não um nome —
+   * um nome escrito à mão raramente vem todo em maiúsculas com o subtítulo da ficha logo abaixo.
+   */
+  const segundo = paragrafos[1]?.trim() ?? ''
+  if (!/[\p{Ll}]/u.test(primeiro) && ehTituloDeFicha(segundo)) return ''
   return primeiro
+}
+
+/**
+ * O que NUNCA é nome: o título impresso da própria ficha. Uma arte achatada com "KIDS ON BIKES
+ * CHARACTER SHEET" no alto passava por aqui e virava um personagem chamado assim — achado pela
+ * quinta leva de PDFs de teste, na importação pela tela. Em português e em inglês, porque a régua
+ * do importador é a mesma pras duas.
+ */
+const TITULO_DE_FICHA = /\b(ficha|sheet|character|personagem|investigador|investigator)\b/iu
+
+export function ehTituloDeFicha(texto: string): boolean {
+  return TITULO_DE_FICHA.test(texto)
 }

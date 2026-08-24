@@ -8,6 +8,7 @@ import type { PresetInput } from '@shared/types/preset'
 import { SHEET_BLOCK_KEYS, type SheetBlockKey } from '@shared/types/sheetBlocks'
 import { normalizarTipoDeRolagem } from '@shared/types/sheetRoll'
 import {
+  MAXIMO_DE_CAMPOS_POR_SECAO,
   TAMANHO_MAXIMO_DA_FICHA,
   type PdfEscolhido,
   type SheetApplyPayload
@@ -93,7 +94,7 @@ export const LIMITES_DA_FICHA = {
   /** Por bloco livre (inventário, história...). 200 mil caracteres são ~60 páginas de texto. */
   bloco: 200_000,
   secoes: 200,
-  camposPorSecao: 2_000,
+  camposPorSecao: MAXIMO_DE_CAMPOS_POR_SECAO,
   presets: 500,
   rotulo: 300,
   valor: 2_000

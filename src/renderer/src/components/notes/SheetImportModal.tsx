@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SheetImport } from '@shared/types/sheetImport'
 import { montarFicha, type FichaMontada } from '@shared/types/montarFicha'
+import { MAXIMO_DE_CAMPOS_POR_SECAO } from '@shared/types/sheetImport'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
@@ -160,6 +161,16 @@ export function SheetImportModal({
             {sheet.warnings.map((aviso) => (
               <li key={aviso}>{t.sheetImport.warnings[aviso]}</li>
             ))}
+          </ul>
+        )}
+        {/* O corte por seção é dito AQUI, onde a pessoa decide — e não descoberto na ficha depois. */}
+        {(paraAFicha.cortados ?? 0) > 0 && (
+          <ul className="sheet-import-warnings">
+            <li>
+              {t.sheetImport.sectionTrimmed
+                .replace('{max}', String(MAXIMO_DE_CAMPOS_POR_SECAO))
+                .replace('{n}', String(paraAFicha.cortados))}
+            </li>
           </ul>
         )}
 

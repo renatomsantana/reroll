@@ -219,3 +219,11 @@ export interface SheetApplyPayload {
   presets: PresetInput[]
 }
 
+
+/**
+ * Campos por SEÇÃO da ficha do personagem, cobrado na gravação (`LIMITES_DA_FICHA`) e avisado na
+ * tela de conferência — antes só a gravação sabia, e cortava calada: um PDF de 5.001 campos passava
+ * pela conferência inteiro e chegava ao disco com 2.000, sem ninguém dizer (quinta leva de PDFs de
+ * teste). Nenhuma ficha real chega perto; o número existe pra que entrada adversarial tenha teto.
+ */
+export const MAXIMO_DE_CAMPOS_POR_SECAO = 2_000

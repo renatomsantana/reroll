@@ -1,4 +1,4 @@
-import type { SheetImportField } from './sheetImport'
+import { MAXIMO_DE_CAMPOS_POR_SECAO, type SheetImportField } from './sheetImport'
 import type { SheetRollKind } from './sheetRoll'
 import { blockForGroup, type SheetBlockKey } from './sheetBlocks'
 
@@ -14,6 +14,12 @@ import { blockForGroup, type SheetBlockKey } from './sheetBlocks'
 export interface FichaMontada {
   blocks: Partial<Record<SheetBlockKey, string>>
   sections: { title: string; fields: CampoMontado[] }[]
+  /**
+   * Quantos campos ficaram de FORA por passarem do teto por seção (`MAXIMO_DE_CAMPOS_POR_SECAO`).
+   * Só existe quando houve corte, e existe pra tela de conferência dizer — antes o corte era da
+   * gravação, calado: a conferência mostrava 5.000 campos e o disco recebia 2.000.
+   */
+  cortados?: number
 }
 
 export interface CampoMontado {
@@ -70,8 +76,11 @@ export function montarFicha(campos: SheetImportField[], textoSolto?: string): Fi
     blocks.backstory = [blocks.backstory, textoSolto].filter(Boolean).join('\n\n')
   }
 
-  return {
-    blocks,
-    sections: [...porTitulo].map(([title, fields]) => ({ title, fields }))
-  }
+  let cortados = 0
+  const sections = [...porTitulo].map(([title, fields]) => {
+    if (fields.length > MAXIMO_DE_CAMPOS_POR_SECAO) cortados += fields.length - MAXIMO_DE_CAMPOS_POR_SECAO
+    return { title, fields: fields.slice(0, MAXIMO_DE_CAMPOS_POR_SECAO) }
+  })
+
+  return cortados > 0 ? { blocks, sections, cortados } : { blocks, sections }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { montarFicha } from './montarFicha'
-import type { SheetImportField } from './sheetImport'
+import { MAXIMO_DE_CAMPOS_POR_SECAO, type SheetImportField } from './sheetImport'
 
 /**
  * A tradução do que foi LIDO da ficha pro que fica GRAVADO no personagem.
@@ -113,5 +113,29 @@ describe('montarFicha', () => {
     expect(atributos?.fields[0]).toEqual({ label: 'Agilidade', value: '3', roll: 'pool-d20' })
     // E campo que não rola continua sem tipo — um dado ao lado da Defesa rolaria o que não existe.
     expect(ficha.sections.find((s) => s.title === 'Recursos')?.fields[0].roll).toBeUndefined()
+  })
+})
+
+/**
+ * O teto de campos por seção, dito em vez de calado — achado da quinta leva de PDFs de teste (um
+ * PDF de 5.001 campos passava pela conferência inteiro e chegava ao disco com 2.000).
+ */
+describe('teto de campos por seção', () => {
+  it('corta no teto e diz quantos ficaram de fora', () => {
+    const muitos = Array.from({ length: MAXIMO_DE_CAMPOS_POR_SECAO + 3 }, (_, i) => campo(`c${i}`, String(i), 'Tudo'))
+    const ficha = montarFicha(muitos)
+    expect(ficha.sections[0].fields).toHaveLength(MAXIMO_DE_CAMPOS_POR_SECAO)
+    expect(ficha.sections[0].fields[0].label).toBe('c0')
+    expect(ficha.cortados).toBe(3)
+  })
+
+  it('o corte é por seção, e a conta soma as seções', () => {
+    const a = Array.from({ length: MAXIMO_DE_CAMPOS_POR_SECAO + 1 }, (_, i) => campo(`a${i}`, '1', 'A'))
+    const b = Array.from({ length: MAXIMO_DE_CAMPOS_POR_SECAO + 2 }, (_, i) => campo(`b${i}`, '1', 'B'))
+    expect(montarFicha([...a, ...b]).cortados).toBe(3)
+  })
+
+  it('dentro do teto não existe "cortados" — o objeto continua o de sempre', () => {
+    expect(montarFicha([campo('a', '1', 'G')])).not.toHaveProperty('cortados')
   })
 })

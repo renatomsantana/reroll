@@ -322,6 +322,8 @@ export interface TranslationDict {
     cancel: string
     confirm: string
     confirming: string
+    /** O corte por seção (`MAXIMO_DE_CAMPOS_POR_SECAO`), dito na conferência. */
+    sectionTrimmed: string
     /** Onde a ficha lida vai parar: um personagem novo ou o que já está aberto. */
     destinationLabel: string
     destinationNew: string
@@ -611,6 +613,7 @@ export const translations: Record<Language, TranslationDict> = {
       cancel: 'Cancelar',
       confirm: 'Criar personagem',
       confirming: 'Importando...',
+      sectionTrimmed: 'Só os primeiros {max} campos de cada seção entram na ficha — {n} ficaram de fora.',
       destinationLabel: 'Importar para',
       destinationNew: 'Um personagem novo',
       destinationUpdate: 'Atualizar "{name}"',
@@ -927,6 +930,7 @@ export const translations: Record<Language, TranslationDict> = {
       cancel: 'Cancel',
       confirm: 'Create character',
       confirming: 'Importing...',
+      sectionTrimmed: 'Only the first {max} fields of each section go into the sheet — {n} were left out.',
       destinationLabel: 'Import into',
       destinationNew: 'A new character',
       destinationUpdate: 'Update "{name}"',
