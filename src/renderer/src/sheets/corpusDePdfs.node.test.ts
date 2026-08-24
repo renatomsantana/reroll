@@ -3,7 +3,8 @@ import { join } from 'path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { readSheet } from './readers/index'
 import { abrirPdfDeBytes } from './testes/abrirPdfNoNode'
-import { CORPUS } from './testes/corpusDePdfs'
+import { CORPUS, type FichaDeTeste } from './testes/corpusDePdfs'
+import { QUINTA_LEVA } from './testes/quintaLevaDePdfs'
 
 /**
  * O CORPUS DE QUINZE FICHAS FABRICADAS, passando pelo importador de verdade.
@@ -28,14 +29,27 @@ beforeAll(() => {
   if (ESCREVER) mkdirSync(DESTINO, { recursive: true })
 })
 
-describe('corpus de fichas fabricadas', () => {
-  it.each(CORPUS.map((ficha) => [ficha.arquivo, ficha] as const))('%s', async (_nome, ficha) => {
+const LEVAS: [string, FichaDeTeste[]][] = [
+  ['corpus de fichas fabricadas', CORPUS],
+  ['quinta leva — o que o beta acrescentou e o adversarial do spec', QUINTA_LEVA]
+]
+
+describe.each(LEVAS)('%s', (_leva, fichas) => {
+  it.each(fichas.map((ficha) => [ficha.arquivo, ficha] as const))('%s', async (_nome, ficha) => {
     const bytes = ficha.bytes()
     if (ESCREVER) writeFileSync(join(DESTINO, ficha.arquivo), bytes)
-
-    const pdf = await abrirPdfDeBytes(ficha.arquivo, bytes)
-    const lido = readSheet(pdf)
     const onde = `${ficha.arquivo} — ${ficha.proposito}`
+
+    let pdf
+    try {
+      pdf = await abrirPdfDeBytes(ficha.arquivo, bytes)
+    } catch (causa) {
+      // Recusa limpa: uma rejeição com mensagem, que a tela sabe transformar em frase.
+      if (!ficha.espera.podeNaoAbrir) throw causa
+      expect(causa, `${onde}: a recusa precisa ser um Error`).toBeInstanceOf(Error)
+      return
+    }
+    const lido = readSheet(pdf)
 
     expect(lido.readerId, `${onde}: leitor`).toBe(ficha.espera.leitor)
 
@@ -53,6 +67,26 @@ describe('corpus de fichas fabricadas', () => {
     }
     for (const aviso of ficha.espera.avisos ?? []) {
       expect(lido.warnings, `${onde}: aviso`).toContain(aviso)
+    }
+    for (const esperado of ficha.espera.campos ?? []) {
+      // Com o grupo dado, é ele que desempata: "Força" existe em Atributos E em Salvaguardas.
+      const achado = lido.fields.find(
+        (c) => c.label === esperado.label && (esperado.group === undefined || c.group === esperado.group)
+      )
+      expect(achado, `${onde}: faltou o campo "${esperado.label}"`).toBeDefined()
+      if (!achado) continue
+      if (esperado.value !== undefined) expect(achado.value, `${onde}: valor de "${esperado.label}"`).toBe(esperado.value)
+      if (esperado.valueMatches) expect(achado.value, `${onde}: valor de "${esperado.label}"`).toMatch(esperado.valueMatches)
+      if (esperado.group !== undefined) expect(achado.group, `${onde}: grupo de "${esperado.label}"`).toBe(esperado.group)
+    }
+    if (ficha.espera.semRotulo) {
+      const vazados = lido.fields.filter((c) => ficha.espera.semRotulo!.test(c.label)).map((c) => c.label)
+      expect(vazados, `${onde}: rótulo cru vazou`).toEqual([])
+    }
+    for (const proibido of ficha.espera.proibidos ?? []) {
+      const achados = lido.fields.filter((c) => proibido.test(c.label) || proibido.test(String(c.value)))
+      expect(achados, `${onde}: entrou o que estava fora do teto`).toEqual([])
+      expect(lido.characterName, `${onde}: nome fora do teto`).not.toMatch(proibido)
     }
 
     /**

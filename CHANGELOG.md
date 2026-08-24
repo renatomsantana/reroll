@@ -30,6 +30,18 @@ presets e a tela de conferência — cada etapa um módulo puro com os próprios
   ficha, multiplicação, manter por grupo) fica escrito com o motivo, em vez de virar um preset que
   rola diferente do que está escrito.
 
+- **A quinta leva de PDFs de teste: mais quinze fichas fabricadas** (`testes/quintaLevaDePdfs.ts`),
+  cobrindo o que o beta acrescentou e o adversarial do spec — Ordem em duas páginas com ritual e item
+  preenchidos, só os valores atuais, D&D de nível alto com duas armas e conjuração, D&D em branco,
+  Oblívio com dois equipamentos, Cthulhu datilografado, Tormenta20 em português, campo de lista e de
+  rádio, valor com espaço e quebra de linha, 101 páginas, 5.001 campos, JavaScript embutido, `xref`
+  errada e arquivo cortado no meio. `ESCREVER_PDFS=1 npx vitest run corpusDePdfs` escreve os trinta.
+  Dois defeitos que ela achou, consertados:
+  - a linha de arma com mais de 28 caracteres ("Espingarda calibre 12  dano 2d6+4") não virava
+    preset — agora passa quando o dado FECHA a linha, que é a forma de arma e não a de regra;
+  - o rótulo impresso de uma caixa ALTA (a história do personagem) ficava de fora, porque a distância
+    era medida do centro da caixa — agora é da borda, e a régua é uma só pros dois lugares que mediam.
+
 ### Mudado
 
 - **O seletor de personagem fica só na Ficha.** Nas Anotações e na Rolagem entra um crachá do

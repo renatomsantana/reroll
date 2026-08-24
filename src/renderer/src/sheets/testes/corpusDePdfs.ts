@@ -29,6 +29,17 @@ export interface FichaDeTeste {
     maximoDeCampos?: number
     minimoDePresets?: number
     avisos?: string[]
+    /** Campos que PRECISAM estar lá — por rótulo, e opcionalmente com o valor e o grupo exatos. */
+    campos?: { label: string; value?: string; valueMatches?: RegExp; group?: string }[]
+    /** Nenhum rótulo pode casar com isto — é como se cobra que o nome cru do campo não vazou. */
+    semRotulo?: RegExp
+    /** Nada (rótulo ou valor) pode casar com isto — o que estava fora do teto da varredura. */
+    proibidos?: RegExp[]
+    /**
+     * O arquivo pode não abrir (cortado no meio): aí o que se cobra é que a recusa seja LIMPA — uma
+     * rejeição, e não um travamento. Se abrir, valem as demais expectativas.
+     */
+    podeNaoAbrir?: boolean
   }
 }
 
