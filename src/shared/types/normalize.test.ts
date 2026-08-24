@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { normalizeNotes, DEFAULT_NOTES } from './notes'
-import { normalizeProfiles, DEFAULT_PROFILE_ID } from './profile'
+import { normalizeProfiles, DEFAULT_PROFILE_ID, TAMANHO_MAXIMO_DA_FOTO, TAMANHO_MAXIMO_DO_NOME } from './profile'
 import { blockForGroup } from './sheetBlocks'
 
 /**
@@ -248,5 +248,43 @@ describe('blockForGroup — pra onde vai cada grupo da ficha importada', () => {
     expect(blockForGroup('Recursos')).toBeNull()
     expect(blockForGroup('Corpo')).toBeNull()
     expect(blockForGroup('')).toBeNull()
+  })
+})
+
+/**
+ * A FOTO e os RÓTULOS do personagem, conferidos na fronteira — achado da revisão de segurança do
+ * 1.0.12. O seletor de foto tinha teto de 12 MB; o canal `profiles:save` e o arquivo no disco não
+ * tinham nenhum, e a foto vai direto pra um `<img src>` lido inteiro em toda abertura do app.
+ */
+describe('normalizeProfiles — foto e rótulos', () => {
+  const base = { id: 'p1', name: 'Ana', system: 'Fate', createdAt: 1 }
+  const png = 'data:image/png;base64,iVBORw0KGgo='
+
+  it('mantém uma foto embutida PNG/JPEG/WebP', () => {
+    for (const foto of [png, 'data:image/jpeg;base64,/9j/4AAQ', 'data:image/webp;base64,UklGRg==']) {
+      const estado = normalizeProfiles({ profiles: [{ ...base, photo: foto }], activeId: 'p1' })
+      expect(estado.profiles[0].photo).toBe(foto)
+    }
+  })
+
+  it('descarta foto que não é imagem embutida — o personagem fica sem foto, e não some', () => {
+    for (const foto of ['https://x/a.png', 'file:///C:/a.png', 'javascript:alert(1)', 'data:text/html;base64,PGI+', 'data:image/svg+xml;base64,PHN2Zz4=']) {
+      const estado = normalizeProfiles({ profiles: [{ ...base, photo: foto }], activeId: 'p1' })
+      expect(estado.profiles[0].photo, foto).toBeNull()
+      expect(estado.profiles[0].name).toBe('Ana')
+    }
+  })
+
+  it('descarta foto maior do que o seletor aceitaria escolher', () => {
+    const gigante = 'data:image/png;base64,' + 'A'.repeat(TAMANHO_MAXIMO_DA_FOTO + 1)
+    const estado = normalizeProfiles({ profiles: [{ ...base, photo: gigante }], activeId: 'p1' })
+    expect(estado.profiles[0].photo).toBeNull()
+  })
+
+  it('corta nome e sistema no teto de rótulo, em vez de gravar um romance no lugar do nome', () => {
+    const longo = 'x'.repeat(TAMANHO_MAXIMO_DO_NOME + 50)
+    const estado = normalizeProfiles({ profiles: [{ ...base, name: longo, system: longo }], activeId: 'p1' })
+    expect(estado.profiles[0].name).toHaveLength(TAMANHO_MAXIMO_DO_NOME)
+    expect(estado.profiles[0].system).toHaveLength(TAMANHO_MAXIMO_DO_NOME)
   })
 })

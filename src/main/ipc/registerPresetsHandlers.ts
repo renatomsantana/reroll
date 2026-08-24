@@ -138,17 +138,50 @@ export function registerPresetsHandlers(repository: PresetsRepository): void {
     })
     if (!caminho) return null
 
-    const raw = await fs.readFile(caminho, 'utf-8')
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) {
-      throw new Error('Arquivo inválido: esperado uma lista de presets.')
-    }
-
-    const validInputs = parsed.filter(isValidPresetInput)
-    if (validInputs.length === 0) {
-      throw new Error('Nenhum preset válido encontrado no arquivo.')
-    }
-
-    return repository.importMany(validInputs)
+    return repository.importMany(await lerPresetsDoArquivo(caminho))
   })
+}
+
+/**
+ * O maior `.json` de presets que o app abre, e quantos presets ele aceita de uma vez.
+ *
+ * Achado da revisão de segurança do 1.0.12: o PDF de ficha tem teto (`TAMANHO_MAXIMO_DA_FICHA`), a
+ * imagem tem teto (`TAMANHO_MAXIMO_DA_IMAGEM`), e a importação de presets lia o arquivo escolhido
+ * inteiro pra memória e fazia `JSON.parse` nele, fosse do tamanho que fosse. Um arquivo errado
+ * escolhido no diálogo — um vídeo renomeado, um dump de banco — travaria o app tentando analisá-lo.
+ *
+ * Dois megabytes cabem uns dez mil presets; o teto de quinhentos por importação é o mesmo da
+ * importação de ficha (`LIMITES_DA_FICHA.presets`). Acima disso a resposta é RECUSAR com o número
+ * na mensagem, e não importar os primeiros quinhentos calado — importação pela metade sem aviso é
+ * o tipo de coisa que a pessoa só descobre no meio da sessão.
+ */
+export const TAMANHO_MAXIMO_DO_ARQUIVO_DE_PRESETS = 2 * 1024 * 1024
+export const MAXIMO_DE_PRESETS_POR_IMPORTACAO = 500
+
+/** A leitura sem o diálogo, separada pra ser testada com arquivos de verdade. */
+export async function lerPresetsDoArquivo(caminho: string): Promise<PresetInput[]> {
+  // ANTES de ler: o ponto do limite é não trazer os bytes pra memória.
+  const info = await fs.stat(caminho)
+  if (!info.isFile()) throw new Error('O caminho escolhido não é um arquivo.')
+  if (info.size > TAMANHO_MAXIMO_DO_ARQUIVO_DE_PRESETS) {
+    const mb = Math.round(TAMANHO_MAXIMO_DO_ARQUIVO_DE_PRESETS / (1024 * 1024))
+    throw new Error(`Arquivo grande demais para ser um arquivo de presets (o limite é ${mb} MB).`)
+  }
+
+  const raw = await fs.readFile(caminho, 'utf-8')
+  const parsed: unknown = JSON.parse(raw)
+  if (!Array.isArray(parsed)) {
+    throw new Error('Arquivo inválido: esperado uma lista de presets.')
+  }
+  if (parsed.length > MAXIMO_DE_PRESETS_POR_IMPORTACAO) {
+    throw new Error(
+      `O arquivo tem ${parsed.length} presets; o máximo por importação é ${MAXIMO_DE_PRESETS_POR_IMPORTACAO}.`
+    )
+  }
+
+  const validInputs = parsed.filter(isValidPresetInput)
+  if (validInputs.length === 0) {
+    throw new Error('Nenhum preset válido encontrado no arquivo.')
+  }
+  return validInputs
 }
