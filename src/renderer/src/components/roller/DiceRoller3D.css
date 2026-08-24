@@ -383,3 +383,9 @@
   padding-right: 0;
   font-weight: bold;
 }
+
+/* O d20 vermelho no botão Explode, no lugar do emoji de explosão. */
+.dice-roller-3d-icone {
+  margin-right: 4px;
+  vertical-align: -2px;
+}

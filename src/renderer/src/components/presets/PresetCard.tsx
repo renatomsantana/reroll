@@ -2,6 +2,8 @@ import type { Preset } from '@shared/types/preset'
 import { expressionLabel } from '@renderer/domain/dice/diceEngine'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import './PresetCard.css'
+import { IconeReroll } from '../common/IconeReroll'
+import { IconeLapis } from '../common/IconeLapis'
 
 interface PresetCardProps {
   preset: Preset
@@ -45,7 +47,7 @@ export function PresetCard({
         onClick={() => onRoll(preset)}
         disabled={rollDisabled ?? disabled}
       >
-        <span className="preset-card-icon">{preset.icon || '🎲'}</span>
+        <span className="preset-card-icon">{preset.icon || <IconeReroll tamanho={17} />}</span>
         <span className="preset-card-text">
           <span className="preset-card-name">{preset.name}</span>
           <span className="preset-card-expression">{expressionLabel(preset.expression)}</span>
@@ -66,7 +68,7 @@ export function PresetCard({
           title={t.presets.edit}
           disabled={disabled}
         >
-          ✏️
+          <IconeLapis />
         </button>
         <button
           type="button"
