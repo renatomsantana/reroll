@@ -24,6 +24,11 @@ export interface PdfSheet {
   fields: PdfField[]
   /** Todo o texto IMPRESSO, com posição — a fonte para fichas sem formulário. */
   texts: PdfText[]
+  /**
+   * O RETRATO embutido na página de identificação, como data URL (spec §3.6; ver
+   * `retratoDoPdf.ts`). Ausente quando não há imagem que sirva — e isso nunca segura a importação.
+   */
+  retrato?: string
 }
 
 export interface PdfField {
@@ -85,6 +90,8 @@ export interface SheetImport {
    * tela de conferência mostra pra pessoa decidir.
    */
   rawText?: string
+  /** O retrato candidato (ver `PdfSheet.retrato`), passado adiante pra conferência oferecer. */
+  retrato?: string
 }
 
 export interface SheetImportField {
@@ -223,6 +230,12 @@ export interface SheetApplyPayload {
    * barra, como sempre entrou.
    */
   recursos?: RecursoImportado[]
+  /**
+   * A FOTO do personagem escolhida na conferência (spec §3.6): a do PDF, uma que a pessoa
+   * escolheu, ou nada. `null`/ausente NÃO apaga a foto de um personagem atualizado — "sem retrato"
+   * na conferência quer dizer "não traga este", não "tire o que já tinha".
+   */
+  photo?: string | null
 }
 
 export interface RecursoImportado {

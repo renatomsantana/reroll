@@ -57,6 +57,62 @@
   gap: 12px;
 }
 
+/* O retrato (spec §3.6): a moldura 3×4 do crachá, os dois botões embaixo, a dica em cinza. */
+.sheet-import-portrait {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.sheet-import-portrait-img {
+  width: 60px;
+  height: 80px;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--win-face);
+  box-shadow:
+    inset -1px -1px 0 var(--win-highlight),
+    inset 1px 1px 0 var(--win-shadow);
+}
+
+.sheet-import-portrait-empty {
+  color: var(--win-text-muted);
+  text-align: center;
+  padding: 0 4px;
+}
+
+.sheet-import-portrait-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sheet-import-portrait-btn {
+  padding: 1px 6px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.sheet-import-portrait-btn:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 5px 0 7px;
+}
+
+.sheet-import-portrait-hint {
+  color: var(--win-text-muted);
+  text-align: center;
+  max-width: 90px;
+}
+
 .sheet-import-identity label {
   flex: 1;
   display: flex;

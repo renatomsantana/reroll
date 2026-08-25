@@ -3,7 +3,8 @@ import { basename } from 'path'
 import { randomUUID } from 'crypto'
 import { ipcMain } from 'electron'
 import { IpcChannels } from '@shared/ipcChannels'
-import { MAX_PROFILES, type Profile } from '@shared/types/profile'
+import { MAX_PROFILES, TAMANHO_MAXIMO_DA_FOTO, type Profile } from '@shared/types/profile'
+import { condicoesPadrao } from '@shared/types/hud'
 import type { PresetInput } from '@shared/types/preset'
 import { SHEET_BLOCK_KEYS, type SheetBlockKey } from '@shared/types/sheetBlocks'
 import { normalizarTipoDeRolagem } from '@shared/types/sheetRoll'
@@ -214,8 +215,19 @@ export function validarSheetApplyPayload(bruto: unknown): SheetApplyPayload {
      * pergunta — e é sempre a segunda que fica pra trás.
      */
     presets: (payload.presets as PresetInput[]).slice(0, LIMITES_DA_FICHA.presets),
-    recursos: recursosLimpos
+    recursos: recursosLimpos,
+    /**
+     * A FOTO (spec §3.6) pela mesma régua de `normalizeProfiles`: imagem embutida dos três formatos
+     * e dentro do teto, ou nada. Uma foto torta vira "sem foto", nunca uma importação recusada.
+     */
+    photo: fotoDePerfilValida(payload.photo)
   }
+}
+
+const FOTO_EMBUTIDA = /^data:image\/(png|jpeg|webp);base64,/
+function fotoDePerfilValida(valor: unknown): string | null {
+  if (typeof valor !== 'string' || valor.length > TAMANHO_MAXIMO_DA_FOTO) return null
+  return FOTO_EMBUTIDA.test(valor) ? valor : null
 }
 
 /** Inteiro em `[0, teto]`; o que não é número finito vira zero — a barra nasce vazia, não a ficha. */
@@ -286,13 +298,14 @@ export function registerSheetHandlers(
        * ATUALIZAR mantém o personagem (e portanto a pasta dele, com o diário e as anotações) e só
        * troca nome e sistema pelo que veio da conferência. CRIAR faz um do zero.
        */
+      // A foto da conferência entra nos dois casos; "sem retrato" (`null`) nunca apaga a que já havia.
       const novo: Profile = existente
-        ? { ...existente, name: payload.characterName.trim(), system: payload.system.trim() }
+        ? { ...existente, name: payload.characterName.trim(), system: payload.system.trim(), photo: payload.photo ?? existente.photo }
         : {
             id: randomUUID(),
             name: payload.characterName.trim(),
             system: payload.system.trim(),
-            photo: null,
+            photo: payload.photo ?? null,
             createdAt: Date.now()
           }
       const lista = existente
@@ -384,6 +397,8 @@ ${novoTexto}` : novoTexto
             existente && atuais.descansos.length > 0
               ? atuais.descansos
               : descansosPadrao(payload.system, recursosFundidos),
+          /** As CONDIÇÕES do HUD (spec §3.6) pela mesma regra: só quando ainda não há nenhuma. */
+          condicoes: existente && atuais.condicoes.length > 0 ? atuais.condicoes : condicoesPadrao(payload.system),
           /**
            * Seção com o MESMO TÍTULO é substituída, e não duplicada.
            *

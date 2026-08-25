@@ -151,6 +151,25 @@ const CASOS = [
     html: `<fieldset class="barras-de-recurso" style="width:300px"><legend>Recursos <button class="barras-editar">e</button><button class="barras-descansar" id="alvo"><b style="font-size:11px;line-height:1">Descansar</b></button></legend><p class="barras-vazio">—</p></fieldset>`,
     esperado: { dx: 1, dy: 1 }
   },
+  /* O HUD sobre a cena (spec §3.6): botõezinhos de janela, chip de condição, o descansar dele. */
+  {
+    id: 'hud-botao',
+    nome: 'HUD — o botãozinho de encolher',
+    html: `<div class="hud" style="position:relative;width:236px"><div class="hud-cabecalho"><span class="hud-retrato hud-retrato-vazio">M</span><span class="hud-nome">Matias</span><span class="hud-botoes"><button class="hud-botao" id="alvo"><b style="font-size:9px;line-height:1">x</b></button><button class="hud-botao">✕</button></span></div></div>`,
+    esperado: { dx: 1, dy: 1 }
+  },
+  {
+    id: 'hud-condicao',
+    nome: 'HUD — chip de condição desligado',
+    html: `<div class="hud" style="position:relative;width:236px"><div class="hud-condicoes"><button class="hud-condicao" id="alvo"><b style="font-size:10px;line-height:1">Machucado</b><span class="hud-condicao-remover">×</span></button></div></div>`,
+    esperado: { dx: 1, dy: 1 }
+  },
+  {
+    id: 'hud-condicao-ligada',
+    nome: 'HUD — chip de condição LIGADO: já afundado, o clique não afunda de novo',
+    html: `<div class="hud" style="position:relative;width:236px"><div class="hud-condicoes"><button class="hud-condicao hud-condicao-ativa" id="alvo"><b style="font-size:10px;line-height:1">Machucado</b><span class="hud-condicao-remover">×</span></button></div></div>`,
+    esperado: { dx: 0, dy: 0 }
+  },
   {
     id: 'barras-lapis',
     nome: 'O lápis da legenda "Recursos"',
