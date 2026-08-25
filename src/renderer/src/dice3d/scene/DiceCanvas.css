@@ -5,8 +5,18 @@
   min-height: 420px;
 }
 
+/*
+ * FORA DO FLUXO, de propósito. Os atributos `width`/`height` que o `ResizeObserver` escreve no
+ * canvas (a resolução) são também o tamanho INTRÍNSECO dele — e num contêiner cuja altura vem do
+ * conteúdo (a seção da cena passou a crescer com o conteúdo em vez de encolher por cima das
+ * barras; ver `App.tsx`), o canvas passava a ditar a altura do próprio contêiner: uma catraca que
+ * nunca encolhia abaixo do maior valor já visto (medido em `medirAbaDeRolagem.mjs`: 628px onde
+ * cabiam 420). Absoluto, ele só OCUPA o contêiner; quem decide o tamanho é o layout.
+ */
 .dice-canvas-container canvas {
   display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
