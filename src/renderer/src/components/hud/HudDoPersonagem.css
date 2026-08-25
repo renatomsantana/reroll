@@ -1,0 +1,234 @@
+/*
+ * O HUD sobre a cena (spec §3.6): uma caixa do 98 flutuando por cima do canvas — relevo `outset`,
+ * fundo chapado, sem sombra colorida, sem degradê. Fica ENTRE o seletor de câmera (z 6) e o popup
+ * do total (z 10): quem rola quer ver o total por cima de tudo.
+ */
+.hud {
+  position: absolute;
+  z-index: 8;
+  width: 236px;
+  padding: 4px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  user-select: none;
+}
+
+/* Os quatro cantos, a 8px da borda da cena. */
+.hud-nw,
+.hud-mostrar.hud-nw {
+  top: 8px;
+  left: 8px;
+}
+
+.hud-ne,
+.hud-mostrar.hud-ne {
+  top: 8px;
+  right: 8px;
+}
+
+.hud-sw,
+.hud-mostrar.hud-sw {
+  bottom: 8px;
+  left: 8px;
+}
+
+.hud-se,
+.hud-mostrar.hud-se {
+  bottom: 8px;
+  right: 8px;
+}
+
+.hud-arrastando {
+  cursor: grabbing;
+}
+
+.hud-mini {
+  width: 180px;
+}
+
+.hud-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: grab;
+  /* Arrastar pelo cabeçalho não pode rolar a página nem selecionar o nome. */
+  touch-action: none;
+}
+
+.hud-arrastando .hud-cabecalho {
+  cursor: grabbing;
+}
+
+/* A moldura 3×4 do crachá (ver `ProfileBadge.css`), pra ser a mesma foto em qualquer lugar. */
+.hud-retrato {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 48px;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--win-window-bg);
+  box-shadow:
+    inset -1px -1px 0 var(--win-highlight),
+    inset 1px 1px 0 var(--win-shadow);
+  pointer-events: none;
+}
+
+.hud-mini .hud-retrato {
+  width: 27px;
+  height: 36px;
+}
+
+.hud-retrato-vazio {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--win-text-muted);
+}
+
+.hud-nome {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: bold;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hud-botoes {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  align-self: flex-start;
+}
+
+/* Os botõezinhos de janela do 98: 16×14, relevo, o glifo centrado. */
+.hud-botao {
+  width: 16px;
+  height: 14px;
+  padding: 1px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hud-botao:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 0 0 2px;
+}
+
+/* No mini, as barras perdem o nome: só o retrato e as barras finas, como a spec pede. */
+.hud-mini .barra-nome {
+  display: none;
+}
+
+.hud-condicoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+/* O chip de condição: relevo pra fora desligado, afundado com fundo branco ligado. */
+.hud-condicao {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 5px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.hud-condicao:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 4px 0 6px;
+}
+
+.hud-condicao-ativa {
+  border: 2px inset var(--win-highlight);
+  background: var(--win-input-bg);
+  font-weight: bold;
+  color: #800000;
+}
+
+.hud-condicao-ativa:active:not(:disabled) {
+  padding: 1px 5px;
+}
+
+.hud-condicao-remover {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--win-text-muted);
+}
+
+.hud-condicao-remover:hover {
+  color: #800000;
+}
+
+.hud-condicao-nova {
+  min-width: 20px;
+  justify-content: center;
+}
+
+.hud-condicao-entrada {
+  width: 110px;
+  padding: 1px 4px;
+  font-size: 10px;
+}
+
+.hud-descansar {
+  align-self: flex-start;
+  padding: 1px 8px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.hud-descansar:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 7px 0 9px;
+}
+
+/* Escondido: só o retrato miúdo no canto, clicável, pra trazer o HUD de volta. */
+.hud-mostrar {
+  position: absolute;
+  z-index: 8;
+  width: 27px;
+  height: 36px;
+  padding: 1px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text-muted);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.hud-mostrar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.hud-mostrar:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 0 0 2px;
+}

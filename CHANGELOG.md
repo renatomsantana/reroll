@@ -76,6 +76,21 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   que um descanso é uma rolagem de total zero. Sem tipo configurado, o botão oferece um
   descanso completo sem gravar nada. Nada de timer, nada automático.
 
+- **HUD do personagem sobre a cena (§3.6)** — um cartão de jogo flutuando num canto da cena 3D:
+  retrato, nome, as MESMAS barras de recurso (com os mesmos "−"/"+"), as condições como chips
+  que ligam e desligam com um clique ("Machucado", "Enlouquecendo" — sugeridas na importação de
+  Ordem; qualquer outra pelo "+"), e o Descansar. Arrasta-se pelo cabeçalho e ENCAIXA no canto
+  mais perto ao soltar; encolhe pra "mini" (retrato e barras finas, sem rótulo); esconde num
+  clique e volta pelo retrato miúdo que fica no canto. Canto, mini e escondido são do personagem
+  e gravam na hora. É DOM por cima do canvas — texto nítido, custo zero por quadro, o relevo do
+  98 — e não existe no modo compacto, que já tem as barras finas.
+- **Retrato tirado do PDF (§3.6)** — a importação procura na primeira página a maior imagem
+  raster com cara de foto (mínimo 64px, proporção entre 2:5 e 2:1, e NÃO a ficha digitalizada
+  inteira, que tem a proporção da página) e a oferece na conferência ao lado do nome, reduzida a
+  384px em JPEG: usar, trocar por um arquivo seu, ou tirar. Sem imagem que sirva, importa sem
+  retrato — nunca segura a importação. "Sem retrato" num personagem atualizado não apaga a foto
+  que ele já tinha.
+
 ### Interno
 
 - **As anotações viraram uma instância só** (`NotesProvider`): a aba Ficha e a aba Anotações

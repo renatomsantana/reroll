@@ -37,6 +37,8 @@ interface SheetImportModalProps {
     presets: SheetImport['presets']
     /** As barras que ficaram marcadas — ver `extrairRecursos.ts`. */
     recursos: RecursoImportado[]
+    /** A foto escolhida na conferência (spec §3.6): a do PDF, outra, ou nenhuma. */
+    photo: string | null
   }) => void
   /** `true` enquanto a gravação acontece — trava os botões pra não criar dois personagens. */
   saving: boolean
@@ -82,6 +84,24 @@ export function SheetImportModal({
   const recursosLidos = useMemo(() => extrairRecursos(sheet.fields), [sheet.fields])
   const [recursosFora, setRecursosFora] = useState<Set<number>>(new Set())
   const recursosEscolhidos = recursosLidos.filter((_, i) => !recursosFora.has(i))
+  /**
+   * O RETRATO (spec §3.6): começa com o que o PDF trouxe, e a pessoa mantém, troca por um arquivo
+   * dela, ou tira. `null` é "sem retrato" — e no personagem atualizado isso não apaga a foto que
+   * ele já tinha (ver `photo` em `SheetApplyPayload`).
+   */
+  const [retrato, setRetrato] = useState<string | null>(sheet.retrato ?? null)
+  const [erroDoRetrato, setErroDoRetrato] = useState(false)
+
+  async function escolherOutroRetrato(): Promise<void> {
+    setErroDoRetrato(false)
+    try {
+      const escolhido = await window.api.profiles.pickPhoto()
+      if (escolhido) setRetrato(escolhido)
+    } catch (causa) {
+      console.error('Falha ao escolher o retrato:', causa)
+      setErroDoRetrato(true)
+    }
+  }
   /**
    * O texto SEM RÓTULO da ficha (ver `rawText` em `SheetImport`), que só existe quando a ficha é uma
    * arte com anotação por cima. Vem marcado: nesse tipo de arquivo ele é quase tudo o que há, e
@@ -187,6 +207,32 @@ export function SheetImportModal({
         )}
 
         <div className="sheet-import-identity">
+          {/*
+            O retrato ao lado do nome — é a identidade da ficha. Sem candidato do PDF o bloco ainda
+            aparece, com o botão de escolher: importar é o momento em que a pessoa está montando o
+            personagem, e a foto faz parte disso.
+          */}
+          <div className="sheet-import-portrait">
+            {retrato ? (
+              <img className="sheet-import-portrait-img" src={retrato} alt="" draggable={false} />
+            ) : (
+              <span className="sheet-import-portrait-img sheet-import-portrait-empty">{t.sheetImport.portraitEmpty}</span>
+            )}
+            <div className="sheet-import-portrait-actions">
+              <button type="button" className="sheet-import-portrait-btn" onClick={() => void escolherOutroRetrato()}>
+                {retrato ? t.sheetImport.portraitReplace : t.sheetImport.portraitChoose}
+              </button>
+              {retrato && (
+                <button type="button" className="sheet-import-portrait-btn" onClick={() => setRetrato(null)}>
+                  {t.sheetImport.portraitRemove}
+                </button>
+              )}
+            </div>
+            {sheet.retrato && retrato === sheet.retrato && (
+              <span className="sheet-import-portrait-hint">{t.sheetImport.portraitFromPdf}</span>
+            )}
+            {erroDoRetrato && <span className="sheet-import-portrait-hint">{t.notesTab.profilePhotoError}</span>}
+          </div>
           <label>
             {t.sheetImport.character}
             <input value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -353,7 +399,8 @@ export function SheetImportModal({
                 system: reconhecido ? sheet.system : sistema,
                 notes: paraAFicha,
                 presets: presetsEscolhidos,
-                recursos: recursosEscolhidos.map(({ nome, atual, maximo }) => ({ nome, atual, maximo }))
+                recursos: recursosEscolhidos.map(({ nome, atual, maximo }) => ({ nome, atual, maximo })),
+                photo: retrato
               })
             }
             disabled={saving || !nome.trim()}

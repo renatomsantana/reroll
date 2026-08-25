@@ -107,6 +107,20 @@ export interface TranslationDict {
   statusBar: { shortcutsHint: string }
   /** `restEvent` é a linha do descanso no diário da sessão (spec §3.8): "— {name} —". */
   history: { title: string; empty: string; clear: string; restEvent: string }
+  /** O HUD do personagem sobre a cena (spec §3.6; ver `HudDoPersonagem.tsx`). */
+  hud: {
+    title: string
+    dragHint: string
+    collapse: string
+    expand: string
+    hide: string
+    show: string
+    conditionOn: string
+    conditionOff: string
+    conditionRemove: string
+    conditionAdd: string
+    conditionPlaceholder: string
+  }
   /** O DESCANSO (spec §3.8): o botão, a confirmação com o delta, e o editor dos tipos. */
   rest: {
     button: string
@@ -405,6 +419,12 @@ export interface TranslationDict {
     resourcesTitle: string
     resourcesEmpty: string
     resourceBlankCurrent: string
+    /** O RETRATO tirado do PDF (spec §3.6): manter, trocar por um arquivo, ou tirar. */
+    portraitEmpty: string
+    portraitChoose: string
+    portraitReplace: string
+    portraitRemove: string
+    portraitFromPdf: string
     /** "(3 de 12)" — quantos itens seguem marcados. */
     count: string
     rawTextTitle: string
@@ -530,6 +550,19 @@ export const translations: Record<Language, TranslationDict> = {
       empty: 'Nenhuma rolagem ainda nesta sessão.',
       clear: 'Limpar',
       restEvent: '— {name} —'
+    },
+    hud: {
+      title: 'Personagem',
+      dragHint: 'Arraste pra outro canto da cena',
+      collapse: 'Encolher (só retrato e barras)',
+      expand: 'Expandir',
+      hide: 'Esconder o HUD',
+      show: 'Mostrar o HUD do personagem',
+      conditionOn: '{name} — ligada; clique pra desligar',
+      conditionOff: '{name} — desligada; clique pra ligar',
+      conditionRemove: 'Remover a condição {name}',
+      conditionAdd: 'Adicionar condição',
+      conditionPlaceholder: 'Machucado, Caído...'
     },
     rest: {
       button: 'Descansar',
@@ -775,6 +808,11 @@ export const translations: Record<Language, TranslationDict> = {
       resourcesTitle: 'Barras de recurso',
       resourcesEmpty: 'Nenhum par atual/máximo preenchido — dá pra criar as barras depois, na tela de rolagem.',
       resourceBlankCurrent: 'atual em branco na ficha — a barra começa cheia',
+      portraitEmpty: 'sem retrato',
+      portraitChoose: 'Escolher foto…',
+      portraitReplace: 'Trocar…',
+      portraitRemove: 'Tirar',
+      portraitFromPdf: 'retrato tirado do PDF',
       count: '({selected} de {total})',
       rawTextTitle: 'Texto da ficha',
       rawTextHint: '(vai para o bloco História)',
@@ -927,6 +965,19 @@ export const translations: Record<Language, TranslationDict> = {
       empty: 'No rolls yet this session.',
       clear: 'Clear',
       restEvent: '— {name} —'
+    },
+    hud: {
+      title: 'Character',
+      dragHint: 'Drag to another corner of the scene',
+      collapse: 'Collapse (portrait and bars only)',
+      expand: 'Expand',
+      hide: 'Hide the HUD',
+      show: 'Show the character HUD',
+      conditionOn: '{name} — on; click to turn off',
+      conditionOff: '{name} — off; click to turn on',
+      conditionRemove: 'Remove the {name} condition',
+      conditionAdd: 'Add condition',
+      conditionPlaceholder: 'Wounded, Prone...'
     },
     rest: {
       button: 'Rest',
@@ -1172,6 +1223,11 @@ export const translations: Record<Language, TranslationDict> = {
       resourcesTitle: 'Resource bars',
       resourcesEmpty: 'No filled current/max pair — you can create the bars later, on the roll screen.',
       resourceBlankCurrent: 'current value blank on the sheet — the bar starts full',
+      portraitEmpty: 'no portrait',
+      portraitChoose: 'Choose photo…',
+      portraitReplace: 'Replace…',
+      portraitRemove: 'Remove',
+      portraitFromPdf: 'portrait taken from the PDF',
       count: '({selected} of {total})',
       rawTextTitle: 'Sheet text',
       rawTextHint: '(goes to the Backstory block)',

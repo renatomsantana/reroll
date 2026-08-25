@@ -108,6 +108,12 @@ interface DiceRoller3DProps {
    * direção. Vem do `App` porque é do `notes.json` do personagem; ausente é o d20 de sempre.
    */
   regraDeCritico?: RegraDeCritico
+  /**
+   * O HUD do personagem (spec §3.6), desenhado POR CIMA do canvas, dentro do contêiner da cena —
+   * é o pai dele que define os quatro cantos. Vem de fora como o crachá: quem sabe de personagem é
+   * o `App`; a cena só reserva o lugar.
+   */
+  overlay?: ReactNode
 }
 
 const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
@@ -319,7 +325,7 @@ export function comContagemAjustada(
  * compacta (300×230) foi desenhada de propósito pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange, shortcutsEnabled = true, badge, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO },
+  { onRoll, onRollingChange, shortcutsEnabled = true, badge, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
   ref
 ) {
   const t = useTranslation()
@@ -1275,6 +1281,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         />
         {/* Sobreposto à cena, não numa aba: é um controle que se mexe olhando a cena. */}
         <CameraModeSwitch />
+        {overlay}
         {resultPopup && (
           <div
             key={resultPopup.key}

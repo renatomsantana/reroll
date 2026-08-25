@@ -39,6 +39,8 @@ function ficha(texto: string): NotesData {
     recursos: [],
     critico: { lados: 20, modo: 'alto' },
     descansos: [],
+    hud: { canto: 'se', visivel: true, mini: false },
+    condicoes: [],
     inventory: '',
     appearance: '',
     backstory: '',

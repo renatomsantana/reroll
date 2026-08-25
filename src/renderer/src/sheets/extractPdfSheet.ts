@@ -24,6 +24,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
 import PdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs?worker'
 import type { PdfSheet } from '@shared/types/sheetImport'
 import { sheetFromPdfDocument } from './sheetFromPdfDocument'
+import { extrairRetratoDaPagina } from './retratoDoPdf'
 
 /**
  * Abre o PDF e devolve o que dá pra ler dele: campos de formulário e texto impresso com posição.
@@ -72,5 +73,21 @@ export async function extractPdfSheet(fileName: string, bytes: Uint8Array): Prom
    * A varredura em si mora em `sheetFromPdfDocument`, e não aqui, pra poder ser testada contra
    * arquivos de verdade — inclusive os torcidos. Ver o comentário de lá.
    */
-  return sheetFromPdfDocument(fileName, doc)
+  const sheet = await sheetFromPdfDocument(fileName, doc)
+
+  /**
+   * O RETRATO da primeira página (spec §3.6), à parte da varredura e dentro do próprio `try`:
+   * decodificar imagem é onde um PDF estranho mais tem como falhar, e retrato nenhum segura a
+   * importação. Só a primeira página, que é a de identificação em toda ficha que o app conhece.
+   */
+  if (doc.numPages >= 1) {
+    try {
+      const primeira = await doc.getPage(1)
+      const retrato = await extrairRetratoDaPagina(primeira, pdfjs.OPS.paintImageXObject)
+      if (retrato) sheet.retrato = retrato
+    } catch (causa) {
+      console.warn('Não deu pra extrair o retrato da ficha; seguindo sem ele.', causa)
+    }
+  }
+  return sheet
 }

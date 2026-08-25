@@ -2,6 +2,7 @@ import { normalizarTipoDeRolagem, type SheetRollKind } from './sheetRoll'
 import { normalizarRecursos, type RecursoVital } from './recursoVital'
 import { REGRA_DE_CRITICO_PADRAO, normalizarRegraDeCritico, type RegraDeCritico } from '../dice/critico'
 import { normalizarDescansos, type Descanso } from './descanso'
+import { HUD_PADRAO, normalizarCondicoes, normalizarHud, type Condicao, type EstadoDoHud } from './hud'
 
 /**
  * Uma página do BLOCO — uma por dia de jogo, viradas pelos botões ◀ ▶ (pedido do usuário: "coloca
@@ -109,6 +110,9 @@ export interface NotesData {
    * por barra. Vazio = o app oferece um "Descanso" que devolve tudo, sem gravar nada.
    */
   descansos: Descanso[]
+  /** O HUD sobre a cena (spec §3.6): canto, escondido, mini — e as condições do personagem. Ver `hud.ts`. */
+  hud: EstadoDoHud
+  condicoes: Condicao[]
   inventory: string
   appearance: string
   backstory: string
@@ -130,6 +134,8 @@ export const DEFAULT_NOTES: NotesData = {
   recursos: [],
   critico: REGRA_DE_CRITICO_PADRAO,
   descansos: [],
+  hud: HUD_PADRAO,
+  condicoes: [],
   inventory: '',
   appearance: '',
   backstory: '',
@@ -237,5 +243,7 @@ export function normalizeNotes(raw: unknown): NotesData {
   const critico = normalizarRegraDeCritico(data.critico)
   // Depois das barras, de propósito: efeito de barra que não existe cai fora.
   const descansos = normalizarDescansos(data.descansos, recursos)
-  return { ...data, characterName, pages, currentPage, sections, recursos, critico, descansos }
+  const hud = normalizarHud(data.hud)
+  const condicoes = normalizarCondicoes(data.condicoes)
+  return { ...data, characterName, pages, currentPage, sections, recursos, critico, descansos, hud, condicoes }
 }

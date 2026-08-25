@@ -26,6 +26,7 @@ import { HistoryModal } from '@renderer/components/history/HistoryModal'
 import { BarrasDeRecurso } from '@renderer/components/recursos/BarrasDeRecurso'
 import { RecursoEditorModal } from '@renderer/components/recursos/RecursoEditorModal'
 import { DescansoModal } from '@renderer/components/recursos/DescansoModal'
+import { HudDoPersonagem } from '@renderer/components/hud/HudDoPersonagem'
 import { DescansoEditorModal } from '@renderer/components/recursos/DescansoEditorModal'
 import { aplicarDescanso, resumoDoDescanso, type Descanso } from '@shared/types/descanso'
 import { rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
@@ -343,6 +344,22 @@ export default function App() {
                   explodeVisivel={botaoDeExplodeVisivel(profiles.active?.system ?? '')}
                   /* A regra de crítico é do personagem — ver `critico.ts` e a Ficha. */
                   regraDeCritico={notas.notes.critico}
+                  /* O HUD sobre a cena (spec §3.6) — só quando a ficha carregada é a do personagem aberto. */
+                  overlay={
+                    notas.loadedFor === profiles.activeId && (
+                      <HudDoPersonagem
+                        profile={profiles.active}
+                        fallbackName={t.notesTab.profileUnnamed.replace('{n}', String(indiceDoAtivo + 1))}
+                        recursos={recursos}
+                        onChangeRecursos={(lista) => notas.updateField('recursos', lista)}
+                        condicoes={notas.notes.condicoes}
+                        onChangeCondicoes={(lista) => notas.updateField('condicoes', lista)}
+                        hud={notas.notes.hud}
+                        onChangeHud={(estado) => notas.updateField('hud', estado)}
+                        onRest={() => setDescansando(true)}
+                      />
+                    )
+                  }
                   /*
                     Atalhos SÓ com a aba de rolagem na tela. Ela fica montada e escondida nas outras
                     (ver o comentário do `display` acima), e sem isto o Espaço rolava os dados
