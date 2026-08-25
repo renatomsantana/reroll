@@ -41,6 +41,8 @@ import { playRollSound } from '@renderer/audio/rollSound'
 import { isTypingTarget } from '@renderer/utils/isTyping'
 import { TRAY_SHAPE_SIDES } from '@renderer/dice3d/geometry/trayShape'
 import { Button } from '../common/Button'
+import { BotaoCopiar, rotulosDoChat } from '../common/BotaoCopiar'
+import { linhaParaChat } from '@shared/dice/linhaParaChat'
 import { CameraModeSwitch } from './CameraModeSwitch'
 import './DiceRoller3D.css'
 import { IconeReroll } from '@renderer/components/common/IconeReroll'
@@ -332,7 +334,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     debugMode,
     soundEnabled,
     resultPopupEnabled,
-    displayMode
+    displayMode,
+    copyMarkdown
   } = useSettings()
   const multiRef = useRef<DiceCanvasMultiHandle>(null)
   /** Timer do delay do som de rolagem (ver `ROLL_SOUND_DELAY_MS`) — guardado só pra poder cancelar no unmount, evitando tocar som depois que o componente já saiu de tela (troca de aba durante o delay). */
@@ -911,7 +914,9 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       modifierTotal: modifier,
       total: keptTotal + modifier,
       timestamp: Date.now(),
-      advantageMode: mode
+      advantageMode: mode,
+      // A tentativa perdida vai junto — ver `descartados` em `RollResult`.
+      descartados: groupRollsBySides(keepA ? attemptB : attemptA)
     })
   }
 
@@ -1293,6 +1298,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                   : t.roller.disadvantageSuffix}
               </>
             )}
+            {/* A linha pro chat da mesa (spec §3.5) — ver `linhaParaChat.ts`. */}
+            <BotaoCopiar texto={() => linhaParaChat(lastResult, copyMarkdown, rotulosDoChat(t))} />
           </span>
         )}
       </div>

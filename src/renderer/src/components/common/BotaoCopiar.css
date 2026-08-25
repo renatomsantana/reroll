@@ -1,0 +1,63 @@
+/*
+ * O botão de copiar: plano até o mouse chegar (botão de barra de ferramentas do 98), e o "Copiado!"
+ * escrito no lugar do ícone por um instante — sem cor nova, sem animação. O degrau seco é o mesmo
+ * dos outros; o padding parte de 1px e vai pra `2px 0 0 2px` pelo motivo medido em
+ * `BarrasDeRecurso.css` (conteúdo centralizado anda 1px inteiro assim).
+ */
+.botao-copiar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  /*
+   * Num pai flex com `align-items: baseline` (a entrada do histórico), o padding maior do clique
+   * empurra a linha de base do texto e o botão inteiro SOBE 1px pra compensar — medido: o miolo
+   * andava (1, 1) e o botão (0, −1), líquido (1, 0). Centrado no eixo, o botão fica parado.
+   */
+  align-self: center;
+  min-width: 22px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 1px 3px;
+  background: transparent;
+  border: 2px solid transparent;
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.botao-copiar:hover {
+  border: 2px outset var(--win-highlight);
+  background: var(--win-face);
+}
+
+.botao-copiar:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  background: var(--win-face);
+  padding: 2px 2px 0 4px;
+}
+
+.botao-copiar-copiado {
+  border: 2px inset var(--win-highlight);
+  background: var(--win-input-bg);
+  font-weight: bold;
+}
+
+.botao-copiar-pequeno {
+  min-width: 18px;
+  height: 16px;
+  margin-left: 4px;
+  padding: 1px 2px;
+  font-size: 10px;
+}
+
+.botao-copiar-pequeno:active:not(:disabled) {
+  padding: 2px 1px 0 3px;
+}
+
+.botao-copiar-texto {
+  white-space: nowrap;
+  padding: 0 2px;
+}

@@ -7,6 +7,9 @@ import { rollBreakdown } from '@shared/dice/rollBreakdown'
 import type { RecursoVital } from '@shared/types/recursoVital'
 import { TumblingDie } from '../roller/TumblingDie'
 import { BarrasDeRecurso } from '../recursos/BarrasDeRecurso'
+import { BotaoCopiar, rotulosDoChat } from '../common/BotaoCopiar'
+import { linhaParaChat } from '@shared/dice/linhaParaChat'
+import { useSettings } from '@renderer/settings/SettingsContext'
 import './CompactWidget.css'
 
 /**
@@ -42,6 +45,7 @@ interface CompactWidgetProps {
 
 export function CompactWidget({ presets, result, onRoll, recursos, onChangeRecursos }: CompactWidgetProps) {
   const t = useTranslation()
+  const { copyMarkdown } = useSettings()
 
   /**
    * Todos os dados da jogada, achatados em uma lista. Um preset pode ser 1d20+5 (um dado só) ou
@@ -116,6 +120,8 @@ export function CompactWidget({ presets, result, onRoll, recursos, onChangeRecur
             <span className="compact-stage-detail">
               {result.sourceName ?? result.label} · {rollBreakdown(result)}
             </span>
+            {/* O copiar pro chat (spec §3.5) no canto de cima, longe do total e do nome. */}
+            <BotaoCopiar pequeno className="compact-stage-copiar" texto={() => linhaParaChat(result, copyMarkdown, rotulosDoChat(t))} />
           </>
         ) : (
           <span className="compact-stage-empty">{t.compact.resultEmpty}</span>

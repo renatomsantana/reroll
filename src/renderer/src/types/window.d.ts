@@ -33,6 +33,9 @@ export interface RolladorApi {
   scene: {
     pickBackgroundImage: () => Promise<string | null>
   }
+  clipboard: {
+    writeText: (texto: string) => Promise<boolean>
+  }
   sheets: {
     pickPdf: () => Promise<PdfEscolhido>
     /**

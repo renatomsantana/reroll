@@ -92,6 +92,16 @@ export interface RollResult {
   total: number
   timestamp: number
   advantageMode?: AdvantageMode
+  /**
+   * A TENTATIVA QUE PERDEU numa rolagem com vantagem/desvantagem — os dados da outra jogada, na
+   * forma de `groups`. Só existe com `advantageMode`.
+   *
+   * Existe pela linha do chat (spec §3.5: "ambos os dados, o mantido em negrito"): a mesa quer ver
+   * o 4 que ficou de fora do 18, senão "vantagem" é só uma palavra. Antes disto as duas rolagens
+   * calculavam as duas tentativas e jogavam a perdida fora. Opcional porque rolagem antiga no
+   * histórico não tem — e aí a linha mostra só o que ficou.
+   */
+  descartados?: DiceGroupResult[]
   /** A regra de explosão que valeu nesta rolagem, quando houve uma — ver `ExplodeRule`. */
   explode?: ExplodeRule
   /**

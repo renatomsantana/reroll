@@ -125,6 +125,19 @@ const CASOS = [
     html: `<div class="barra-recurso barra-normal" style="width:260px"><span class="barra-nome">PV</span><div class="barra-trilho"><div class="barra-preenchido" style="width:60%"></div></div><button class="barra-passo"><b>−</b></button><button class="barra-valor" id="alvo"><b>30</b><span class="barra-valor-max">/45</span></button><button class="barra-passo"><b>+</b></button></div>`,
     esperado: { dx: 0, dy: 0 }
   },
+  /* O copiar pro chat (spec §3.5): plano até o mouse chegar, como o lápis. */
+  {
+    id: 'copiar',
+    nome: 'O copiar pro chat, na linha de resultado',
+    html: `<div class="dice-roller-3d-result" style="width:300px"><span>Total: <strong>17</strong><button class="botao-copiar" id="alvo"><b style="font-size:11px;line-height:1">C</b></button></span></div>`,
+    esperado: { dx: 1, dy: 1 }
+  },
+  {
+    id: 'copiar-pequeno',
+    nome: 'O copiar pro chat, miúdo (histórico e compacto)',
+    html: `<div class="history-entry" style="width:300px"><span class="history-entry-total">= 17</span><button class="botao-copiar botao-copiar-pequeno" id="alvo"><b style="font-size:10px;line-height:1">C</b></button></div>`,
+    esperado: { dx: 1, dy: 1 }
+  },
   {
     id: 'barras-lapis',
     nome: 'O lápis da legenda "Recursos"',

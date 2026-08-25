@@ -157,5 +157,7 @@ export function rollWithMode(
         ? optionA
         : optionB
 
-  return { ...kept, advantageMode: mode }
+  // A tentativa perdida vai junto — ver `descartados` em `RollResult`.
+  const perdida = kept === optionA ? optionB : optionA
+  return { ...kept, advantageMode: mode, descartados: perdida.groups }
 }

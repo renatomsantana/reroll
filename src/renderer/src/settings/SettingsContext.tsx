@@ -305,6 +305,13 @@ interface Settings {
   /** Popup do total sobre a bandeja/torre ao assentar os dados (ver `DiceRoller3D.tsx`) — desligável porque nem todo mundo quer o efeito por cima da cena. */
   resultPopupEnabled: boolean
   /**
+   * A linha copiada pro chat (spec §3.5) vai com o total em NEGRITO Markdown (`**17**`), que Discord
+   * e WhatsApp renderizam. Desligado = texto puro, pra chat que mostra os asteriscos como estão.
+   */
+  copyMarkdown: boolean
+  /** Copiar TODA rolagem sozinho, pra quem cola cada uma no chat da mesa. Desligado por padrão. */
+  autoCopyRolls: boolean
+  /**
    * As grades de cores prontas da aba Estilo (paletas de dado e estilos de bandeja) aparecem ou
    * ficam recolhidas. Fica AQUI, e não num `useState` da aba, porque a aba desmonta a cada troca de
    * seção/aba — recolher e voltar dois minutos depois pra tudo aberto de novo não é uma opção, é um
@@ -354,6 +361,8 @@ const DEFAULT_SETTINGS: Settings = {
   debugMode: false,
   backgroundImage: null,
   resultPopupEnabled: true,
+  copyMarkdown: true,
+  autoCopyRolls: false,
   palettesVisible: true
 }
 
@@ -458,6 +467,8 @@ interface SettingsContextValue extends Settings {
   setDebugMode: (value: boolean) => void
   setBackgroundImage: (value: string | null) => void
   setResultPopupEnabled: (value: boolean) => void
+  setCopyMarkdown: (value: boolean) => void
+  setAutoCopyRolls: (value: boolean) => void
   setPalettesVisible: (value: boolean) => void
   resetSettings: () => void
 }
@@ -652,6 +663,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setBackgroundImage: (backgroundImage) => setSettings((prev) => ({ ...prev, backgroundImage })),
       setResultPopupEnabled: (resultPopupEnabled) =>
         setSettings((prev) => ({ ...prev, resultPopupEnabled })),
+      setCopyMarkdown: (copyMarkdown) => setSettings((prev) => ({ ...prev, copyMarkdown })),
+      setAutoCopyRolls: (autoCopyRolls) => setSettings((prev) => ({ ...prev, autoCopyRolls })),
       setPalettesVisible: (palettesVisible) => setSettings((prev) => ({ ...prev, palettesVisible })),
       resetSettings: () => setSettings(DEFAULT_SETTINGS)
     }),
