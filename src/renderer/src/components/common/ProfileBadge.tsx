@@ -2,7 +2,7 @@ import type { Profile } from '@shared/types/profile'
 import './ProfileBadge.css'
 
 /**
- * O CRACHÁ do personagem ativo: fotinha 3×4 e o nome, sem ser um controle.
+ * O CRACHÁ do personagem ativo: fotinha quadrada (avatar, como na Steam) e o nome, sem ser um controle.
  *
  * Pedido do usuário: "manter a troca de perfis apenas na Ficha, tirar das Anotações, mas colocar
  * tipo fotinha – nome e sobrenome; e em Rolagem colocar também uma mini fotinha e nome". Ou seja,
@@ -11,7 +11,7 @@ import './ProfileBadge.css'
  *
  * É de leitura mesmo: nada de clique, nada de seta. Um crachá que abrisse a lista seria o seletor
  * de novo com outra cara, e o usuário acabou de pedir pra ele sair daqui. A foto reaproveita a
- * moldura das miniaturas do seletor (degrau pra dentro, recorte 3×4 — ver `ProfileSelect.css`),
+ * moldura das miniaturas do seletor (degrau pra dentro, recorte quadrado — ver `ProfileSelect.css`),
  * pra ser reconhecida como a mesma foto em qualquer aba.
  */
 interface ProfileBadgeProps {
@@ -20,7 +20,7 @@ interface ProfileBadgeProps {
   fallbackName: string
   emptyPhotoLabel: string
   /**
-   * Onde o crachá está. Nas Anotações a foto é a miniatura do seletor (27×36); na barra de
+   * Onde o crachá está. Nas Anotações a foto é a miniatura do seletor (32×32); na barra de
    * rolagem ela cresce até a altura do botão ROLAR (39×52) — pedido do usuário ("aumenta a imagem
    * da rolagem"), medido: o corpo da caixa "Rolagem" tem 57 px, então 52 cabe sem empurrar nada.
    */

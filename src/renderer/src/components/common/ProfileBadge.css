@@ -14,12 +14,19 @@
   user-select: none;
 }
 
-/* 27×36 como no seletor: a foto que a pessoa reconhece na lista é a mesma que ela vê aqui. */
+/*
+ * QUADRADA, como avatar de perfil da Steam — pedido do usuário ("mais quadrada, tipo um zoom no
+ * rosto"). Era 3×4 de foto de documento; o quadrado corta cima e baixo de um retrato, e o
+ * `object-position` puxa o recorte pra CIMA (20%), onde o rosto costuma estar — é o "zoom no rosto"
+ * sem a pessoa precisar recortar nada. A mesma regra vale em toda moldura de foto do app (seletor,
+ * Ficha, HUD, conferência da importação), pra ser a mesma foto em qualquer lugar.
+ */
 .profile-badge-photo {
   flex: 0 0 auto;
-  width: 27px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   object-fit: cover;
+  object-position: center 20%;
   display: block;
   background: var(--win-face);
   box-shadow:
@@ -47,7 +54,7 @@
 }
 
 /*
- * Na barra de rolagem a foto é maior que no seletor: 48×64 (3×4). Já foi 39×52, medido pra caber
+ * Na barra de rolagem a foto é maior que no seletor: 56×56 (era 48×64 em 3×4). Já foi 39×52, medido pra caber
  * nos 57 px que o corpo da caixa "Rolagem" tinha; o usuário pediu maior de novo ("aumenta um pouco
  * mais"), e agora é a foto que manda na altura: o corpo é `align-items: stretch`, então a caixa
  * cresce os ~7 px que faltam e o ROLAR — que estica junto — acompanha, em vez de a foto ser
@@ -59,6 +66,6 @@
 }
 
 .profile-badge-roll .profile-badge-photo {
-  width: 48px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
 }

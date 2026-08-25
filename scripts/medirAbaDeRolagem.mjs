@@ -12,12 +12,18 @@
  * Grava `out/medir-aba/rolagem.png` e sai com código 1 se alguma seção se sobrepõe à seguinte.
  */
 import { app, BrowserWindow, ipcMain } from 'electron'
-import { writeFileSync, mkdirSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, resolve } from 'path'
 
 const RAIZ = resolve(import.meta.dirname, '..')
 
-const PERFIL = { id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: null, createdAt: 1 }
+/**
+ * Uma foto DE VERDADE no perfil falso, quando há uma à mão (a pasta `ideias/` não viaja no clone):
+ * é o que deixa ver o recorte quadrado no rosto — crachá, HUD — em vez da inicial.
+ */
+const FOTO = join(RAIZ, 'ideias', 'istockphoto-165079581-612x612.jpg')
+const photo = existsSync(FOTO) ? `data:image/jpeg;base64,${readFileSync(FOTO).toString('base64')}` : null
+const PERFIL = { id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo, createdAt: 1 }
 const NOTAS = {
   characterName: 'Matias Oliveira',
   recursos: [

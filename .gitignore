@@ -60,3 +60,6 @@ torre 3D/
 # fica mais feio pra quem clona e continua legal de publicar. Se um dia ele for pro app de verdade,
 # a saída é uma textura própria ou uma com licença que permita redistribuir.
 src/renderer/src/assets/local/
+
+# Saída alternativa do electron-builder quando release/ está travado (ver a memória de entrega)
+release-dir/
