@@ -102,6 +102,14 @@ export interface RollResult {
    * histórico não tem — e aí a linha mostra só o que ficou.
    */
   descartados?: DiceGroupResult[]
+  /**
+   * CRÍTICO / FALHA (spec §3.7), julgados pelo dado natural que contou, segundo a regra do
+   * personagem (ver `shared/dice/critico.ts`). Só existem quando VERDADEIROS — rolagem comum não
+   * ganha campo. Gravados no resultado pra o histórico e a linha do chat não terem que refazer o
+   * julgamento com uma regra que pode ter mudado desde a rolagem.
+   */
+  critico?: boolean
+  falha?: boolean
   /** A regra de explosão que valeu nesta rolagem, quando houve uma — ver `ExplodeRule`. */
   explode?: ExplodeRule
   /**

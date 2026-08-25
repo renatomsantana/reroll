@@ -49,6 +49,10 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
     autoCopyRolls,
     setCopyMarkdown,
     setAutoCopyRolls,
+    critVisualEnabled,
+    critSoundEnabled,
+    setCritVisualEnabled,
+    setCritSoundEnabled,
     displayMode,
     setDisplayMode,
     toggleTheme,
@@ -191,6 +195,29 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           </span>
           <label className="settings-panel-checkbox">
             <input type="checkbox" checked={autoCopyRolls} onChange={(e) => setAutoCopyRolls(e.target.checked)} />
+          </label>
+        </label>
+
+        {/* Crítico e falha (spec §3.7): o clarão e o som, separados — a regra de QUAL dado é por personagem, na Ficha. */}
+        <label className="settings-panel-field settings-panel-field-row">
+          <span>
+            {t.settings.critVisual}
+            <br />
+            <small className="settings-panel-hint">{t.settings.critVisualHint}</small>
+          </span>
+          <label className="settings-panel-checkbox">
+            <input type="checkbox" checked={critVisualEnabled} onChange={(e) => setCritVisualEnabled(e.target.checked)} />
+          </label>
+        </label>
+
+        <label className="settings-panel-field settings-panel-field-row">
+          <span>
+            {t.settings.critSound}
+            <br />
+            <small className="settings-panel-hint">{t.settings.critSoundHint}</small>
+          </span>
+          <label className="settings-panel-checkbox">
+            <input type="checkbox" checked={critSoundEnabled} onChange={(e) => setCritSoundEnabled(e.target.checked)} />
           </label>
         </label>
 

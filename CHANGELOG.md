@@ -45,6 +45,17 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   principal (`clipboard:writeText`, só texto, com teto) porque o preload roda em sandbox e não
   tem o módulo `clipboard`.
 
+- **Crítico e falha (§3.7)** — o 20 natural e o 1 natural viram eventos: um segundo de clarão
+  sobre a cena (painel amarelo sobre preto com oito faíscas quadradas voando no crítico; painel
+  bordô tremendo na falha — cores chapadas, sem degradê), uma fanfarra curta ou um "womp"
+  sintetizados na hora (Web Audio, sem mp3 novo), e a marca ⭐/💀 ao lado do total, no histórico,
+  no painel compacto e na linha do chat. Quem decide é o dado NATURAL que CONTA: nunca o total
+  com modificador, nunca o dado descartado (em vantagem é o mantido; em "3d20 usa o maior" é o
+  maior), e num dado explosivo é a primeira face da cadeia. A regra é POR PERSONAGEM, na Ficha ao
+  lado do sistema: d20 "máximo é crítico" por padrão; d100 "1 é crítico, máximo é falha" pra
+  Cthulhu (ficha importada de Cthulhu já nasce assim); "sem crítico" pra sistema que não tem.
+  Dois interruptores nas Preferências, clarão e som separados — o som ainda segue o geral.
+
 ### Interno
 
 - **As anotações viraram uma instância só** (`NotesProvider`): a aba Ficha e a aba Anotações

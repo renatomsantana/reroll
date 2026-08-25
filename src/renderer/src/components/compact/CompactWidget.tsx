@@ -8,6 +8,7 @@ import type { RecursoVital } from '@shared/types/recursoVital'
 import { TumblingDie } from '../roller/TumblingDie'
 import { BarrasDeRecurso } from '../recursos/BarrasDeRecurso'
 import { BotaoCopiar, rotulosDoChat } from '../common/BotaoCopiar'
+import { MarcaDeCritico } from '../common/MarcaDeCritico'
 import { linhaParaChat } from '@shared/dice/linhaParaChat'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import './CompactWidget.css'
@@ -116,6 +117,7 @@ export function CompactWidget({ presets, result, onRoll, recursos, onChangeRecur
             <div className="compact-stage-total">
               <span className="compact-stage-total-label">{t.roller.total}</span>
               <strong className="compact-stage-total-value">{result.total}</strong>
+              <MarcaDeCritico result={result} className="compact-stage-marca" />
             </div>
             <span className="compact-stage-detail">
               {result.sourceName ?? result.label} · {rollBreakdown(result)}

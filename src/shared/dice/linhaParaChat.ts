@@ -67,6 +67,9 @@ export function linhaParaChat(result: RollResult, markdown: boolean, rotulos: Ro
   const sufixos: string[] = []
   if (result.advantageMode) sufixos.push(`(${result.advantageMode === 'advantage' ? rotulos.advantage : rotulos.disadvantage})`)
   if (result.sucesso !== undefined) sufixos.push(result.sucesso ? `✓ ${rotulos.success}` : `✗ ${rotulos.failure}`)
+  // As marcas de crítico/falha (spec §3.7) — a mesa quer ver o 20 natural no chat.
+  if (result.critico) sufixos.push('⭐')
+  if (result.falha) sufixos.push('💀')
 
   return `🎲 ${nome} → [${dados}]${modificador} = ${negrito(String(result.total))}${sufixos.length ? ` ${sufixos.join(' ')}` : ''}`
 }

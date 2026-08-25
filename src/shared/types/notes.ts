@@ -1,5 +1,6 @@
 import { normalizarTipoDeRolagem, type SheetRollKind } from './sheetRoll'
 import { normalizarRecursos, type RecursoVital } from './recursoVital'
+import { REGRA_DE_CRITICO_PADRAO, normalizarRegraDeCritico, type RegraDeCritico } from '../dice/critico'
 
 /**
  * Uma página do BLOCO — uma por dia de jogo, viradas pelos botões ◀ ▶ (pedido do usuário: "coloca
@@ -96,6 +97,12 @@ export interface NotesData {
    * nas preferências, que são de quem usa o app.
    */
   recursos: RecursoVital[]
+  /**
+   * Que dado o sistema deste personagem olha pra dizer CRÍTICO e FALHA, e em que direção (spec
+   * §3.7; ver `critico.ts`). Do personagem, porque é do sistema dele: o d20 de D&D e o d100
+   * rola-abaixo de Cthulhu não cabem numa preferência só do app.
+   */
+  critico: RegraDeCritico
   inventory: string
   appearance: string
   backstory: string
@@ -115,6 +122,7 @@ export const DEFAULT_NOTES: NotesData = {
   abilities: '',
   sections: [],
   recursos: [],
+  critico: REGRA_DE_CRITICO_PADRAO,
   inventory: '',
   appearance: '',
   backstory: '',
@@ -219,5 +227,6 @@ export function normalizeNotes(raw: unknown): NotesData {
   const characterName = data.characterName || legacyName || ''
   // Mesma régua das seções: ausente (perfil de antes desta versão) ou torto não derruba a ficha.
   const recursos = normalizarRecursos(data.recursos)
-  return { ...data, characterName, pages, currentPage, sections, recursos }
+  const critico = normalizarRegraDeCritico(data.critico)
+  return { ...data, characterName, pages, currentPage, sections, recursos, critico }
 }

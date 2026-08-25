@@ -48,6 +48,9 @@ export interface TranslationDict {
     /** Sufixos CURTOS de vantagem/desvantagem na linha do chat — ela precisa caber no celular. */
     copyAdvantage: string
     copyDisadvantage: string
+    /** O clarão de CRÍTICO e de FALHA sobre a cena, e as marcas ao lado do total (spec §3.7). */
+    critical: string
+    fumble: string
   }
   presets: {
     title: string
@@ -154,6 +157,11 @@ export interface TranslationDict {
     copyMarkdownHint: string
     autoCopy: string
     autoCopyHint: string
+    /** Os efeitos de crítico/falha (spec §3.7), clarão e som separados. */
+    critVisual: string
+    critVisualHint: string
+    critSound: string
+    critSoundHint: string
     history: string
     historyHint: string
     historyOpen: string
@@ -314,6 +322,11 @@ export interface TranslationDict {
     /** Botão e estado de espera da importação de ficha em PDF (`SheetImportModal`). */
     sheetImport: string
     sheetImportReading: string
+    /** A regra de CRÍTICO do personagem (spec §3.7): qual dado e em que direção. `{die}` é "d20". */
+    critRule: string
+    critRuleHigh: string
+    critRuleLow: string
+    critRuleNone: string
     /** Botão de dado ao lado de um número da ficha que é rolagem (ver `sheetRoll.ts`). */
     sheetRollField: string
     profileDelete: string
@@ -423,7 +436,9 @@ export const translations: Record<Language, TranslationDict> = {
       copy: 'Copiar pro chat',
       copied: 'Copiado!',
       copyAdvantage: 'vant.',
-      copyDisadvantage: 'desv.'
+      copyDisadvantage: 'desv.',
+      critical: 'Crítico!',
+      fumble: 'Falha crítica!'
     },
     presets: {
       title: 'Presets',
@@ -531,6 +546,10 @@ export const translations: Record<Language, TranslationDict> = {
         'A linha copiada pro chat vai com o total entre asteriscos (**17**), que o Discord e o WhatsApp mostram em negrito. Desligue pra chat que mostra os asteriscos.',
       autoCopy: 'Copiar toda rolagem',
       autoCopyHint: 'Cada rolagem já vai pra área de transferência sozinha, pronta pra colar no chat da mesa.',
+      critVisual: 'Clarão de crítico e falha',
+      critVisualHint: 'Um segundo de festa (ou de luto) sobre a cena no 20 natural e no 1 natural. Qual dado conta é escolha por personagem, na Ficha.',
+      critSound: 'Som de crítico e falha',
+      critSoundHint: 'Uma fanfarra curta no crítico e um "womp" na falha. Segue o interruptor geral de som.',
       history: 'Histórico de rolagens',
       historyHint: 'Hora, nome do golpe e os dados de cada rolagem desta sessão.',
       historyOpen: 'Abrir',
@@ -661,6 +680,10 @@ export const translations: Record<Language, TranslationDict> = {
         'Você chegou no limite de {max} personagens. Apague um que não usa mais para criar outro — as anotações dele continuam no disco.',
       sheetImport: 'Importar ficha (PDF)',
       sheetImportReading: 'Lendo PDF...',
+      critRule: 'Crítico',
+      critRuleHigh: '{die}: máximo é crítico, 1 é falha',
+      critRuleLow: '{die}: 1 é crítico, máximo é falha',
+      critRuleNone: 'Sem crítico neste sistema',
       sheetRollField: 'Rolar {field}',
       profileDelete: 'Apagar personagem',
       profileDeleteConfirm:
@@ -781,7 +804,9 @@ export const translations: Record<Language, TranslationDict> = {
       copy: 'Copy for chat',
       copied: 'Copied!',
       copyAdvantage: 'adv',
-      copyDisadvantage: 'dis'
+      copyDisadvantage: 'dis',
+      critical: 'Critical!',
+      fumble: 'Fumble!'
     },
     presets: {
       title: 'Presets',
@@ -889,6 +914,10 @@ export const translations: Record<Language, TranslationDict> = {
         'The line copied for chat has the total between asterisks (**17**), which Discord and WhatsApp render bold. Turn off for chats that show the asterisks.',
       autoCopy: 'Copy every roll',
       autoCopyHint: 'Each roll goes to the clipboard by itself, ready to paste into the table chat.',
+      critVisual: 'Critical and fumble flash',
+      critVisualHint: 'One second of celebration (or mourning) over the scene on a natural 20 and a natural 1. Which die counts is a per-character choice, on the Sheet.',
+      critSound: 'Critical and fumble sound',
+      critSoundHint: 'A short fanfare on a critical and a "womp" on a fumble. Follows the general sound switch.',
       history: 'Roll history',
       historyHint: 'Time, move name and the dice of every roll in this session.',
       historyOpen: 'Open',
@@ -1019,6 +1048,10 @@ export const translations: Record<Language, TranslationDict> = {
         'You have reached the limit of {max} characters. Delete one you no longer use to create another — its notes stay on disk.',
       sheetImport: 'Import sheet (PDF)',
       sheetImportReading: 'Reading PDF...',
+      critRule: 'Critical',
+      critRuleHigh: '{die}: max is a critical, 1 is a fumble',
+      critRuleLow: '{die}: 1 is a critical, max is a fumble',
+      critRuleNone: 'No criticals in this system',
       sheetRollField: 'Roll {field}',
       profileDelete: 'Delete character',
       profileDeleteConfirm:

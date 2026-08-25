@@ -84,6 +84,11 @@ describe('linhaParaChat', () => {
     expect(linha).toBe('🎲 Ataque: 1d20+5 >= 15 → [12] = **17** ✓ sucesso')
   })
 
+  it('crítico e falha vão como ⭐ e 💀 no fim', () => {
+    expect(linhaParaChat(rolagem({ groups: [{ sides: 20, rolls: [20], subtotal: 20 }], total: 25, critico: true }), false, ROTULOS)).toBe('🎲 1d20 + 5 → [20] +5 = 25 ⭐')
+    expect(linhaParaChat(rolagem({ groups: [{ sides: 20, rolls: [1], subtotal: 1 }], total: 6, falha: true }), false, ROTULOS)).toBe('🎲 1d20 + 5 → [1] +5 = 6 💀')
+  })
+
   it('contagem de sucessos: o que não conta vai entre parênteses, pela marca pronta', () => {
     const linha = linhaParaChat(
       rolagem({
