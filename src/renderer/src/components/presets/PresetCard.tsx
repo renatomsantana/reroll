@@ -10,6 +10,16 @@ interface PresetCardProps {
   onRoll: (preset: Preset) => void
   onEdit: (preset: Preset) => void
   onDelete: (preset: Preset) => void
+  /**
+   * A ESTRELA (spec §3.9). `onToggleFavorite` marca/desmarca; `favoriteBlocked` é o teto atingido
+   * (a estrela some do que não é favorito, com o motivo no `title`); `onMoveFavorite` só existe
+   * pra favorito, e `isFirstFavorite`/`isLastFavorite` travam a seta da ponta.
+   */
+  onToggleFavorite?: (preset: Preset) => void
+  favoriteBlocked?: boolean
+  onMoveFavorite?: (preset: Preset, direcao: -1 | 1) => void
+  isFirstFavorite?: boolean
+  isLastFavorite?: boolean
   /** Desabilita rolar/editar/excluir enquanto uma rolagem está em andamento — evita abrir o
    * editor de um preset (e cancelar) enquanto a rolagem que ele mesmo disparou ainda anima. */
   disabled?: boolean
@@ -29,13 +39,63 @@ export function PresetCard({
   onRoll,
   onEdit,
   onDelete,
+  onToggleFavorite,
+  favoriteBlocked,
+  onMoveFavorite,
+  isFirstFavorite,
+  isLastFavorite,
   disabled,
   rollDisabled
 }: PresetCardProps) {
   const t = useTranslation()
+  const favorito = preset.favorito !== undefined
 
   return (
-    <div className="preset-card">
+    <div className={`preset-card ${favorito ? 'preset-card-favorito' : ''}`}>
+      {/*
+        A coluna da ESTRELA (spec §3.9), à esquerda e fora do botão de rolar — senão favoritar
+        rolaria. No favorito, as setas ▲▼ ficam embaixo dela: a ordem dos favoritos é a ordem dos
+        botões no modo compacto, e é a pessoa que decide qual golpe vem primeiro.
+      */}
+      {onToggleFavorite && (
+        <div className="preset-card-favorito-coluna">
+          <button
+            type="button"
+            className="preset-card-action preset-card-estrela"
+            onClick={() => onToggleFavorite(preset)}
+            aria-label={favorito ? t.presets.unfavorite : t.presets.favorite}
+            aria-pressed={favorito}
+            title={!favorito && favoriteBlocked ? t.presets.favoriteLimit : favorito ? t.presets.unfavorite : t.presets.favorite}
+            disabled={disabled || (!favorito && favoriteBlocked)}
+          >
+            {favorito ? '★' : '☆'}
+          </button>
+          {favorito && onMoveFavorite && (
+            <>
+              <button
+                type="button"
+                className="preset-card-action preset-card-seta"
+                onClick={() => onMoveFavorite(preset, -1)}
+                aria-label={t.presets.moveUp}
+                title={t.presets.moveUp}
+                disabled={disabled || isFirstFavorite}
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                className="preset-card-action preset-card-seta"
+                onClick={() => onMoveFavorite(preset, 1)}
+                aria-label={t.presets.moveDown}
+                title={t.presets.moveDown}
+                disabled={disabled || isLastFavorite}
+              >
+                ▼
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {/*
         Uma LINHA só: emoji à esquerda, nome com a descrição dos dados embaixo dele, e as duas ações
         à direita. Antes o cartão era uma coluna com o emoji, o nome e a expressão empilhados e uma

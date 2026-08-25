@@ -67,6 +67,12 @@ export interface TranslationDict {
     importSuccess: string
     importError: string
     saveError: string
+    /** A estrela (spec §3.9): favoritar, desmarcar, o teto, e as setas de ordem. */
+    favorite: string
+    unfavorite: string
+    favoriteLimit: string
+    moveUp: string
+    moveDown: string
   }
   presetEditor: {
     titleNew: string
@@ -453,7 +459,12 @@ export const translations: Record<Language, TranslationDict> = {
       exportError: 'Não foi possível exportar: {error}',
       importSuccess: '{count} preset(s) importado(s) com sucesso.',
       importError: 'Não foi possível importar: {error}',
-      saveError: 'Não foi possível salvar o preset: {error}'
+      saveError: 'Não foi possível salvar o preset: {error}',
+      favorite: 'Favoritar — aparece no modo compacto',
+      unfavorite: 'Tirar dos favoritos',
+      favoriteLimit: 'Máximo de 6 favoritos — tire a estrela de um antes',
+      moveUp: 'Subir na fileira de favoritos',
+      moveDown: 'Descer na fileira de favoritos'
     },
     presetEditor: {
       titleNew: 'Novo preset',
@@ -821,7 +832,12 @@ export const translations: Record<Language, TranslationDict> = {
       exportError: 'Could not export: {error}',
       importSuccess: '{count} preset(s) imported successfully.',
       importError: 'Could not import: {error}',
-      saveError: 'Could not save preset: {error}'
+      saveError: 'Could not save preset: {error}',
+      favorite: 'Favorite — shows in compact mode',
+      unfavorite: 'Remove from favorites',
+      favoriteLimit: 'At most 6 favorites — unstar one first',
+      moveUp: 'Move up in the favorites row',
+      moveDown: 'Move down in the favorites row'
     },
     presetEditor: {
       titleNew: 'New preset',

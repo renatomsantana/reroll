@@ -16,7 +16,12 @@ const api = {
       ipcRenderer.invoke(IpcChannels.presetsUpdate, id, input),
     delete: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannels.presetsDelete, id),
     exportToFile: (): Promise<string | null> => ipcRenderer.invoke(IpcChannels.presetsExport),
-    importFromFile: (): Promise<Preset[] | null> => ipcRenderer.invoke(IpcChannels.presetsImport)
+    importFromFile: (): Promise<Preset[] | null> => ipcRenderer.invoke(IpcChannels.presetsImport),
+    /** A estrela (spec §3.9) — os dois devolvem a lista inteira, já reindexada. */
+    setFavorite: (id: string, favorito: boolean): Promise<Preset[]> =>
+      ipcRenderer.invoke(IpcChannels.presetsSetFavorito, id, favorito),
+    moveFavorite: (id: string, direcao: -1 | 1): Promise<Preset[]> =>
+      ipcRenderer.invoke(IpcChannels.presetsMoverFavorito, id, direcao)
   },
   profiles: {
     get: (): Promise<ProfilesState> => ipcRenderer.invoke(IpcChannels.profilesGet),

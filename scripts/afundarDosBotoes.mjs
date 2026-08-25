@@ -125,6 +125,13 @@ const CASOS = [
     html: `<div class="barra-recurso barra-normal" style="width:260px"><span class="barra-nome">PV</span><div class="barra-trilho"><div class="barra-preenchido" style="width:60%"></div></div><button class="barra-passo"><b>−</b></button><button class="barra-valor" id="alvo"><b>30</b><span class="barra-valor-max">/45</span></button><button class="barra-passo"><b>+</b></button></div>`,
     esperado: { dx: 0, dy: 0 }
   },
+  /* A estrela do cartão (spec §3.9): mesma família do lápis/✕, na coluna do outro lado. */
+  {
+    id: 'preset-estrela',
+    nome: 'Cartão de preset — a estrela',
+    html: `<div class="preset-card" style="width:260px"><div class="preset-card-favorito-coluna"><button class="preset-card-action preset-card-estrela" id="alvo"><b style="font-size:12px;line-height:1">S</b></button></div><button class="preset-card-main"><span class="preset-card-text"><span class="preset-card-name">Bola de fogo</span><span class="preset-card-expression">8d6</span></span></button><div class="preset-card-actions"><button class="preset-card-action">e</button><button class="preset-card-action preset-card-action-delete">x</button></div></div>`,
+    esperado: { dx: 1, dy: 1 }
+  },
   /* O copiar pro chat (spec §3.5): plano até o mouse chegar, como o lápis. */
   {
     id: 'copiar',

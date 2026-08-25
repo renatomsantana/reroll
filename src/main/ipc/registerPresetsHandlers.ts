@@ -143,6 +143,17 @@ export function registerPresetsHandlers(repository: PresetsRepository): void {
 
   ipcMain.handle(IpcChannels.presetsDelete, (_event, id: string) => repository.delete(id))
 
+  /* A estrela (spec §3.9). O id e a direção vêm de fora: texto e ±1, ou nada acontece. */
+  ipcMain.handle(IpcChannels.presetsSetFavorito, (_event, id: unknown, favorito: unknown) => {
+    if (typeof id !== 'string') throw new Error('Preset inválido.')
+    return repository.setFavorito(id, favorito === true)
+  })
+
+  ipcMain.handle(IpcChannels.presetsMoverFavorito, (_event, id: unknown, direcao: unknown) => {
+    if (typeof id !== 'string' || (direcao !== -1 && direcao !== 1)) throw new Error('Preset inválido.')
+    return repository.moverFavorito(id, direcao)
+  })
+
   ipcMain.handle(IpcChannels.presetsExport, async () => {
     const presets = await repository.getAll()
     // Pela porta de `dialogos.ts`, que é quem lembra a pasta — ver o cabeçalho de lá.

@@ -12,6 +12,8 @@ export interface RolladorApi {
     delete: (id: string) => Promise<void>
     exportToFile: () => Promise<string | null>
     importFromFile: () => Promise<Preset[] | null>
+    setFavorite: (id: string, favorito: boolean) => Promise<Preset[]>
+    moveFavorite: (id: string, direcao: -1 | 1) => Promise<Preset[]>
   }
   /** Perfis de personagem (ver `shared/types/profile.ts`) — lista, qual está aberto e a foto. */
   profiles: {

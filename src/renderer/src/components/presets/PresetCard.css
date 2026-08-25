@@ -123,6 +123,39 @@
   cursor: default;
 }
 
+/*
+ * A coluna da ESTRELA (spec §3.9), espelho da coluna de ações do outro lado: mesma largura, mesmo
+ * risco de separação. No favorito cabem a estrela e as duas setas nos ~34px do cartão — 14 + 10 +
+ * 10 —, e o cartão favorito ganha o fundo da caixa afundada pra se destacar sem cor nova.
+ */
+.preset-card-favorito-coluna {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 2px;
+  border-right: 2px groove var(--win-shadow);
+  flex-shrink: 0;
+}
+
+.preset-card-estrela {
+  height: 14px;
+  font-size: 12px;
+}
+
+.preset-card-favorito .preset-card-estrela {
+  color: #808000;
+}
+
+.preset-card-seta {
+  height: 9px;
+  font-size: 7px;
+}
+
+.preset-card-favorito .preset-card-main {
+  background: var(--win-input-bg);
+}
+
 /* O X é o único destrutivo do cartão: vermelho no hover é o aviso antes do clique. */
 .preset-card-action-delete {
   font-weight: bold;

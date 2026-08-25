@@ -1,6 +1,13 @@
 import { randomUUID } from 'crypto'
 import { join } from 'path'
-import type { Preset, PresetInput } from '@shared/types/preset'
+import {
+  MAXIMO_DE_FAVORITOS,
+  favoritoSaneado,
+  favoritosOrdenados,
+  reindexarFavoritos,
+  type Preset,
+  type PresetInput
+} from '@shared/types/preset'
 import { MAXIMO_DE_PRESETS_POR_PERSONAGEM } from '@shared/diceRegistry'
 import { JsonFileStore } from './JsonFileStore'
 import type { ProfilesRepository } from './ProfilesRepository'
@@ -30,8 +37,63 @@ export class PresetsRepository {
 
   constructor(private readonly profiles: ProfilesRepository) {}
 
+  /**
+   * A leitura SANEIA o `favorito`: `presets.json` é editável à mão, e uma estrela escrita como
+   * texto ou negativa não pode virar posição na fileira do modo compacto. O resto do preset já
+   * passa pelo `isValidPresetInput` na entrada.
+   */
   async getAll(): Promise<Preset[]> {
-    return this.store().read()
+    const lidos = await this.store().read()
+    return lidos.map((preset) => {
+      const favorito = favoritoSaneado(preset.favorito)
+      if (favorito === preset.favorito) return preset
+      const { favorito: _fora, ...semFavorito } = preset
+      return favorito === undefined ? semFavorito : { ...semFavorito, favorito }
+    })
+  }
+
+  /**
+   * A ESTRELA (spec §3.9): marca ou desmarca. Marcar põe no FIM da fileira; desmarcar tira e
+   * reindexa os outros. Cobra o teto de favoritos — a fileira do modo compacto tem seis lugares.
+   */
+  async setFavorito(id: string, favorito: boolean): Promise<Preset[]> {
+    const presets = await this.getAll()
+    const alvo = presets.find((p) => p.id === id)
+    if (!alvo) throw new Error(`Preset não encontrado: ${id}`)
+    const favoritos = favoritosOrdenados(presets)
+    if (favorito && alvo.favorito === undefined && favoritos.length >= MAXIMO_DE_FAVORITOS) {
+      throw new Error(`Limite de ${MAXIMO_DE_FAVORITOS} favoritos — tire a estrela de um antes de marcar outro.`)
+    }
+    const proximos: Preset[] = presets.map((p) => {
+      if (p.id !== id) return p
+      if (!favorito) {
+        const { favorito: _fora, ...semFavorito } = p
+        return semFavorito
+      }
+      return { ...p, favorito: p.favorito ?? favoritos.length }
+    })
+    const reindexados = reindexarFavoritos(proximos)
+    await this.store().write(reindexados)
+    return reindexados
+  }
+
+  /** Troca de lugar com o vizinho na fileira de favoritos (−1 sobe, +1 desce). Na ponta, não faz nada. */
+  async moverFavorito(id: string, direcao: -1 | 1): Promise<Preset[]> {
+    const presets = await this.getAll()
+    const favoritos = favoritosOrdenados(presets)
+    const indice = favoritos.findIndex((p) => p.id === id)
+    if (indice === -1) throw new Error(`Preset não é favorito: ${id}`)
+    const vizinho = favoritos[indice + direcao]
+    if (!vizinho) return presets
+    const atual = favoritos[indice]
+    const trocados = presets.map((p) => {
+      if (p.id === atual.id) return { ...p, favorito: vizinho.favorito }
+      if (p.id === vizinho.id) return { ...p, favorito: atual.favorito }
+      return p
+    })
+    const reindexados = reindexarFavoritos(trocados)
+    await this.store().write(reindexados)
+    return reindexados
   }
 
   async create(input: PresetInput): Promise<Preset> {
@@ -77,7 +139,8 @@ export class PresetsRepository {
 
   async delete(id: string): Promise<void> {
     const presets = await this.store().read()
-    await this.store().write(presets.filter((p) => p.id !== id))
+    // Apagar um favorito reindexa os outros — a fileira não fica com buraco.
+    await this.store().write(reindexarFavoritos(presets.filter((p) => p.id !== id)))
   }
 
   /** Adiciona vários presets de uma vez (importação), sempre com id/timestamps novos. */

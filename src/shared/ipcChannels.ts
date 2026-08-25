@@ -5,6 +5,9 @@ export const IpcChannels = {
   presetsDelete: 'presets:delete',
   presetsExport: 'presets:export',
   presetsImport: 'presets:import',
+  /** A estrela (spec §3.9): marcar/desmarcar favorito e mover entre os favoritos. Devolvem a lista inteira. */
+  presetsSetFavorito: 'presets:setFavorito',
+  presetsMoverFavorito: 'presets:moverFavorito',
   profilesGet: 'profiles:get',
   profilesSave: 'profiles:save',
   profilesPickPhoto: 'profiles:pickPhoto',

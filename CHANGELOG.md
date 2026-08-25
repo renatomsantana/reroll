@@ -56,6 +56,15 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   Cthulhu (ficha importada de Cthulhu já nasce assim); "sem crítico" pra sistema que não tem.
   Dois interruptores nas Preferências, clarão e som separados — o som ainda segue o geral.
 
+- **Favoritos (§3.9)** — uma estrela na coluna esquerda de cada cartão de preset marca o
+  favorito (até seis por personagem); os favoritos sobem pro topo da lista, com fundo de caixa
+  afundada e setas ▲▼ pra escolher a ordem. O MODO COMPACTO passa a mostrar só os favoritos,
+  nessa ordem — a janelinha vira o painel da sessão: o golpe principal, a percepção, o dano, e
+  as barras de PV embaixo. Sem nenhum favorito, mostra todos como sempre. A estrela é de quem
+  usa, não do preset: não entra no editor nem viaja no exportar/importar. Dois canais novos
+  (`presets:setFavorito`, `presets:moverFavorito`) que devolvem a lista reindexada — apagar ou
+  desmarcar nunca deixa buraco na fileira.
+
 ### Interno
 
 - **As anotações viraram uma instância só** (`NotesProvider`): a aba Ficha e a aba Anotações
