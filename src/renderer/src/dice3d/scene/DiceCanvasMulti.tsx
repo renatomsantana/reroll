@@ -1542,7 +1542,16 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
          * próximo redimensionamento.
          */
         if (clientWidth === 0 || clientHeight === 0) return
-        renderer.setSize(clientWidth, clientHeight)
+        /**
+         * `false` no terceiro argumento: o three NÃO escreve `style="width: …px; height: …px"` no
+         * canvas. Com o estilo inline, o canvas passava a ter altura própria em pixels — vencendo o
+         * `height: 100%` do CSS — e, quando o contêiner deixou de ter altura fixa (a seção da cena
+         * passou a crescer com o conteúdo, ver `App.tsx`), era o CANVAS que ditava a altura do
+         * contêiner, o `ResizeObserver` lia a altura nova, aumentava o canvas… e a cena crescia a
+         * cada quadro (medido: 533px → 773px). Só os atributos `width`/`height` (a resolução) mudam
+         * aqui; o tamanho na tela é do layout.
+         */
+        renderer.setSize(clientWidth, clientHeight, false)
         camera.aspect = clientWidth / clientHeight
         camera.updateProjectionMatrix()
       }

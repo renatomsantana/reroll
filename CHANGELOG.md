@@ -91,6 +91,23 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   retrato — nunca segura a importação. "Sem retrato" num personagem atualizado não apaga a foto
   que ele já tinha.
 
+### Corrigido
+
+- **"Rolar os dados, recursos e presets estão passando um em cima do outro"** (relato dele, na
+  primeira olhada nas barras). Três causas, todas MEDIDAS no app de verdade numa janela oculta
+  (`scripts/medirAbaDeRolagem.mjs`, que abre o renderer compilado com IPC falso e mede as
+  seções): (1) a seção da cena tinha `flex: 1` inline — que é `1 1 0%`, pode encolher — e o
+  conteúdo dela (canvas de 420px + linha de resultado) vazava 20px por cima das barras; virou
+  `flex: 1 0 auto`. (2) Aí apareceu uma catraca: os atributos `width/height` do `<canvas>` são o
+  tamanho intrínseco dele, e num contêiner de altura automática ele passou a ditar a própria
+  altura (628px onde cabiam 420); o canvas ficou fora do fluxo (absoluto) e o `setSize` do three
+  não escreve mais estilo inline. (3) Com tudo no lugar a aba passou a ROLAR na janela padrão
+  (748 de conteúdo em 716): a faixa de recursos virou a TERCEIRA caixa de grupo da linha de
+  controles da cena — "Tipo de dado | Rolagem | Recursos" —, custo zero em altura; e a caixa
+  "Rolagem" ganhou base de 520px pra não ser espremida pela vizinha (media 464 onde o conteúdo
+  pede ~510: "Desvantagem" cortado e o crachá por cima dos botões). Resultado: 716 em 716, cena
+  em 432px, nada se sobrepõe.
+
 ### Interno
 
 - **As anotações viraram uma instância só** (`NotesProvider`): a aba Ficha e a aba Anotações

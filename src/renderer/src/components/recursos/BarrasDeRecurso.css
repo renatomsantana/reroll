@@ -7,13 +7,22 @@
  * As três cores de estado são as da paleta de 16 cores do Windows: verde, oliva e bordô. São as
  * que o tema clássico já tinha, e por isso não destoam do cinza em volta.
  */
+/*
+ * A TERCEIRA caixa de grupo da linha de controles da cena — "Tipo de dado | Rolagem | Recursos" —,
+ * e não uma seção própria embaixo. Foi medido (`medirAbaDeRolagem.mjs`): como seção, a faixa
+ * custava 67px de altura e a aba passava a rolar na janela padrão (748 de conteúdo em 716); na
+ * linha dos controles, que já tem 92px, custa zero enquanto couber na largura — e em 1300px sobram
+ * 872px pras duas caixas elásticas. Mesmo padding e mesma legenda de `.dice-roller-3d-group`.
+ */
 .barras-de-recurso {
   margin: 0;
-  padding: 6px 10px 8px;
+  padding: 2px 8px 8px;
   border: 2px groove var(--win-highlight);
+  flex: 1 1 280px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .barras-de-recurso > legend {
@@ -22,7 +31,6 @@
   gap: 6px;
   padding: 0 4px;
   font-weight: bold;
-  font-size: 12px;
 }
 
 /* O lápis da legenda: plano até o mouse chegar, como botão de barra de ferramentas do 98. */
@@ -78,11 +86,11 @@
   color: var(--win-text-muted);
 }
 
-/* Cabem duas ou três por linha na janela cheia; na estreita, empilham. */
+/* Uma coluna nos ~370px que a caixa tem em 1300px; duas quando a janela é mais larga. */
 .barras-lista {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 6px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 12px;
 }
 
 .barra-recurso {

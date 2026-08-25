@@ -335,7 +335,15 @@ export default function App() {
                 className="app-tab-roll"
                 style={{ display: activeTab === 'roll' ? 'contents' : 'none' }}
               >
-              <section className="app-section" style={{ flex: 1, minHeight: 0 }}>
+              {/*
+                `flex: 1 0 auto`, e NÃO `flex: 1` (que é `1 1 0%`): a seção da cena CRESCE quando
+                sobra espaço, mas nunca ENCOLHE abaixo do próprio conteúdo. Com `1 1 0%` ela era
+                espremida pelas seções de baixo e o conteúdo (canvas com `min-height` mais a linha de
+                resultado) vazava por cima das barras e dos presets — medido em `medirAbaDeRolagem.mjs`:
+                a linha de resultado terminava em 643px com a seção seguinte começando em 623. É a
+                mesma regra de `.app-section` em `App.css`; o inline a estava desfazendo.
+              */}
+              <section className="app-section" style={{ flex: '1 0 auto', minHeight: 0 }}>
                 <DiceRoller3D
                   ref={roller3DRef}
                   onRoll={registrarRolagem}
@@ -344,6 +352,20 @@ export default function App() {
                   explodeVisivel={botaoDeExplodeVisivel(profiles.active?.system ?? '')}
                   /* A regra de crítico é do personagem — ver `critico.ts` e a Ficha. */
                   regraDeCritico={notas.notes.critico}
+                  /*
+                    As barras de PV/PE/Sanidade (spec §3.4) como terceira caixa da linha de controles
+                    da cena — "tomei 7" é o gesto mais frequente da sessão, e fica na tela onde os
+                    dados rolam. Já foi uma seção própria entre a cena e os presets; media 67px a mais
+                    e fazia a aba rolar na janela padrão (ver `BarrasDeRecurso.css`).
+                  */
+                  extraGroup={
+                    <BarrasDeRecurso
+                      recursos={recursos}
+                      onChange={(lista) => notas.updateField('recursos', lista)}
+                      onEdit={() => setEditandoRecursos(true)}
+                      onRest={() => setDescansando(true)}
+                    />
+                  }
                   /* O HUD sobre a cena (spec §3.6) — só quando a ficha carregada é a do personagem aberto. */
                   overlay={
                     notas.loadedFor === profiles.activeId && (
@@ -375,19 +397,6 @@ export default function App() {
                       variant="roll"
                     />
                   }
-                />
-              </section>
-
-              {/*
-                As barras de PV/PE/Sanidade ENTRE a cena e os presets: é o gesto mais frequente da
-                sessão ("tomei 7"), e fica na tela onde os dados rolam — spec §3.4.
-              */}
-              <section className="app-section">
-                <BarrasDeRecurso
-                  recursos={recursos}
-                  onChange={(lista) => notas.updateField('recursos', lista)}
-                  onEdit={() => setEditandoRecursos(true)}
-                  onRest={() => setDescansando(true)}
                 />
               </section>
 
