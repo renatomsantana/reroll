@@ -32,8 +32,9 @@ const api = {
     minimize: (): Promise<void> => ipcRenderer.invoke(IpcChannels.windowMinimize),
     maximize: (): Promise<void> => ipcRenderer.invoke(IpcChannels.windowMaximize),
     close: (): Promise<void> => ipcRenderer.invoke(IpcChannels.windowClose),
-    setCompact: (compact: boolean): Promise<void> =>
-      ipcRenderer.invoke(IpcChannels.windowSetCompact, compact),
+    /** `alturaExtra`: pixels a mais na janelinha compacta — uma faixa por barra de recurso. */
+    setCompact: (compact: boolean, alturaExtra = 0): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.windowSetCompact, compact, alturaExtra),
     setAppIcon: (iconId: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.windowSetAppIcon, iconId)
   },

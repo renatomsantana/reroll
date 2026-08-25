@@ -5,7 +5,9 @@ import { rolarFormula, rollExpression } from '@renderer/domain/dice/diceEngine'
 import { botaoDeExplodeVisivel } from '@renderer/domain/dice/explodeDoSistema'
 import { analisarFormula } from '@shared/dice/formula'
 import { usePresets } from '@renderer/hooks/usePresets'
+import { useNotes } from '@renderer/hooks/useNotes'
 import { useRollHistory } from '@renderer/hooks/useRollHistory'
+import { alturaExtraCompacta } from '@shared/windowSizes'
 import { useUpdateStatus } from '@renderer/hooks/useUpdateStatus'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { useProfiles } from '@renderer/settings/ProfilesContext'
@@ -21,6 +23,8 @@ import { ProfileBadge } from '@renderer/components/common/ProfileBadge'
 import { PresetList } from '@renderer/components/presets/PresetList'
 import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModal'
 import { HistoryModal } from '@renderer/components/history/HistoryModal'
+import { BarrasDeRecurso } from '@renderer/components/recursos/BarrasDeRecurso'
+import { RecursoEditorModal } from '@renderer/components/recursos/RecursoEditorModal'
 import { SheetTab } from '@renderer/components/notes/SheetTab'
 import { NotesTab } from '@renderer/components/notes/NotesTab'
 import { StyleTab } from '@renderer/components/style/StyleTab'
@@ -65,24 +69,39 @@ export default function App() {
    * nesse período evita o cenário inteiro, independente da causa exata.
    */
   const [isAnyRollInProgress, setIsAnyRollInProgress] = useState(false)
+  /**
+   * As BARRAS de recurso do personagem aberto (spec §3.4) vêm das anotações dele — a instância
+   * única do `NotesProvider`, a mesma que a aba Ficha edita. Ver o cabeçalho de `useNotes.ts` sobre
+   * por que não pode ser uma cópia própria.
+   */
+  const notas = useNotes()
+  const recursos = notas.notes.recursos
+  const [editandoRecursos, setEditandoRecursos] = useState(false)
+  const quantidadeDeBarras = recursos.length
 
   useEffect(() => {
     if (showSplash) return
-    void window.api.windowControls.setCompact(compactMode)
+    /**
+     * No modo compacto a janela cresce uma faixa por barra (ver `alturaExtraCompacta`). Espera as
+     * anotações carregarem pra não redimensionar duas vezes na abertura — uma sem barra e outra
+     * com — que é um pulo visível na janelinha.
+     */
+    if (compactMode && notas.loading) return
+    void window.api.windowControls.setCompact(compactMode, compactMode ? alturaExtraCompacta(quantidadeDeBarras) : 0)
     if (compactMode) setActiveTab('roll')
-  }, [compactMode, showSplash])
+  }, [compactMode, showSplash, quantidadeDeBarras, notas.loading])
 
   useEffect(() => {
     if (showSplash) return
     function handleKeyDown(e: KeyboardEvent) {
       if (!e.ctrlKey || e.key.toLowerCase() !== 'n') return
-      if (compactMode || activeTab !== 'roll' || isCreating || editingPreset || settingsOpen) return
+      if (compactMode || activeTab !== 'roll' || isCreating || editingPreset || settingsOpen || editandoRecursos) return
       e.preventDefault()
       setIsCreating(true)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showSplash, compactMode, activeTab, isCreating, editingPreset, settingsOpen])
+  }, [showSplash, compactMode, activeTab, isCreating, editingPreset, settingsOpen, editandoRecursos])
 
   if (showSplash) {
     return (
@@ -257,6 +276,8 @@ export default function App() {
               presets={presets}
               result={compactLastResult}
               onRoll={handleCompactPresetRoll}
+              recursos={recursos}
+              onChangeRecursos={(lista) => notas.updateField('recursos', lista)}
             />
           ) : (
             <>
@@ -289,7 +310,7 @@ export default function App() {
                     (ver o comentário do `display` acima), e sem isto o Espaço rolava os dados
                     enquanto a pessoa escrevia nas Anotações.
                   */
-                  shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen}
+                  shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen && !editandoRecursos}
                   /* De quem são os dados — o crachá ao lado do ROLAR (ver `ProfileBadge.tsx`). */
                   badge={
                     <ProfileBadge
@@ -299,6 +320,18 @@ export default function App() {
                       variant="roll"
                     />
                   }
+                />
+              </section>
+
+              {/*
+                As barras de PV/PE/Sanidade ENTRE a cena e os presets: é o gesto mais frequente da
+                sessão ("tomei 7"), e fica na tela onde os dados rolam — spec §3.4.
+              */}
+              <section className="app-section">
+                <BarrasDeRecurso
+                  recursos={recursos}
+                  onChange={(lista) => notas.updateField('recursos', lista)}
+                  onEdit={() => setEditandoRecursos(true)}
                 />
               </section>
 
@@ -376,6 +409,17 @@ export default function App() {
             setSettingsOpen(false)
             setHistoryOpen(true)
           }}
+        />
+      )}
+
+      {editandoRecursos && (
+        <RecursoEditorModal
+          recursos={recursos}
+          onSave={(lista) => {
+            notas.updateField('recursos', lista)
+            setEditandoRecursos(false)
+          }}
+          onCancel={() => setEditandoRecursos(false)}
         />
       )}
 

@@ -217,6 +217,18 @@ export interface SheetApplyPayload {
     sections: { title: string; fields: CampoMontado[] }[]
   }
   presets: PresetInput[]
+  /**
+   * As BARRAS de recurso que a conferência deixou marcadas (ver `extrairRecursos.ts`), já com
+   * número dos dois lados. Ausente numa versão de renderer anterior a elas — e aí a ficha entra sem
+   * barra, como sempre entrou.
+   */
+  recursos?: RecursoImportado[]
+}
+
+export interface RecursoImportado {
+  nome: string
+  atual: number
+  maximo: number
 }
 
 

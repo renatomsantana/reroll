@@ -27,7 +27,7 @@ export interface RolladorApi {
     minimize: () => Promise<void>
     maximize: () => Promise<void>
     close: () => Promise<void>
-    setCompact: (compact: boolean) => Promise<void>
+    setCompact: (compact: boolean, alturaExtra?: number) => Promise<void>
     setAppIcon: (iconId: string) => Promise<void>
   }
   scene: {

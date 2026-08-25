@@ -6,6 +6,45 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [Não lançado]
+
+Enquanto os testadores rodam o beta.2, entram as especificações novas da spec (§3.4–3.9): o app
+como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
+
+### Adicionado
+
+- **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela
+  de rolagem, entre a cena e os presets, com "−" e "+" ao lado de cada uma: clique tira ou soma 1,
+  Shift+clique ou segurar o botão anda de 5 em 5, e clicar no número abre um campo que aceita
+  conta (`-7`), valor exato (`12`) ou o par inteiro (`12/40`). A cor muda de bloco com o estado:
+  verde, oliva abaixo da metade, bordô abaixo de um quarto — as três da paleta do Windows — ou uma
+  cor fixa escolhida por barra. Cada clique GRAVA na hora no `notes.json` do personagem, então
+  trocar de ficha e voltar, ou fechar o app no meio do combate, não perde o PV.
+- **As barras no modo compacto também**: uma linha fina por barra entre o dado e os presets, e a
+  janelinha CRESCE 19px por barra (medido numa janela oculta com zero, uma e três barras — o painel
+  do dado fica com os mesmos 101px em todos os casos; `scripts/medirBarrasCompactas.mjs`).
+- **Editor de barras** (o lápis na legenda "Recursos"): nome, atual, máximo, cor, acrescentar e
+  remover — até doze por personagem. Subir de nível é mexer no máximo ali, sem reimportar.
+- **A importação de ficha PROPÕE as barras**: os pares "PV atual / PV máximo" que os leitores já
+  traziam como campos soltos (Ordem, D&D, Pathfinder), o "12/40" num campo só (Oblívio, a Carga de
+  Ordem) e o "Current HP / Max HP" em inglês viram barras na tela de conferência, cada uma com a
+  própria caixa. Ficha com só o máximo preenchido (a do Matias) vira barra CHEIA, marcada como
+  "atual em branco". Reimportar funde pelo nome: o PV com máximo novo é a MESMA barra, com a cor
+  que a pessoa escolheu; barra criada à mão fica.
+
+### Interno
+
+- **As anotações viraram uma instância só** (`NotesProvider`): a aba Ficha e a aba Anotações
+  chamavam `useNotes` cada uma por conta própria — duas cópias do mesmo arquivo, que funcionavam
+  porque nunca estavam montadas juntas. Com as barras na tela de rolagem (sempre montada), um
+  clique no "−" gravaria as seções de ANTES da última edição na Ficha por cima do que a pessoa
+  acabou de escrever. E importar a ficha por cima do personagem já aberto agora RELÊ as anotações
+  (`recarregar`) — antes o `activeId` não mudava, a tela ficava com a ficha velha, e a próxima
+  tecla gravava as seções velhas por cima das novas.
+- `afundarDosBotoes.mjs` ganhou as quatro famílias novas ("−"/"+" da barra, cheia e compacta; o
+  número; o lápis). A primeira versão afundava só MEIO pixel: conteúdo centralizado com padding
+  zero não tem de onde tirar — partir de 1px em volta e ir pra `2px 0 0 2px` é o que anda (1, 1).
+
 ## [1.1.0-beta.2] — 2026-08-24
 
 O beta pros testadores de verdade: a bandeja fala a gramática (preset de fórmula), quatro levas de

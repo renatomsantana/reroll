@@ -106,6 +106,65 @@ The user uploads the **PDF character sheet** of whatever RPG system they are cur
 - A notes panel per profile (rich text or Markdown).
 - Autosaved continuously; restored on profile switch and app restart.
 
+### 3.4 On-Screen Resource Bars (HP / Sanity / etc.) — session companion feature
+Visible, clickable trackers for the character's vital resources, always on the main rolling screen:
+
+- **System-agnostic by design:** bars are driven by the `resources` list of the active profile (imported from the sheet or added manually), not hardcoded. Ordem Paranormal shows PV / PE / Sanidade; D&D 5e shows HP (+ optional resources); any profile can add/rename/remove bars.
+- Each bar shows **current / max** with a proportional fill, the resource's name, and **+ / − stepper buttons** (click = ±1; hold or Shift+click = ±5; clicking the number allows typing an exact value or quick math like `-7`).
+- Bars support **color states** (e.g., fill turns warning color below 50%, danger below 25%) and an optional per-resource color set by the user.
+- **Persistence:** current values autosave instantly on every change, per profile, and survive profile switches, restarts, and crashes (atomic writes). This is exactly the "current PV/PE/Sanity" data the PDF importer must also capture (see AGENT_SPEC_pdf-import.md) — imported values pre-fill the bars.
+- **Compact mode shows the bars too** (a slim version above/below the roll bar) — tracking damage mid-session is the most frequent interaction and must not require leaving compact mode.
+- Optional per-resource max-value edit (level up, max HP changes) without re-importing the sheet.
+- No automation beyond the steppers (no auto-applying roll damage to bars in this phase) — keep it a manual tracker the player fully controls.
+
+### 3.5 Copy Roll Result to Clipboard — session companion feature
+One-click sharing of a roll into Discord/WhatsApp chats, where online tables actually live:
+
+- A **copy button on the roll result and on every roll-history entry**.
+- Copies a compact, chat-ready text line, e.g.: `🎲 Percepção: 1d20+5 → [12] +5 = **17**` (preset/roll name when available, dice expression, individual dice, total; advantage/disadvantage noted as `adv`/`dis` with both dice shown, kept die bolded).
+- **Markdown bold (`**17**`) renders in Discord and WhatsApp** — include it by default, with a settings toggle for "plain text" (no asterisks) for chats that don't render markdown.
+- Respect the app language (pt-BR/en-US) for labels; keep the line short enough to never wrap awkwardly on mobile Discord.
+- Optional "auto-copy every roll" toggle in preferences for players who paste every roll into the table's chat.
+- Clipboard write uses the standard Electron clipboard API — no extra permissions, works offline, nothing is sent anywhere.
+
+**Acceptance (3.4 + 3.5):** import an Ordem Paranormal sheet → PV/PE/Sanidade bars appear pre-filled with current/max from the PDF → take damage via − clicks → switch profile and back → values kept. Roll a preset → click copy → paste into Discord → the line renders with the total bolded and matches the roll exactly.
+
+### 3.6 Character HUD on the 3D Scene — session companion feature
+A floating, game-style character card overlaid on a corner of the 3D scene (tray or tower), so the player manages their character without ever leaving the screen where dice roll:
+
+- **Contents:** character portrait, name, the resource bars from §3.4 (PV/PE/Sanity etc., fully interactive — the same +/− steppers work here), and condition chips (e.g., "Machucado", "Enlouquecendo") that toggle on click.
+- **Portrait sources:** (a) user picks an image file (PNG/JPG/WEBP via native dialog, stored per profile); (b) **the PDF importer extracts the character image embedded in the sheet** when one exists (see AGENT_SPEC_pdf-import.md — portrait extraction) and offers it in the Review screen. Fallback: a neutral silhouette or the profile's color/initial.
+- **Behavior:** draggable between the four corners of the scene (snaps to corners, position saved per profile); a toggle hides it entirely; a **mini state** (portrait + slim bars only, no labels) for players who want the scene clean. Collapsed/expanded state persists.
+- Rendered as a DOM overlay on top of the canvas (not inside the 3D scene) — crisp text, no font blurring, no per-frame cost, and it follows the app's Windows 98 visual language.
+- Everything on the HUD autosaves per profile instantly (same persistence rules as §3.4) and hot-swaps with the profile.
+- Compact mode does not show the HUD (it has its own slim bars per §3.4) — the HUD belongs to the full 3D view.
+
+### 3.7 Critical & Fumble Effects
+Make natural 20s and natural 1s feel like events, using the 3D scene that already exists:
+
+- **Trigger rule:** effects fire on the natural die result, not the modified total, and only for the die type the active profile's system treats as its "check die" (d20 for D&D/OP-style checks by default; configurable per profile, since some systems crit differently or not at all). In advantage/disadvantage, the kept die decides.
+- **Critical (max face):** brief golden glow/particle burst on the die + a distinct celebratory sound; the result chip and history entry get a crit marker (⭐ or similar).
+- **Fumble (natural 1):** the die darkens/cracks visually for a moment + a low "womp" sound; result chip and history entry marked.
+- Effects are **short (~1s), non-blocking** (never delay showing the number or accepting the next roll), and have a **preferences toggle** (visual and sound toggles separate, respecting the existing sound on/off).
+- Crit/fumble markers in history feed the session roll stats (crits/fumbles count) already planned.
+
+### 3.8 Rest Button
+One click restores resources according to the active profile's own rest rules:
+
+- Each profile defines one or more **rest types** (e.g., D&D "Long Rest" → HP to max; OP "Intervalo" → PE recovery; fully user-editable: per rest type, choose per resource → restore to max / restore N / no change).
+- Imported sheets pre-fill sensible defaults from the system template (5e long/short rest; OP interval) — the user can edit or add rest types in the profile.
+- The Rest button lives next to the resource bars (and on the HUD's expanded state); clicking asks for confirmation with a summary of what will be restored ("Long Rest: HP 12→27, restore 2 spell slots?") — one click to confirm, never silent.
+- A rest event is logged in the roll history/session log ("— Long Rest —"), so the exported session journal shows it.
+- No timers, no automation beyond the single click — the player decides when a rest happened.
+
+### 3.9 Favorite Presets (Compact Mode)
+- Any preset can be starred as a **favorite** (star toggle on the preset card); favorites are per profile, max ~6.
+- **Compact mode shows the favorites as small one-click buttons** (icon + short name) alongside the roll bar and slim resource bars — turning compact mode into a complete session panel: roll your main attacks, track damage, never expand the window.
+- Order of favorites is user-arrangeable (drag or move up/down); persists per profile and hot-swaps.
+- In the full view, favorites are visually marked and sort to the top of the preset list.
+
+**Acceptance (3.6–3.9):** import an OP sheet with a character image → portrait offered in Review → HUD appears on the 3D scene with portrait, bars, and conditions; drag it to another corner, restart the app → position kept. Roll until a natural 20 and a natural 1 → effects + sounds fire, history marked, toggles disable them. Click Rest → confirmation shows the delta → resources restored per the profile's rule → event logged. Star two presets → they appear as buttons in compact mode and roll correctly from there; switch profile → the other profile's favorites appear.
+
 ---
 
 ## 4. Auto-Update via GitHub

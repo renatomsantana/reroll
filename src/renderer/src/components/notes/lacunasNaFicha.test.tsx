@@ -6,6 +6,7 @@ import type { ProfilesState } from '@shared/types/profile'
 import type { DiceExpression } from '@shared/types/dice'
 import { ProfilesProvider } from '@renderer/settings/ProfilesContext'
 import { SettingsProvider } from '@renderer/settings/SettingsContext'
+import { NotesProvider } from '@renderer/hooks/useNotes'
 import { SheetTab } from './SheetTab'
 
 /**
@@ -90,7 +91,9 @@ async function montar() {
   render(
     <ProfilesProvider>
       <SettingsProvider>
-        <SheetTab onRoll={(expression, name) => rolagens.push({ expression, name })} />
+        <NotesProvider>
+          <SheetTab onRoll={(expression, name) => rolagens.push({ expression, name })} />
+        </NotesProvider>
       </SettingsProvider>
     </ProfilesProvider>
   )

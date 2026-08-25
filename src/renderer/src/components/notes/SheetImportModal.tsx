@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SheetImport } from '@shared/types/sheetImport'
 import { montarFicha, type FichaMontada } from '@shared/types/montarFicha'
-import { MAXIMO_DE_CAMPOS_POR_SECAO } from '@shared/types/sheetImport'
+import { MAXIMO_DE_CAMPOS_POR_SECAO, type RecursoImportado } from '@shared/types/sheetImport'
+import { extrairRecursos } from '@shared/types/extrairRecursos'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
@@ -34,6 +35,8 @@ interface SheetImportModalProps {
     system: string
     notes: FichaMontada
     presets: SheetImport['presets']
+    /** As barras que ficaram marcadas — ver `extrairRecursos.ts`. */
+    recursos: RecursoImportado[]
   }) => void
   /** `true` enquanto a gravação acontece — trava os botões pra não criar dois personagens. */
   saving: boolean
@@ -70,6 +73,15 @@ export function SheetImportModal({
    */
   const [camposFora, setCamposFora] = useState<Set<number>>(new Set())
   const [presetsFora, setPresetsFora] = useState<Set<number>>(new Set())
+  /**
+   * As BARRAS que a ficha propõe (spec §3.4), a partir de TODOS os campos lidos — e não só dos
+   * marcados: a barra e o campo da ficha são coisas diferentes (uma se clica, o outro se lê), e
+   * desmarcar o "PV máximo" da lista de anotações não deveria apagar a barra de PV sem avisar.
+   * Cada barra tem a própria caixa.
+   */
+  const recursosLidos = useMemo(() => extrairRecursos(sheet.fields), [sheet.fields])
+  const [recursosFora, setRecursosFora] = useState<Set<number>>(new Set())
+  const recursosEscolhidos = recursosLidos.filter((_, i) => !recursosFora.has(i))
   /**
    * O texto SEM RÓTULO da ficha (ver `rawText` em `SheetImport`), que só existe quando a ficha é uma
    * arte com anotação por cima. Vem marcado: nesse tipo de arquivo ele é quase tudo o que há, e
@@ -221,6 +233,39 @@ export function SheetImportModal({
           </div>
         )}
 
+        {/*
+          As barras vêm ANTES das duas listas: são poucas (três numa ficha de Ordem) e são o que a
+          pessoa vai clicar em toda sessão — o que mais vale conferir, e o que mais custa se vier
+          errado. "Atual em branco" é dito barra por barra, como a spec pede.
+        */}
+        {recursosLidos.length > 0 && (
+          <section className="sheet-import-section sheet-import-resources">
+            <h3>
+              {t.sheetImport.resourcesTitle} <span>{contagem(recursosEscolhidos.length, recursosLidos.length)}</span>
+            </h3>
+            <ul className="sheet-import-list sheet-import-resources-list">
+              {recursosLidos.map((recurso, i) => (
+                <li key={`${recurso.nome}-${i}`}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!recursosFora.has(i)}
+                      onChange={() => alternar(recursosFora, i, setRecursosFora)}
+                    />
+                    <span className="sheet-import-label">{recurso.nome}</span>
+                    <span className="sheet-import-value">
+                      {recurso.atual} / {recurso.maximo}
+                    </span>
+                    {recurso.atualEmBranco && (
+                      <span className="sheet-import-kind">{t.sheetImport.resourceBlankCurrent}</span>
+                    )}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <div className="sheet-import-columns">
           <section className="sheet-import-section">
             <h3>
@@ -307,7 +352,8 @@ export function SheetImportModal({
                 characterName: nome,
                 system: reconhecido ? sheet.system : sistema,
                 notes: paraAFicha,
-                presets: presetsEscolhidos
+                presets: presetsEscolhidos,
+                recursos: recursosEscolhidos.map(({ nome, atual, maximo }) => ({ nome, atual, maximo }))
               })
             }
             disabled={saving || !nome.trim()}

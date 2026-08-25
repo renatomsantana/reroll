@@ -105,6 +105,31 @@ const CASOS = [
     nome: 'Preset do modo compacto (a referência que já era certa)',
     html: `<button class="compact-preset" id="alvo" style="width:150px"><span class="compact-preset-icon">R</span><span class="compact-preset-name">Bola de fogo</span></button>`,
     esperado: { dx: 1, dy: 1 }
+  },
+  /* As barras de recurso (spec §3.4) — a família de botão mais clicada de uma sessão. */
+  {
+    id: 'barra-menos',
+    nome: 'O "−" da barra de recurso',
+    html: `<div class="barra-recurso barra-normal" style="width:260px"><span class="barra-nome">PV</span><div class="barra-trilho"><div class="barra-preenchido" style="width:60%"></div></div><button class="barra-passo" id="alvo"><b>−</b></button><button class="barra-valor">30<span class="barra-valor-max">/45</span></button><button class="barra-passo"><b>+</b></button></div>`,
+    esperado: { dx: 1, dy: 1 }
+  },
+  {
+    id: 'barra-menos-compacta',
+    nome: 'O "−" da barra de recurso, modo compacto',
+    html: `<div class="barra-recurso barra-normal barra-compacta" style="width:240px"><span class="barra-nome">PV</span><div class="barra-trilho"><div class="barra-preenchido" style="width:60%"></div></div><button class="barra-passo" id="alvo"><b>−</b></button><button class="barra-valor">30<span class="barra-valor-max">/45</span></button><button class="barra-passo"><b>+</b></button></div>`,
+    esperado: { dx: 1, dy: 1 }
+  },
+  {
+    id: 'barra-valor',
+    nome: 'O NÚMERO da barra — afundado sempre, clicar não afunda de novo',
+    html: `<div class="barra-recurso barra-normal" style="width:260px"><span class="barra-nome">PV</span><div class="barra-trilho"><div class="barra-preenchido" style="width:60%"></div></div><button class="barra-passo"><b>−</b></button><button class="barra-valor" id="alvo"><b>30</b><span class="barra-valor-max">/45</span></button><button class="barra-passo"><b>+</b></button></div>`,
+    esperado: { dx: 0, dy: 0 }
+  },
+  {
+    id: 'barras-lapis',
+    nome: 'O lápis da legenda "Recursos"',
+    html: `<fieldset class="barras-de-recurso" style="width:300px"><legend>Recursos <button class="barras-editar" id="alvo"><b style="font-size:11px;line-height:1">e</b></button></legend><p class="barras-vazio">—</p></fieldset>`,
+    esperado: { dx: 1, dy: 1 }
   }
 ]
 

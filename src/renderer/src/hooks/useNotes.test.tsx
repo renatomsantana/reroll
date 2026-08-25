@@ -76,9 +76,12 @@ function Sonda() {
 /** Monta a sonda dentro do provedor de perfis de verdade — é ele que decide o `activeId`. */
 async function montar() {
   const { ProfilesProvider } = await import('@renderer/settings/ProfilesContext')
+  const { NotesProvider } = await import('./useNotes')
   render(
     <ProfilesProvider>
-      <Sonda />
+      <NotesProvider>
+        <Sonda />
+      </NotesProvider>
     </ProfilesProvider>
   )
   // Espera a lista de perfis chegar do "disco" e as anotações carregarem para ELE.

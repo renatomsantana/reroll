@@ -36,6 +36,7 @@ function ficha(texto: string): NotesData {
     attributes: '',
     abilities: '',
     sections: [],
+    recursos: [],
     inventory: '',
     appearance: '',
     backstory: '',

@@ -149,6 +149,27 @@ describe('tamanho e campo torto são corrigidos, e a ficha segue', () => {
     })
   })
 
+  it('as barras de recurso: lista ausente vira vazia, item torto é pulado, número fora do teto é preso', () => {
+    expect(validarSheetApplyPayload(fichaBoa()).recursos).toEqual([])
+    const ficha = fichaBoa()
+    ficha.recursos = [
+      { nome: 'PV', atual: 19, maximo: 45 },
+      { nome: '', atual: 1, maximo: 1 },
+      'PE',
+      { nome: 'Sanidade', atual: 'trinta', maximo: 1e12 }
+    ]
+    expect(validarSheetApplyPayload(ficha).recursos).toEqual([
+      { nome: 'PV', atual: 19, maximo: 45 },
+      { nome: 'Sanidade', atual: 0, maximo: 999_999 }
+    ])
+  })
+
+  it('recursos que não é lista é contrato quebrado — estoura', () => {
+    const ficha = fichaBoa()
+    ficha.recursos = { nome: 'PV' }
+    expect(() => validarSheetApplyPayload(ficha)).toThrow()
+  })
+
   it('targetProfileId que não é texto some, e o import cai no caminho de criar novo', () => {
     const idTorto = { ...fichaBoa(), targetProfileId: 42 }
     expect(validarSheetApplyPayload(idTorto).targetProfileId).toBeUndefined()
