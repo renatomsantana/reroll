@@ -6,6 +6,28 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [1.1.0-beta.3] — 2026-08-25
+
+Um update pequeno, de propósito: o beta segue com a Ficha (beta) e o preset de fórmula do beta.2, e
+a única mudança é o TETO DE PERSONAGENS — três por enquanto. Mais vão sendo liberados nas próximas
+versões. Este é o primeiro beta que chega pelo atualizador: quem está no 1.0.x ou no beta.2 recebe
+a pergunta de atualizar na próxima abertura.
+
+### Alterado
+
+- **Até três personagens neste beta** (`MAX_PROFILES`). O "Novo personagem" e a importação de
+  ficha param no terceiro, com o aviso de sempre. Quem já tem mais que três (o beta.2 deixava
+  quinze) NÃO perde ninguém: o teto vale na criação, nunca na leitura — os que existem continuam
+  lá, editáveis e apagáveis; só não nasce um quarto. O disco continua aceitando até quinze
+  (`TETO_DE_PERSONAGENS_NO_DISCO`), pra o arquivo de quem tem mais continuar sendo gravado.
+
+### Para quem testa (beta.3)
+
+- Nada muda no que você já tem: personagens, fichas, presets, anotações e cores ficam onde estão
+  (`%APPDATA%\reroll`, que o instalador não toca).
+- O instalador é `Reroll-Setup-1.1.0-beta.3.exe`, com o SHA-256 no `SHA256SUMS.txt` ao lado. Se
+  for instalar à mão: `Get-FileHash .\Reroll-Setup-1.1.0-beta.3.exe -Algorithm SHA256` e compare.
+
 ## [1.1.0-beta.2] — 2026-08-24
 
 O beta pros testadores de verdade: a bandeja fala a gramática (preset de fórmula), quatro levas de

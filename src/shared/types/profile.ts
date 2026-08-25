@@ -44,22 +44,31 @@ export interface ProfilesState {
 export const DEFAULT_PROFILE_ID = 'default'
 
 /**
- * QUANTOS PERSONAGENS cabem. Quinze.
+ * QUANTOS PERSONAGENS a pessoa pode CRIAR. Três, neste beta.
  *
- * A spec pede "pelo menos 10, e trate 10 como o mínimo garantido, não como limite". Quinze é a
- * escolha do usuário em cima disso, e ela tem um porquê que não é técnico: cada personagem carrega
- * a ficha, o diário, os presets e a aparência DELE, e é isso que a importação de PDF vai preencher.
- * Quinze cobre folgado quem joga em três ou quatro mesas ao mesmo tempo, que é o caso real.
+ * Era quinze (a escolha do usuário em cima do "pelo menos 10" da spec), e continua sendo quinze o
+ * que o DISCO aceita (`TETO_DE_PERSONAGENS_NO_DISCO`). O três é decisão de LANÇAMENTO, não técnica:
+ * o beta vai pros testadores com poucos personagens e o usuário vai "liberando mais" depois —
+ * subir este número é uma linha, e cada versão libera o que ele mandar.
  *
  * O teto vale na CRIAÇÃO, e não na leitura. `normalizeProfiles` NUNCA corta a lista, mesmo que ela
  * venha do disco com mais que isto: um arquivo restaurado de backup, ou escrito por uma versão em
- * que o teto era outro, não pode perder personagem por causa de um número que mudou. O que o app
- * faz é parar de deixar criar mais — o que sobra continua lá, editável e apagável.
+ * que o teto era outro (quem testou o beta.2 pode ter mais de três), não pode perder personagem por
+ * causa de um número que mudou. O que o app faz é parar de deixar criar mais — o que sobra continua
+ * lá, editável e apagável.
  *
  * Quem cobra o teto: `ProfilesContext.create` (o botão "Novo personagem") e o canal de importação de
  * ficha. Os dois, porque são os dois jeitos de nascer um personagem.
  */
-export const MAX_PROFILES = 15
+export const MAX_PROFILES = 3
+
+/**
+ * O que o `profiles.json` ACEITA gravar — o teto de segurança do disco (`ProfilesRepository.save`),
+ * separado do teto de criação de cima. Quinze é o número do alfa: um arquivo de quem já tinha
+ * quinze personagens continua sendo gravado (renomear, trocar de ativo, apagar), e um `profiles.json`
+ * absurdo (centenas) continua recusado.
+ */
+export const TETO_DE_PERSONAGENS_NO_DISCO = 15
 
 export function createProfile(name = '', system = ''): Profile {
   return { id: crypto.randomUUID(), name, system, photo: null, createdAt: Date.now() }
