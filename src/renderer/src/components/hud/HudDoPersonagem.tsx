@@ -4,6 +4,7 @@ import type { RecursoVital } from '@shared/types/recursoVital'
 import { MAXIMO_DE_CONDICOES, criarCondicao, type Canto, type Condicao, type EstadoDoHud } from '@shared/types/hud'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { BarrasDeRecurso } from '../recursos/BarrasDeRecurso'
+import { IconeLapis } from '../common/IconeLapis'
 import './HudDoPersonagem.css'
 
 /**
@@ -28,6 +29,8 @@ interface HudDoPersonagemProps {
   hud: EstadoDoHud
   onChangeHud: (hud: EstadoDoHud) => void
   onRest?: () => void
+  /** Abre o editor de barras (criar, renomear, máximo, cor). O HUD é a única casa das barras na tela cheia. */
+  onEditRecursos?: () => void
 }
 
 /** Menos que isto entre apertar e soltar é clique, não arrasto — o canto não muda. */
@@ -42,7 +45,8 @@ export function HudDoPersonagem({
   onChangeCondicoes,
   hud,
   onChangeHud,
-  onRest
+  onRest,
+  onEditRecursos
 }: HudDoPersonagemProps) {
   const t = useTranslation()
   const raiz = useRef<HTMLDivElement>(null)
@@ -149,6 +153,12 @@ export function HudDoPersonagem({
         )}
         {!hud.mini && <span className="hud-nome">{nome}</span>}
         <span className="hud-botoes">
+          {/* O lápis CRIA e edita as barras (nome, máximo, cor) — é daqui que nasce a primeira. */}
+          {onEditRecursos && (
+            <button type="button" className="hud-botao" onClick={onEditRecursos} title={t.resources.edit} aria-label={t.resources.edit}>
+              <IconeLapis tamanho={9} />
+            </button>
+          )}
           <button
             type="button"
             className="hud-botao"
@@ -170,7 +180,11 @@ export function HudDoPersonagem({
         </span>
       </div>
 
-      <BarrasDeRecurso recursos={recursos} onChange={onChangeRecursos} compact />
+      {recursos.length > 0 ? (
+        <BarrasDeRecurso recursos={recursos} onChange={onChangeRecursos} />
+      ) : (
+        !hud.mini && <p className="hud-sem-barras">{t.resources.empty}</p>
+      )}
 
       {!hud.mini && (
         <>

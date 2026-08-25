@@ -6,18 +6,18 @@ import {
   type RecursoVital
 } from '@shared/types/recursoVital'
 import { useTranslation } from '@renderer/i18n/useTranslation'
-import { IconeLapis } from '../common/IconeLapis'
 import './BarrasDeRecurso.css'
 
 /**
  * As BARRAS DE RECURSO (spec §3.4): PV, PE, Sanidade — o que o personagem gasta e recupera na
- * sessão, sempre à vista na tela de rolagem, com "−" e "+" ao lado de cada uma.
+ * sessão, com "−" e "+" ao lado de cada uma.
  *
  * É o gesto mais frequente de uma sessão online ("tomei 7", "gastei 2 PE"), e por isso três
  * decisões deste arquivo:
  *
- * - a barra mora na tela onde os dados rolam, e no modo compacto também (`compact`): tomar dano
- *   não pode exigir sair da janelinha nem abrir a aba Ficha;
+ * - as barras moram ONDE OS DADOS CAEM: no HUD sobre a cena (`HudDoPersonagem`) e na janelinha
+ *   do modo compacto. Elas já foram também uma caixa de grupo na linha de controles da cena, e o
+ *   usuário pediu pra tirar: a mesma barra em dois lugares da mesma tela era uma a mais;
  * - cada clique GRAVA na hora (quem grava é o `useNotes`, que escreve o arquivo inteiro a cada
  *   mudança — ver lá): fechar o app no meio do combate não perde o PV;
  * - o número é clicável e aceita conta ("-7") — vinte e três cliques no "−" não é tracker, é
@@ -29,12 +29,6 @@ import './BarrasDeRecurso.css'
 interface BarrasDeRecursoProps {
   recursos: RecursoVital[]
   onChange: (recursos: RecursoVital[]) => void
-  /** Abre o editor (nome, máximo, cor, acrescentar, remover). Ausente no modo compacto. */
-  onEdit?: () => void
-  /** O botão DESCANSAR (spec §3.8), ao lado das barras — só existe quando há barra pra devolver. */
-  onRest?: () => void
-  /** A versão fina do modo compacto: sem título, sem dica, uma linha de 16px por barra. */
-  compact?: boolean
 }
 
 /** Quanto anda com Shift ou segurando o botão. */
@@ -43,7 +37,7 @@ const PASSO_GRANDE = 5
 const ATRASO_DO_SEGURAR_MS = 400
 const INTERVALO_DO_SEGURAR_MS = 200
 
-export function BarrasDeRecurso({ recursos, onChange, onEdit, onRest, compact = false }: BarrasDeRecursoProps) {
+export function BarrasDeRecurso({ recursos, onChange }: BarrasDeRecursoProps) {
   const t = useTranslation()
 
   function alterar(id: string, mudanca: Partial<Pick<RecursoVital, 'atual' | 'maximo'>>): void {
@@ -56,52 +50,22 @@ export function BarrasDeRecurso({ recursos, onChange, onEdit, onRest, compact = 
     )
   }
 
-  if (compact) {
-    if (recursos.length === 0) return null
-    return (
-      <div className="barras-compactas" role="group" aria-label={t.resources.title}>
-        {recursos.map((recurso) => (
-          <BarraDeRecurso key={recurso.id} recurso={recurso} onChange={(mudanca) => alterar(recurso.id, mudanca)} compact />
-        ))}
-      </div>
-    )
-  }
-
+  if (recursos.length === 0) return null
   return (
-    <fieldset className="barras-de-recurso">
-      <legend>
-        {t.resources.title}
-        {onEdit && (
-          <button type="button" className="barras-editar" onClick={onEdit} title={t.resources.edit} aria-label={t.resources.edit}>
-            <IconeLapis tamanho={11} />
-          </button>
-        )}
-        {onRest && recursos.length > 0 && (
-          <button type="button" className="barras-descansar" onClick={onRest}>
-            {t.rest.button}
-          </button>
-        )}
-      </legend>
-      {recursos.length === 0 ? (
-        <p className="barras-vazio">{t.resources.empty}</p>
-      ) : (
-        <div className="barras-lista" title={t.resources.hint}>
-          {recursos.map((recurso) => (
-            <BarraDeRecurso key={recurso.id} recurso={recurso} onChange={(mudanca) => alterar(recurso.id, mudanca)} />
-          ))}
-        </div>
-      )}
-    </fieldset>
+    <div className="barras-compactas" role="group" aria-label={t.resources.title} title={t.resources.hint}>
+      {recursos.map((recurso) => (
+        <BarraDeRecurso key={recurso.id} recurso={recurso} onChange={(mudanca) => alterar(recurso.id, mudanca)} />
+      ))}
+    </div>
   )
 }
 
 interface BarraDeRecursoProps {
   recurso: RecursoVital
   onChange: (mudanca: Partial<Pick<RecursoVital, 'atual' | 'maximo'>>) => void
-  compact?: boolean
 }
 
-function BarraDeRecurso({ recurso, onChange, compact = false }: BarraDeRecursoProps) {
+function BarraDeRecurso({ recurso, onChange }: BarraDeRecursoProps) {
   const t = useTranslation()
   const [digitando, setDigitando] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -154,7 +118,7 @@ function BarraDeRecurso({ recurso, onChange, compact = false }: BarraDeRecursoPr
 
   return (
     <div
-      className={`barra-recurso barra-${estado} ${compact ? 'barra-compacta' : ''} ${recurso.cor ? 'barra-cor-fixa' : ''}`}
+      className={`barra-recurso barra-${estado} barra-compacta ${recurso.cor ? 'barra-cor-fixa' : ''}`}
       style={recurso.cor ? ({ '--recurso-cor': recurso.cor } as React.CSSProperties) : undefined}
     >
       <span className="barra-nome" title={recurso.nome}>

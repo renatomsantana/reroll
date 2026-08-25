@@ -37,11 +37,10 @@
 }
 
 /*
- * Base de 520px, e não 340: com a caixa de RECURSOS na mesma linha (ver `BarrasDeRecurso.css`), o
- * espaço livre é dividido entre as duas elásticas, e com 340 a "Rolagem" ficava com 464px — o
- * conteúdo dela (chip do dado, Normal/Vantagem/Desvantagem, o crachá e o ROLAR) pede ~510, medido
- * no app: "Desvantagem" saía cortado e o crachá invadia os botões. Com 520 ela leva a fatia certa
- * em 1300px (556) e, na janela mínima de 900, quebra de linha inteira em vez de se espremer.
+ * Base de 520px, e não 340: o conteúdo desta caixa (chip do dado, Normal/Vantagem/Desvantagem, o
+ * crachá e o ROLAR) pede ~510px, medido no app — com 340 ela dividia o espaço livre com uma
+ * vizinha elástica e ficava com 464: "Desvantagem" saía cortado e o crachá invadia os botões. A
+ * vizinha (a caixa de Recursos) foi embora depois, mas a base fica: é o tamanho do conteúdo.
  */
 .dice-roller-3d-group-roll {
   flex: 1 1 520px;

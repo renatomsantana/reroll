@@ -1,103 +1,30 @@
 /*
- * As barras de recurso, no vocabulário do 98: caixa de grupo (fieldset com legenda), trilho
- * AFUNDADO branco como todo campo, e o preenchimento em cor CHAPADA — sem degradê, sem
- * arredondamento, sem transição (ver o cabeçalho de `global.css`). A cor muda de bloco, como a
- * barra de progresso da época mudava de bloco.
+ * As barras de recurso, no vocabulário do 98: trilho AFUNDADO branco como todo campo, e o
+ * preenchimento em cor CHAPADA — sem degradê, sem arredondamento, sem transição (ver o cabeçalho de
+ * `global.css`). A cor muda de bloco com o estado, como a barra de progresso da época mudava de
+ * bloco.
  *
  * As três cores de estado são as da paleta de 16 cores do Windows: verde, oliva e bordô. São as
  * que o tema clássico já tinha, e por isso não destoam do cinza em volta.
+ *
+ * Uma linha FINA de 16px por barra: é a versão que mora no HUD sobre a cena e na janelinha do modo
+ * compacto (as duas casas das barras). As medidas fecham com `ALTURA_DA_BARRA_COMPACTA` em
+ * `windowSizes.ts` (16px + 3px de vão) — é por esse número que a janelinha cresce por barra; mudar
+ * aqui sem mudar lá espreme o dado.
  */
-/*
- * A TERCEIRA caixa de grupo da linha de controles da cena — "Tipo de dado | Rolagem | Recursos" —,
- * e não uma seção própria embaixo. Foi medido (`medirAbaDeRolagem.mjs`): como seção, a faixa
- * custava 67px de altura e a aba passava a rolar na janela padrão (748 de conteúdo em 716); na
- * linha dos controles, que já tem 92px, custa zero enquanto couber na largura — e em 1300px sobram
- * 872px pras duas caixas elásticas. Mesmo padding e mesma legenda de `.dice-roller-3d-group`.
- */
-.barras-de-recurso {
-  margin: 0;
-  padding: 2px 8px 8px;
-  border: 2px groove var(--win-highlight);
-  flex: 1 1 280px;
-  min-width: 0;
+.barras-compactas {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.barras-de-recurso > legend {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 4px;
-  font-weight: bold;
-}
-
-/* O lápis da legenda: plano até o mouse chegar, como botão de barra de ferramentas do 98. */
-.barras-editar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  padding: 1px;
-  background: transparent;
-  border: 2px solid transparent;
-  color: var(--win-text);
-  cursor: pointer;
-}
-
-.barras-editar:hover {
-  border: 2px outset var(--win-highlight);
-}
-
-/*
- * O AFUNDAR de conteúdo CENTRALIZADO: com padding zero, pôr 1px à esquerda move o miolo só MEIO
- * pixel (o centro anda metade do que a caixa perde) — foi o que a medição na janela oculta pegou:
- * (0.5, 0.5) onde o 98 manda (1, 1). Partir de 1px em volta e ir pra `2px 0 0 2px` mantém a caixa
- * de conteúdo do mesmo tamanho e a desloca 1px inteiro pra baixo e pra direita.
- */
-.barras-editar:active:not(:disabled) {
-  border: 2px inset var(--win-highlight);
-  padding: 2px 0 0 2px;
-}
-
-/* O DESCANSAR (spec §3.8): botão de verdade na legenda, do tamanho de um botão de barra do 98. */
-.barras-descansar {
-  margin-left: 6px;
-  padding: 1px 8px;
-  background: var(--win-face);
-  border: 2px outset var(--win-highlight);
-  color: var(--win-text);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: normal;
-  cursor: pointer;
-}
-
-.barras-descansar:active:not(:disabled) {
-  border: 2px inset var(--win-highlight);
-  padding: 2px 7px 0 9px;
-}
-
-.barras-vazio {
-  margin: 0;
-  font-size: 11px;
-  color: var(--win-text-muted);
-}
-
-/* Uma coluna nos ~370px que a caixa tem em 1300px; duas quando a janela é mais larga. */
-.barras-lista {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 4px 12px;
+  gap: 3px;
 }
 
 .barra-recurso {
   --recurso-cor: #008000;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  height: 16px;
   min-width: 0;
 }
 
@@ -111,9 +38,10 @@
 
 /* A cor escolhida pela pessoa vem por `style` no elemento, e ganha das três acima. */
 
+/* 52px: "Sanidade" inteira em 10px bold — com 40px ela saía "Sanid..." na captura medida. */
 .barra-nome {
-  flex: 0 0 72px;
-  font-size: 12px;
+  flex: 0 0 52px;
+  font-size: 10px;
   font-weight: bold;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -122,7 +50,7 @@
 
 .barra-trilho {
   flex: 1;
-  height: 14px;
+  height: 10px;
   min-width: 40px;
   background: var(--win-input-bg);
   border: 2px inset var(--win-highlight);
@@ -137,14 +65,14 @@
 /* Os botões de passo: quadradinhos, o mesmo degrau seco dos outros botões. */
 .barra-passo {
   flex: 0 0 auto;
-  width: 22px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   padding: 1px;
   background: var(--win-face);
   border: 2px outset var(--win-highlight);
   color: var(--win-text);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: bold;
   line-height: 1;
   cursor: pointer;
@@ -159,8 +87,7 @@
  * o sinal pular 8px pro lado no clique. Ver o mesmo caso em `CompactWidget.css`.
  *
  * `2px 0 0 2px` a partir de `1px`, e não `1px 0 0 1px` a partir de zero: o sinal é CENTRALIZADO, e
- * com padding zero o centro só andava meio pixel (medido em `afundarDosBotoes.mjs`). Ver
- * `.barras-editar`.
+ * com padding zero o centro só andava meio pixel (medido em `afundarDosBotoes.mjs`).
  */
 .barra-passo:active:not(:disabled) {
   border: 2px inset var(--win-highlight);
@@ -170,13 +97,15 @@
 /* O número: parece texto, mas é botão — clicar abre o campo de digitar. */
 .barra-valor {
   flex: 0 0 auto;
-  min-width: 58px;
-  padding: 1px 4px;
+  min-width: 46px;
+  width: 46px;
+  padding: 0 2px;
   background: var(--win-input-bg);
   border: 2px inset var(--win-highlight);
   color: var(--win-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 10px;
+  line-height: 12px;
   font-weight: bold;
   text-align: center;
   cursor: text;
@@ -185,7 +114,7 @@
 
 .barra-valor:active:not(:disabled) {
   border: 2px inset var(--win-highlight);
-  padding: 1px 4px;
+  padding: 0 2px;
 }
 
 .barra-valor-max {
@@ -195,50 +124,9 @@
 
 .barra-entrada {
   flex: 0 0 auto;
-  width: 58px;
-  padding: 1px 4px;
-  font-size: 12px;
-  text-align: center;
-}
-
-/*
- * MODO COMPACTO: uma linha de 16px por barra, sem legenda e sem dica. As medidas fecham com
- * `ALTURA_DA_BARRA_COMPACTA` em `windowSizes.ts` (16px + 3px de vão) — é por esse número que a
- * janela cresce por barra; mudar aqui sem mudar lá espreme o dado.
- */
-.barras-compactas {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.barra-compacta {
-  gap: 3px;
-  height: 16px;
-}
-
-/* 52px: "Sanidade" inteira em 10px bold — com 40px ela saía "Sanid..." na captura medida. */
-.barra-compacta .barra-nome {
-  flex: 0 0 52px;
-  font-size: 10px;
-}
-
-.barra-compacta .barra-trilho {
-  height: 10px;
-}
-
-.barra-compacta .barra-passo {
-  width: 16px;
-  height: 16px;
-  font-size: 11px;
-}
-
-.barra-compacta .barra-valor,
-.barra-compacta .barra-entrada {
-  min-width: 46px;
   width: 46px;
   padding: 0 2px;
   font-size: 10px;
   line-height: 12px;
+  text-align: center;
 }

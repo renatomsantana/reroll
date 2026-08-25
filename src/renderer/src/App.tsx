@@ -23,7 +23,6 @@ import { ProfileBadge } from '@renderer/components/common/ProfileBadge'
 import { PresetList } from '@renderer/components/presets/PresetList'
 import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModal'
 import { HistoryModal } from '@renderer/components/history/HistoryModal'
-import { BarrasDeRecurso } from '@renderer/components/recursos/BarrasDeRecurso'
 import { RecursoEditorModal } from '@renderer/components/recursos/RecursoEditorModal'
 import { DescansoModal } from '@renderer/components/recursos/DescansoModal'
 import { HudDoPersonagem } from '@renderer/components/hud/HudDoPersonagem'
@@ -353,20 +352,12 @@ export default function App() {
                   /* A regra de crítico é do personagem — ver `critico.ts` e a Ficha. */
                   regraDeCritico={notas.notes.critico}
                   /*
-                    As barras de PV/PE/Sanidade (spec §3.4) como terceira caixa da linha de controles
-                    da cena — "tomei 7" é o gesto mais frequente da sessão, e fica na tela onde os
-                    dados rolam. Já foi uma seção própria entre a cena e os presets; media 67px a mais
-                    e fazia a aba rolar na janela padrão (ver `BarrasDeRecurso.css`).
+                    O HUD sobre a cena (spec §3.6) — só quando a ficha carregada é a do personagem
+                    aberto. É a ÚNICA casa das barras de recurso na tela cheia: elas já foram também
+                    uma seção própria e depois uma caixa na linha de controles, e o usuário pediu pra
+                    tirar — a mesma barra em dois lugares da mesma tela era uma a mais. O lápis de
+                    criar/editar barras e o Descansar moram no HUD por isso.
                   */
-                  extraGroup={
-                    <BarrasDeRecurso
-                      recursos={recursos}
-                      onChange={(lista) => notas.updateField('recursos', lista)}
-                      onEdit={() => setEditandoRecursos(true)}
-                      onRest={() => setDescansando(true)}
-                    />
-                  }
-                  /* O HUD sobre a cena (spec §3.6) — só quando a ficha carregada é a do personagem aberto. */
                   overlay={
                     notas.loadedFor === profiles.activeId && (
                       <HudDoPersonagem
@@ -379,6 +370,7 @@ export default function App() {
                         hud={notas.notes.hud}
                         onChangeHud={(estado) => notas.updateField('hud', estado)}
                         onRest={() => setDescansando(true)}
+                        onEditRecursos={() => setEditandoRecursos(true)}
                       />
                     )
                   }
