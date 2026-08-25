@@ -25,6 +25,8 @@ import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModa
 import { HistoryModal } from '@renderer/components/history/HistoryModal'
 import { BarrasDeRecurso } from '@renderer/components/recursos/BarrasDeRecurso'
 import { RecursoEditorModal } from '@renderer/components/recursos/RecursoEditorModal'
+import { rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
+import { linhaParaChat } from '@shared/dice/linhaParaChat'
 import { SheetTab } from '@renderer/components/notes/SheetTab'
 import { NotesTab } from '@renderer/components/notes/NotesTab'
 import { StyleTab } from '@renderer/components/style/StyleTab'
@@ -33,7 +35,7 @@ import { SplashScreen } from '@renderer/components/splash/SplashScreen'
 import './App.css'
 
 export default function App() {
-  const { soundEnabled, compactMode, launchMode } = useSettings()
+  const { soundEnabled, compactMode, launchMode, autoCopyRolls, copyMarkdown } = useSettings()
   const t = useTranslation()
   const profiles = useProfiles()
   const indiceDoAtivo = Math.max(0, profiles.profiles.findIndex((p) => p.id === profiles.activeId))
@@ -45,6 +47,19 @@ export default function App() {
   const [compactLastResult, setCompactLastResult] = useState<RollResult | null>(null)
   const roller3DRef = useRef<DiceRoller3DHandle>(null)
   const { history, addToHistory, clearHistory } = useRollHistory()
+  /**
+   * Toda rolagem terminada passa por aqui: vai pro histórico e, com "copiar toda rolagem" ligado
+   * (spec §3.5), já vai pra área de transferência na linha do chat. Um funil só, pros dois
+   * caminhos (cena 3D e modo compacto) copiarem a mesma linha.
+   */
+  function registrarRolagem(result: RollResult): void {
+    addToHistory(result)
+    if (autoCopyRolls) {
+      void window.api.clipboard.writeText(linhaParaChat(result, copyMarkdown, rotulosDoChat(t))).catch((causa: unknown) => {
+        console.error('Falha ao copiar a rolagem:', causa)
+      })
+    }
+  }
   /**
    * Existe versão nova? O aviso vive na barra de status e numa marca na engrenagem — sem isso ele
    * ficaria escondido dentro das Preferências, que é onde ninguém entra sem motivo.
@@ -135,7 +150,7 @@ export default function App() {
       const diceCount = result.groups.reduce((sum, g) => sum + g.rolls.length, 0)
       playRollSound(diceCount)
     }
-    addToHistory(result)
+    registrarRolagem(result)
   }
 
   /**
@@ -301,7 +316,7 @@ export default function App() {
               <section className="app-section" style={{ flex: 1, minHeight: 0 }}>
                 <DiceRoller3D
                   ref={roller3DRef}
-                  onRoll={addToHistory}
+                  onRoll={registrarRolagem}
                   onRollingChange={setIsAnyRollInProgress}
                   /* O botão Explode só aparece com perfil de D&D — ver `explodeDoSistema.ts`. */
                   explodeVisivel={botaoDeExplodeVisivel(profiles.active?.system ?? '')}

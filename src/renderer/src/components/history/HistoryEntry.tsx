@@ -2,8 +2,11 @@ import type { RollResult } from '@shared/types/dice'
 import { colorForDice } from '@shared/diceRegistry'
 import { mantidosPorGrupo } from '@shared/dice/manterDados'
 import { useSettings } from '@renderer/settings/SettingsContext'
+import { useTranslation } from '@renderer/i18n/useTranslation'
+import { linhaParaChat } from '@shared/dice/linhaParaChat'
 import './HistoryEntry.css'
 import { IconeReroll } from '@renderer/components/common/IconeReroll'
+import { BotaoCopiar, rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
 
 function formatTime(timestamp: number, locale: string): string {
   return new Date(timestamp).toLocaleTimeString(locale, {
@@ -13,7 +16,8 @@ function formatTime(timestamp: number, locale: string): string {
 }
 
 export function HistoryEntry({ result }: { result: RollResult }) {
-  const { language } = useSettings()
+  const { language, copyMarkdown } = useSettings()
+  const t = useTranslation()
   /**
    * Cada dado da jogada, com a marca de ter CONTADO ou não.
    *
@@ -101,6 +105,8 @@ export function HistoryEntry({ result }: { result: RollResult }) {
           </span>
         )}
       </span>
+      {/* Cada entrada tem o seu "copiar pro chat" (spec §3.5) — a rolagem de dez minutos atrás também vai pra mesa. */}
+      <BotaoCopiar pequeno texto={() => linhaParaChat(result, copyMarkdown, rotulosDoChat(t))} />
     </div>
   )
 }

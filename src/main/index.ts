@@ -5,6 +5,7 @@ import { registerNotesHandlers } from './ipc/registerNotesHandlers'
 import { registerWindowHandlers } from './ipc/registerWindowHandlers'
 import { resolveAppIconPath } from './appIconPaths'
 import { registerSceneBackgroundHandlers } from './ipc/registerSceneBackgroundHandlers'
+import { registerClipboardHandlers } from './ipc/registerClipboardHandlers'
 import { registerSheetHandlers } from './ipc/registerSheetHandlers'
 import { registerProfilesHandlers } from './ipc/registerProfilesHandlers'
 import { registerUpdateHandlers } from './updater'
@@ -184,6 +185,7 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     registerNotesHandlers(notesRepository)
 
     registerSceneBackgroundHandlers()
+    registerClipboardHandlers()
     /**
      * Os canais da importação de ficha só existem quando o recurso está ligado (ver
      * `IMPORTACAO_DE_FICHA_LIGADA`). Não é redundância com o botão escondido na tela: com o canal

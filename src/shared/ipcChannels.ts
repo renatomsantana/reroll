@@ -16,6 +16,8 @@ export const IpcChannels = {
   windowSetCompact: 'window:setCompact',
   windowSetAppIcon: 'window:setAppIcon',
   scenePickBackgroundImage: 'scene:pickBackgroundImage',
+  /** Copia texto pra área de transferência — o preload roda em sandbox e não tem o módulo `clipboard`. */
+  clipboardWriteText: 'clipboard:writeText',
   /** Escolhe um PDF de ficha e devolve os bytes — quem interpreta é o renderer (ver `extractPdfSheet.ts`). */
   sheetsPickPdf: 'sheets:pickPdf',
   /** Cria o personagem e grava anotações e presets dentro dele, em ordem — ver o comentário no handler. */

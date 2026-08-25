@@ -42,6 +42,10 @@ const api = {
     pickBackgroundImage: (): Promise<string | null> =>
       ipcRenderer.invoke(IpcChannels.scenePickBackgroundImage)
   },
+  clipboard: {
+    /** Só escreve, só texto — ver `registerClipboardHandlers.ts`. `true` se copiou. */
+    writeText: (texto: string): Promise<boolean> => ipcRenderer.invoke(IpcChannels.clipboardWriteText, texto)
+  },
   sheets: {
     /** Bytes do PDF escolhido, ou o MOTIVO de não ter dado (ver `PdfEscolhido`). Quem interpreta é o renderer. */
     pickPdf: (): Promise<PdfEscolhido> => ipcRenderer.invoke(IpcChannels.sheetsPickPdf),

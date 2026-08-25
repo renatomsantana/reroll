@@ -45,6 +45,10 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
     debugMode,
     appIconId,
     resultPopupEnabled,
+    copyMarkdown,
+    autoCopyRolls,
+    setCopyMarkdown,
+    setAutoCopyRolls,
     displayMode,
     setDisplayMode,
     toggleTheme,
@@ -164,6 +168,29 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
               checked={resultPopupEnabled}
               onChange={(e) => setResultPopupEnabled(e.target.checked)}
             />
+          </label>
+        </label>
+
+        {/* A linha copiada pro chat (spec §3.5) — negrito Markdown e o copiar automático. */}
+        <label className="settings-panel-field settings-panel-field-row">
+          <span>
+            {t.settings.copyMarkdown}
+            <br />
+            <small className="settings-panel-hint">{t.settings.copyMarkdownHint}</small>
+          </span>
+          <label className="settings-panel-checkbox">
+            <input type="checkbox" checked={copyMarkdown} onChange={(e) => setCopyMarkdown(e.target.checked)} />
+          </label>
+        </label>
+
+        <label className="settings-panel-field settings-panel-field-row">
+          <span>
+            {t.settings.autoCopy}
+            <br />
+            <small className="settings-panel-hint">{t.settings.autoCopyHint}</small>
+          </span>
+          <label className="settings-panel-checkbox">
+            <input type="checkbox" checked={autoCopyRolls} onChange={(e) => setAutoCopyRolls(e.target.checked)} />
           </label>
         </label>
 

@@ -42,6 +42,12 @@ export interface TranslationDict {
     maxDiceReachedHint: string
     removeDieGroup: string
     noDiceHint: string
+    /** O botão que copia a linha da rolagem pro chat (spec §3.5; ver `linhaParaChat.ts`). */
+    copy: string
+    copied: string
+    /** Sufixos CURTOS de vantagem/desvantagem na linha do chat — ela precisa caber no celular. */
+    copyAdvantage: string
+    copyDisadvantage: string
   }
   presets: {
     title: string
@@ -143,6 +149,11 @@ export interface TranslationDict {
     displayMode3d: string
     displayModeQuick: string
     resultPopupHint: string
+    /** A linha copiada pro chat (spec §3.5): negrito Markdown, e copiar toda rolagem sozinho. */
+    copyMarkdown: string
+    copyMarkdownHint: string
+    autoCopy: string
+    autoCopyHint: string
     history: string
     historyHint: string
     historyOpen: string
@@ -408,7 +419,11 @@ export const translations: Record<Language, TranslationDict> = {
       addDieHint: 'Adiciona um dado deste tipo à rolagem',
       maxDiceReachedHint: 'Limite de {max} dados por rolagem atingido',
       removeDieGroup: 'Tira este tipo de dado da rolagem',
-      noDiceHint: 'Escolha um tipo de dado pra rolar'
+      noDiceHint: 'Escolha um tipo de dado pra rolar',
+      copy: 'Copiar pro chat',
+      copied: 'Copiado!',
+      copyAdvantage: 'vant.',
+      copyDisadvantage: 'desv.'
     },
     presets: {
       title: 'Presets',
@@ -511,6 +526,11 @@ export const translations: Record<Language, TranslationDict> = {
       displayModeQuick: 'Resultado rápido',
       resultPopup: 'Popup de resultado',
       resultPopupHint: 'Mostra o total somado num popup por cima da bandeja ao assentar os dados.',
+      copyMarkdown: 'Copiar com negrito (Markdown)',
+      copyMarkdownHint:
+        'A linha copiada pro chat vai com o total entre asteriscos (**17**), que o Discord e o WhatsApp mostram em negrito. Desligue pra chat que mostra os asteriscos.',
+      autoCopy: 'Copiar toda rolagem',
+      autoCopyHint: 'Cada rolagem já vai pra área de transferência sozinha, pronta pra colar no chat da mesa.',
       history: 'Histórico de rolagens',
       historyHint: 'Hora, nome do golpe e os dados de cada rolagem desta sessão.',
       historyOpen: 'Abrir',
@@ -757,7 +777,11 @@ export const translations: Record<Language, TranslationDict> = {
       addDieHint: 'Adds one die of this type to the roll',
       maxDiceReachedHint: 'Limit of {max} dice per roll reached',
       removeDieGroup: 'Removes this die type from the roll',
-      noDiceHint: 'Pick a die type to roll'
+      noDiceHint: 'Pick a die type to roll',
+      copy: 'Copy for chat',
+      copied: 'Copied!',
+      copyAdvantage: 'adv',
+      copyDisadvantage: 'dis'
     },
     presets: {
       title: 'Presets',
@@ -860,6 +884,11 @@ export const translations: Record<Language, TranslationDict> = {
       displayModeQuick: 'Quick result',
       resultPopup: 'Result popup',
       resultPopupHint: 'Shows the summed total in a popup over the tray once the dice settle.',
+      copyMarkdown: 'Copy with bold (Markdown)',
+      copyMarkdownHint:
+        'The line copied for chat has the total between asterisks (**17**), which Discord and WhatsApp render bold. Turn off for chats that show the asterisks.',
+      autoCopy: 'Copy every roll',
+      autoCopyHint: 'Each roll goes to the clipboard by itself, ready to paste into the table chat.',
       history: 'Roll history',
       historyHint: 'Time, move name and the dice of every roll in this session.',
       historyOpen: 'Open',

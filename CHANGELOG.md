@@ -32,6 +32,19 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   "atual em branco". Reimportar funde pelo nome: o PV com máximo novo é a MESMA barra, com a cor
   que a pessoa escolheu; barra criada à mão fica.
 
+- **Copiar rolagem pro chat (§3.5)** — um botão de copiar na linha de resultado, em cada entrada
+  do histórico e no painel do modo compacto. Sai uma linha só, pronta pro Discord/WhatsApp:
+  `🎲 Percepção: 1d20 + 5 → [12] +5 = **17**` — nome do golpe, expressão, cada dado, modificador
+  e o total em negrito Markdown (os dois asteriscos, que os dois chats renderizam). Dado descartado
+  por regra de manter vai entre parênteses e o mantido em negrito; explosão sai por extenso
+  (`14(6+6+2)`); fórmula com alvo termina em `✓ sucesso`/`✗ fracasso`. Vantagem e desvantagem
+  mostram AS DUAS tentativas (`[**18** | (4)] … (vant.)`) — pra isso a rolagem passou a guardar a
+  tentativa perdida (`descartados`), que antes era calculada e jogada fora. Duas preferências
+  novas: "Copiar com negrito" (desligue pra chat que mostra os asteriscos) e "Copiar toda
+  rolagem" (cada rolagem já vai pra área de transferência sozinha). A cópia passa pelo processo
+  principal (`clipboard:writeText`, só texto, com teto) porque o preload roda em sandbox e não
+  tem o módulo `clipboard`.
+
 ### Interno
 
 - **As anotações viraram uma instância só** (`NotesProvider`): a aba Ficha e a aba Anotações
