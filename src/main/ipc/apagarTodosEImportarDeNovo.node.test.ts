@@ -69,7 +69,7 @@ const FICHAS: { arquivo: string; nome: string; marca?: { label: string; value?: 
     marca: { label: 'Destreza', value: '16' }
   },
   {
-    arquivo: readdirSync(PASTA).find((n) => n.startsWith('Assimila') && n.endsWith('.pdf')) ?? 'assimilacao-ausente.pdf',
+    arquivo: (existsSync(PASTA) ? readdirSync(PASTA).find((n) => n.startsWith('Assimila') && n.endsWith('.pdf')) : undefined) ?? 'assimilacao-ausente.pdf',
     nome: 'Kieran Saad',
     marca: { label: 'Saúde', value: '18' }
   },

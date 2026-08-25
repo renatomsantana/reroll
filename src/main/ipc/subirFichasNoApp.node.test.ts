@@ -45,7 +45,7 @@ const PASTA = join(process.cwd(), 'Fichas RPG')
 
 /** As fichas a subir — as três novas. Acrescente aqui pra subir outras. */
 const FICHAS = ['ficha vincenzo.pdf', 'ficha Go.pdf'].concat(
-  readdirSync(PASTA).filter((n) => n.startsWith('Assimila') && n.endsWith('.pdf'))
+  (existsSync(PASTA) ? readdirSync(PASTA) : []).filter((n) => n.startsWith('Assimila') && n.endsWith('.pdf'))
 )
 
 describe.skipIf(!LIGADA || !existsSync(userData))('subir fichas no Reroll instalado', () => {

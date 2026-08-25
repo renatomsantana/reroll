@@ -15,6 +15,15 @@ Paranormal e Assimilação), os botões afundando como o 98 manda — medido pix
 ciclos todos provados: apagar e reimportar, trocar e destrocar, fechar sem salvar. Entregue À MÃO,
 como o beta.1: quem está no 1.0.x não recebe pelo atualizador.
 
+### Interno (preparo do lançamento)
+
+- **O clone limpo não estoura**: dois testes liam a pasta `Fichas RPG/` (que é material das
+  editoras, ignorada pelo git e ausente em qualquer clone) com `readdirSync` no topo do módulo —
+  em CI isso quebrava a COLETA em vez de pular. Guardados com `existsSync`; a suíte inteira foi
+  rodada COM a pasta renomeada pra fora, simulando o clone do lançamento: 1122 testes passando e
+  20 pulando de forma limpa, zero erros. Nenhum PDF está no repositório nem entra no instalador
+  (a lista de arquivos do empacotador é nomeada, não curinga).
+
 ### Para quem testa (beta.2)
 
 - O instalador é `Reroll-Setup-1.1.0-beta.2.exe`, entregue junto do SHA-256 dele. Antes de
