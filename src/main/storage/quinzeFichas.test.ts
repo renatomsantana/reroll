@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
-import { MAX_PROFILES } from '@shared/types/profile'
+import { TETO_DE_PERSONAGENS_NO_DISCO } from '@shared/types/profile'
 // @ts-expect-error — o gerador é JS puro de propósito: ele também roda pela linha de comando, fora
 // do app, pra escrever os quinze personagens num `userData`.
 import { QUINZE_PERFIS, notesDoPerfil } from '../../../scripts/quinzePerfis.mjs'
@@ -14,7 +14,7 @@ import { TERCEIRA_LEVA } from '../../../scripts/terceiraLeva.mjs'
 import { QUARTA_LEVA } from '../../../scripts/quartaLeva.mjs'
 
 /**
- * QUINZE PERSONAGENS COM QUINZE FICHAS DIFERENTES — o teto do app (`MAX_PROFILES`) com dado de
+ * QUINZE PERSONAGENS COM QUINZE FICHAS DIFERENTES — o teto do app (`TETO_DE_PERSONAGENS_NO_DISCO`) com dado de
  * verdade dentro.
  *
  * `profileIsolation.test.ts` já provou que dois personagens não se misturam. Este vai ao TETO e com
@@ -78,7 +78,7 @@ afterAll(async () => {
 describe('a segunda leva, com lacunas', () => {
   it('tem quinze, com nomes e ids que não colidem com os da primeira', () => {
     const segunda = SEGUNDA_LEVA as PerfilDeTeste[]
-    expect(segunda).toHaveLength(MAX_PROFILES)
+    expect(segunda).toHaveLength(TETO_DE_PERSONAGENS_NO_DISCO)
 
     const idsDaPrimeira = new Set(PERFIS.map((p) => p.id))
     expect(segunda.filter((p) => idsDaPrimeira.has(p.id))).toEqual([])
@@ -134,7 +134,7 @@ describe('a terceira leva: volume e sessões que sobrevivem à troca de perfil',
   const TERCEIRA = TERCEIRA_LEVA as PerfilDeTeste[]
 
   it('tem volume de verdade: campos, sessões e texto', () => {
-    expect(TERCEIRA).toHaveLength(MAX_PROFILES)
+    expect(TERCEIRA).toHaveLength(TETO_DE_PERSONAGENS_NO_DISCO)
     const fichas = TERCEIRA.map(fichaDe)
     const campos = fichas.reduce(
       (soma: number, ficha: { sections: { fields: unknown[] }[] }) =>
@@ -220,7 +220,7 @@ describe('a quarta leva: ficha completa, com foto', () => {
   const QUARTA = QUARTA_LEVA as (PerfilDeTeste & { photo: string })[]
 
   it('tem quinze, todos com foto, nos três formatos', () => {
-    expect(QUARTA).toHaveLength(MAX_PROFILES)
+    expect(QUARTA).toHaveLength(TETO_DE_PERSONAGENS_NO_DISCO)
     const formatos = new Set(QUARTA.map((p) => p.photo.slice(11, 15)))
     expect(QUARTA.every((p) => p.photo.startsWith('data:image/'))).toBe(true)
     expect([...formatos].sort()).toEqual(['jpeg', 'png;', 'webp'])
@@ -255,15 +255,15 @@ describe('a quarta leva: ficha completa, com foto', () => {
   })
 })
 
-describe(`${MAX_PROFILES} personagens, cada um com a ficha dele`, () => {
+describe(`${TETO_DE_PERSONAGENS_NO_DISCO} personagens, cada um com a ficha dele`, () => {
   it('o material de teste tem o tamanho do teto, e nenhuma ficha repetida', () => {
-    expect(PERFIS).toHaveLength(MAX_PROFILES)
+    expect(PERFIS).toHaveLength(TETO_DE_PERSONAGENS_NO_DISCO)
     // Sistemas podem repetir (duas fichas de Ordem Paranormal é caso real); NOME e ID, não.
-    expect(new Set(PERFIS.map((p) => p.id)).size).toBe(MAX_PROFILES)
-    expect(new Set(PERFIS.map((p) => p.name)).size).toBe(MAX_PROFILES)
+    expect(new Set(PERFIS.map((p) => p.id)).size).toBe(TETO_DE_PERSONAGENS_NO_DISCO)
+    expect(new Set(PERFIS.map((p) => p.name)).size).toBe(TETO_DE_PERSONAGENS_NO_DISCO)
     // E o conteúdo das fichas é distinto de verdade, não quinze cópias com o nome trocado.
     const fichas = PERFIS.map((p) => JSON.stringify(fichaDe(p).sections))
-    expect(new Set(fichas).size).toBe(MAX_PROFILES)
+    expect(new Set(fichas).size).toBe(TETO_DE_PERSONAGENS_NO_DISCO)
   })
 
   it('grava os quinze e cada um volta com a ficha e os presets DELE, depois de fechar o app', async () => {
@@ -287,7 +287,7 @@ describe(`${MAX_PROFILES} personagens, cada um com a ficha dele`, () => {
     // O app fecha aqui: instâncias novas, mesmos arquivos.
     const app2 = await abrirOApp()
     const estado = await app2.profiles.get()
-    expect(estado.profiles).toHaveLength(MAX_PROFILES)
+    expect(estado.profiles).toHaveLength(TETO_DE_PERSONAGENS_NO_DISCO)
 
     for (const perfil of PERFIS) {
       await app2.profiles.save({ profiles: estado.profiles, activeId: perfil.id })

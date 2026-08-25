@@ -25,6 +25,17 @@ vi.mock('electron', () => ({
   dialog: { showOpenDialog: vi.fn(), showSaveDialog: vi.fn() }
 }))
 
+/**
+ * O teto de CRIAÇÃO liberado até o do disco: este arquivo testa a IMPORTAÇÃO (o que ela grava, o
+ * que ela mantém, o que ela pula), e cria vários personagens no mesmo `userData` pra isso. O teto de
+ * três do beta (ver `MAX_PROFILES`) é assunto de `tetoDePersonagens.test.tsx` e do canal — aqui ele
+ * só derrubaria o quarto caso sem dizer nada sobre importação.
+ */
+vi.mock('@shared/types/profile', async (original) => {
+  const real = await original<typeof import('@shared/types/profile')>()
+  return { ...real, MAX_PROFILES: real.TETO_DE_PERSONAGENS_NO_DISCO }
+})
+
 const { ProfilesRepository } = await import('../storage/ProfilesRepository')
 const { NotesRepository } = await import('../storage/NotesRepository')
 const { PresetsRepository } = await import('../storage/PresetsRepository')

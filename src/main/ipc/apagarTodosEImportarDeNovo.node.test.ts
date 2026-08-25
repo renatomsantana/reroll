@@ -35,6 +35,13 @@ vi.mock('electron', () => ({
   dialog: { showOpenDialog: vi.fn(), showSaveDialog: vi.fn() }
 }))
 
+// O teto de criação liberado até o do disco: as sete fichas de referência não cabem nos três do
+// beta, e o que se testa aqui é o ciclo apagar/reimportar, não o teto (ver `sheetApply.test.ts`).
+vi.mock('@shared/types/profile', async (original) => {
+  const real = await original<typeof import('@shared/types/profile')>()
+  return { ...real, MAX_PROFILES: real.TETO_DE_PERSONAGENS_NO_DISCO }
+})
+
 const { ProfilesRepository } = await import('../storage/ProfilesRepository')
 const { NotesRepository } = await import('../storage/NotesRepository')
 const { PresetsRepository } = await import('../storage/PresetsRepository')
