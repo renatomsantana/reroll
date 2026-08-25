@@ -6,6 +6,7 @@ import { DEFAULT_NOTES } from '@shared/types/notes'
 import type { ProfilesState } from '@shared/types/profile'
 import { ProfilesProvider } from '@renderer/settings/ProfilesContext'
 import { SettingsProvider } from '@renderer/settings/SettingsContext'
+import { NotesProvider } from '@renderer/hooks/useNotes'
 import { SheetTab } from './SheetTab'
 
 /**
@@ -41,7 +42,9 @@ async function montar() {
   render(
     <ProfilesProvider>
       <SettingsProvider>
-        <SheetTab />
+        <NotesProvider>
+          <SheetTab />
+        </NotesProvider>
       </SettingsProvider>
     </ProfilesProvider>
   )
