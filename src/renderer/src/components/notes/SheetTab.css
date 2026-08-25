@@ -61,7 +61,7 @@
   field-sizing: content;
   min-height: 150px;
   resize: vertical;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
   padding: 6px;
 }
@@ -129,7 +129,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .sheet-field span {
@@ -267,7 +267,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   /*
    * A linha ABRAÇA o conteúdo (`flex: 0 1 auto`) em vez de repartir a sobra da fileira — pedido do
    * usuário: "se for coisas pequenas, apenas um número, não precisa ser um campo grande". Com o

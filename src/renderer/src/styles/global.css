@@ -161,7 +161,8 @@ body,
 body {
   margin: 0;
   font-family: var(--font-family);
-  font-size: 13px;
+  /* 14px, era 13 — pedido do usuário ("aumentar 1 tamanho da fonte"); botões e campos subiram junto. */
+  font-size: 14px;
   background: var(--win-desktop);
   color: var(--win-text);
   overflow: hidden;
@@ -179,7 +180,7 @@ body {
  */
 button {
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   background: var(--win-face);
   color: var(--win-text);
   border: 2px outset var(--win-highlight);
@@ -217,7 +218,7 @@ input,
 select,
 textarea {
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--win-text);
   background: var(--win-input-bg);
   border: 2px inset var(--win-highlight);

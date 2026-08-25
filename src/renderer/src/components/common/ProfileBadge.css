@@ -9,7 +9,7 @@
   min-width: 0;
   max-width: 260px;
   color: var(--win-text);
-  font-size: 12px;
+  font-size: 13px;
   cursor: default;
   user-select: none;
 }
