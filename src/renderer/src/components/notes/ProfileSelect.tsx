@@ -10,10 +10,10 @@ import './ProfileSelect.css'
  * `<select>` nativo que estava aqui só conseguia mostrar texto, e a foto é justamente o que faz
  * reconhecer o personagem de relance numa lista de vários.
  *
- * 3×4 é a proporção de foto de documento, que é como se pensa em "foto do personagem" — e é
- * PORTRAIT, ao contrário de quase todo enquadramento de tela. `object-fit: cover` recorta o que
- * sobra em vez de espremer: uma foto larga achatada num quadro estreito deforma o rosto, que é o
- * único detalhe que importa numa miniatura desse tamanho.
+ * A miniatura é QUADRADA, como avatar da Steam — pedido do usuário ("mais quadrada, tipo um zoom no
+ * rosto"); já foi 3×4 de foto de documento. `object-fit: cover` recorta o que sobra em vez de
+ * espremer (uma foto larga achatada deforma o rosto), e `object-position: center 20%` puxa o
+ * recorte pra cima, onde o rosto está — ver `ProfileBadge.css`.
  */
 
 /** Teto de altura da lista; tem cópia em `.profile-select-list` e as duas precisam andar juntas. */

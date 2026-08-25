@@ -29,7 +29,7 @@
 }
 
 /**
- * A miniatura 3×4. As duas medidas juntas, e não só a largura com `aspect-ratio`: o quadro precisa
+ * A miniatura quadrada. As duas medidas juntas, e não só a largura com `aspect-ratio`: o quadro precisa
  * ter o MESMO tamanho com foto e sem, senão a lista dança de altura conforme quem tem foto e quem
  * não tem — e é uma lista que se lê correndo o olho.
  */
@@ -43,9 +43,11 @@
    * Isso deixa cada linha da lista mais alta, então cabem menos personagens nos 260px de
    * `LIST_MAX_HEIGHT` antes de rolar — troca aceita: reconhecer a foto é pra que a miniatura existe.
    */
-  width: 27px;
-  height: 36px;
+  /* Quadrada, 32×32, com o recorte puxado pro rosto — ver `.profile-badge-photo`. */
+  width: 32px;
+  height: 32px;
   object-fit: cover;
+  object-position: center 20%;
   display: block;
   background: var(--win-face);
   box-shadow:

@@ -92,6 +92,15 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   retrato — nunca segura a importação. "Sem retrato" num personagem atualizado não apaga a foto
   que ele já tinha.
 
+### Alterado
+
+- **Foto do personagem QUADRADA, como avatar da Steam** — pedido dele ("mais quadrada, tipo um zoom
+  no rosto"). Era 3×4 de foto de documento em todo lugar; agora é quadrada no crachá da rolagem
+  (56×56), no seletor e no crachá das anotações (32×32), na Ficha (112×112), no HUD (44×44; 30×30
+  no mini e no retrato de "mostrar") e na conferência da importação (72×72). O quadrado cortava a
+  cabeça de um retrato — foi por isso que a foto virou 3×4 um dia —, então a volta vem com o
+  remédio: `object-position: center 20%` puxa o recorte pra cima, onde o rosto está.
+
 ### Corrigido
 
 - **"Rolar os dados, recursos e presets estão passando um em cima do outro"** (relato dele, na
