@@ -73,7 +73,7 @@ export default function App() {
    * esqueceu não fica pra trás. O aviso na barra de baixo continua visível o tempo todo.
    */
   const [dismissedUpdate, setDismissedUpdate] = useState<string | null>(null)
-  const { presets, createPreset, updatePreset, deletePreset, exportPresets, importPresets } =
+  const { presets, createPreset, updatePreset, deletePreset, exportPresets, importPresets, setFavorite, moveFavorite } =
     usePresets()
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null)
   const [isCreating, setIsCreating] = useState(false)
@@ -366,6 +366,18 @@ export default function App() {
                   onCreate={() => setIsCreating(true)}
                   onExport={() => void handleExportPresets()}
                   onImport={() => void handleImportPresets()}
+                  /* A estrela (spec §3.9): gravação em disco, então a falha tem dono — vai pro console e pra tela. */
+                  onToggleFavorite={(preset) =>
+                    void setFavorite(preset.id, preset.favorito === undefined).catch((causa: unknown) => {
+                      console.error('Falha ao favoritar o preset:', causa)
+                      alert(t.presets.saveError.replace('{error}', String((causa as Error)?.message ?? causa)))
+                    })
+                  }
+                  onMoveFavorite={(preset, direcao) =>
+                    void moveFavorite(preset.id, direcao).catch((causa: unknown) => {
+                      console.error('Falha ao mover o favorito:', causa)
+                    })
+                  }
                   disabled={isAnyRollInProgress}
                   /**
                    * Rolar continua liberado durante uma rolagem NA BANDEJA — pedido do usuário

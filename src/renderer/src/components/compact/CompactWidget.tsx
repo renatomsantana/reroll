@@ -1,4 +1,4 @@
-import type { Preset } from '@shared/types/preset'
+import { favoritosOrdenados, type Preset } from '@shared/types/preset'
 import type { RollResult } from '@shared/types/dice'
 import { expressionLabel } from '@renderer/domain/dice/diceEngine'
 import { useTranslation } from '@renderer/i18n/useTranslation'
@@ -47,6 +47,13 @@ interface CompactWidgetProps {
 export function CompactWidget({ presets, result, onRoll, recursos, onChangeRecursos }: CompactWidgetProps) {
   const t = useTranslation()
   const { copyMarkdown } = useSettings()
+  /**
+   * Os FAVORITOS (spec §3.9) são a fileira do modo compacto — o golpe principal, a percepção, o
+   * dano —, na ordem que a pessoa escolheu. Sem nenhum favorito, a fileira mostra todos os
+   * presets, como sempre mostrou: uma janelinha vazia porque ninguém marcou estrela seria pior.
+   */
+  const favoritos = favoritosOrdenados(presets)
+  const fileira = favoritos.length > 0 ? favoritos : presets
 
   /**
    * Todos os dados da jogada, achatados em uma lista. Um preset pode ser 1d20+5 (um dado só) ou
@@ -136,7 +143,7 @@ export function CompactWidget({ presets, result, onRoll, recursos, onChangeRecur
         <p className="compact-widget-empty">{t.compact.empty}</p>
       ) : (
         <div className="compact-widget-presets">
-          {presets.map((preset) => (
+          {fileira.map((preset) => (
             <button
               key={preset.id}
               type="button"

@@ -57,6 +57,18 @@ export function usePresets() {
     setPresets((prev) => prev.filter((p) => p.id !== id))
   }, [])
 
+  /**
+   * A estrela (spec §3.9). O processo principal devolve a lista INTEIRA reindexada, e é ela que
+   * entra — mexer só no preset clicado deixaria as posições dos outros desatualizadas na tela.
+   */
+  const setFavorite = useCallback(async (id: string, favorito: boolean) => {
+    setPresets(await window.api.presets.setFavorite(id, favorito))
+  }, [])
+
+  const moveFavorite = useCallback(async (id: string, direcao: -1 | 1) => {
+    setPresets(await window.api.presets.moveFavorite(id, direcao))
+  }, [])
+
   /** Retorna o caminho do arquivo salvo, ou null se o usuário cancelou o diálogo. */
   const exportPresets = useCallback((): Promise<string | null> => {
     return window.api.presets.exportToFile()
@@ -78,5 +90,5 @@ export function usePresets() {
     [presets]
   )
 
-  return { presets, loading, createPreset, updatePreset, deletePreset, exportPresets, importPresets }
+  return { presets, loading, createPreset, updatePreset, deletePreset, exportPresets, importPresets, setFavorite, moveFavorite }
 }
