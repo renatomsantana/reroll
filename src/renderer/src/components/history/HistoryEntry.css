@@ -5,7 +5,7 @@
   align-items: baseline;
   padding: 8px 3px;
   border-bottom: 1px solid var(--win-shadow);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .history-entry-time {

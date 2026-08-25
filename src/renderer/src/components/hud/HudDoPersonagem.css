@@ -93,7 +93,7 @@
 .hud-nome {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
   overflow: hidden;
   white-space: nowrap;

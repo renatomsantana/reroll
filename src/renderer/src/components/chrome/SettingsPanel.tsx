@@ -145,7 +145,13 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           Fica logo acima do balão de total porque as duas linhas falam da mesma coisa: o que se vê
           quando a rolagem termina.
         */}
-        <label className="settings-panel-field settings-panel-field-row">
+        {/*
+          Em COLUNA (seletor embaixo do rótulo), e não em linha: o rótulo desta tem uma dica de duas
+          frases, e ao lado de um seletor de 130px ela quebrava em quatro linhas — seis com uma
+          fonte larga, que foi o "fontes bugaram quando trocando" do usuário. Uma linha inteira pra
+          dica e o seletor embaixo cabe em qualquer fonte.
+        */}
+        <label className="settings-panel-field settings-panel-field-column">
           <span>
             {t.settings.displayMode}
             <br />

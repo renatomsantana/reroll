@@ -23,12 +23,32 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 12px;
+  font-size: 13px;
+}
+
+/*
+ * O RÓTULO é o elástico da linha, e o controle tem largura própria — e não o contrário.
+ *
+ * Era `select { flex: 1; max-width: 180px }` com o rótulo sem regra: os dois encolhiam juntos, e o
+ * rótulo com dica embaixo ("Como o resultado aparece — A bandeja 3D, ou só o número…") ficava com
+ * ~100px, uma palavra por linha. Medido trocando de fonte no app compilado: com Montserrat a dica
+ * virava uma coluna de seis linhas — foi o "fontes bugaram quando trocando" do usuário; em Tahoma já
+ * era apertado, só menos visível.
+ */
+.settings-panel-field > span:first-child {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .settings-panel-field select {
-  flex: 1;
-  max-width: 180px;
+  flex: 0 0 auto;
+  width: 180px;
+}
+
+/* Em coluna, o rótulo (com a dica) toma a largura toda e o seletor vem embaixo. */
+.settings-panel-field-column > span:first-child {
+  flex: 0 0 auto;
+  width: 100%;
 }
 
 .settings-panel-field-row {
@@ -89,14 +109,14 @@
 .settings-panel-hint {
   color: var(--win-text-muted);
   font-weight: normal;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .settings-panel-checkbox {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /** Botões da linha de versão: quebram de linha porque o segundo ("Reiniciar agora") só existe às vezes. */

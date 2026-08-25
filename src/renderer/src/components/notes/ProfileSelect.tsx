@@ -149,7 +149,12 @@ export function ProfileSelect({
           }
         }}
       >
-        {renderPhoto(selected)}
+        {/*
+          SEM a miniatura no botão fechado — pedido do usuário: "a lista com foto tá estranho porque
+          aparece a foto duas vezes". O seletor mora na Ficha, ao lado da foto grande do mesmo
+          personagem; repetir a foto a dois centímetros dela não reconhecia ninguém, só duplicava. A
+          miniatura continua na LISTA aberta, onde há vários personagens pra distinguir.
+        */}
         <span className="profile-select-name">{selected.name || fallbackName(selectedIndex)}</span>
         <span className="profile-select-arrow" aria-hidden="true">
           ▼

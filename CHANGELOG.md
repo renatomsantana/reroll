@@ -94,6 +94,13 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Alterado
 
+- **Fonte um tamanho maior** — pedido dele ("aumentar 1 tamanho da fonte"): o texto-base foi de 13
+  pra 14px, botões e campos de 12 pra 13, e os textos com tamanho próprio subiram junto (cartão de
+  preset, campos da Ficha, crachá, HUD, histórico, Preferências). Medido de novo: a aba de Rolagem
+  continua cabendo em 1300×800 sem rolar, e nenhuma das sete fontes transborda.
+- **O seletor de personagem não repete a foto** — pedido dele ("a lista com foto tá estranho porque
+  aparece a foto duas vezes"): o botão fechado, que fica ao lado da foto grande na Ficha, mostra só
+  o nome; a miniatura continua na lista aberta, onde há vários pra distinguir.
 - **Foto do personagem QUADRADA, como avatar da Steam** — pedido dele ("mais quadrada, tipo um zoom
   no rosto"). Era 3×4 de foto de documento em todo lugar; agora é quadrada no crachá da rolagem
   (56×56), no seletor e no crachá das anotações (32×32), na Ficha (112×112), no HUD (44×44; 30×30
@@ -103,6 +110,13 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Corrigido
 
+- **"Fontes bugaram quando trocando"** — nas Preferências, a linha "Como o resultado aparece" dava
+  largura elástica ao `<select>` e nenhuma ao rótulo: o rótulo com dica embaixo encolhia até ~100px
+  e, com uma fonte mais larga (Montserrat), a dica virava uma coluna de seis linhas de uma palavra.
+  Reproduzido trocando a fonte no app compilado numa janela oculta; em Tahoma já era apertado, só
+  menos visível. Agora o rótulo é o elástico da linha e o seletor tem largura própria — e nessa
+  linha, a única com dica longa e seletor, ele vai EMBAIXO do rótulo. As sete fontes foram medidas
+  na aba de Rolagem e nas Preferências: nenhuma transborda.
 - **"Rolar os dados, recursos e presets estão passando um em cima do outro"** (relato dele, na
   primeira olhada nas barras). Três causas, todas MEDIDAS no app de verdade numa janela oculta
   (`scripts/medirAbaDeRolagem.mjs`, que abre o renderer compilado com IPC falso e mede as
