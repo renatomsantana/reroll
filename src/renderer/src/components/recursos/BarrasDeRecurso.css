@@ -54,6 +54,24 @@
   padding: 2px 0 0 2px;
 }
 
+/* O DESCANSAR (spec §3.8): botão de verdade na legenda, do tamanho de um botão de barra do 98. */
+.barras-descansar {
+  margin-left: 6px;
+  padding: 1px 8px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.barras-descansar:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 7px 0 9px;
+}
+
 .barras-vazio {
   margin: 0;
   font-size: 11px;

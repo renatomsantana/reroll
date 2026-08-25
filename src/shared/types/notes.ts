@@ -1,6 +1,7 @@
 import { normalizarTipoDeRolagem, type SheetRollKind } from './sheetRoll'
 import { normalizarRecursos, type RecursoVital } from './recursoVital'
 import { REGRA_DE_CRITICO_PADRAO, normalizarRegraDeCritico, type RegraDeCritico } from '../dice/critico'
+import { normalizarDescansos, type Descanso } from './descanso'
 
 /**
  * Uma página do BLOCO — uma por dia de jogo, viradas pelos botões ◀ ▶ (pedido do usuário: "coloca
@@ -103,6 +104,11 @@ export interface NotesData {
    * rola-abaixo de Cthulhu não cabem numa preferência só do app.
    */
   critico: RegraDeCritico
+  /**
+   * Os TIPOS DE DESCANSO do personagem (spec §3.8; ver `descanso.ts`): o que cada um devolve, barra
+   * por barra. Vazio = o app oferece um "Descanso" que devolve tudo, sem gravar nada.
+   */
+  descansos: Descanso[]
   inventory: string
   appearance: string
   backstory: string
@@ -123,6 +129,7 @@ export const DEFAULT_NOTES: NotesData = {
   sections: [],
   recursos: [],
   critico: REGRA_DE_CRITICO_PADRAO,
+  descansos: [],
   inventory: '',
   appearance: '',
   backstory: '',
@@ -228,5 +235,7 @@ export function normalizeNotes(raw: unknown): NotesData {
   // Mesma régua das seções: ausente (perfil de antes desta versão) ou torto não derruba a ficha.
   const recursos = normalizarRecursos(data.recursos)
   const critico = normalizarRegraDeCritico(data.critico)
-  return { ...data, characterName, pages, currentPage, sections, recursos, critico }
+  // Depois das barras, de propósito: efeito de barra que não existe cai fora.
+  const descansos = normalizarDescansos(data.descansos, recursos)
+  return { ...data, characterName, pages, currentPage, sections, recursos, critico, descansos }
 }

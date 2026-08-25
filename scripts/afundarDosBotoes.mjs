@@ -146,6 +146,12 @@ const CASOS = [
     esperado: { dx: 1, dy: 1 }
   },
   {
+    id: 'barras-descansar',
+    nome: 'O DESCANSAR da legenda "Recursos"',
+    html: `<fieldset class="barras-de-recurso" style="width:300px"><legend>Recursos <button class="barras-editar">e</button><button class="barras-descansar" id="alvo"><b style="font-size:11px;line-height:1">Descansar</b></button></legend><p class="barras-vazio">—</p></fieldset>`,
+    esperado: { dx: 1, dy: 1 }
+  },
+  {
     id: 'barras-lapis',
     nome: 'O lápis da legenda "Recursos"',
     html: `<fieldset class="barras-de-recurso" style="width:300px"><legend>Recursos <button class="barras-editar" id="alvo"><b style="font-size:11px;line-height:1">e</b></button></legend><p class="barras-vazio">—</p></fieldset>`,
@@ -205,10 +211,25 @@ function deslocamentoMedido(solto, apertado, largura, altura) {
   return melhor
 }
 
+/**
+ * A captura TENTA DE NOVO: com a máquina carregada (o Reroll aberto com a cena 3D ao lado), o
+ * compositor offscreen falha de vez em quando com `UnknownVizError` — e a primeira versão deixava a
+ * rejeição sem dono, o que pendurava o script pra sempre em vez de falhar. Três tentativas com um
+ * respiro entre elas resolvem o soluço; se não resolver, o erro sobe e o script SAI com código 2.
+ */
 async function capturarRecorte(win, rect) {
-  const imagem = await win.webContents.capturePage(rect)
-  const { width, height } = imagem.getSize()
-  return { bytes: imagem.toBitmap(), png: imagem.toPNG(), largura: width, altura: height }
+  let ultimoErro = null
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    try {
+      const imagem = await win.webContents.capturePage(rect)
+      const { width, height } = imagem.getSize()
+      return { bytes: imagem.toBitmap(), png: imagem.toPNG(), largura: width, altura: height }
+    } catch (erro) {
+      ultimoErro = erro
+      await espera(300)
+    }
+  }
+  throw ultimoErro
 }
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -249,6 +270,14 @@ app.whenReady().then(async () => {
   const arquivo = join(pasta, 'pagina.html')
   writeFileSync(arquivo, html)
   await win.loadFile(arquivo)
+  await espera(300)
+  /**
+   * A janela cresce até a PÁGINA caber inteira. Os casos são empilhados, e com mais de vinte eles
+   * passavam dos 900px: o `capturePage` de um retângulo FORA da área visível falha com
+   * `UnknownVizError` — que parecia soluço do compositor e era só o botão abaixo da dobra.
+   */
+  const alturaDaPagina = await win.webContents.executeJavaScript('document.body.scrollHeight')
+  win.setContentSize(480, Math.max(900, alturaDaPagina + 40))
   await espera(300)
   // AQUECIMENTO: o primeiro evento de entrada depois do load era engolido — o primeiro caso da
   // primeira rodada saiu com "mudança 0.0", clique nenhum. Um movimento perdido paga o pedágio.
@@ -330,4 +359,8 @@ app.whenReady().then(async () => {
 
   console.log(falhas === 0 ? '\nTodos os botões afundam como o 98 manda.' : `\n${falhas} botão(ões) afundando errado.`)
   app.exit(falhas === 0 ? 0 : 1)
+}).catch((erro) => {
+  // Sair, e não pendurar: ver `capturarRecorte`. Código 2 = "não deu pra medir", diferente de "mediu errado".
+  console.error('A medição não terminou:', erro)
+  app.exit(2)
 })
