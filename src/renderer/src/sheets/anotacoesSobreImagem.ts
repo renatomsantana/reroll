@@ -413,12 +413,13 @@ export function palpiteDeNome(paragrafos: string[]): string {
   if (!/[\p{L}]{2}/u.test(primeiro)) return ''
   if (ehTituloDeFicha(primeiro)) return ''
   /**
-   * "KIDS ON BIKES" em cima de "CHARACTER SHEET": o nome do JOGO, em caixa alta, seguido do
-   * subtítulo que diz que aquilo é uma ficha. É o cabeçalho impresso do modelo, e não um nome —
-   * um nome escrito à mão raramente vem todo em maiúsculas com o subtítulo da ficha logo abaixo.
+   * VÁRIAS PALAVRAS todas em caixa alta é TÍTULO, não nome: "KIDS ON BIKES" (o cabeçalho do
+   * modelo, achado pela quinta leva) e "RESULTADOS DO TRIMESTRE" (um slide arrastado por engano,
+   * achado pela nona) passavam por aqui e viravam personagem. Nome escrito à mão numa arte
+   * raramente grita em maiúsculas de ponta a ponta; uma palavra só em caixa alta ("RIEBECK")
+   * continua valendo — apelido gritado é nome de gente.
    */
-  const segundo = paragrafos[1]?.trim() ?? ''
-  if (!/[\p{Ll}]/u.test(primeiro) && ehTituloDeFicha(segundo)) return ''
+  if (!/[\p{Ll}]/u.test(primeiro) && primeiro.split(/\s+/).length >= 2) return ''
   return primeiro
 }
 

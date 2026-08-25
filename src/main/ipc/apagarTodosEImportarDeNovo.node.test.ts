@@ -71,7 +71,7 @@ const FICHAS: { arquivo: string; nome: string; marca?: { label: string; value?: 
   {
     arquivo: readdirSync(PASTA).find((n) => n.startsWith('Assimila') && n.endsWith('.pdf')) ?? 'assimilacao-ausente.pdf',
     nome: 'Kieran Saad',
-    marca: { label: 'Saude', value: '18' }
+    marca: { label: 'Saúde', value: '18' }
   },
   {
     arquivo: 'Ficha Oblívio - Preenchida.pdf',

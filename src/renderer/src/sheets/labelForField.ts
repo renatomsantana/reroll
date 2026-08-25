@@ -72,7 +72,17 @@ export function distanciaDoRotulo(field: PdfField, texto: PdfText): number | nul
    */
   const px = Math.min(Math.max(lx, x0), x1)
   const py = Math.min(Math.max(ly, y0), y1)
-  const distancia = Math.hypot(lx - px, ly - py)
+  let distancia = Math.hypot(lx - px, ly - py)
+  /**
+   * Rótulo na MESMA LINHA, à esquerda, vale METADE da distância: é a diagramação canônica de
+   * formulário ("NOME ____"), e a disputa por proximidade pura perdia dela pro TÍTULO da página.
+   * Medido na nona leva (a ficha de inscrição que um testador vai arrastar): "FICHA DE INSCRIÇÃO"
+   * ficava a 34pt do primeiro campo e roubava o rótulo dele; o "NOME" órfão descia pro campo de
+   * baixo, e o CPF saía proposto como nome de personagem. Com o peso, quem está na linha vence o
+   * que paira por cima — e o rótulo curto um pouco mais afastado ("CPF", a 72pt) volta a caber.
+   */
+  const mesmaLinha = ly >= y0 - 2 && ly <= y1 + 2 && lx < x0
+  if (mesmaLinha) distancia = (x0 - lx) / 2
   return distancia > MAX_DISTANCE ? null : distancia
 }
 
@@ -88,6 +98,14 @@ function ehRotulo(texto: PdfText): boolean {
   const limpo = texto.text.trim()
   if (!limpo) return false
   if (limpo.length > 28) return false
+  /**
+   * O TÍTULO da página nunca rotula campo: "FICHA DE INSCRIÇÃO" pairando 34pt acima do primeiro
+   * campo vencia o "NOME" impresso na mesma linha dele (nona leva — o formulário que um testador
+   * vai arrastar), e o rótulo órfão descia pro campo de baixo em cascata. "Ficha" e "sheet" são
+   * palavras de título; os rótulos legítimos que as fichas usam ("PERSONAGEM", "CHARACTER NAME")
+   * não as contêm.
+   */
+  if (/\b(ficha|sheet)\b/i.test(limpo)) return false
   /**
    * UMA letra solta também não é rótulo. HONESTIDADE SOBRE ESTA GUARDA: o caso que a motivou (o
    * título "espaçado" desenhado letra a letra, oitava leva) não a exercita — medido com o dump, o

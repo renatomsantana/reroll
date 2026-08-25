@@ -421,13 +421,18 @@ const KIERAN = (() => {
   }
 })()
 
-describe.skipIf(!KIERAN || !existsSync(KIERAN))('ficha real de Assimilação — sistema desconhecido', () => {
-  it('o genérico rende nome, campos legíveis e o underscore vira espaço', async () => {
+describe.skipIf(!KIERAN || !existsSync(KIERAN))('ficha real de Assimilação', () => {
+  it('o leitor dedicado organiza: identificação, recursos, e as caixinhas viram números', async () => {
     const lido = readSheet(await abrirPdfNoNode(KIERAN))
-    expect(lido.readerId).toBe('generico')
+    expect(lido.readerId).toBe('assimilacao')
+    expect(lido.system).toBe('Assimilação')
     expect(lido.characterName).toBe('Kieran Saad')
-    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Propositos Pessoais' }))
-    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Saude', value: '18' }))
-    expect(lido.fields.some((c) => c.label.includes('_'))).toBe(false)
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Geração', value: 'Pós-Maresia' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Saúde', value: '18', group: 'Recursos' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Determinação', value: '8' }))
+    // As caixinhas do arquivo real: três instintos e sete aptidões marcados.
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Instintos marcados', value: '5, 21, 22' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Aptidões marcadas', value: '1, 6, 7, 16, 17, 40, 50' }))
+    expect(lido.fields.some((c) => /^(Instinto_|Aptidao\d)/.test(c.label))).toBe(false)
   }, 60_000)
 })
