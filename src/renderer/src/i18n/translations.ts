@@ -277,6 +277,10 @@ export interface TranslationDict {
     /** Botão e estado de espera da importação de ficha em PDF (`SheetImportModal`). */
     sheetImport: string
     sheetImportReading: string
+    /** A FICHA VAZIA do personagem novo: o convite de importar o PDF, e o "preencher à mão". */
+    sheetEmptyTitle: string
+    sheetEmptyHint: string
+    sheetEmptyManual: string
     /** Botão de dado ao lado de um número da ficha que é rolagem (ver `sheetRoll.ts`). */
     sheetRollField: string
     profileDelete: string
@@ -589,6 +593,10 @@ export const translations: Record<Language, TranslationDict> = {
         'Você chegou no limite de {max} personagens. Apague um que não usa mais para criar outro — as anotações dele continuam no disco.',
       sheetImport: 'Importar ficha (PDF)',
       sheetImportReading: 'Lendo PDF...',
+      sheetEmptyTitle: 'Esta ficha está vazia.',
+      sheetEmptyHint:
+        'Importe a ficha em PDF do seu personagem: o app lê os campos, monta a ficha e cria os presets de rolagem pra você conferir. É o que está em teste neste beta — vale a pena tentar com a sua.',
+      sheetEmptyManual: 'Prefiro preencher à mão',
       sheetRollField: 'Rolar {field}',
       profileDelete: 'Apagar personagem',
       profileDeleteConfirm:
@@ -913,6 +921,10 @@ export const translations: Record<Language, TranslationDict> = {
         'You have reached the limit of {max} characters. Delete one you no longer use to create another — its notes stay on disk.',
       sheetImport: 'Import sheet (PDF)',
       sheetImportReading: 'Reading PDF...',
+      sheetEmptyTitle: 'This sheet is empty.',
+      sheetEmptyHint:
+        "Import your character's PDF sheet: the app reads the fields, builds the sheet and creates the roll presets for you to review. That's what this beta is testing — give it a try with yours.",
+      sheetEmptyManual: "I'd rather fill it in by hand",
       sheetRollField: 'Roll {field}',
       profileDelete: 'Delete character',
       profileDeleteConfirm:

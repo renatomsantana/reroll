@@ -6,6 +6,24 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [1.1.0-beta.4] — 2026-08-25
+
+A ficha de um personagem novo agora nasce VAZIA de verdade — um convite pra importar o PDF, que é o
+que este beta está testando —, em vez de cinco caixas de texto pedindo pra ser preenchidas.
+
+### Alterado
+
+- **A ficha vazia convida a importar.** Personagem sem seção importada e sem uma letra nos blocos
+  mostra "Esta ficha está vazia" com o botão de importar o PDF em destaque e um "Prefiro preencher
+  à mão" como segundo caminho. Basta uma seção importada ou uma palavra digitada pra ficha voltar a
+  ser a de sempre — ninguém que já escreveu perde nada. Pedido do usuário: "deixa a ficha vazia,
+  para a pessoa poder usufruir e fazer questão de uploadar uma para testar".
+
+### Para quem testa (beta.4)
+
+- Crie um personagem novo (ou abra um vazio) e importe a SUA ficha em PDF pelo botão do convite.
+  Confira o que foi lido e conte o que veio errado — é o que a gente quer saber.
+
 ## [1.1.0-beta.3] — 2026-08-25
 
 Um update pequeno, de propósito: o beta segue com a Ficha (beta) e o preset de fórmula do beta.2, e

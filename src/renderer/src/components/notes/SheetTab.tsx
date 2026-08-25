@@ -85,6 +85,25 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
    * voltar pro anterior traz a ficha dele de volta, sem nada a mais pra fazer aqui.
    */
   const temSecoes = notes.sections.length > 0
+  /**
+   * A ficha está VAZIA — nenhuma seção importada e nenhuma letra em bloco nenhum. É o estado do
+   * personagem recém-criado, e é quando a aba mostra o convite de importar em vez dos blocos.
+   */
+  const fichaVazia =
+    !temSecoes &&
+    !notes.attributes.trim() &&
+    !notes.abilities.trim() &&
+    !notes.inventory.trim() &&
+    !notes.appearance.trim() &&
+    !notes.backstory.trim()
+  /**
+   * "Preencher à mão" escolhido nesta ficha vazia. Só na memória e só deste personagem: trocar de
+   * personagem volta ao convite — cada ficha vazia faz a pergunta de novo.
+   */
+  const [preencherAMao, setPreencherAMao] = useState(false)
+  useEffect(() => {
+    setPreencherAMao(false)
+  }, [profiles.activeId])
   const nomeRef = useRef<HTMLInputElement>(null)
   /**
    * A escolha da FOTO pode falhar — imagem grande demais, formato que o app não abre, arquivo numa
@@ -407,22 +426,48 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
         )}
 
         {/*
-          Os blocos aparecem SEMPRE, com ou sem seções. Eles deixaram de ser a alternativa à ficha
-          importada e viraram o destino dela: atributos importados caem no bloco de atributos,
-          inventário no de inventário, história na de história (ver `sheetBlocks.ts`). O que vira
-          seção é só o que NÃO tem bloco — Identificação, Recursos, Corpo.
+          FICHA VAZIA — pedido do usuário pro beta: "deixa a ficha vazia, para a pessoa poder usufruir
+          e fazer questão de uploadar uma para testar". Um personagem sem seção e sem uma letra nos
+          blocos não mostra cinco caixas de texto pra preencher: mostra o convite de importar o PDF
+          (que é o que está em teste), com o "preencher à mão" como segundo caminho. Basta uma
+          seção importada, ou uma palavra digitada, e a ficha volta a ser a ficha de sempre.
         */}
-        <div className="sheet-row">
-          {!cobertosPorSecao.has('attributes') && renderBloco('attributes', t.notesTab.attributesBlock)}
-          {!cobertosPorSecao.has('abilities') && renderBloco('abilities', t.notesTab.abilitiesBlock)}
-        </div>
+        {fichaVazia && !preencherAMao ? (
+          <div className="sheet-empty">
+            <p className="sheet-empty-title">{t.notesTab.sheetEmptyTitle}</p>
+            <p className="sheet-empty-hint">{t.notesTab.sheetEmptyHint}</p>
+            <div className="sheet-empty-actions">
+              {IMPORTACAO_DE_FICHA_LIGADA && (
+                <Button variant="primary" onClick={() => void importacao.escolherArquivo()} disabled={importacao.lendo}>
+                  {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => setPreencherAMao(true)}>
+                {t.notesTab.sheetEmptyManual}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/*
+              Os blocos aparecem com ou sem seções. Eles deixaram de ser a alternativa à ficha
+              importada e viraram o destino dela: atributos importados caem no bloco de atributos,
+              inventário no de inventário, história na de história (ver `sheetBlocks.ts`). O que vira
+              seção é só o que NÃO tem bloco — Identificação, Recursos, Corpo.
+            */}
+            <div className="sheet-row">
+              {!cobertosPorSecao.has('attributes') && renderBloco('attributes', t.notesTab.attributesBlock)}
+              {!cobertosPorSecao.has('abilities') && renderBloco('abilities', t.notesTab.abilitiesBlock)}
+            </div>
 
-        <div className="sheet-row">
-          {!cobertosPorSecao.has('inventory') && renderBloco('inventory', t.notesTab.inventoryBlock)}
-          {!cobertosPorSecao.has('appearance') && renderBloco('appearance', t.notesTab.appearanceBlock)}
-        </div>
-        {!cobertosPorSecao.has('backstory') &&
-          renderBloco('backstory', t.notesTab.backstoryBlock, 'sheet-group-wide')}
+            <div className="sheet-row">
+              {!cobertosPorSecao.has('inventory') && renderBloco('inventory', t.notesTab.inventoryBlock)}
+              {!cobertosPorSecao.has('appearance') && renderBloco('appearance', t.notesTab.appearanceBlock)}
+            </div>
+            {!cobertosPorSecao.has('backstory') &&
+              renderBloco('backstory', t.notesTab.backstoryBlock, 'sheet-group-wide')}
+          </>
+        )}
 
         {loadError && <p className="sheet-save-error">{t.notesTab.loadError}</p>}
         {saveError && <p className="sheet-save-error">{t.notesTab.saveError}</p>}
