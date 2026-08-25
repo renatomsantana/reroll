@@ -27,6 +27,8 @@ import { BarrasDeRecurso } from '@renderer/components/recursos/BarrasDeRecurso'
 import { RecursoEditorModal } from '@renderer/components/recursos/RecursoEditorModal'
 import { rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
 import { linhaParaChat } from '@shared/dice/linhaParaChat'
+import { comMarcasDeCritico } from '@shared/dice/critico'
+import { tocarCritico, tocarFalha } from '@renderer/audio/efeitosDeCritico'
 import { SheetTab } from '@renderer/components/notes/SheetTab'
 import { NotesTab } from '@renderer/components/notes/NotesTab'
 import { StyleTab } from '@renderer/components/style/StyleTab'
@@ -35,7 +37,7 @@ import { SplashScreen } from '@renderer/components/splash/SplashScreen'
 import './App.css'
 
 export default function App() {
-  const { soundEnabled, compactMode, launchMode, autoCopyRolls, copyMarkdown } = useSettings()
+  const { soundEnabled, compactMode, launchMode, autoCopyRolls, copyMarkdown, critSoundEnabled } = useSettings()
   const t = useTranslation()
   const profiles = useProfiles()
   const indiceDoAtivo = Math.max(0, profiles.profiles.findIndex((p) => p.id === profiles.activeId))
@@ -141,14 +143,17 @@ export default function App() {
    */
   function handleCompactPresetRoll(preset: Preset) {
     // `sourceName` é o que faz o histórico registrar QUAL preset foi, e não só "1d20 + 5".
-    const result = rolarPresetSemFisica(preset)
-    if (!result) return
+    const bruto = rolarPresetSemFisica(preset)
+    if (!bruto) return
+    // As marcas de crítico/falha (spec §3.7) pela regra do personagem — o mesmo funil da cena.
+    const result = comMarcasDeCritico(bruto, notas.notes.critico)
     setCompactLastResult(result)
     // Som aqui, junto com o cálculo do resultado — é o mais perto que o roller compacto
     // (instantâneo, sem física) tem de um "início" de rolagem.
     if (soundEnabled) {
       const diceCount = result.groups.reduce((sum, g) => sum + g.rolls.length, 0)
       playRollSound(diceCount)
+      if (critSoundEnabled && (result.critico || result.falha)) (result.critico ? tocarCritico : tocarFalha)()
     }
     registrarRolagem(result)
   }
@@ -320,6 +325,8 @@ export default function App() {
                   onRollingChange={setIsAnyRollInProgress}
                   /* O botão Explode só aparece com perfil de D&D — ver `explodeDoSistema.ts`. */
                   explodeVisivel={botaoDeExplodeVisivel(profiles.active?.system ?? '')}
+                  /* A regra de crítico é do personagem — ver `critico.ts` e a Ficha. */
+                  regraDeCritico={notas.notes.critico}
                   /*
                     Atalhos SÓ com a aba de rolagem na tela. Ela fica montada e escondida nas outras
                     (ver o comentário do `display` acima), e sem isto o Espaço rolava os dados

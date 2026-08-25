@@ -272,6 +272,137 @@
     0 0 12px color-mix(in srgb, var(--popup-accent, #666) 70%, transparent);
 }
 
+/*
+ * O CLARÃO de crítico e falha (spec §3.7). Um segundo, no centro da cena, por cima do popup do
+ * total. Cores CHAPADAS da paleta do Windows (amarelo sobre preto no crítico, bordô no luto) — sem
+ * degradê, que leria como moderno. As "partículas" são oito quadradinhos que voam do centro pra
+ * fora ao longo de `--angulo` e somem; o painel da falha treme em vez de brilhar.
+ */
+.dice-crit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 11;
+  pointer-events: none;
+  animation: dice-crit-vida 1s linear forwards;
+}
+
+.dice-crit-texto {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 18px;
+  white-space: nowrap;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 2px outset var(--win-highlight);
+}
+
+.dice-crit-critico .dice-crit-texto {
+  background: #000;
+  color: #ffff00;
+  animation: dice-crit-pop 1s ease forwards;
+}
+
+.dice-crit-falha .dice-crit-texto {
+  background: #800000;
+  color: #fff;
+  animation: dice-crit-treme 1s linear forwards;
+}
+
+.dice-crit-faisca {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background: #ffff00;
+  border: 1px solid #808000;
+  transform: rotate(var(--angulo)) translateX(0);
+  animation: dice-crit-faisca 0.8s ease-out forwards;
+}
+
+/* O pai vive exatamente 1s — é o `animationend` DELE que limpa o estado, não o das faíscas. */
+@keyframes dice-crit-vida {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dice-crit-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes dice-crit-treme {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(calc(-50% - 6px), -50%);
+  }
+  20% {
+    transform: translate(calc(-50% + 6px), -50%);
+  }
+  30% {
+    transform: translate(calc(-50% - 4px), -50%);
+  }
+  40% {
+    transform: translate(calc(-50% + 4px), -50%);
+  }
+  50% {
+    transform: translate(-50%, -50%);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes dice-crit-faisca {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angulo)) translateX(10px);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angulo)) translateX(110px);
+  }
+}
+
+/* A marca ⭐/💀 ao lado do total, um degrau menor que o número. */
+.dice-roller-3d-marca {
+  margin-left: 6px;
+  font-size: 16px;
+}
+
 /**
  * Os cortes são em porcentagem da duração, então esticar a animação esticaria TUDO junto — o
  * "pop" de entrada viraria um crescimento arrastado de um segundo. Estes valores são os tempos

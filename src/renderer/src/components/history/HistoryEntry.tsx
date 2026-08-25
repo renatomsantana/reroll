@@ -7,6 +7,7 @@ import { linhaParaChat } from '@shared/dice/linhaParaChat'
 import './HistoryEntry.css'
 import { IconeReroll } from '@renderer/components/common/IconeReroll'
 import { BotaoCopiar, rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
+import { MarcaDeCritico } from '@renderer/components/common/MarcaDeCritico'
 
 function formatTime(timestamp: number, locale: string): string {
   return new Date(timestamp).toLocaleTimeString(locale, {
@@ -104,6 +105,8 @@ export function HistoryEntry({ result }: { result: RollResult }) {
             {result.sucesso ? '✓' : '✗'}
           </span>
         )}
+        {/* ⭐/💀 (spec §3.7) — gravados na rolagem, é o que alimenta a contagem de críticos da sessão. */}
+        <MarcaDeCritico result={result} />
       </span>
       {/* Cada entrada tem o seu "copiar pro chat" (spec §3.5) — a rolagem de dez minutos atrás também vai pra mesa. */}
       <BotaoCopiar pequeno texto={() => linhaParaChat(result, copyMarkdown, rotulosDoChat(t))} />

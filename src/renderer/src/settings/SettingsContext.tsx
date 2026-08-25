@@ -312,6 +312,12 @@ interface Settings {
   /** Copiar TODA rolagem sozinho, pra quem cola cada uma no chat da mesa. Desligado por padrão. */
   autoCopyRolls: boolean
   /**
+   * Os efeitos de CRÍTICO e FALHA (spec §3.7), separados: o clarão na cena e o som. O som ainda
+   * respeita o `soundEnabled` geral — desligar o som do app desliga este junto.
+   */
+  critVisualEnabled: boolean
+  critSoundEnabled: boolean
+  /**
    * As grades de cores prontas da aba Estilo (paletas de dado e estilos de bandeja) aparecem ou
    * ficam recolhidas. Fica AQUI, e não num `useState` da aba, porque a aba desmonta a cada troca de
    * seção/aba — recolher e voltar dois minutos depois pra tudo aberto de novo não é uma opção, é um
@@ -363,6 +369,8 @@ const DEFAULT_SETTINGS: Settings = {
   resultPopupEnabled: true,
   copyMarkdown: true,
   autoCopyRolls: false,
+  critVisualEnabled: true,
+  critSoundEnabled: true,
   palettesVisible: true
 }
 
@@ -469,6 +477,8 @@ interface SettingsContextValue extends Settings {
   setResultPopupEnabled: (value: boolean) => void
   setCopyMarkdown: (value: boolean) => void
   setAutoCopyRolls: (value: boolean) => void
+  setCritVisualEnabled: (value: boolean) => void
+  setCritSoundEnabled: (value: boolean) => void
   setPalettesVisible: (value: boolean) => void
   resetSettings: () => void
 }
@@ -665,6 +675,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setSettings((prev) => ({ ...prev, resultPopupEnabled })),
       setCopyMarkdown: (copyMarkdown) => setSettings((prev) => ({ ...prev, copyMarkdown })),
       setAutoCopyRolls: (autoCopyRolls) => setSettings((prev) => ({ ...prev, autoCopyRolls })),
+      setCritVisualEnabled: (critVisualEnabled) => setSettings((prev) => ({ ...prev, critVisualEnabled })),
+      setCritSoundEnabled: (critSoundEnabled) => setSettings((prev) => ({ ...prev, critSoundEnabled })),
       setPalettesVisible: (palettesVisible) => setSettings((prev) => ({ ...prev, palettesVisible })),
       resetSettings: () => setSettings(DEFAULT_SETTINGS)
     }),

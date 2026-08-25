@@ -42,7 +42,10 @@ import { isTypingTarget } from '@renderer/utils/isTyping'
 import { TRAY_SHAPE_SIDES } from '@renderer/dice3d/geometry/trayShape'
 import { Button } from '../common/Button'
 import { BotaoCopiar, rotulosDoChat } from '../common/BotaoCopiar'
+import { MarcaDeCritico } from '../common/MarcaDeCritico'
 import { linhaParaChat } from '@shared/dice/linhaParaChat'
+import { REGRA_DE_CRITICO_PADRAO, comMarcasDeCritico, type RegraDeCritico } from '@shared/dice/critico'
+import { tocarCritico, tocarFalha } from '@renderer/audio/efeitosDeCritico'
 import { CameraModeSwitch } from './CameraModeSwitch'
 import './DiceRoller3D.css'
 import { IconeReroll } from '@renderer/components/common/IconeReroll'
@@ -100,6 +103,11 @@ interface DiceRoller3DProps {
    * tela mostra. Preset com regra explosiva continua explodindo em qualquer sistema.
    */
   explodeVisivel?: boolean
+  /**
+   * A regra de CRÍTICO do personagem ativo (spec §3.7; ver `critico.ts`): que dado, em que
+   * direção. Vem do `App` porque é do `notes.json` do personagem; ausente é o d20 de sempre.
+   */
+  regraDeCritico?: RegraDeCritico
 }
 
 const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
@@ -311,7 +319,7 @@ export function comContagemAjustada(
  * compacta (300×230) foi desenhada de propósito pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange, shortcutsEnabled = true, badge, explodeVisivel },
+  { onRoll, onRollingChange, shortcutsEnabled = true, badge, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO },
   ref
 ) {
   const t = useTranslation()
@@ -335,9 +343,17 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     soundEnabled,
     resultPopupEnabled,
     displayMode,
-    copyMarkdown
+    copyMarkdown,
+    critVisualEnabled,
+    critSoundEnabled
   } = useSettings()
   const multiRef = useRef<DiceCanvasMultiHandle>(null)
+  /**
+   * O CLARÃO de crítico/falha sobre a cena (spec §3.7) — um segundo, sem bloquear nada, some no
+   * fim da animação CSS como o popup do total. `key` reinicia a animação num crítico seguido do
+   * outro.
+   */
+  const [efeitoDeCritico, setEfeitoDeCritico] = useState<{ key: string; tipo: 'critico' | 'falha' } | null>(null)
   /** Timer do delay do som de rolagem (ver `ROLL_SOUND_DELAY_MS`) — guardado só pra poder cancelar no unmount, evitando tocar som depois que o componente já saiu de tela (troca de aba durante o delay). */
   const rollSoundTimeoutRef = useRef<number | null>(null)
 
@@ -772,10 +788,22 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     setLastResult(null)
   }
 
-  function finalizeResult(result: RollResult) {
+  function finalizeResult(bruto: RollResult) {
+    /**
+     * As marcas de CRÍTICO/FALHA entram AQUI, no funil por onde toda rolagem terminada passa
+     * (bandeja, torre, modo rápido, fórmula), pela regra do personagem. É o único lugar em que
+     * a face natural ainda é a verdade fresca — depois, quem lê é o histórico e o chat.
+     */
+    const result = comMarcasDeCritico(bruto, regraDeCritico)
     setLastResult(result)
     setIsRolling(false)
     if (resultPopupEnabled) setResultPopup({ key: result.id, total: result.total })
+    if (result.critico || result.falha) {
+      // Crítico manda no empate (2d20 com um 20 e um 1): a festa vence o luto.
+      const tipo = result.critico ? 'critico' : 'falha'
+      if (critVisualEnabled) setEfeitoDeCritico({ key: result.id, tipo })
+      if (soundEnabled && critSoundEnabled) (tipo === 'critico' ? tocarCritico : tocarFalha)()
+    }
     onRoll({ ...result, sourceName: sourceNameRef.current })
     // Zerado assim que é consumido: a PRÓXIMA rolagem pode ser manual (botão "Rolar"), e sem isto
     // ela herdaria o nome do último preset clicado e apareceria no histórico como se fosse ele.
@@ -1263,6 +1291,29 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
             <span className="dice-result-popup-value">{resultPopup.total}</span>
           </div>
         )}
+        {/*
+          O clarão de crítico/falha (spec §3.7): painel no centro da cena com oito faíscas quadradas
+          voando (crítico) ou o painel escuro tremendo (falha). Um segundo, `pointer-events: none`
+          — nunca segura o número nem a próxima rolagem.
+        */}
+        {efeitoDeCritico && (
+          <div
+            key={efeitoDeCritico.key}
+            className={`dice-crit ${efeitoDeCritico.tipo === 'critico' ? 'dice-crit-critico' : 'dice-crit-falha'}`}
+            aria-hidden="true"
+            onAnimationEnd={(e) => {
+              if (e.target === e.currentTarget) setEfeitoDeCritico(null)
+            }}
+          >
+            {efeitoDeCritico.tipo === 'critico' &&
+              Array.from({ length: 8 }, (_, i) => (
+                <span key={i} className="dice-crit-faisca" style={{ '--angulo': `${i * 45}deg` } as CSSProperties} />
+              ))}
+            <span className="dice-crit-texto">
+              {efeitoDeCritico.tipo === 'critico' ? `⭐ ${t.roller.critical}` : `💀 ${t.roller.fumble}`}
+            </span>
+          </div>
+        )}
       </div>
       )}
 
@@ -1290,6 +1341,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
             })}
             {modifier !== 0 && (modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`)} |{' '}
             {t.roller.total}: <strong>{lastResult.total}</strong>
+            <MarcaDeCritico result={lastResult} className="dice-roller-3d-marca" />
             {lastResult.advantageMode && (
               <>
                 {' '}

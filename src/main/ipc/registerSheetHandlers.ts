@@ -20,6 +20,7 @@ import {
   TETO_DO_VALOR_DE_RECURSO,
   fundirRecursos
 } from '@shared/types/recursoVital'
+import { regraDeCriticoDoSistema } from '@shared/dice/critico'
 import { isValidPresetInput } from './registerPresetsHandlers'
 import { escolherArquivo } from './dialogos'
 import type { ProfilesRepository } from '../storage/ProfilesRepository'
@@ -367,6 +368,11 @@ ${novoTexto}` : novoTexto
            * pra MESMA barra, e as criadas à mão ficam.
            */
           recursos: fundirRecursos(atuais.recursos, recursosImportados),
+          /**
+           * A regra de crítico vem do SISTEMA da ficha só no personagem NOVO (Cthulhu nasce d100
+           * rola-abaixo). Num personagem atualizado a regra que a pessoa escolheu fica.
+           */
+          critico: existente ? atuais.critico : regraDeCriticoDoSistema(payload.system),
           /**
            * Seção com o MESMO TÍTULO é substituída, e não duplicada.
            *

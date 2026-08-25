@@ -3,6 +3,7 @@ import type { DiceExpression } from '@shared/types/dice'
 import type { SheetSection, SheetSectionField } from '@shared/types/notes'
 import { blockForGroup, secaoCobreAtributos, type SheetBlockKey } from '@shared/types/sheetBlocks'
 import { rolagemDoCampo } from '@shared/types/sheetRoll'
+import { LADOS_DE_CRITICO, codigoDaRegra, regraDoCodigo } from '@shared/dice/critico'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useNotes } from '@renderer/hooks/useNotes'
 import { useProfiles } from '@renderer/settings/ProfilesContext'
@@ -291,6 +292,30 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                   placeholder="Ordem Paranormal, Kids on Bikes, Oblivio..."
                   onChange={(e) => profiles.update(profiles.activeId, { system: e.target.value })}
                 />
+              </label>
+              {/*
+                A regra de CRÍTICO (spec §3.7) mora aqui, ao lado do sistema, porque é DELE que ela
+                vem: d20 "20 é crítico" em D&D e Ordem, d100 "1 é crítico" em Cthulhu, nenhum em Kids
+                on Bikes. Um `<select>` nativo serve: são só texto e poucas opções.
+              */}
+              <label className="sheet-field">
+                <span>{t.notesTab.critRule}</span>
+                <select
+                  value={codigoDaRegra(notes.critico)}
+                  onChange={(e) => updateField('critico', regraDoCodigo(e.target.value))}
+                >
+                  {LADOS_DE_CRITICO.map((lados) => (
+                    <option key={`${lados}:alto`} value={`${lados}:alto`}>
+                      {t.notesTab.critRuleHigh.replace('{die}', `d${lados}`)}
+                    </option>
+                  ))}
+                  {LADOS_DE_CRITICO.map((lados) => (
+                    <option key={`${lados}:baixo`} value={`${lados}:baixo`}>
+                      {t.notesTab.critRuleLow.replace('{die}', `d${lados}`)}
+                    </option>
+                  ))}
+                  <option value="nenhum">{t.notesTab.critRuleNone}</option>
+                </select>
               </label>
 
               <div className="sheet-profile-actions">

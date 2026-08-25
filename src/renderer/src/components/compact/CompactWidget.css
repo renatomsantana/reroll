@@ -110,6 +110,10 @@
   line-height: 1;
 }
 
+.compact-stage-marca {
+  font-size: 13px;
+}
+
 /* Canto oposto ao total: o nome do preset e a conta, pequenos, sem competir com o número. */
 /* Canto de cima à direita do painel: não briga com o total (embaixo à direita) nem com o nome. */
 .compact-stage-copiar {
