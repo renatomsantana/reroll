@@ -372,6 +372,10 @@ export interface TranslationDict {
     critRuleHigh: string
     critRuleLow: string
     critRuleNone: string
+    /** A FICHA VAZIA do personagem novo: o convite de importar o PDF, e o "preencher à mão". */
+    sheetEmptyTitle: string
+    sheetEmptyHint: string
+    sheetEmptyManual: string
     /** Botão de dado ao lado de um número da ficha que é rolagem (ver `sheetRoll.ts`). */
     sheetRollField: string
     profileDelete: string
@@ -777,6 +781,10 @@ export const translations: Record<Language, TranslationDict> = {
       critRuleHigh: '{die}: máximo é crítico, 1 é falha',
       critRuleLow: '{die}: 1 é crítico, máximo é falha',
       critRuleNone: 'Sem crítico neste sistema',
+      sheetEmptyTitle: 'Esta ficha está vazia.',
+      sheetEmptyHint:
+        'Importe a ficha em PDF do seu personagem: o app lê os campos, monta a ficha e cria os presets de rolagem pra você conferir. É o que está em teste neste beta — vale a pena tentar com a sua.',
+      sheetEmptyManual: 'Prefiro preencher à mão',
       sheetRollField: 'Rolar {field}',
       profileDelete: 'Apagar personagem',
       profileDeleteConfirm:
@@ -1192,6 +1200,10 @@ export const translations: Record<Language, TranslationDict> = {
       critRuleHigh: '{die}: max is a critical, 1 is a fumble',
       critRuleLow: '{die}: 1 is a critical, max is a fumble',
       critRuleNone: 'No criticals in this system',
+      sheetEmptyTitle: 'This sheet is empty.',
+      sheetEmptyHint:
+        "Import your character's PDF sheet: the app reads the fields, builds the sheet and creates the roll presets for you to review. That's what this beta is testing — give it a try with yours.",
+      sheetEmptyManual: "I'd rather fill it in by hand",
       sheetRollField: 'Roll {field}',
       profileDelete: 'Delete character',
       profileDeleteConfirm:
