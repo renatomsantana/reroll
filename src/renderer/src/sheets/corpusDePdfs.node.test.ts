@@ -8,6 +8,7 @@ import { QUINTA_LEVA } from './testes/quintaLevaDePdfs'
 import { SEXTA_LEVA } from './testes/sextaLevaDePdfs'
 import { SETIMA_LEVA } from './testes/setimaLevaDePdfs'
 import { OITAVA_LEVA } from './testes/oitavaLevaDePdfs'
+import { NONA_LEVA } from './testes/nonaLevaDePdfs'
 
 /**
  * O CORPUS DE QUINZE FICHAS FABRICADAS, passando pelo importador de verdade.
@@ -37,7 +38,8 @@ const LEVAS: [string, FichaDeTeste[]][] = [
   ['quinta leva — o que o beta acrescentou e o adversarial do spec', QUINTA_LEVA],
   ['sexta leva — Pathfinder 2e fabricado e estrutura de PDF que ficha real usa', SEXTA_LEVA],
   ['sétima leva — quinze sistemas que o app nunca viu, todos pelo leitor genérico', SETIMA_LEVA],
-  ['oitava leva — a estrutura que todo PDF real tem: compressão, assinatura, anexo', OITAVA_LEVA]
+  ['oitava leva — a estrutura que todo PDF real tem: compressão, assinatura, anexo', OITAVA_LEVA],
+  ['nona leva — qualquer PDF: o que os testadores vão arrastar sem ser ficha', NONA_LEVA]
 ]
 
 describe.each(LEVAS)('%s', (_leva, fichas) => {

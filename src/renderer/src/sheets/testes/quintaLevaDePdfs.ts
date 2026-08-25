@@ -357,7 +357,10 @@ export const QUINTA_LEVA: FichaDeTeste[] = [
       nome: 'Kaori',
       minimoDeCampos: 10,
       minimoDePresets: 1,
-      campos: [{ label: 'Constituição', value: '14' }]
+      // O rótulo IMPRESSO ("CONSTITUIÇÃO", como a ficha grita) passou a vencer o nome interno do
+      // campo desde que rótulo na mesma linha vale metade da distância — é o rótulo que a pessoa
+      // vê no papel, na caixa em que ele está.
+      campos: [{ label: 'CONSTITUIÇÃO', value: '14' }]
     },
     bytes: () => {
       const campos: [string, string][] = [

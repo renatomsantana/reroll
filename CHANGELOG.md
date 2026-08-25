@@ -6,11 +6,23 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
-## [Não publicado]
+## [1.1.0-beta.2] — 2026-08-24
 
-O que as fichas de Pathfinder 2e que o usuário pôs na pasta ensinaram ao importador — uma
-preenchida (o Rilver), três modelos em branco, a ficha oficial da Paizo e três livros de regras.
-E a bandeja passou a falar a gramática: o preset de fórmula.
+O beta pros testadores de verdade: a bandeja fala a gramática (preset de fórmula), quatro levas de
+scraping (Pathfinder fabricado, quinze sistemas novos, a estrutura que todo PDF real tem, e o
+"qualquer PDF" que um testador vai arrastar), dois leitores novos (a ficha da comunidade de Ordem
+Paranormal e Assimilação), os botões afundando como o 98 manda — medido pixel a pixel —, e os
+ciclos todos provados: apagar e reimportar, trocar e destrocar, fechar sem salvar. Entregue À MÃO,
+como o beta.1: quem está no 1.0.x não recebe pelo atualizador.
+
+### Para quem testa (beta.2)
+
+- O instalador é `Reroll-Setup-1.1.0-beta.2.exe`, entregue junto do SHA-256 dele. Antes de
+  instalar: `Get-FileHash .\Reroll-Setup-1.1.0-beta.2.exe -Algorithm SHA256` e compare.
+- O que testar de novo: importar QUALQUER PDF (ficha de qualquer sistema — e até o que não é
+  ficha: a conferência mostra o que foi lido e você desmarca o que não quer); presets com a
+  fórmula escrita (`2d6r<2`, `6d6#>=5`, `1d20+5 >= 15`); as lacunas da ficha (digite o valor e o
+  botão de rolar nasce); trocar de personagem e conferir que cores, ficha e presets voltam.
 
 ### Adicionado
 
@@ -94,6 +106,32 @@ E a bandeja passou a falar a gramática: o preset de fórmula.
   personagem, importa o MESMO PDF: a segunda vem tão completa quanto a primeira (mesmos campos,
   mesmos presets — a deduplicação é por pasta, e pasta nova não herda nada), o diário do apagado
   não vaza pro novo, a pasta dele fica no disco como sempre, e o ciclo aguenta repetição.
+
+### Adicionado (lacunas e reteste)
+
+- **As lacunas da ficha têm teste de tela** (`lacunasNaFicha.test.tsx`) — o contrato dos "espaços
+  de lacuna" que a importação traz vazios de propósito: lacuna é editável e vazia NÃO tem botão de
+  rolar; o que se digita nela é gravado com o `roll` atravessando junto (sem ele o botão morreria
+  na releitura); quando o número chega numa lacuna que é rolagem no sistema, o botão de dado NASCE
+  na hora e rola a regra daquele sistema (Agilidade 3 em Ordem = 3d20 usando o maior); lacuna sem
+  tipo (PV atual) grava e segue sem dado. Quatro testes, com o fluxo real da aba (useNotes +
+  gravação).
+- **Reteste dos botões repetido**: 11/11 afundando (1, 1) pixel-perfeito. Uma rodada isolada acusou
+  1 erro que não se repetiu em duas execuções seguidas — anotado como captura antes da pintura
+  assentar; se voltar, vira investigação.
+
+### Adicionado (Assimilação)
+
+- **Leitor de Assimilação** (`readers/assimilacao.ts`) — a ficha do Kieran chegou "não bem
+  organizada" pelo genérico (27 campos em "Outros", caixa marcada virando "Aptidao40 = sim"), e a
+  sondagem explicou: é ARTE digitalizada com formulário por cima, zero texto impresso — os nomes de
+  instintos e aptidões são pixel. O leitor organiza pelo que os 288 nomes de campo dizem de
+  verdade: Identificação (Nome, Ocupação, Geração, Evento, os dois propósitos pessoais e o
+  coletivo como lacuna), os três Recursos por extenso (Saúde, Determinação, Assimilação — as
+  trilhas de toggles ficam de fora, são desenho de marcar), as caixinhas marcadas viram UMA linha
+  de números por grade ("Instintos marcados: 5, 21, 22" — dizer o nome seria inventar o que só a
+  arte tem), características e mutações no bloco de Habilidades, Notas na História. Testado na
+  fixture e contra o arquivo real; o Kieran do app instalado foi reimportado já organizado.
 
 ### Adicionado (anotações)
 

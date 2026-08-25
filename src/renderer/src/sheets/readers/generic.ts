@@ -538,6 +538,9 @@ function palpiteDoCampoDeNome(fields: SheetImportField[]): string {
  */
 export function pareceNomeDePersonagem(valor: string): boolean {
   if (!valor || valor.length > 60) return false
+  // Nome tem LETRA. "123.456.789-00" passou por aqui uma vez (nona leva: o CPF de uma ficha de
+  // inscrição proposto como personagem) — número, data e telefone nunca são nome de ninguém.
+  if (!/\p{L}/u.test(valor)) return false
   return !/\.\s|\.$/.test(valor)
 }
 

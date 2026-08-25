@@ -942,3 +942,64 @@ describe('leitor de Ordem Paranormal — a ficha da comunidade', () => {
     expect(lidoOficial.fields).toContainEqual(expect.objectContaining({ label: 'Agilidade', value: '2' }))
   })
 })
+
+describe('leitor de Assimilação', () => {
+  /**
+   * A ficha real (a do Kieran) é ARTE digitalizada com formulário por cima — zero texto impresso,
+   * sondado página a página. A organização inteira sai dos NOMES DE CAMPO, e os números das
+   * caixinhas marcadas entram como números: o nome de cada uma é pixel, e dizer mais seria
+   * inventar.
+   */
+  const sheet = ficha([
+    campo('Nome', 'Kieran Saad'),
+    campo('Ocupacao', 'Antropólogo'),
+    campo('geracao', 'Pós-Maresia'),
+    campo('Evento', 'Escolher a pesquisa'),
+    campo('Propositos_Pessoais', 'Descobrir sobre a Era Perdida'),
+    campo('Propositos_Pessoais1', 'Reencontrar Fer'),
+    campo('Proposito_Coletivo', ''),
+    campo('Saude', '18'),
+    campo('Det', '8'),
+    campo('Ass', '2'),
+    { name: 'Instinto_5', type: 'checkbox', value: 'Yes', page: 1, rect: [0, 0, 10, 10] },
+    { name: 'Instinto_21', type: 'checkbox', value: 'Yes', page: 1, rect: [0, 0, 10, 10] },
+    { name: 'Instinto_2', type: 'checkbox', value: 'Off', page: 1, rect: [0, 0, 10, 10] },
+    { name: 'Aptidao40', type: 'checkbox', value: 'Yes', page: 1, rect: [0, 0, 10, 10] },
+    { name: 'Aptidao6', type: 'checkbox', value: 'Yes', page: 1, rect: [0, 0, 10, 10] },
+    { name: 'ptSaude12', type: 'checkbox', value: 'Off', page: 1, rect: [0, 0, 10, 10] },
+    { name: 'Invent3', type: 'checkbox', value: 'Off', page: 2, rect: [0, 0, 10, 10] },
+    campo('Car_1', 'Viajado (1pt) Todas as jogadas...'),
+    campo('Assimilacao1', 'Consciência Mantenha um dado adicional...'),
+    campo('Notas', 'Relógio de pulso da CASSIA.')
+  ])
+  const lido = readSheet(sheet)
+
+  it('é reconhecida pela estrutura dos nomes de campo — a página nem tem texto', () => {
+    expect(lido.readerId).toBe('assimilacao')
+    expect(lido.system).toBe('Assimilação')
+    expect(lido.characterName).toBe('Kieran Saad')
+  })
+
+  it('identificação e os três recursos, com os nomes por extenso', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Geração', value: 'Pós-Maresia', group: 'Identificação' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Propósito pessoal 2', value: 'Reencontrar Fer' }))
+    // Lacuna com dono: o propósito coletivo em branco fica como espaço pra escrever.
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Propósito coletivo', value: '' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Saúde', value: '18', group: 'Recursos' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Determinação', value: '8' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Assimilação', value: '2' }))
+  })
+
+  it('as caixinhas marcadas viram UMA linha de números por grade — sem inventar nome de pixel', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Instintos marcados', value: '5, 21' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Aptidões marcadas', value: '6, 40' }))
+    // Nenhuma caixa avulsa sobra como "Aptidao40 = sim", e as trilhas de recurso ficam de fora.
+    expect(lido.fields.some((c) => /^(Instinto_|Aptidao\d|ptSaude|Invent)/.test(c.label))).toBe(false)
+  })
+
+  it('características e mutações vão pro bloco de Habilidades; Notas pra História', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Característica 1', group: 'Habilidades' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Assimilação 1', group: 'Habilidades' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Notas', group: 'História' }))
+  })
+})
