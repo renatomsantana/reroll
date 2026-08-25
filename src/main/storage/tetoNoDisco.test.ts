@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MAX_PROFILES, type Profile, type ProfilesState } from '@shared/types/profile'
+import { TETO_DE_PERSONAGENS_NO_DISCO, type Profile, type ProfilesState } from '@shared/types/profile'
 
 /**
  * O TETO DE PERSONAGENS COBRADO NO DISCO, e não só no botão da tela.
@@ -45,20 +45,20 @@ describe('teto de personagens no repositório', () => {
     await fs.rm(userData, { recursive: true, force: true })
   })
 
-  it(`grava até ${MAX_PROFILES} sem reclamar`, async () => {
+  it(`grava até ${TETO_DE_PERSONAGENS_NO_DISCO} sem reclamar`, async () => {
     const repo = new ProfilesRepository()
     await repo.init()
 
-    const salvo = await repo.save(lista(MAX_PROFILES))
+    const salvo = await repo.save(lista(TETO_DE_PERSONAGENS_NO_DISCO))
 
-    expect(salvo.profiles).toHaveLength(MAX_PROFILES)
+    expect(salvo.profiles).toHaveLength(TETO_DE_PERSONAGENS_NO_DISCO)
   })
 
   it('RECUSA a gravação que passaria do teto', async () => {
     const repo = new ProfilesRepository()
     await repo.init()
 
-    await expect(repo.save(lista(MAX_PROFILES + 1))).rejects.toThrow(/[Ll]imite/)
+    await expect(repo.save(lista(TETO_DE_PERSONAGENS_NO_DISCO + 1))).rejects.toThrow(/[Ll]imite/)
   })
 
   it('a recusa não deixa o arquivo pela metade', async () => {
@@ -67,7 +67,7 @@ describe('teto de personagens no repositório', () => {
     await repo.init()
     await repo.save(lista(3))
 
-    await expect(repo.save(lista(MAX_PROFILES + 1))).rejects.toThrow()
+    await expect(repo.save(lista(TETO_DE_PERSONAGENS_NO_DISCO + 1))).rejects.toThrow()
 
     expect((await repo.get()).profiles).toHaveLength(3)
     const noDisco = JSON.parse(
@@ -81,7 +81,7 @@ describe('teto de personagens no repositório', () => {
      * Backup restaurado, ou arquivo escrito por uma versão em que o teto era outro. Cortar na
      * leitura seria perda de dado silenciosa — e a intenção seria boa, que é o que a torna perigosa.
      */
-    const demais = MAX_PROFILES + 5
+    const demais = TETO_DE_PERSONAGENS_NO_DISCO + 5
     await gravarNoDisco(lista(demais))
 
     const repo = new ProfilesRepository()
@@ -96,7 +96,7 @@ describe('teto de personagens no repositório', () => {
      * vinte personagens não conseguiria nem apagar os cinco que sobram — o app recusaria a gravação
      * que resolveria o problema, e a saída seria editar JSON na mão.
      */
-    const demais = MAX_PROFILES + 5
+    const demais = TETO_DE_PERSONAGENS_NO_DISCO + 5
     await gravarNoDisco(lista(demais))
     const repo = new ProfilesRepository()
     const estado = await repo.init()
@@ -109,11 +109,11 @@ describe('teto de personagens no repositório', () => {
     await expect(repo.save(renomeado)).resolves.toBeDefined()
 
     // Apagar, reduzindo — o caminho de volta pra dentro do teto.
-    const menos = { ...estado, profiles: estado.profiles.slice(0, MAX_PROFILES), activeId: 'p1' }
+    const menos = { ...estado, profiles: estado.profiles.slice(0, TETO_DE_PERSONAGENS_NO_DISCO), activeId: 'p1' }
     const depois = await repo.save(menos)
-    expect(depois.profiles).toHaveLength(MAX_PROFILES)
+    expect(depois.profiles).toHaveLength(TETO_DE_PERSONAGENS_NO_DISCO)
 
     // E daqui em diante o teto volta a valer.
-    await expect(repo.save(lista(MAX_PROFILES + 1))).rejects.toThrow()
+    await expect(repo.save(lista(TETO_DE_PERSONAGENS_NO_DISCO + 1))).rejects.toThrow()
   })
 })

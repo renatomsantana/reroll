@@ -3,7 +3,7 @@ import { join } from 'path'
 import { app } from 'electron'
 import {
   DEFAULT_PROFILE_ID,
-  MAX_PROFILES,
+  TETO_DE_PERSONAGENS_NO_DISCO,
   normalizeProfiles,
   type ProfilesState
 } from '@shared/types/profile'
@@ -88,9 +88,15 @@ export class ProfilesRepository {
   async save(next: ProfilesState): Promise<ProfilesState> {
     const limpo = normalizeProfiles(next)
     const atual = this.state?.profiles.length ?? 0
-    if (limpo.profiles.length > MAX_PROFILES && limpo.profiles.length > atual) {
+    /**
+     * O teto do DISCO (`TETO_DE_PERSONAGENS_NO_DISCO`, quinze), e não o de criação (`MAX_PROFILES`,
+     * três neste beta): quem testou o beta.2 pode ter mais de três, e a lista dele precisa continuar
+     * gravável — renomear, trocar de ativo, apagar. O três é cobrado onde personagem NASCE
+     * (`ProfilesContext.create` e o canal de importação).
+     */
+    if (limpo.profiles.length > TETO_DE_PERSONAGENS_NO_DISCO && limpo.profiles.length > atual) {
       throw new Error(
-        `Limite de ${MAX_PROFILES} personagens atingido — apague um antes de criar outro.`
+        `Limite de ${TETO_DE_PERSONAGENS_NO_DISCO} personagens atingido — apague um antes de criar outro.`
       )
     }
     this.state = limpo
