@@ -2,7 +2,7 @@ import { ipcMain, nativeImage, screen, type BrowserWindow } from 'electron'
 import { IpcChannels } from '@shared/ipcChannels'
 import { isValidAppIconId } from '@shared/appIcons'
 import { resolveAppIconPath } from '../appIconPaths'
-import { COMPACT_SIZE, FULL_SIZE } from '@shared/windowSizes'
+import { COMPACT_SIZE, FULL_SIZE, TETO_DA_ALTURA_EXTRA_COMPACTA } from '@shared/windowSizes'
 import type { SettingsRepository } from '../storage/SettingsRepository'
 
 const RESIZE_ANIMATION_DURATION_MS = 280
@@ -56,6 +56,11 @@ function animateResize(window: BrowserWindow, targetWidth: number, targetHeight:
  * nada, em vez de estourar com "Object has been destroyed", se ela já tiver morrido (é o caso do
  * clique que chega enquanto o app fecha).
  */
+export function alturaExtraValida(valor: unknown): number {
+  if (typeof valor !== 'number' || !Number.isFinite(valor)) return 0
+  return Math.min(Math.max(0, Math.trunc(valor)), TETO_DA_ALTURA_EXTRA_COMPACTA)
+}
+
 export function registerWindowHandlers(
   obterJanela: () => BrowserWindow | null,
   settingsRepository: SettingsRepository
@@ -74,10 +79,21 @@ export function registerWindowHandlers(
 
   ipcMain.handle(IpcChannels.windowClose, () => obterJanela()?.close())
 
-  ipcMain.handle(IpcChannels.windowSetCompact, async (_event, compact: boolean) => {
+  ipcMain.handle(IpcChannels.windowSetCompact, async (_event, compact: boolean, alturaExtra: unknown = 0) => {
     const window = obterJanela()
     if (!window) return
-    const target = compact ? COMPACT_SIZE : FULL_SIZE
+    /**
+     * A altura EXTRA do modo compacto, pedida pelo renderer: uma faixa por barra de recurso (spec
+     * §3.4 — "compact mode shows the bars too"). A janelinha foi medida sem barra nenhuma, e cada
+     * barra que entra empurraria o dado pra fora se a janela não crescesse junto.
+     *
+     * Vem de fora, então é conferida: inteiro, e preso a `TETO_DA_ALTURA_EXTRA_COMPACTA` — mais que
+     * isso já não é "janelinha de canto".
+     */
+    const extra = alturaExtraValida(alturaExtra)
+    const target = compact
+      ? { ...COMPACT_SIZE, height: COMPACT_SIZE.height + extra, minHeight: COMPACT_SIZE.minHeight + extra }
+      : FULL_SIZE
     window.setResizable(true)
     // Mínimo baixo ENQUANTO anima — o mínimo final (`target.minWidth/minHeight`) costuma ser
     // maior que o tamanho de partida (ex.: vindo do splash, 360×320), e `setMinimumSize`

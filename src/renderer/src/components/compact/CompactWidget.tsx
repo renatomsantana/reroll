@@ -4,7 +4,9 @@ import { expressionLabel } from '@renderer/domain/dice/diceEngine'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { mantidosPorGrupo } from '@shared/dice/manterDados'
 import { rollBreakdown } from '@shared/dice/rollBreakdown'
+import type { RecursoVital } from '@shared/types/recursoVital'
 import { TumblingDie } from '../roller/TumblingDie'
+import { BarrasDeRecurso } from '../recursos/BarrasDeRecurso'
 import './CompactWidget.css'
 
 /**
@@ -27,11 +29,18 @@ interface CompactWidgetProps {
   presets: Preset[]
   result: RollResult | null
   onRoll: (preset: Preset) => void
+  /**
+   * As barras de PV/PE/Sanidade, na versão fina (spec §3.4: "compact mode shows the bars too").
+   * Tomar dano é a interação mais frequente da sessão e não pode exigir sair da janelinha. A janela
+   * cresce uma faixa por barra — ver `alturaExtraCompacta`.
+   */
+  recursos: RecursoVital[]
+  onChangeRecursos: (recursos: RecursoVital[]) => void
 }
 
 /** "13+5 + 4" — os dados de cada grupo somados ao modificador, pra conferir o total de relance. */
 
-export function CompactWidget({ presets, result, onRoll }: CompactWidgetProps) {
+export function CompactWidget({ presets, result, onRoll, recursos, onChangeRecursos }: CompactWidgetProps) {
   const t = useTranslation()
 
   /**
@@ -112,6 +121,8 @@ export function CompactWidget({ presets, result, onRoll }: CompactWidgetProps) {
           <span className="compact-stage-empty">{t.compact.resultEmpty}</span>
         )}
       </div>
+
+      <BarrasDeRecurso recursos={recursos} onChange={onChangeRecursos} compact />
 
       {presets.length === 0 ? (
         <p className="compact-widget-empty">{t.compact.empty}</p>

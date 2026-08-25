@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react'
-import type { SheetImport } from '@shared/types/sheetImport'
+import type { RecursoImportado, SheetImport } from '@shared/types/sheetImport'
 import type { FichaMontada } from '@shared/types/montarFicha'
 import { useProfiles } from '../settings/ProfilesContext'
+import { useNotes } from '../hooks/useNotes'
 import { useSettings } from '../settings/SettingsContext'
 import { useTranslation } from '../i18n/useTranslation'
 import { extractPdfSheet } from './extractPdfSheet'
@@ -35,6 +36,7 @@ export function useSheetImport() {
   const t = useTranslation()
   const { language } = useSettings()
   const { reload } = useProfiles()
+  const { recarregar: recarregarAnotacoes } = useNotes()
 
   const escolherArquivo = useCallback(async () => {
     setErro(null)
@@ -94,6 +96,7 @@ export function useSheetImport() {
       system: string
       notes: FichaMontada
       presets: SheetImport['presets']
+      recursos: RecursoImportado[]
     }) => {
       setGravando(true)
       try {
@@ -102,6 +105,7 @@ export function useSheetImport() {
           characterName: escolha.characterName,
           system: escolha.system,
           notes: escolha.notes,
+          recursos: escolha.recursos,
           /**
            * O preset vai só com o que o app guarda (nome e expressão). O `kind` e o `source` são
            * coisa da tela de conferência — dizer de onde a rolagem saiu — e não têm lugar no preset
@@ -115,6 +119,12 @@ export function useSheetImport() {
          * Recriar isso no renderer seria manter duas versões da mesma lista.
          */
         await reload()
+        /**
+         * E relê as ANOTAÇÕES: importar em cima do personagem que já está aberto não muda o
+         * `activeId`, então o `useNotes` não perceberia sozinho — e a ficha na tela continuaria a
+         * de antes, pronta pra gravar as seções velhas por cima das novas na próxima tecla.
+         */
+        recarregarAnotacoes()
         setLido(null)
       } catch (causa) {
         console.error('Falha ao criar o personagem a partir da ficha:', causa)
@@ -123,7 +133,7 @@ export function useSheetImport() {
         setGravando(false)
       }
     },
-    [reload, t]
+    [reload, recarregarAnotacoes, t]
   )
 
   const cancelar = useCallback(() => {

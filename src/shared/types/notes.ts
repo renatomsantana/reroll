@@ -1,4 +1,5 @@
 import { normalizarTipoDeRolagem, type SheetRollKind } from './sheetRoll'
+import { normalizarRecursos, type RecursoVital } from './recursoVital'
 
 /**
  * Uma página do BLOCO — uma por dia de jogo, viradas pelos botões ◀ ▶ (pedido do usuário: "coloca
@@ -89,6 +90,12 @@ export interface NotesData {
    * campo; quem criou do zero não tem sistema nenhum pra seguir e precisa de espaço pra escrever.
    */
   sections: SheetSection[]
+  /**
+   * As BARRAS de PV/PE/Sanidade da tela de rolagem (spec §3.4; ver `recursoVital.ts`). São do
+   * personagem e mudam a cada golpe, então moram aqui, no arquivo que troca junto com ele — e não
+   * nas preferências, que são de quem usa o app.
+   */
+  recursos: RecursoVital[]
   inventory: string
   appearance: string
   backstory: string
@@ -107,6 +114,7 @@ export const DEFAULT_NOTES: NotesData = {
   attributes: '',
   abilities: '',
   sections: [],
+  recursos: [],
   inventory: '',
   appearance: '',
   backstory: '',
@@ -209,5 +217,7 @@ export function normalizeNotes(raw: unknown): NotesData {
   // naquele formato não perde o nome por causa disso.
   const legacyName = (raw as { sheet?: { name?: string } } | null)?.sheet?.name
   const characterName = data.characterName || legacyName || ''
-  return { ...data, characterName, pages, currentPage, sections }
+  // Mesma régua das seções: ausente (perfil de antes desta versão) ou torto não derruba a ficha.
+  const recursos = normalizarRecursos(data.recursos)
+  return { ...data, characterName, pages, currentPage, sections, recursos }
 }

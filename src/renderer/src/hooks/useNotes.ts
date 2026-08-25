@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useProfiles } from '@renderer/settings/ProfilesContext'
 import {
   createNotesPage,
@@ -15,8 +15,16 @@ import {
  * As funções de página existem aqui, e não na tela, porque todas elas mexem em `pages` E em
  * `currentPage` ao mesmo tempo: apagar um dia tem que reposicionar em quem sobrou, criar um tem que
  * pular pra ele. Espalhar isso pela interface é como se cria página órfã e índice fora do intervalo.
+ *
+ * É UMA INSTÂNCIA SÓ por app, servida pelo `NotesProvider` — e isso não era assim. A aba Ficha e a
+ * aba Anotações chamavam este hook cada uma por conta própria, duas cópias inteiras do mesmo
+ * arquivo, e funcionava porque nunca estavam montadas ao mesmo tempo. As barras de recurso (spec
+ * §3.4) acabaram com isso: elas ficam na tela de rolagem, que está SEMPRE montada, e gravam a cada
+ * clique no "−". Com uma cópia própria, o clique gravaria as seções que a cópia conhecia — as de
+ * antes da última edição na Ficha — por cima do que a pessoa acabou de escrever. Uma fonte só é o
+ * que fecha essa porta.
  */
-export function useNotes() {
+export function useNotesState() {
   const [notes, setNotes] = useState<NotesData>(() => normalizeNotes(DEFAULT_NOTES))
   const [loading, setLoading] = useState(true)
   /**
@@ -39,6 +47,19 @@ export function useNotes() {
    */
   const [loadError, setLoadError] = useState(false)
   const { activeId } = useProfiles()
+  /**
+   * Pedido explícito de RELER do disco, sem trocar de personagem.
+   *
+   * Existe pela importação de ficha em cima do personagem que JÁ ESTÁ aberto: o processo principal
+   * grava a ficha nova (seções, barras) e o `activeId` não muda — então o efeito abaixo não
+   * dispara, e as anotações em memória continuam as de ANTES da importação. A próxima tecla na
+   * Ficha gravaria essas, velhas, por cima das novas. Ver `useSheetImport.confirmar`.
+   *
+   * Um contador, e não um `reload()` solto, pra passar pelo MESMO efeito — e pela mesma trava de
+   * resposta atrasada — que a troca de personagem usa.
+   */
+  const [versao, setVersao] = useState(0)
+  const recarregar = useCallback(() => setVersao((atual) => atual + 1), [])
 
   /**
    * Recarrega quando o PERSONAGEM muda: anotações e presets moram na pasta do perfil aberto (ver
@@ -76,7 +97,7 @@ export function useNotes() {
     return () => {
       atual = false
     }
-  }, [activeId])
+  }, [activeId, versao])
 
   /**
    * O conteúdo em `notes` é do personagem ABERTO? Enquanto não for, gravar é destruir.
@@ -169,10 +190,30 @@ export function useNotes() {
     loadedFor,
     saveError,
     loadError,
+    recarregar,
+    update,
     updateField,
     updatePage,
     goToPage,
     addPage,
     removePage
   }
+}
+
+export type NotesControl = ReturnType<typeof useNotesState>
+
+const NotesContext = createContext<NotesControl | null>(null)
+
+/** A instância única das anotações do personagem aberto — ver o cabeçalho de `useNotesState`. */
+export function NotesProvider({ children }: { children: ReactNode }) {
+  const valor = useNotesState()
+  return createElement(NotesContext.Provider, { value: valor }, children)
+}
+
+export function useNotes(): NotesControl {
+  const contexto = useContext(NotesContext)
+  if (!contexto) {
+    throw new Error('useNotes precisa estar dentro de um NotesProvider — ver hooks/useNotes.ts.')
+  }
+  return contexto
 }

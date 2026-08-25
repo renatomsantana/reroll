@@ -11,8 +11,15 @@ import {
   MAXIMO_DE_CAMPOS_POR_SECAO,
   TAMANHO_MAXIMO_DA_FICHA,
   type PdfEscolhido,
+  type RecursoImportado,
   type SheetApplyPayload
 } from '@shared/types/sheetImport'
+import {
+  MAXIMO_DE_RECURSOS,
+  TAMANHO_MAXIMO_DO_NOME_DO_RECURSO,
+  TETO_DO_VALOR_DE_RECURSO,
+  fundirRecursos
+} from '@shared/types/recursoVital'
 import { isValidPresetInput } from './registerPresetsHandlers'
 import { escolherArquivo } from './dialogos'
 import type { ProfilesRepository } from '../storage/ProfilesRepository'
@@ -176,6 +183,23 @@ export function validarSheetApplyPayload(bruto: unknown): SheetApplyPayload {
      */
     .filter((secao) => secao.title.trim() !== '')
 
+  /**
+   * As BARRAS (spec §3.4), na régua branda: item torto é pulado, número fora do teto é preso. Lista
+   * ausente é o normal de um renderer anterior a elas; lista que não é lista é contrato quebrado.
+   */
+  if (payload.recursos !== undefined && !Array.isArray(payload.recursos)) {
+    throw new Error('Ficha inválida: recursos em formato inesperado.')
+  }
+  const recursosLimpos: RecursoImportado[] = (payload.recursos ?? [])
+    .slice(0, MAXIMO_DE_RECURSOS)
+    .filter((recurso): recurso is Record<string, unknown> => typeof recurso === 'object' && recurso !== null)
+    .map((recurso) => ({
+      nome: texto(recurso.nome, TAMANHO_MAXIMO_DO_NOME_DO_RECURSO, 'o nome de um recurso').trim(),
+      atual: numero(recurso.atual),
+      maximo: numero(recurso.maximo)
+    }))
+    .filter((recurso) => recurso.nome !== '')
+
   return {
     targetProfileId:
       typeof payload.targetProfileId === 'string' ? payload.targetProfileId : undefined,
@@ -187,8 +211,15 @@ export function validarSheetApplyPayload(bruto: unknown): SheetApplyPayload {
      * mesma régua do canal de presets. Duplicar a checagem aqui criaria uma segunda régua pra mesma
      * pergunta — e é sempre a segunda que fica pra trás.
      */
-    presets: (payload.presets as PresetInput[]).slice(0, LIMITES_DA_FICHA.presets)
+    presets: (payload.presets as PresetInput[]).slice(0, LIMITES_DA_FICHA.presets),
+    recursos: recursosLimpos
   }
+}
+
+/** Inteiro em `[0, teto]`; o que não é número finito vira zero — a barra nasce vazia, não a ficha. */
+function numero(valor: unknown): number {
+  if (typeof valor !== 'number' || !Number.isFinite(valor)) return 0
+  return Math.min(Math.max(0, Math.trunc(valor)), TETO_DO_VALOR_DE_RECURSO)
 }
 
 export function registerSheetHandlers(
@@ -291,7 +322,8 @@ export function registerSheetHandlers(
       async function gravarFichaEPresets(): Promise<void> {
 
       const blocos = payload.notes.blocks
-      if (payload.notes.sections.length > 0 || Object.keys(blocos).length > 0) {
+      const recursosImportados = payload.recursos ?? []
+      if (payload.notes.sections.length > 0 || Object.keys(blocos).length > 0 || recursosImportados.length > 0) {
         const atuais = await notes.get()
         /**
          * As seções vão pra FICHA do personagem, e nada vai pro diário: o diário é por sessão de
@@ -330,6 +362,11 @@ ${novoTexto}` : novoTexto
           inventory: juntar(atuais.inventory, blocos.inventory),
           appearance: juntar(atuais.appearance, blocos.appearance),
           backstory: juntar(atuais.backstory, blocos.backstory),
+          /**
+           * As BARRAS fundem pelo nome (ver `fundirRecursos`): reimportar traz o PV com máximo novo
+           * pra MESMA barra, e as criadas à mão ficam.
+           */
+          recursos: fundirRecursos(atuais.recursos, recursosImportados),
           /**
            * Seção com o MESMO TÍTULO é substituída, e não duplicada.
            *

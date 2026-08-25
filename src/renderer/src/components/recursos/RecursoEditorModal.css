@@ -1,0 +1,96 @@
+.recurso-editor {
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 60px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-style: outset;
+}
+
+.recurso-editor-titulo {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Cabeçalho e linhas na MESMA grade, senão os rótulos não alinham com as colunas. */
+.recurso-editor-cabecalho,
+.recurso-editor-linha {
+  display: grid;
+  grid-template-columns: 1fr 72px 72px 64px 28px;
+  gap: 6px;
+  align-items: center;
+}
+
+.recurso-editor-cabecalho {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--win-text-muted);
+  padding: 0 2px;
+}
+
+.recurso-editor-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.recurso-editor-linha input[type='number'] {
+  width: 100%;
+}
+
+.recurso-editor-cor {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.recurso-editor-cor input[type='color'] {
+  width: 32px;
+  height: 22px;
+  padding: 1px;
+}
+
+.recurso-editor-cor-auto {
+  width: 22px;
+  height: 22px;
+  /* 1px em volta → `2px 0 0 2px` no clique: o miolo centralizado anda 1px inteiro. Ver `.barra-passo`. */
+  padding: 1px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.recurso-editor-cor-auto:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 0 0 2px;
+}
+
+.recurso-editor-remover {
+  width: 28px;
+  padding: 2px 0;
+}
+
+.recurso-editor-rodape {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+.recurso-editor-limite {
+  font-size: 11px;
+  color: var(--win-text-muted);
+}
+
+.recurso-editor-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

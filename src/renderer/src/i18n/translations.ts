@@ -93,6 +93,32 @@ export interface TranslationDict {
   history: { title: string; empty: string; clear: string }
   /** Modo compacto — a janelinha de canto, que só tem presets e resultado (ver `CompactWidget.tsx`). */
   compact: { empty: string; resultEmpty: string }
+  /** As BARRAS de PV/PE/Sanidade da tela de rolagem (spec §3.4; ver `BarrasDeRecurso.tsx`). */
+  resources: {
+    title: string
+    edit: string
+    editorTitle: string
+    add: string
+    name: string
+    namePlaceholder: string
+    current: string
+    max: string
+    color: string
+    colorAuto: string
+    remove: string
+    save: string
+    cancel: string
+    /** Rótulos de acessibilidade dos botões de menos e mais — `{name}` é o recurso. */
+    minus: string
+    plus: string
+    /** Rótulo do número clicável ("19 / 45") — diz que dá pra digitar ali. */
+    valueLabel: string
+    inputPlaceholder: string
+    hint: string
+    empty: string
+    /** Aviso do editor: o teto de barras foi atingido. */
+    limit: string
+  }
   settings: {
     title: string
     language: string
@@ -320,6 +346,10 @@ export interface TranslationDict {
     fieldsEmpty: string
     presetsTitle: string
     presetsEmpty: string
+    /** As BARRAS que a ficha propõe (ver `extrairRecursos.ts`), com o aviso de "atual em branco". */
+    resourcesTitle: string
+    resourcesEmpty: string
+    resourceBlankCurrent: string
     /** "(3 de 12)" — quantos itens seguem marcados. */
     count: string
     rawTextTitle: string
@@ -437,6 +467,28 @@ export const translations: Record<Language, TranslationDict> = {
     compact: {
       empty: 'Nenhum preset ainda. Saia do modo compacto pra criar — a janela pequena não tem espaço pro editor.',
       resultEmpty: 'Toque num preset pra rolar.'
+    },
+    resources: {
+      title: 'Recursos',
+      edit: 'Editar barras',
+      editorTitle: 'Barras de recurso',
+      add: 'Adicionar barra',
+      name: 'Nome',
+      namePlaceholder: 'PV, PE, Sanidade...',
+      current: 'Atual',
+      max: 'Máximo',
+      color: 'Cor',
+      colorAuto: 'Cor automática (muda com o estado)',
+      remove: 'Remover barra {name}',
+      save: 'Salvar',
+      cancel: 'Cancelar',
+      minus: 'Tirar de {name}',
+      plus: 'Somar em {name}',
+      valueLabel: '{name}: {current} de {max} — clique pra digitar',
+      inputPlaceholder: '-7, 12 ou 12/40',
+      hint: 'Clique: ±1 · Shift+clique ou segurar: ±5 · clique no número pra digitar (-7, 12, 12/40)',
+      empty: 'Nenhuma barra ainda. Importe uma ficha ou clique em "Editar barras" pra criar PV, PE, Sanidade...',
+      limit: 'Máximo de {max} barras por personagem.'
     },
     settings: {
       title: 'Preferências',
@@ -617,6 +669,9 @@ export const translations: Record<Language, TranslationDict> = {
       fieldsEmpty: 'Nenhum campo preenchido foi encontrado.',
       presetsTitle: 'Presets',
       presetsEmpty: 'Nenhuma rolagem foi encontrada nesta ficha.',
+      resourcesTitle: 'Barras de recurso',
+      resourcesEmpty: 'Nenhum par atual/máximo preenchido — dá pra criar as barras depois, na tela de rolagem.',
+      resourceBlankCurrent: 'atual em branco na ficha — a barra começa cheia',
       count: '({selected} de {total})',
       rawTextTitle: 'Texto da ficha',
       rawTextHint: '(vai para o bloco História)',
@@ -761,6 +816,28 @@ export const translations: Record<Language, TranslationDict> = {
     compact: {
       empty: 'No presets yet. Leave compact mode to create one — the small window has no room for the editor.',
       resultEmpty: 'Tap a preset to roll.'
+    },
+    resources: {
+      title: 'Resources',
+      edit: 'Edit bars',
+      editorTitle: 'Resource bars',
+      add: 'Add bar',
+      name: 'Name',
+      namePlaceholder: 'HP, Sanity, Spell slots...',
+      current: 'Current',
+      max: 'Max',
+      color: 'Color',
+      colorAuto: 'Automatic color (changes with state)',
+      remove: 'Remove bar {name}',
+      save: 'Save',
+      cancel: 'Cancel',
+      minus: 'Subtract from {name}',
+      plus: 'Add to {name}',
+      valueLabel: '{name}: {current} of {max} — click to type',
+      inputPlaceholder: '-7, 12 or 12/40',
+      hint: 'Click: ±1 · Shift+click or hold: ±5 · click the number to type (-7, 12, 12/40)',
+      empty: 'No bars yet. Import a sheet or click "Edit bars" to create HP, Sanity, spell slots...',
+      limit: 'At most {max} bars per character.'
     },
     settings: {
       title: 'Preferences',
@@ -941,6 +1018,9 @@ export const translations: Record<Language, TranslationDict> = {
       fieldsEmpty: 'No filled-in field was found.',
       presetsTitle: 'Presets',
       presetsEmpty: 'No roll was found in this sheet.',
+      resourcesTitle: 'Resource bars',
+      resourcesEmpty: 'No filled current/max pair — you can create the bars later, on the roll screen.',
+      resourceBlankCurrent: 'current value blank on the sheet — the bar starts full',
       count: '({selected} of {total})',
       rawTextTitle: 'Sheet text',
       rawTextHint: '(goes to the Backstory block)',

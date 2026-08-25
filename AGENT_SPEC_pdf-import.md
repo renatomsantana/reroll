@@ -105,6 +105,10 @@ Target schema (all fields optional; every value carries `{ value, confidence: 0�
 }
 ```
 
+> **Resources are mandatory content, not nice-to-have:** capture **current AND max** for every vital resource the sheet tracks — e.g., Ordem Paranormal's PV, PE and Sanidade **atuais**, not just the maximums. These values pre-fill the on-screen resource bars (main spec §3.4). A sheet imported without its current resource values is an incomplete import and must be flagged in the Review screen.
+
+> **Portrait extraction:** when the PDF contains an embedded character image (common on OP and many fillable sheets), extract it (pdf.js image objects; pick the largest raster image on the identity page, excluding logos/background art by size/position heuristics from the template), save it as the profile portrait candidate, and offer it in the Review screen with an option to keep, replace with a user-chosen file, or remove. Feeds the Character HUD (main spec §3.6). If no usable image is found, skip silently — never block the import over the portrait.
+
 - **Template mode:** apply the template's mapping rules; compute derived values; validate ranges (e.g., 5e ability 1–30) — out-of-range → lower confidence, flag for review.
 - **Generic mode heuristics:** label:value pairs ("Strength: 16"), label-adjacent numbers using positions, list detection for inventory (bullet/line runs of short items), and the longest free-text block(s) → backstory candidate.
 - Numbers rule: prefer integers near labels; treat `+3` / `-1` as modifiers; treat `12/15` as current/max.
