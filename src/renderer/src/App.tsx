@@ -25,6 +25,9 @@ import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModa
 import { HistoryModal } from '@renderer/components/history/HistoryModal'
 import { BarrasDeRecurso } from '@renderer/components/recursos/BarrasDeRecurso'
 import { RecursoEditorModal } from '@renderer/components/recursos/RecursoEditorModal'
+import { DescansoModal } from '@renderer/components/recursos/DescansoModal'
+import { DescansoEditorModal } from '@renderer/components/recursos/DescansoEditorModal'
+import { aplicarDescanso, resumoDoDescanso, type Descanso } from '@shared/types/descanso'
 import { rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
 import { linhaParaChat } from '@shared/dice/linhaParaChat'
 import { comMarcasDeCritico } from '@shared/dice/critico'
@@ -48,7 +51,10 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [compactLastResult, setCompactLastResult] = useState<RollResult | null>(null)
   const roller3DRef = useRef<DiceRoller3DHandle>(null)
-  const { history, addToHistory, clearHistory } = useRollHistory()
+  const { history, addToHistory, registrarDescanso, clearHistory } = useRollHistory()
+  /** O DESCANSO (spec §3.8): a confirmação com o delta, e o editor dos tipos. */
+  const [descansando, setDescansando] = useState(false)
+  const [editandoDescansos, setEditandoDescansos] = useState(false)
   /**
    * Toda rolagem terminada passa por aqui: vai pro histórico e, com "copiar toda rolagem" ligado
    * (spec §3.5), já vai pra área de transferência na linha do chat. Um funil só, pros dois
@@ -95,6 +101,16 @@ export default function App() {
   const recursos = notas.notes.recursos
   const [editandoRecursos, setEditandoRecursos] = useState(false)
   const quantidadeDeBarras = recursos.length
+  /** Algum modal das barras aberto — trava os atalhos da cena e o Ctrl+N. */
+  const modalDasBarrasAberto = editandoRecursos || descansando || editandoDescansos
+
+  /** Confirmado: aplica, grava, e o histórico ganha a linha "— Descanso longo — PV 12→27". */
+  function confirmarDescanso(descanso: Descanso): void {
+    const { recursos: novos, mudancas } = aplicarDescanso(recursos, descanso)
+    notas.updateField('recursos', novos)
+    registrarDescanso(descanso.nome, resumoDoDescanso(mudancas))
+    setDescansando(false)
+  }
 
   useEffect(() => {
     if (showSplash) return
@@ -112,13 +128,13 @@ export default function App() {
     if (showSplash) return
     function handleKeyDown(e: KeyboardEvent) {
       if (!e.ctrlKey || e.key.toLowerCase() !== 'n') return
-      if (compactMode || activeTab !== 'roll' || isCreating || editingPreset || settingsOpen || editandoRecursos) return
+      if (compactMode || activeTab !== 'roll' || isCreating || editingPreset || settingsOpen || modalDasBarrasAberto) return
       e.preventDefault()
       setIsCreating(true)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showSplash, compactMode, activeTab, isCreating, editingPreset, settingsOpen, editandoRecursos])
+  }, [showSplash, compactMode, activeTab, isCreating, editingPreset, settingsOpen, modalDasBarrasAberto])
 
   if (showSplash) {
     return (
@@ -332,7 +348,7 @@ export default function App() {
                     (ver o comentário do `display` acima), e sem isto o Espaço rolava os dados
                     enquanto a pessoa escrevia nas Anotações.
                   */
-                  shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen && !editandoRecursos}
+                  shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen && !modalDasBarrasAberto}
                   /* De quem são os dados — o crachá ao lado do ROLAR (ver `ProfileBadge.tsx`). */
                   badge={
                     <ProfileBadge
@@ -354,6 +370,7 @@ export default function App() {
                   recursos={recursos}
                   onChange={(lista) => notas.updateField('recursos', lista)}
                   onEdit={() => setEditandoRecursos(true)}
+                  onRest={() => setDescansando(true)}
                 />
               </section>
 
@@ -454,6 +471,36 @@ export default function App() {
             setEditandoRecursos(false)
           }}
           onCancel={() => setEditandoRecursos(false)}
+        />
+      )}
+
+      {descansando && (
+        <DescansoModal
+          recursos={recursos}
+          descansos={notas.notes.descansos}
+          onConfirm={confirmarDescanso}
+          onEdit={() => {
+            // Um modal de cada vez — ver o mesmo cuidado em `onOpenHistory`.
+            setDescansando(false)
+            setEditandoDescansos(true)
+          }}
+          onCancel={() => setDescansando(false)}
+        />
+      )}
+
+      {editandoDescansos && (
+        <DescansoEditorModal
+          recursos={recursos}
+          descansos={notas.notes.descansos}
+          onSave={(lista) => {
+            notas.updateField('descansos', lista)
+            setEditandoDescansos(false)
+            setDescansando(true)
+          }}
+          onCancel={() => {
+            setEditandoDescansos(false)
+            setDescansando(true)
+          }}
         />
       )}
 

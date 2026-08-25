@@ -14,6 +14,26 @@
   border-style: outset;
 }
 
+/* A linha de EVENTO (o descanso, spec §3.8): risco no lugar dos dados, nome entre travessões. */
+.history-evento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  padding: 8px 3px;
+  border-bottom: 1px solid var(--win-shadow);
+  font-size: 11px;
+  background: var(--win-input-bg);
+}
+
+.history-evento-nome {
+  font-weight: bold;
+}
+
+.history-evento-resumo {
+  color: var(--win-text-muted);
+}
+
 .history-modal-header {
   display: flex;
   align-items: center;

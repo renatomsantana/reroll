@@ -65,6 +65,17 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   (`presets:setFavorito`, `presets:moverFavorito`) que devolvem a lista reindexada — apagar ou
   desmarcar nunca deixa buraco na fileira.
 
+- **Descansar (§3.8)** — um botão na legenda das barras. Cada personagem tem os seus TIPOS de
+  descanso (D&D: longo devolve tudo, curto vem vazio pra pessoa preencher; Ordem: descanso
+  devolve tudo, intervalo só o PE; sistema desconhecido: um descanso que devolve tudo — a ficha
+  importada já nasce com eles), e cada tipo diz, barra por barra: volta ao máximo, soma N, ou
+  nada. O clique NUNCA é silencioso: abre a confirmação com o delta ("PV 12 → 45, PE 4 → 12"),
+  com o tipo escolhível quando há mais de um, e um "Editar tipos…" ali mesmo. Confirmado, as
+  barras mudam, gravam, e o histórico da sessão ganha a linha "— Descanso longo — PV 12→45" —
+  o histórico passou a aceitar EVENTOS além de rolagens (`ItemDoHistorico`), em vez de fingir
+  que um descanso é uma rolagem de total zero. Sem tipo configurado, o botão oferece um
+  descanso completo sem gravar nada. Nada de timer, nada automático.
+
 ### Interno
 
 - **As anotações viraram uma instância só** (`NotesProvider`): a aba Ficha e a aba Anotações

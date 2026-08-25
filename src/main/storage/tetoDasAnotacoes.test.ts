@@ -38,6 +38,7 @@ function ficha(texto: string): NotesData {
     sections: [],
     recursos: [],
     critico: { lados: 20, modo: 'alto' },
+    descansos: [],
     inventory: '',
     appearance: '',
     backstory: '',

@@ -21,6 +21,7 @@ import {
   fundirRecursos
 } from '@shared/types/recursoVital'
 import { regraDeCriticoDoSistema } from '@shared/dice/critico'
+import { descansosPadrao } from '@shared/types/descanso'
 import { isValidPresetInput } from './registerPresetsHandlers'
 import { escolherArquivo } from './dialogos'
 import type { ProfilesRepository } from '../storage/ProfilesRepository'
@@ -355,6 +356,7 @@ export function registerSheetHandlers(
 
 ${novoTexto}` : novoTexto
         }
+        const recursosFundidos = fundirRecursos(atuais.recursos, recursosImportados)
         await notes.save({
           ...atuais,
           characterName: novo.name,
@@ -367,12 +369,21 @@ ${novoTexto}` : novoTexto
            * As BARRAS fundem pelo nome (ver `fundirRecursos`): reimportar traz o PV com máximo novo
            * pra MESMA barra, e as criadas à mão ficam.
            */
-          recursos: fundirRecursos(atuais.recursos, recursosImportados),
+          recursos: recursosFundidos,
           /**
            * A regra de crítico vem do SISTEMA da ficha só no personagem NOVO (Cthulhu nasce d100
            * rola-abaixo). Num personagem atualizado a regra que a pessoa escolheu fica.
            */
           critico: existente ? atuais.critico : regraDeCriticoDoSistema(payload.system),
+          /**
+           * Os tipos de DESCANSO (spec §3.8) vêm do sistema quando o personagem ainda não tem
+           * nenhum — no novo, sempre; no atualizado, só se a pessoa nunca configurou. Um que já
+           * editou os seus não os perde por reimportar a ficha.
+           */
+          descansos:
+            existente && atuais.descansos.length > 0
+              ? atuais.descansos
+              : descansosPadrao(payload.system, recursosFundidos),
           /**
            * Seção com o MESMO TÍTULO é substituída, e não duplicada.
            *

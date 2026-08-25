@@ -31,6 +31,8 @@ interface BarrasDeRecursoProps {
   onChange: (recursos: RecursoVital[]) => void
   /** Abre o editor (nome, máximo, cor, acrescentar, remover). Ausente no modo compacto. */
   onEdit?: () => void
+  /** O botão DESCANSAR (spec §3.8), ao lado das barras — só existe quando há barra pra devolver. */
+  onRest?: () => void
   /** A versão fina do modo compacto: sem título, sem dica, uma linha de 16px por barra. */
   compact?: boolean
 }
@@ -41,7 +43,7 @@ const PASSO_GRANDE = 5
 const ATRASO_DO_SEGURAR_MS = 400
 const INTERVALO_DO_SEGURAR_MS = 200
 
-export function BarrasDeRecurso({ recursos, onChange, onEdit, compact = false }: BarrasDeRecursoProps) {
+export function BarrasDeRecurso({ recursos, onChange, onEdit, onRest, compact = false }: BarrasDeRecursoProps) {
   const t = useTranslation()
 
   function alterar(id: string, mudanca: Partial<Pick<RecursoVital, 'atual' | 'maximo'>>): void {
@@ -72,6 +74,11 @@ export function BarrasDeRecurso({ recursos, onChange, onEdit, compact = false }:
         {onEdit && (
           <button type="button" className="barras-editar" onClick={onEdit} title={t.resources.edit} aria-label={t.resources.edit}>
             <IconeLapis tamanho={11} />
+          </button>
+        )}
+        {onRest && recursos.length > 0 && (
+          <button type="button" className="barras-descansar" onClick={onRest}>
+            {t.rest.button}
           </button>
         )}
       </legend>

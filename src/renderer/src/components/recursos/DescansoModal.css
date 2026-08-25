@@ -1,0 +1,148 @@
+.descanso-modal {
+  width: 420px;
+  max-width: calc(100vw - 40px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-style: outset;
+}
+
+.descanso-modal-titulo {
+  margin: 0;
+  font-size: 14px;
+}
+
+.descanso-modal-tipo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.descanso-modal-tipo select {
+  flex: 1;
+}
+
+.descanso-modal-tipo-unico {
+  margin: 0;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.descanso-modal-vazio {
+  margin: 0;
+  padding: 8px;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+  font-size: 11px;
+  color: var(--win-text-muted);
+}
+
+/* A lista do que vai mudar, na caixa afundada: é o que se lê antes de confirmar. */
+.descanso-modal-lista {
+  margin: 0;
+  padding: 6px 10px;
+  list-style: none;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.descanso-modal-lista li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.descanso-modal-nome {
+  font-weight: bold;
+}
+
+.descanso-modal-delta {
+  font-variant-numeric: tabular-nums;
+}
+
+.descanso-modal-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.descanso-modal-espaco {
+  flex: 1;
+}
+
+/* O EDITOR dos tipos: uma caixa por tipo, com a grade "barra → o que acontece". */
+.descanso-editor {
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 60px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-style: outset;
+}
+
+.descanso-editor-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  max-height: 420px;
+}
+
+.descanso-editor-tipo {
+  margin: 0;
+  padding: 6px 10px 8px;
+  border: 2px groove var(--win-highlight);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.descanso-editor-tipo > legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.descanso-editor-tipo > legend input {
+  width: 180px;
+  font-weight: bold;
+}
+
+.descanso-editor-linha {
+  display: grid;
+  grid-template-columns: 1fr 150px 72px;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.descanso-editor-linha input[type='number'] {
+  width: 100%;
+}
+
+.descanso-editor-vazio {
+  margin: 0;
+  font-size: 11px;
+  color: var(--win-text-muted);
+}
+
+.descanso-editor-rodape {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+.descanso-editor-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

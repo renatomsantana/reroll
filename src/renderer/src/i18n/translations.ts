@@ -105,7 +105,32 @@ export interface TranslationDict {
   }
   emojiPicker: { hint: string }
   statusBar: { shortcutsHint: string }
-  history: { title: string; empty: string; clear: string }
+  /** `restEvent` é a linha do descanso no diário da sessão (spec §3.8): "— {name} —". */
+  history: { title: string; empty: string; clear: string; restEvent: string }
+  /** O DESCANSO (spec §3.8): o botão, a confirmação com o delta, e o editor dos tipos. */
+  rest: {
+    button: string
+    title: string
+    type: string
+    noChange: string
+    noResources: string
+    confirm: string
+    cancel: string
+    editTypes: string
+    editorTitle: string
+    editorEmpty: string
+    typeName: string
+    typeNamePlaceholder: string
+    add: string
+    remove: string
+    modeMax: string
+    modePlus: string
+    modeNone: string
+    quantity: string
+    save: string
+    defaultName: string
+    limit: string
+  }
   /** Modo compacto — a janelinha de canto, que só tem presets e resultado (ver `CompactWidget.tsx`). */
   compact: { empty: string; resultEmpty: string }
   /** As BARRAS de PV/PE/Sanidade da tela de rolagem (spec §3.4; ver `BarrasDeRecurso.tsx`). */
@@ -503,7 +528,31 @@ export const translations: Record<Language, TranslationDict> = {
     history: {
       title: 'Histórico',
       empty: 'Nenhuma rolagem ainda nesta sessão.',
-      clear: 'Limpar'
+      clear: 'Limpar',
+      restEvent: '— {name} —'
+    },
+    rest: {
+      button: 'Descansar',
+      title: 'Descansar',
+      type: 'Tipo',
+      noChange: 'Este descanso não muda nenhuma barra. Confira as regras em "Editar tipos".',
+      noResources: 'Nenhuma barra de recurso ainda — crie as barras primeiro.',
+      confirm: 'Descansar',
+      cancel: 'Cancelar',
+      editTypes: 'Editar tipos…',
+      editorTitle: 'Tipos de descanso',
+      editorEmpty: 'Nenhum tipo ainda. Sem nenhum, o botão oferece um descanso que devolve tudo ao máximo.',
+      typeName: 'Nome do descanso',
+      typeNamePlaceholder: 'Descanso longo, Intervalo...',
+      add: 'Adicionar tipo',
+      remove: 'Remover {name}',
+      modeMax: 'Volta ao máximo',
+      modePlus: 'Soma…',
+      modeNone: 'Não muda',
+      quantity: 'Quanto soma',
+      save: 'Salvar',
+      defaultName: 'Descanso',
+      limit: 'Máximo de {max} tipos de descanso.'
     },
     compact: {
       empty: 'Nenhum preset ainda. Saia do modo compacto pra criar — a janela pequena não tem espaço pro editor.',
@@ -876,7 +925,31 @@ export const translations: Record<Language, TranslationDict> = {
     history: {
       title: 'History',
       empty: 'No rolls yet this session.',
-      clear: 'Clear'
+      clear: 'Clear',
+      restEvent: '— {name} —'
+    },
+    rest: {
+      button: 'Rest',
+      title: 'Rest',
+      type: 'Type',
+      noChange: 'This rest changes no bar. Check the rules under "Edit types".',
+      noResources: 'No resource bars yet — create the bars first.',
+      confirm: 'Rest',
+      cancel: 'Cancel',
+      editTypes: 'Edit types…',
+      editorTitle: 'Rest types',
+      editorEmpty: 'No types yet. With none, the button offers a rest that restores everything to max.',
+      typeName: 'Rest name',
+      typeNamePlaceholder: 'Long rest, Short rest...',
+      add: 'Add type',
+      remove: 'Remove {name}',
+      modeMax: 'Restore to max',
+      modePlus: 'Add…',
+      modeNone: 'No change',
+      quantity: 'How much',
+      save: 'Save',
+      defaultName: 'Rest',
+      limit: 'At most {max} rest types.'
     },
     compact: {
       empty: 'No presets yet. Leave compact mode to create one — the small window has no room for the editor.',
