@@ -54,24 +54,18 @@ function apiFalsa() {
 }
 
 /** As barras ligadas às anotações de verdade, como o `App` faz. */
-function Tela({ compact = false }: { compact?: boolean }) {
+function Tela() {
   const notas = useNotes()
-  return (
-    <BarrasDeRecurso
-      recursos={notas.notes.recursos}
-      onChange={(lista) => notas.updateField('recursos', lista)}
-      compact={compact}
-    />
-  )
+  return <BarrasDeRecurso recursos={notas.notes.recursos} onChange={(lista) => notas.updateField('recursos', lista)} />
 }
 
-async function montar(compact = false) {
+async function montar() {
   ;(globalThis as unknown as { api: unknown }).api = apiFalsa()
   render(
     <ProfilesProvider>
       <SettingsProvider>
         <NotesProvider>
-          <Tela compact={compact} />
+          <Tela />
         </NotesProvider>
       </SettingsProvider>
     </ProfilesProvider>
@@ -182,8 +176,8 @@ describe('as barras de recurso', () => {
     expect(sanEl.style.getPropertyValue('--recurso-cor')).toBe('#800080')
   })
 
-  it('modo compacto: as mesmas barras, finas, e nenhuma quando não há recurso', async () => {
-    await montar(true)
+  it('uma linha fina por barra, e nada na tela quando não há recurso', async () => {
+    await montar()
     expect(screen.getByRole('group', { name: 'Recursos' })).toBeTruthy()
     expect(screen.getByLabelText('Tirar de PV').closest('.barra-compacta')).toBeTruthy()
     cleanup()
@@ -199,7 +193,7 @@ describe('as barras de recurso', () => {
       <ProfilesProvider>
         <SettingsProvider>
           <NotesProvider>
-            <Tela compact />
+            <Tela />
           </NotesProvider>
         </SettingsProvider>
       </ProfilesProvider>

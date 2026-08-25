@@ -610,7 +610,7 @@ export const translations: Record<Language, TranslationDict> = {
       valueLabel: '{name}: {current} de {max} — clique pra digitar',
       inputPlaceholder: '-7, 12 ou 12/40',
       hint: 'Clique: ±1 · Shift+clique ou segurar: ±5 · clique no número pra digitar (-7, 12, 12/40)',
-      empty: 'Nenhuma barra ainda. Importe uma ficha ou clique em "Editar barras" pra criar PV, PE, Sanidade...',
+      empty: 'Nenhuma barra ainda — o lápis aí em cima cria PV, PE, Sanidade... (ou importe uma ficha).',
       limit: 'Máximo de {max} barras por personagem.'
     },
     settings: {
@@ -1025,7 +1025,7 @@ export const translations: Record<Language, TranslationDict> = {
       valueLabel: '{name}: {current} of {max} — click to type',
       inputPlaceholder: '-7, 12 or 12/40',
       hint: 'Click: ±1 · Shift+click or hold: ±5 · click the number to type (-7, 12, 12/40)',
-      empty: 'No bars yet. Import a sheet or click "Edit bars" to create HP, Sanity, spell slots...',
+      empty: 'No bars yet — the pencil above creates HP, Sanity, spell slots... (or import a sheet).',
       limit: 'At most {max} bars per character.'
     },
     settings: {

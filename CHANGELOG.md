@@ -14,7 +14,7 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 ### Adicionado
 
 - **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela
-  de rolagem, entre a cena e os presets, com "−" e "+" ao lado de cada uma: clique tira ou soma 1,
+  de rolagem, no HUD sobre a cena (ver §3.6), com "−" e "+" ao lado de cada uma: clique tira ou soma 1,
   Shift+clique ou segurar o botão anda de 5 em 5, e clicar no número abre um campo que aceita
   conta (`-7`), valor exato (`12`) ou o par inteiro (`12/40`). A cor muda de bloco com o estado:
   verde, oliva abaixo da metade, bordô abaixo de um quarto — as três da paleta do Windows — ou uma
@@ -23,8 +23,9 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 - **As barras no modo compacto também**: uma linha fina por barra entre o dado e os presets, e a
   janelinha CRESCE 19px por barra (medido numa janela oculta com zero, uma e três barras — o painel
   do dado fica com os mesmos 101px em todos os casos; `scripts/medirBarrasCompactas.mjs`).
-- **Editor de barras** (o lápis na legenda "Recursos"): nome, atual, máximo, cor, acrescentar e
-  remover — até doze por personagem. Subir de nível é mexer no máximo ali, sem reimportar.
+- **Editor de barras** (o lápis no cabeçalho do HUD): nome, atual, máximo, cor, acrescentar e
+  remover — até doze por personagem. Subir de nível é mexer no máximo ali, sem reimportar. Sem
+  nenhuma barra, o HUD mostra a dica e o lápis é o caminho pra criar a primeira.
 - **A importação de ficha PROPÕE as barras**: os pares "PV atual / PV máximo" que os leitores já
   traziam como campos soltos (Ordem, D&D, Pathfinder), o "12/40" num campo só (Oblívio, a Carga de
   Ordem) e o "Current HP / Max HP" em inglês viram barras na tela de conferência, cada uma com a
@@ -102,11 +103,12 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   tamanho intrínseco dele, e num contêiner de altura automática ele passou a ditar a própria
   altura (628px onde cabiam 420); o canvas ficou fora do fluxo (absoluto) e o `setSize` do three
   não escreve mais estilo inline. (3) Com tudo no lugar a aba passou a ROLAR na janela padrão
-  (748 de conteúdo em 716): a faixa de recursos virou a TERCEIRA caixa de grupo da linha de
-  controles da cena — "Tipo de dado | Rolagem | Recursos" —, custo zero em altura; e a caixa
-  "Rolagem" ganhou base de 520px pra não ser espremida pela vizinha (media 464 onde o conteúdo
-  pede ~510: "Desvantagem" cortado e o crachá por cima dos botões). Resultado: 716 em 716, cena
-  em 432px, nada se sobrepõe.
+  (748 de conteúdo em 716): a faixa de recursos passou pra linha de controles da cena e, na
+  sequência, saiu de lá também — pedido dele: a mesma barra em dois lugares da mesma tela era
+  uma a mais. As barras moram SÓ no HUD sobre a cena (e na janelinha do modo compacto), com o
+  lápis de criar/editar e o Descansar dentro do HUD. A caixa "Rolagem" ficou com base de 520px,
+  que é o tamanho do conteúdo dela (media 464 onde pede ~510: "Desvantagem" cortado e o crachá
+  por cima dos botões). Resultado: 716 em 716, nada se sobrepõe.
 
 ### Interno
 

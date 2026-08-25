@@ -117,20 +117,6 @@ app.whenReady().then(async () => {
       `${ok ? 'OK ' : 'ERR'} ${caso.id.padEnd(5)} janela=${alturaDaJanela} conteúdo=${medidas.janela} painel=${medidas.painel.toFixed(1)} faixa=${medidas.faixa.toFixed(1)} presets=${medidas.presets.toFixed(1)} vazou=${medidas.vazou}`
     )
   }
-  /**
-   * A versão CHEIA (a caixa de grupo da tela de rolagem), só pra olhar — não é julgada: a largura
-   * ali é elástica, e o que importa é a família de botões, que `afundarDosBotoes.mjs` já mede.
-   */
-  win.setContentSize(760, 130)
-  const cheia = `<!DOCTYPE html><html data-theme="day"><head><meta charset="utf-8"><link rel="stylesheet" href="${css}"><style>html,body{margin:0;background:#c0c0c0;padding:12px}</style></head><body>
-    <fieldset class="barras-de-recurso"><legend>Recursos <button class="barras-editar">✎</button></legend><div class="barras-lista">
-      ${barra('PV', 12, 45, 'aviso').replace(' barra-compacta', '')}${barra('PE', 2, 12, 'perigo').replace(' barra-compacta', '')}${barra('Sanidade', 38, 40, 'normal').replace(' barra-compacta', '')}${barra('Sorte', 5, 5, 'normal').replace(' barra-compacta', '').replace('barra-normal', 'barra-normal barra-cor-fixa" style="--recurso-cor:#000080')}
-    </div></fieldset></body></html>`
-  const arquivoCheia = join(pasta, 'cheia.html')
-  writeFileSync(arquivoCheia, cheia)
-  await win.loadFile(arquivoCheia)
-  await espera(300)
-  writeFileSync(join(pasta, 'cheia.png'), (await win.webContents.capturePage()).toPNG())
   win.destroy()
 
   console.log(falhas === 0 ? 'Painel do dado mantido em todos os casos.' : `${falhas} caso(s) com o painel espremido ou vazando.`)

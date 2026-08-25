@@ -114,11 +114,6 @@ interface DiceRoller3DProps {
    * o `App`; a cena só reserva o lugar.
    */
   overlay?: ReactNode
-  /**
-   * Uma TERCEIRA caixa de grupo na linha de controles, ao lado de "Tipo de dado" e "Rolagem" — as
-   * barras de recurso (spec §3.4). Vem de fora pelo mesmo motivo do crachá: é do personagem.
-   */
-  extraGroup?: ReactNode
 }
 
 const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
@@ -330,7 +325,7 @@ export function comContagemAjustada(
  * compacta (300×230) foi desenhada de propósito pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange, shortcutsEnabled = true, badge, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay, extraGroup },
+  { onRoll, onRollingChange, shortcutsEnabled = true, badge, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
   ref
 ) {
   const t = useTranslation()
@@ -1216,7 +1211,6 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
             </Button>
           </div>
         </fieldset>
-        {extraGroup}
       </div>
 
       {semFisica ? (

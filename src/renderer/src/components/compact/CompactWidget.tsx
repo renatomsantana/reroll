@@ -137,7 +137,7 @@ export function CompactWidget({ presets, result, onRoll, recursos, onChangeRecur
         )}
       </div>
 
-      <BarrasDeRecurso recursos={recursos} onChange={onChangeRecursos} compact />
+      <BarrasDeRecurso recursos={recursos} onChange={onChangeRecursos} />
 
       {presets.length === 0 ? (
         <p className="compact-widget-empty">{t.compact.empty}</p>

@@ -125,6 +125,16 @@
   padding: 2px 0 0 2px;
 }
 
+/* Sem barra nenhuma: a dica, e o lápis no cabeçalho é o caminho. */
+.hud-sem-barras {
+  margin: 0;
+  padding: 4px 6px;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+  font-size: 10px;
+  color: var(--win-text-muted);
+}
+
 /* No mini, as barras perdem o nome: só o retrato e as barras finas, como a spec pede. */
 .hud-mini .barra-nome {
   display: none;
