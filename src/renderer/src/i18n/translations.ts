@@ -105,7 +105,11 @@ export interface TranslationDict {
   }
   emojiPicker: { hint: string }
   statusBar: { shortcutsHint: string }
-  /** `restEvent` é a linha do descanso no diário da sessão (spec §3.8): "— {name} —". */
+  /**
+   * `restEvent` é a linha do descanso no diário da sessão (spec §3.8): "[ {name} ]". A spec sugere
+   * travessões, e o usuário vetou travessão em qualquer texto do app: os colchetes fazem o mesmo
+   * papel de separar o evento das rolagens.
+   */
   history: { title: string; empty: string; clear: string; restEvent: string }
   /** Os botões do diálogo do app ("tem certeza?" / "não deu") — ver `Dialogo.tsx`. */
   dialog: { ok: string; cancel: string }
@@ -495,7 +499,7 @@ export const translations: Record<Language, TranslationDict> = {
         'Dado que tira o valor máximo cai de novo, e os dois somam. Não combina com vantagem/desvantagem.',
       explodeSuffix: '(explodiu)',
       quickForced:
-        'Este computador não conseguiu desenhar a bandeja 3D, então o Reroll está no modo rápido. Os dados são os mesmos — só não aparecem caindo.',
+        'Este computador não conseguiu desenhar a bandeja 3D, então o Reroll está no modo rápido. Os dados são os mesmos: só não aparecem caindo.',
       resultEmpty: 'Role os dados pra ver o resultado aqui.',
       total: 'Total',
       advantageSuffix: '(vantagem)',
@@ -534,9 +538,9 @@ export const translations: Record<Language, TranslationDict> = {
       importSuccess: '{count} preset(s) importado(s) com sucesso.',
       importError: 'Não foi possível importar: {error}',
       saveError: 'Não foi possível salvar o preset: {error}',
-      favorite: 'Favoritar — aparece no modo compacto',
+      favorite: 'Favoritar: aparece no modo compacto',
       unfavorite: 'Tirar dos favoritos',
-      favoriteLimit: 'Máximo de 6 favoritos — tire a estrela de um antes',
+      favoriteLimit: 'Máximo de 6 favoritos: tire a estrela de um antes',
       moveUp: 'Subir na fileira de favoritos',
       moveDown: 'Descer na fileira de favoritos'
     },
@@ -554,7 +558,7 @@ export const translations: Record<Language, TranslationDict> = {
       formulaHint:
         'Escreva a rolagem e os botões abaixo acompanham. kh3 usa os 3 maiores, kl1 o menor, ! explode no máximo, r<2 rerola uma vez, #>=5 conta sucessos, e um alvo no fim (>= 15) julga a rolagem.',
       formulaOnlyHint:
-        'Este preset rola pelo texto da fórmula — os controles de dados ficam de fora, porque não têm como descrever esta rolagem.',
+        'Este preset rola pelo texto da fórmula: os controles de dados ficam de fora, porque não têm como descrever esta rolagem.',
       cancel: 'Cancelar',
       save: 'Salvar',
       tooManyDice: 'Máximo de {max} dados no total (soma de todos os grupos).',
@@ -563,7 +567,7 @@ export const translations: Record<Language, TranslationDict> = {
       keepHighest: 'os maiores',
       keepLowest: 'os menores',
       keepCount: 'Quantos dados contam',
-      keepHint: 'Os outros dados continuam sendo rolados e aparecem na bandeja — só não entram na conta.',
+      keepHint: 'Os outros dados continuam sendo rolados e aparecem na bandeja: só não entram na conta.',
       explode: 'Dados explosivos',
       explodeHint:
         'Dado que tira o valor máximo volta pra bandeja e cai de novo; as quedas somam. Vale pra cada dado da rolagem, separadamente.'
@@ -579,12 +583,12 @@ export const translations: Record<Language, TranslationDict> = {
       title: 'Histórico',
       empty: 'Nenhuma rolagem ainda nesta sessão.',
       clear: 'Limpar',
-      restEvent: '— {name} —'
+      restEvent: '[ {name} ]'
     },
     photoCrop: {
       title: 'Recortar a foto',
       hint: 'Arraste a foto pra centrar o rosto no quadro e dê zoom com a roda do mouse ou o controle. O quadrado é o que fica.',
-      frame: 'Quadro do recorte — arraste pra posicionar',
+      frame: 'Quadro do recorte: arraste pra posicionar',
       zoom: 'Zoom',
       reset: 'Centrar',
       use: 'Usar esta',
@@ -598,8 +602,8 @@ export const translations: Record<Language, TranslationDict> = {
       expand: 'Expandir',
       hide: 'Esconder o HUD',
       show: 'Mostrar o HUD do personagem',
-      conditionOn: '{name} — ligada; clique pra desligar',
-      conditionOff: '{name} — desligada; clique pra ligar',
+      conditionOn: '{name}: ligada; clique pra desligar',
+      conditionOff: '{name}: desligada; clique pra ligar',
       conditionRemove: 'Remover a condição {name}',
       conditionAdd: 'Adicionar condição',
       conditionPlaceholder: 'Machucado, Caído...'
@@ -609,7 +613,7 @@ export const translations: Record<Language, TranslationDict> = {
       title: 'Descansar',
       type: 'Tipo',
       noChange: 'Este descanso não muda nenhuma barra. Confira as regras em "Editar tipos".',
-      noResources: 'Nenhuma barra de recurso ainda — crie as barras primeiro.',
+      noResources: 'Nenhuma barra de recurso ainda: crie as barras primeiro.',
       confirm: 'Descansar',
       cancel: 'Cancelar',
       editTypes: 'Editar tipos…',
@@ -628,12 +632,12 @@ export const translations: Record<Language, TranslationDict> = {
       limit: 'Máximo de {max} tipos de descanso.'
     },
     compact: {
-      empty: 'Nenhum preset ainda. Saia do modo compacto pra criar — a janela pequena não tem espaço pro editor.',
+      empty: 'Nenhum preset ainda. Saia do modo compacto pra criar: a janela pequena não tem espaço pro editor.',
       resultEmpty: 'Toque num preset pra rolar.'
     },
     resources: {
       title: 'Recursos',
-      edit: 'Editar barras',
+      edit: 'Lápis: criar e editar as barras de PV, PE, Sanidade',
       editorTitle: 'Barras de recurso',
       add: 'Adicionar barra',
       name: 'Nome',
@@ -647,10 +651,10 @@ export const translations: Record<Language, TranslationDict> = {
       cancel: 'Cancelar',
       minus: 'Tirar de {name}',
       plus: 'Somar em {name}',
-      valueLabel: '{name}: {current} de {max} — clique pra digitar',
+      valueLabel: '{name}: {current} de {max}. Clique pra digitar',
       inputPlaceholder: '-7, 12 ou 12/40',
       hint: 'Clique: ±1 · Shift+clique ou segurar: ±5 · clique no número pra digitar (-7, 12, 12/40)',
-      empty: 'Nenhuma barra ainda — o lápis aí em cima cria PV, PE, Sanidade... (ou importe uma ficha).',
+      empty: 'O lápis ali em cima cria as barras de PV, PE, Sanidade e o que mais o seu sistema usar.',
       limit: 'Máximo de {max} barras por personagem.'
     },
     settings: {
@@ -669,7 +673,7 @@ export const translations: Record<Language, TranslationDict> = {
       compactEnter: 'Modo compacto',
       compactExit: 'Sair do modo compacto',
       displayMode: 'Como o resultado aparece',
-      displayModeHint: 'A bandeja 3D, ou só o número — mais rápido em computador mais fraco.',
+      displayModeHint: 'A bandeja 3D, ou só o número: mais rápido em computador mais fraco.',
       displayMode3d: 'Bandeja 3D',
       displayModeQuick: 'Resultado rápido',
       resultPopup: 'Popup de resultado',
@@ -696,7 +700,7 @@ export const translations: Record<Language, TranslationDict> = {
         'Tem certeza?\n\nO Reroll vai baixar cerca de 100 MB e reiniciar sozinho para aplicar. Seus presets, anotações e preferências continuam onde estão.',
       updateNotesTitle: 'O que mudou nesta versão:',
       restartNow: 'Reiniciar agora',
-      updateBadge: '▲ Versão {version} disponível — clique para atualizar',
+      updateBadge: '▲ Versão {version} disponível. Clique para atualizar',
       updatePromptTitle: 'Atualização disponível',
       updateLater: 'Agora não',
       updateConfirmYes: 'Sim, atualizar',
@@ -704,9 +708,9 @@ export const translations: Record<Language, TranslationDict> = {
       updateUpToDate: 'Você está na versão mais recente.',
       updateAvailable: 'Existe uma atualização nova: versão {version}.',
       updateDownloading: 'Baixando a versão {version}... {percent}%',
-      updateReady: 'Versão {version} baixada — reiniciando para aplicar...',
+      updateReady: 'Versão {version} baixada: reiniciando para aplicar...',
       updateInstalling:
-        'Instalando a versão {version}. O Reroll vai fechar e abrir sozinho em alguns segundos — nesse intervalo a tela fica sem ele. Não desligue o computador.',
+        'Instalando a versão {version}. O Reroll vai fechar e abrir sozinho em alguns segundos: nesse intervalo a tela fica sem ele. Não desligue o computador.',
       updateError: 'Não deu pra procurar atualizações agora.',
       debugMode: 'Modo debug',
       debugModeHint: 'Mostra colisores, normais de face, confiança da leitura e FPS por cima da cena 3D.',
@@ -722,7 +726,7 @@ export const translations: Record<Language, TranslationDict> = {
       applyDefaultToAllConfirm:
         'Aplicar a cor padrão a TODOS os dados?\n\nOs {n} tipo(s) com cor própria voltam pra padrão, e essas cores se perdem.',
       applyDefaultToAllHint:
-        '{n} tipo(s) com cor própria — eles ignoram a cor padrão até você aplicar aqui.',
+        '{n} tipo(s) com cor própria: eles ignoram a cor padrão até você aplicar aqui.',
       defaultColorOption: 'Padrão',
       material: 'Acabamento',
       materialOptions: {
@@ -778,8 +782,8 @@ export const translations: Record<Language, TranslationDict> = {
           description: 'A torre fica na mesa, mas os dados são jogados direto na bandeja.'
         }
       },
-      cameraLockOn: 'Câmera travada nos dados — clique pra soltar (WASD move, Q/E sobe e desce)',
-      cameraLockOff: 'Câmera solta — clique pra travar nos dados (WASD move, Q/E sobe e desce)',
+      cameraLockOn: 'Câmera travada nos dados: clique pra soltar (WASD move, Q/E sobe e desce)',
+      cameraLockOff: 'Câmera solta: clique pra travar nos dados (WASD move, Q/E sobe e desce)',
       backgroundImage: 'Imagem de fundo',
       backgroundImagePick: 'Escolher imagem...',
       backgroundImageClear: 'Remover imagem',
@@ -810,7 +814,7 @@ export const translations: Record<Language, TranslationDict> = {
       profilePhotoError: 'Não deu pra usar essa imagem. Tente outra, menor que 12 MB.',
       profileNew: 'Novo personagem',
       profileLimit:
-        'Você chegou no limite de {max} personagens. Apague um que não usa mais para criar outro — as anotações dele continuam no disco.',
+        'Você chegou no limite de {max} personagens. Apague um que não usa mais para criar outro: as anotações dele continuam no disco.',
       sheetImport: 'Importar ficha (PDF)',
       sheetImportReading: 'Lendo PDF...',
       critRule: 'Crítico',
@@ -819,7 +823,7 @@ export const translations: Record<Language, TranslationDict> = {
       critRuleNone: 'Sem crítico neste sistema',
       sheetEmptyTitle: 'Esta ficha está vazia.',
       sheetEmptyHint:
-        'Importe a ficha em PDF do seu personagem: o app lê os campos, monta a ficha e cria os presets de rolagem pra você conferir. É o que está em teste neste beta — vale a pena tentar com a sua.',
+        'Importe a ficha em PDF do seu personagem: o app lê os campos, monta a ficha e cria os presets de rolagem pra você conferir. É o que está em teste neste beta: vale a pena tentar com a sua.',
       sheetEmptyManual: 'Prefiro preencher à mão',
       sheetRollField: 'Rolar {field}',
       profileDelete: 'Apagar personagem',
@@ -828,10 +832,10 @@ export const translations: Record<Language, TranslationDict> = {
       profileUnnamed: 'Personagem {n}',
       profileExport: 'Exportar personagem',
       profileExportHint:
-        'Salva a ficha, as anotações, os presets e a aparência dos dados num arquivo só — pra mostrar ao mestre (abre no navegador) ou levar pra outro computador.',
+        'Salva a ficha, as anotações, os presets e a aparência dos dados num arquivo só: pra mostrar ao mestre (abre no navegador) ou levar pra outro computador.',
       profileImport: 'Importar personagem Reroll',
       profileImportHint:
-        'Abre um arquivo exportado pelo Reroll e traz o personagem com tudo o que ele tinha. Se já existe um com o mesmo nome, ele é atualizado — não cria outro.',
+        'Abre um arquivo exportado pelo Reroll e traz o personagem com tudo o que ele tinha. Se já existe um com o mesmo nome, ele é atualizado: não cria outro.',
       profileExportSuccess:
         'Personagem exportado em:\n{path}\n\nO arquivo abre no navegador pra mostrar a ficha, e o Reroll traz ele de volta em "Importar personagem Reroll".',
       profileExportError: 'Não deu pra exportar: {error}',
@@ -846,13 +850,13 @@ export const translations: Record<Language, TranslationDict> = {
       colorLabel: 'Cor do texto',
     colorReset: 'Padrão (segue o tema)',
       saveError: 'Não foi possível salvar as anotações. Suas últimas alterações podem ter sido perdidas.',
-      loadError: 'Não consegui ler a ficha deste personagem. Ela está bloqueada pra edição até a leitura funcionar — assim nada é gravado por cima do que está no arquivo.'
+      loadError: 'Não consegui ler a ficha deste personagem. Ela está bloqueada pra edição até a leitura funcionar: assim nada é gravado por cima do que está no arquivo.'
     },
     sheetImport: {
       title: 'Conferir ficha importada',
       recognized: 'Reconhecemos como ficha de',
       betaNotice:
-        'A importação de ficha está em teste. Ela lê bem as fichas dos sistemas que conhece e pode errar nas outras — confira os campos abaixo antes de confirmar.',
+        'A importação de ficha está em teste. Ela lê bem as fichas dos sistemas que conhece e pode errar nas outras: confira os campos abaixo antes de confirmar.',
       unrecognized: 'Sistema não reconhecido',
       character: 'Personagem',
       system: 'Sistema',
@@ -862,8 +866,8 @@ export const translations: Record<Language, TranslationDict> = {
       presetsTitle: 'Presets',
       presetsEmpty: 'Nenhuma rolagem foi encontrada nesta ficha.',
       resourcesTitle: 'Barras de recurso',
-      resourcesEmpty: 'Nenhum par atual/máximo preenchido — dá pra criar as barras depois, na tela de rolagem.',
-      resourceBlankCurrent: 'atual em branco na ficha — a barra começa cheia',
+      resourcesEmpty: 'Nenhum par atual/máximo preenchido: dá pra criar as barras depois, na tela de rolagem.',
+      resourceBlankCurrent: 'atual em branco na ficha: a barra começa cheia',
       portraitEmpty: 'sem retrato',
       portraitChoose: 'Escolher foto…',
       portraitReplace: 'Trocar…',
@@ -875,7 +879,7 @@ export const translations: Record<Language, TranslationDict> = {
       cancel: 'Cancelar',
       confirm: 'Criar personagem',
       confirming: 'Importando...',
-      sectionTrimmed: 'Só os primeiros {max} campos de cada seção entram na ficha — {n} ficaram de fora.',
+      sectionTrimmed: 'Só os primeiros {max} campos de cada seção entram na ficha: {n} ficaram de fora.',
       destinationLabel: 'Importar para',
       destinationNew: 'Um personagem novo',
       destinationUpdate: 'Atualizar "{name}"',
@@ -894,23 +898,23 @@ export const translations: Record<Language, TranslationDict> = {
       },
       warnings: {
         'pdf-sem-texto':
-          'Este PDF não tem texto que dê pra ler — ele parece ser uma imagem digitalizada ou uma arte exportada sem texto. Não dá pra importar nada dele automaticamente; uma ficha em PDF com campos preenchíveis, ou pelo menos com texto de verdade, funciona.',
+          'Este PDF não tem texto que dê pra ler: ele parece ser uma imagem digitalizada ou uma arte exportada sem texto. Não dá pra importar nada dele automaticamente; uma ficha em PDF com campos preenchíveis, ou pelo menos com texto de verdade, funciona.',
         'sem-formulario':
-          'Esta ficha não tem campos preenchíveis — é um PDF de texto. O que dá pra ler são as linhas no formato "Rótulo: valor" e os valores que estão na mesma linha de um rótulo, então a leitura é um palpite baseado na diagramação: confira item por item antes de importar.',
+          'Esta ficha não tem campos preenchíveis: é um PDF de texto. O que dá pra ler são as linhas no formato "Rótulo: valor" e os valores que estão na mesma linha de um rótulo, então a leitura é um palpite baseado na diagramação: confira item por item antes de importar.',
         'formulario-vazio':
-          'A ficha tem campos preenchíveis, mas todos estão em branco — parece ser o modelo vazio.',
+          'A ficha tem campos preenchíveis, mas todos estão em branco: parece ser o modelo vazio.',
         'sem-nome-nem-rolagem':
-          'Não achei nome de personagem nem nenhuma rolagem nesta ficha. Os valores que aparecem abaixo podem ser só o preenchimento de fábrica do modelo em branco — confira antes de importar.',
+          'Não achei nome de personagem nem nenhuma rolagem nesta ficha. Os valores que aparecem abaixo podem ser só o preenchimento de fábrica do modelo em branco: confira antes de importar.',
         'arte-com-anotacao':
-          'Esta ficha é uma IMAGEM com o texto escrito por cima — os nomes dos campos fazem parte do desenho, então o app não tem como saber o que é cada valor. Trouxe tudo o que você escreveu, na ordem em que está na página, pra você organizar na ficha do personagem.',
+          'Esta ficha é uma IMAGEM com o texto escrito por cima: os nomes dos campos fazem parte do desenho, então o app não tem como saber o que é cada valor. Trouxe tudo o que você escreveu, na ordem em que está na página, pra você organizar na ficha do personagem.',
         'ordem-maior-dado':
-          'Nos testes desta ficha vale o MAIOR dado, e não a soma — é a regra de Ordem Paranormal, e os presets de teste já foram criados assim. Se algum ataque seu usa um atributo ZERO, que rola dois e fica com o PIOR, troque para "menor" no editor do preset.',
+          'Nos testes desta ficha vale o MAIOR dado, e não a soma: é a regra de Ordem Paranormal, e os presets de teste já foram criados assim. Se algum ataque seu usa um atributo ZERO, que rola dois e fica com o PIOR, troque para "menor" no editor do preset.',
         'dnd5e-magias-sem-nome':
-          'Esta ficha tem magias escritas na página de conjuração. O PDF guarda cada linha delas sem nome nenhum (só a posição na página), então não dá pra trazer o nome de cada magia — as que estiverem na caixa "Ataques e Magias" da primeira página vieram, e o resto você escreve no bloco de habilidades.',
+          'Esta ficha tem magias escritas na página de conjuração. O PDF guarda cada linha delas sem nome nenhum (só a posição na página), então não dá pra trazer o nome de cada magia: as que estiverem na caixa "Ataques e Magias" da primeira página vieram, e o resto você escreve no bloco de habilidades.',
         'dnd5e-modelo-em-branco':
-          'Não achei nome de personagem nem nenhum ataque nesta ficha — ela parece ser o modelo em branco. Confira o que veio abaixo antes de importar.',
+          'Não achei nome de personagem nem nenhum ataque nesta ficha: ela parece ser o modelo em branco. Confira o que veio abaixo antes de importar.',
         'paginas-demais':
-          'Este PDF tem mais de 100 páginas — é um livro, não uma ficha de personagem. Nada foi lido dele.'
+          'Este PDF tem mais de 100 páginas: é um livro, não uma ficha de personagem. Nada foi lido dele.'
       }
     },
     errorBoundary: {
@@ -937,7 +941,7 @@ export const translations: Record<Language, TranslationDict> = {
         'A die that rolls its highest face is rolled again, and both add up. Does not combine with advantage/disadvantage.',
       explodeSuffix: '(exploded)',
       quickForced:
-        'This computer could not draw the 3D tray, so Reroll is in quick mode. The dice are the same — they just do not fall on screen.',
+        'This computer could not draw the 3D tray, so Reroll is in quick mode. The dice are the same: they just do not fall on screen.',
       resultEmpty: 'Roll the dice to see the result here.',
       total: 'Total',
       advantageSuffix: '(advantage)',
@@ -976,9 +980,9 @@ export const translations: Record<Language, TranslationDict> = {
       importSuccess: '{count} preset(s) imported successfully.',
       importError: 'Could not import: {error}',
       saveError: 'Could not save preset: {error}',
-      favorite: 'Favorite — shows in compact mode',
+      favorite: 'Favorite: shows in compact mode',
       unfavorite: 'Remove from favorites',
-      favoriteLimit: 'At most 6 favorites — unstar one first',
+      favoriteLimit: 'At most 6 favorites: unstar one first',
       moveUp: 'Move up in the favorites row',
       moveDown: 'Move down in the favorites row'
     },
@@ -996,7 +1000,7 @@ export const translations: Record<Language, TranslationDict> = {
       formulaHint:
         'Type the roll and the buttons below follow. kh3 keeps the 3 highest, kl1 the lowest, ! explodes on the max, r<2 rerolls once, #>=5 counts successes, and a target at the end (>= 15) judges the roll.',
       formulaOnlyHint:
-        'This preset rolls from the formula text — the dice controls stay out, because they cannot describe this roll.',
+        'This preset rolls from the formula text: the dice controls stay out, because they cannot describe this roll.',
       cancel: 'Cancel',
       save: 'Save',
       tooManyDice: 'Maximum of {max} dice total (sum of all groups).',
@@ -1005,7 +1009,7 @@ export const translations: Record<Language, TranslationDict> = {
       keepHighest: 'the highest',
       keepLowest: 'the lowest',
       keepCount: 'How many dice count',
-      keepHint: 'The other dice are still rolled and land on the tray — they just do not count.',
+      keepHint: 'The other dice are still rolled and land on the tray: they just do not count.',
       explode: 'Exploding dice',
       explodeHint:
         'A die that rolls its highest face goes back to the tray and falls again; the rolls add up. Applies to each die separately.'
@@ -1021,12 +1025,12 @@ export const translations: Record<Language, TranslationDict> = {
       title: 'History',
       empty: 'No rolls yet this session.',
       clear: 'Clear',
-      restEvent: '— {name} —'
+      restEvent: '[ {name} ]'
     },
     photoCrop: {
       title: 'Crop the photo',
       hint: 'Drag the photo to center the face in the frame and zoom with the mouse wheel or the slider. The square is what stays.',
-      frame: 'Crop frame — drag to position',
+      frame: 'Crop frame: drag to position',
       zoom: 'Zoom',
       reset: 'Center',
       use: 'Use this',
@@ -1040,8 +1044,8 @@ export const translations: Record<Language, TranslationDict> = {
       expand: 'Expand',
       hide: 'Hide the HUD',
       show: 'Show the character HUD',
-      conditionOn: '{name} — on; click to turn off',
-      conditionOff: '{name} — off; click to turn on',
+      conditionOn: '{name}: on; click to turn off',
+      conditionOff: '{name}: off; click to turn on',
       conditionRemove: 'Remove the {name} condition',
       conditionAdd: 'Add condition',
       conditionPlaceholder: 'Wounded, Prone...'
@@ -1051,7 +1055,7 @@ export const translations: Record<Language, TranslationDict> = {
       title: 'Rest',
       type: 'Type',
       noChange: 'This rest changes no bar. Check the rules under "Edit types".',
-      noResources: 'No resource bars yet — create the bars first.',
+      noResources: 'No resource bars yet: create the bars first.',
       confirm: 'Rest',
       cancel: 'Cancel',
       editTypes: 'Edit types…',
@@ -1070,12 +1074,12 @@ export const translations: Record<Language, TranslationDict> = {
       limit: 'At most {max} rest types.'
     },
     compact: {
-      empty: 'No presets yet. Leave compact mode to create one — the small window has no room for the editor.',
+      empty: 'No presets yet. Leave compact mode to create one: the small window has no room for the editor.',
       resultEmpty: 'Tap a preset to roll.'
     },
     resources: {
       title: 'Resources',
-      edit: 'Edit bars',
+      edit: 'Pencil: create and edit the HP, MP, Sanity bars',
       editorTitle: 'Resource bars',
       add: 'Add bar',
       name: 'Name',
@@ -1089,10 +1093,10 @@ export const translations: Record<Language, TranslationDict> = {
       cancel: 'Cancel',
       minus: 'Subtract from {name}',
       plus: 'Add to {name}',
-      valueLabel: '{name}: {current} of {max} — click to type',
+      valueLabel: '{name}: {current} of {max}. Click to type',
       inputPlaceholder: '-7, 12 or 12/40',
       hint: 'Click: ±1 · Shift+click or hold: ±5 · click the number to type (-7, 12, 12/40)',
-      empty: 'No bars yet — the pencil above creates HP, Sanity, spell slots... (or import a sheet).',
+      empty: 'The pencil up there creates the bars for HP, MP, Sanity and whatever else your system uses.',
       limit: 'At most {max} bars per character.'
     },
     settings: {
@@ -1111,7 +1115,7 @@ export const translations: Record<Language, TranslationDict> = {
       compactEnter: 'Compact mode',
       compactExit: 'Leave compact mode',
       displayMode: 'How the result shows up',
-      displayModeHint: 'The 3D tray, or just the number — faster on a weaker computer.',
+      displayModeHint: 'The 3D tray, or just the number: faster on a weaker computer.',
       displayMode3d: '3D tray',
       displayModeQuick: 'Quick result',
       resultPopup: 'Result popup',
@@ -1138,7 +1142,7 @@ export const translations: Record<Language, TranslationDict> = {
         'Are you sure?\n\nReroll will download about 100 MB and restart itself to apply it. Your presets, notes and preferences stay where they are.',
       updateNotesTitle: 'What changed in this version:',
       restartNow: 'Restart now',
-      updateBadge: '▲ Version {version} available — click to update',
+      updateBadge: '▲ Version {version} available. Click to update',
       updatePromptTitle: 'Update available',
       updateLater: 'Not now',
       updateConfirmYes: 'Yes, update',
@@ -1146,9 +1150,9 @@ export const translations: Record<Language, TranslationDict> = {
       updateUpToDate: "You're on the latest version.",
       updateAvailable: 'There is a new update: version {version}.',
       updateDownloading: 'Downloading version {version}... {percent}%',
-      updateReady: 'Version {version} downloaded — restarting to apply...',
+      updateReady: 'Version {version} downloaded: restarting to apply...',
       updateInstalling:
-        'Installing version {version}. Reroll will close and reopen by itself in a few seconds — the screen sits without it in between. Do not turn the computer off.',
+        'Installing version {version}. Reroll will close and reopen by itself in a few seconds: the screen sits without it in between. Do not turn the computer off.',
       updateError: "Couldn't check for updates right now.",
       debugMode: 'Debug mode',
       debugModeHint: 'Shows colliders, face normals, reading confidence and FPS over the 3D scene.',
@@ -1164,7 +1168,7 @@ export const translations: Record<Language, TranslationDict> = {
       applyDefaultToAllConfirm:
         'Apply the default colour to EVERY die?\n\nThe {n} type(s) with their own colour go back to the default, and those colours are lost.',
       applyDefaultToAllHint:
-        '{n} type(s) have their own colour — they ignore the default until you apply it here.',
+        '{n} type(s) have their own colour: they ignore the default until you apply it here.',
       defaultColorOption: 'Default',
       material: 'Finish',
       materialOptions: {
@@ -1220,8 +1224,8 @@ export const translations: Record<Language, TranslationDict> = {
           description: 'The tower stays on the table, but the dice are thrown straight onto the tray.'
         }
       },
-      cameraLockOn: 'Camera locked on the dice — click to release (WASD moves, Q/E up and down)',
-      cameraLockOff: 'Camera free — click to lock on the dice (WASD moves, Q/E up and down)',
+      cameraLockOn: 'Camera locked on the dice: click to release (WASD moves, Q/E up and down)',
+      cameraLockOff: 'Camera free: click to lock on the dice (WASD moves, Q/E up and down)',
       backgroundImage: 'Background image',
       backgroundImagePick: 'Choose image...',
       backgroundImageClear: 'Remove image',
@@ -1252,7 +1256,7 @@ export const translations: Record<Language, TranslationDict> = {
       profilePhotoError: 'That image could not be used. Try another one, under 12 MB.',
       profileNew: 'New character',
       profileLimit:
-        'You have reached the limit of {max} characters. Delete one you no longer use to create another — its notes stay on disk.',
+        'You have reached the limit of {max} characters. Delete one you no longer use to create another: its notes stay on disk.',
       sheetImport: 'Import sheet (PDF)',
       sheetImportReading: 'Reading PDF...',
       critRule: 'Critical',
@@ -1261,7 +1265,7 @@ export const translations: Record<Language, TranslationDict> = {
       critRuleNone: 'No criticals in this system',
       sheetEmptyTitle: 'This sheet is empty.',
       sheetEmptyHint:
-        "Import your character's PDF sheet: the app reads the fields, builds the sheet and creates the roll presets for you to review. That's what this beta is testing — give it a try with yours.",
+        "Import your character's PDF sheet: the app reads the fields, builds the sheet and creates the roll presets for you to review. That's what this beta is testing: give it a try with yours.",
       sheetEmptyManual: "I'd rather fill it in by hand",
       sheetRollField: 'Roll {field}',
       profileDelete: 'Delete character',
@@ -1270,10 +1274,10 @@ export const translations: Record<Language, TranslationDict> = {
       profileUnnamed: 'Character {n}',
       profileExport: 'Export character',
       profileExportHint:
-        'Saves the sheet, notes, presets and dice look in a single file — to show your GM (it opens in a browser) or to move to another computer.',
+        'Saves the sheet, notes, presets and dice look in a single file: to show your GM (it opens in a browser) or to move to another computer.',
       profileImport: 'Import Reroll character',
       profileImportHint:
-        'Opens a file exported by Reroll and brings the character with everything it had. If one with the same name already exists, it is updated — no duplicate.',
+        'Opens a file exported by Reroll and brings the character with everything it had. If one with the same name already exists, it is updated: no duplicate.',
       profileExportSuccess:
         'Character exported to:\n{path}\n\nThe file opens in a browser to show the sheet, and Reroll brings it back with "Import Reroll character".',
       profileExportError: 'Could not export: {error}',
@@ -1294,7 +1298,7 @@ export const translations: Record<Language, TranslationDict> = {
       title: 'Review imported sheet',
       recognized: 'Recognized as a sheet for',
       betaNotice:
-        'Sheet import is in testing. It reads the systems it knows well and may get others wrong — check the fields below before confirming.',
+        'Sheet import is in testing. It reads the systems it knows well and may get others wrong: check the fields below before confirming.',
       unrecognized: 'System not recognized',
       character: 'Character',
       system: 'System',
@@ -1304,8 +1308,8 @@ export const translations: Record<Language, TranslationDict> = {
       presetsTitle: 'Presets',
       presetsEmpty: 'No roll was found in this sheet.',
       resourcesTitle: 'Resource bars',
-      resourcesEmpty: 'No filled current/max pair — you can create the bars later, on the roll screen.',
-      resourceBlankCurrent: 'current value blank on the sheet — the bar starts full',
+      resourcesEmpty: 'No filled current/max pair: you can create the bars later, on the roll screen.',
+      resourceBlankCurrent: 'current value blank on the sheet: the bar starts full',
       portraitEmpty: 'no portrait',
       portraitChoose: 'Choose photo…',
       portraitReplace: 'Replace…',
@@ -1317,7 +1321,7 @@ export const translations: Record<Language, TranslationDict> = {
       cancel: 'Cancel',
       confirm: 'Create character',
       confirming: 'Importing...',
-      sectionTrimmed: 'Only the first {max} fields of each section go into the sheet — {n} were left out.',
+      sectionTrimmed: 'Only the first {max} fields of each section go into the sheet: {n} were left out.',
       destinationLabel: 'Import into',
       destinationNew: 'A new character',
       destinationUpdate: 'Update "{name}"',
@@ -1336,23 +1340,23 @@ export const translations: Record<Language, TranslationDict> = {
       },
       warnings: {
         'pdf-sem-texto':
-          'This PDF has no readable text — it looks like a scan, or artwork exported without text. Nothing can be imported from it automatically; a PDF sheet with fillable fields, or at least with real text, works.',
+          'This PDF has no readable text: it looks like a scan, or artwork exported without text. Nothing can be imported from it automatically; a PDF sheet with fillable fields, or at least with real text, works.',
         'sem-formulario':
-          'This sheet has no fillable fields — it is a text PDF. What can be read are lines shaped like "Label: value" and values sitting on the same line as a label, so the reading is a guess based on the layout: check item by item before importing.',
+          'This sheet has no fillable fields: it is a text PDF. What can be read are lines shaped like "Label: value" and values sitting on the same line as a label, so the reading is a guess based on the layout: check item by item before importing.',
         'formulario-vazio':
-          'The sheet has fillable fields, but they are all empty — it looks like the blank template.',
+          'The sheet has fillable fields, but they are all empty: it looks like the blank template.',
         'sem-nome-nem-rolagem':
-          'I found no character name and no roll in this sheet. The values below may be just the blank template defaults — check them before importing.',
+          'I found no character name and no roll in this sheet. The values below may be just the blank template defaults: check them before importing.',
         'arte-com-anotacao':
-          'This sheet is an IMAGE with the text typed over it — the field names are part of the drawing, so the app cannot tell what each value is. I brought everything you wrote, in the order it appears on the page, for you to organize in the character sheet.',
+          'This sheet is an IMAGE with the text typed over it: the field names are part of the drawing, so the app cannot tell what each value is. I brought everything you wrote, in the order it appears on the page, for you to organize in the character sheet.',
         'ordem-maior-dado':
-          'Checks on this sheet use the HIGHEST die, not the sum — that is the Ordem Paranormal rule, and the check presets were created that way. If one of your attacks uses a ZERO attribute, which rolls two and keeps the WORST, switch it to "lowest" in the preset editor.',
+          'Checks on this sheet use the HIGHEST die, not the sum: that is the Ordem Paranormal rule, and the check presets were created that way. If one of your attacks uses a ZERO attribute, which rolls two and keeps the WORST, switch it to "lowest" in the preset editor.',
         'dnd5e-magias-sem-nome':
-          'This sheet has spells written on the spellcasting page. The PDF stores each of those lines with no name at all (only its position on the page), so the name of each spell cannot be brought over — whatever is in the "Attacks & Spellcasting" box on page one did come through, and you can write the rest in the abilities block.',
+          'This sheet has spells written on the spellcasting page. The PDF stores each of those lines with no name at all (only its position on the page), so the name of each spell cannot be brought over: whatever is in the "Attacks & Spellcasting" box on page one did come through, and you can write the rest in the abilities block.',
         'dnd5e-modelo-em-branco':
-          'I found no character name and no attack in this sheet — it looks like the blank template. Check what came through before importing.',
+          'I found no character name and no attack in this sheet: it looks like the blank template. Check what came through before importing.',
         'paginas-demais':
-          'This PDF has more than 100 pages — it is a book, not a character sheet. Nothing was read from it.'
+          'This PDF has more than 100 pages: it is a book, not a character sheet. Nothing was read from it.'
       }
     },
     errorBoundary: {

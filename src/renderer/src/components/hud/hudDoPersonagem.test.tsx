@@ -50,7 +50,7 @@ describe('o HUD do personagem', () => {
     expect(screen.getByText('Matias')).toBeTruthy()
     expect(screen.getByText('M')).toBeTruthy()
     expect(screen.getByRole('progressbar', { name: 'PV' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Machucado — desligada/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Machucado: desligada/ })).toBeTruthy()
   })
 
   it('encolher, esconder e mostrar de novo gravam o estado', () => {
@@ -69,7 +69,7 @@ describe('o HUD do personagem', () => {
 
   it('a condição liga com um clique, some pelo ×, e o "+" acrescenta outra', () => {
     const acoes = montar()
-    fireEvent.click(screen.getByRole('button', { name: /Machucado — desligada/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Machucado: desligada/ }))
     expect(acoes.onChangeCondicoes).toHaveBeenLastCalledWith([{ id: 'm', nome: 'Machucado', ativa: true }])
 
     fireEvent.click(screen.getByRole('button', { name: 'Remover a condição Machucado' }))

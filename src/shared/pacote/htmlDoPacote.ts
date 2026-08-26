@@ -168,7 +168,7 @@ export function htmlDoPacote(pacote: PacoteDePersonagem, idioma: Language): stri
   ${blocos}
   ${listaDePresets}
   ${diario}
-  <footer>${r.exportado}${pacote.app ? ` ${escapar(pacote.app)}` : ''}${quando ? ` — ${escapar(quando)}` : ''}<br>${r.abrirNoApp}</footer>
+  <footer>${r.exportado}${pacote.app ? ` ${escapar(pacote.app)}` : ''}${quando ? ` · ${escapar(quando)}` : ''}<br>${r.abrirNoApp}</footer>
 </main>
 <script id="${ID_DO_BLOCO_JSON}" type="application/json">${serializarPacote(pacote)}</script>
 </body>

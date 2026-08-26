@@ -51,7 +51,7 @@ const IGUAIS_DE_PROPOSITO = new Map<string, string>([
   ['presets.title', '"Presets" já é o termo usado em português no jargão de RPG'],
   ['sheetImport.presetsTitle', 'idem'],
   ['styleTab.hex', '"Hex", do código de cor — igual nos dois'],
-  ['history.restEvent', 'só travessões em volta do nome do descanso — não há palavra pra traduzir'],
+  ['history.restEvent', 'só colchetes em volta do nome do descanso — não há palavra pra traduzir'],
   ['photoCrop.zoom', '"Zoom" se escreve igual nos dois'],
   ['dialog.ok', '"OK" é OK nos dois'],
   [
@@ -94,6 +94,18 @@ describe('o dicionário em inglês', () => {
       .map(({ caminho, en }) => `${caminho}: ${JSON.stringify(en)}`)
 
     expect(comAcento, 'Texto com acento no dicionário em inglês.').toEqual([])
+  })
+
+  it('nenhum texto do app usa travessão', () => {
+    /**
+     * Pedido do usuário: "não usa nenhum travessão digitando no app". Os textos vinham cheios de
+     * "—" separando a frase da explicação (75 linhas de uma vez), e a voz do app ficou sendo a de
+     * quem escreve documentação. Dois pontos, ponto ou vírgula fazem o mesmo serviço.
+     */
+    const comTravessao = plano
+      .filter(({ pt, en }) => pt.includes('—') || en.includes('—'))
+      .map(({ caminho }) => caminho)
+    expect(comTravessao, 'Texto com travessão (—) no dicionário.').toEqual([])
   })
 
   it('marcadores de substituição sobrevivem à tradução', () => {
