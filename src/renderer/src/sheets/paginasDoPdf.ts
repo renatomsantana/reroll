@@ -25,7 +25,13 @@ export async function desenharPaginas(doc: PDFDocumentProxy, maximo = MAXIMO_DE_
       // Fundo branco: página sem fundo desenhado ficaria preta no JPEG, que não tem transparência.
       contexto.fillStyle = '#ffffff'
       contexto.fillRect(0, 0, canvas.width, canvas.height)
-      await pagina.render({ canvasContext: contexto, viewport, canvas }).promise
+      /**
+       * `annotationMode: 2` (ENABLE_FORMS) desenha os CAMPOS DE FORMULÁRIO com o que está escrito
+       * neles. Sem isto a ficha preenchível (Ordem, Pathfinder) sairia como o modelo em branco: o
+       * pdf.js, por padrão, não pinta os widgets — e a "ficha original" sem os valores não é a ficha
+       * original. A mesma escolha de `retratoDoPdf.ts`, pelo mesmo motivo.
+       */
+      await pagina.render({ canvasContext: contexto, viewport, canvas, annotationMode: 2 }).promise
       paginas.push(canvas.toDataURL('image/jpeg', 0.82))
     } catch (causa) {
       console.warn(`Não deu pra desenhar a página ${numero} do PDF; seguindo sem ela.`, causa)
