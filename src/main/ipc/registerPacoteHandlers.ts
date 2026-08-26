@@ -23,7 +23,7 @@ import type { NotesRepository } from '../storage/NotesRepository'
 import type { PresetsRepository } from '../storage/PresetsRepository'
 
 /**
- * EXPORTAR e IMPORTAR o personagem inteiro — ver o cabeçalho de `pacoteDePersonagem.ts`.
+ * EXPORTAR e IMPORTAR o personagem inteiro: ver o cabeçalho de `pacoteDePersonagem.ts`.
  *
  * Os dois moram no processo principal pelo mesmo motivo da importação de ficha: é aqui que estão o
  * disco e os diálogos, e importar cria três coisas em ordem (perfil, ficha, presets) que precisam
@@ -77,7 +77,7 @@ export async function lerPacoteDoArquivo(caminho: string): Promise<PacoteDePerso
  * de ficha em PDF (`targetProfileId`), só que casando pelo NOME, porque o arquivo não conhece o id
  * da outra máquina.
  *
- * Quando ATUALIZA, a ficha e os presets do personagem são SUBSTITUÍDOS pelos do arquivo — inclusive
+ * Quando ATUALIZA, a ficha e os presets do personagem são SUBSTITUÍDOS pelos do arquivo: inclusive
  * o diário. Acrescentar deixaria duas fichas coladas; o pacote é o retrato inteiro do personagem,
  * então o que vale é ele.
  *
@@ -94,7 +94,7 @@ export async function importarPacote(
 
   if (!existente && estado.profiles.length >= MAX_PROFILES) {
     throw new Error(
-      `Limite de ${MAX_PROFILES} personagens atingido — o arquivo é de "${nome || 'sem nome'}", que não está na lista. Apague um personagem antes de importar.`
+      `Limite de ${MAX_PROFILES} personagens atingido: o arquivo é de "${nome || 'sem nome'}", que não está na lista. Apague um personagem antes de importar.`
     )
   }
 
@@ -105,7 +105,7 @@ export async function importarPacote(
   await repos.profiles.save({ profiles: lista, activeId: perfil.id })
 
   // O que havia na pasta do personagem, pra voltar se a gravação falhar no meio. Num personagem novo
-  // a pasta está vazia e isto é o padrão — barato de guardar, e o desfazer fica igual nos dois casos.
+  // a pasta está vazia e isto é o padrão: barato de guardar, e o desfazer fica igual nos dois casos.
   const fichaAntes = await repos.notes.get()
   const presetsAntes = await repos.presets.getAll()
   try {
@@ -141,7 +141,7 @@ export function registerPacoteHandlers(
     const idioma: Language = pedido.idioma === 'en-US' ? 'en-US' : 'pt-BR'
     const { pacote, html } = await montarArquivoDoPacote(repos, sanearAparencia(pedido.aparencia), idioma, app.getVersion())
 
-    // Pela porta de `dialogos.ts`, que é quem lembra a pasta — ver o cabeçalho de lá.
+    // Pela porta de `dialogos.ts`, que é quem lembra a pasta: ver o cabeçalho de lá.
     const caminho = await escolherOndeSalvar({
       proposito: 'pacote',
       titulo: 'Exportar personagem',

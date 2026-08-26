@@ -562,6 +562,15 @@ async function faseHud() {
   console.log('\n=== HUD ===')
   const perfilLongo = { ...estado.profiles.profiles[0], name: 'Bartholomeu Anastácio da Silveira Montenegro' }
   estado.profiles = { profiles: [perfilLongo], activeId: 'p1' }
+
+  // SEM barras: o HUD só explica o lápis (pedido dele), e o lápis está lá pra clicar.
+  estado.notas.set('p1', { ...NOTAS_VAZIAS(), characterName: perfilLongo.name, hud: { canto: 'se', visivel: true, mini: false } })
+  await abrirApp({}, { largura: 1300, altura: 800 })
+  const semBarras = await js(`(() => ({ dica: document.querySelector('.hud-sem-barras')?.textContent, lapis: document.querySelector('.hud-botao[title*="Lápis"]')?.getAttribute('title') }))()`)
+  checar(!!semBarras.dica && /lápis/i.test(semBarras.dica) && !/—/.test(semBarras.dica), `HUD sem barras explica o lápis, sem travessão: "${semBarras.dica}"`)
+  checar(!!semBarras.lapis, `o lápis se explica no title: "${semBarras.lapis}"`)
+  await foto('hud-sem-barras')
+
   for (const tamanho of [{ largura: 1300, altura: 800 }, { largura: 900, altura: 600 }]) {
     for (const canto of ['nw', 'ne', 'sw', 'se']) {
       for (const [mini, visivel] of [[false, true], [true, true], [false, false]]) {

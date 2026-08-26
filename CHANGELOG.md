@@ -147,6 +147,15 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Corrigido
 
+- **O HUD só explica o lápis, e nenhum texto do app usa travessão** — pedido dele: "ajeita esse
+  HUD do rolador, apenas explique o que é o lápis, não usa nenhum travessão digitando no app". O
+  HUD sem barras dizia "Nenhuma barra ainda — o lápis aí em cima cria PV, PE, Sanidade... (ou
+  importe uma ficha)"; agora diz só o que o lápis faz ("O lápis ali em cima cria as barras de PV,
+  PE, Sanidade e o que mais o seu sistema usar"), e o próprio lápis explica no `title`. E os 75
+  textos da interface que usavam "—" pra emendar frase e explicação (avisos, dicas, mensagens de
+  erro, a linha do descanso no histórico, que virou "[ Descanso ]") trocaram por dois pontos, ponto
+  ou vírgula; as mensagens de erro do processo principal também. `traducoes.test.ts` passa a
+  recusar travessão em qualquer texto dos dois idiomas.
 - **Apagar um preset travava o teclado** — os dois bugs que ele achou ("se criarmos um preset,
   colocarmos nome e tudo, e apagarmos não conseguimos criar outro" e "se uploadarmos uma ficha e
   apagarmos um preset, a ficha buga, não conseguimos editar mais nada dela") são o mesmo defeito:

@@ -18,7 +18,7 @@ import type { ProfilesRepository } from './ProfilesRepository'
  */
 export class PresetsRepository {
   /**
-   * Um `JsonFileStore` POR PERFIL, criado sob demanda e guardado — o caminho do arquivo depende de
+   * Um `JsonFileStore` POR PERFIL, criado sob demanda e guardado: o caminho do arquivo depende de
    * qual personagem está aberto (ver `ProfilesRepository.activeDirectory`), e trocar de perfil não
    * pode reaproveitar o store do anterior. O cache existe porque o `JsonFileStore` guarda a fila de
    * gravações dele: recriá-lo a cada chamada jogaria fora essa fila, que é justamente o que impede
@@ -54,7 +54,7 @@ export class PresetsRepository {
 
   /**
    * A ESTRELA (spec §3.9): marca ou desmarca. Marcar põe no FIM da fileira; desmarcar tira e
-   * reindexa os outros. Cobra o teto de favoritos — a fileira do modo compacto tem seis lugares.
+   * reindexa os outros. Cobra o teto de favoritos: a fileira do modo compacto tem seis lugares.
    */
   async setFavorito(id: string, favorito: boolean): Promise<Preset[]> {
     const presets = await this.getAll()
@@ -62,7 +62,7 @@ export class PresetsRepository {
     if (!alvo) throw new Error(`Preset não encontrado: ${id}`)
     const favoritos = favoritosOrdenados(presets)
     if (favorito && alvo.favorito === undefined && favoritos.length >= MAXIMO_DE_FAVORITOS) {
-      throw new Error(`Limite de ${MAXIMO_DE_FAVORITOS} favoritos — tire a estrela de um antes de marcar outro.`)
+      throw new Error(`Limite de ${MAXIMO_DE_FAVORITOS} favoritos: tire a estrela de um antes de marcar outro.`)
     }
     const proximos: Preset[] = presets.map((p) => {
       if (p.id !== id) return p
@@ -124,7 +124,7 @@ export class PresetsRepository {
       ...presets[index],
       name: input.name,
       icon: input.icon,
-      // Os DOIS, sempre — o preset guarda um só (ver `preset.ts`), e editar um preset de fórmula
+      // Os DOIS, sempre: o preset guarda um só (ver `preset.ts`), e editar um preset de fórmula
       // pra virar um de botões precisa APAGAR a fórmula antiga; o spread acima a deixaria viva.
       expression: input.expression,
       formula: input.formula,
@@ -139,7 +139,7 @@ export class PresetsRepository {
 
   async delete(id: string): Promise<void> {
     const presets = await this.store().read()
-    // Apagar um favorito reindexa os outros — a fileira não fica com buraco.
+    // Apagar um favorito reindexa os outros: a fileira não fica com buraco.
     await this.store().write(reindexarFavoritos(presets.filter((p) => p.id !== id)))
   }
 
@@ -151,7 +151,7 @@ export class PresetsRepository {
    *
    * Diferente de `importMany`, que deixa a estrela de fora de propósito (o arquivo de presets é
    * pra dar presets a outra pessoa), aqui é a mesma pessoa levando o personagem dela pra outra
-   * máquina — a fileira de favoritos faz parte do que ela quer de volta. Reindexa, porque o arquivo
+   * máquina: a fileira de favoritos faz parte do que ela quer de volta. Reindexa, porque o arquivo
    * pode vir com buracos ou repetidos, e o teto é o mesmo de sempre.
    */
   async substituirPeloPacote(entradas: Array<PresetInput & { favorito?: number }>): Promise<Preset[]> {
@@ -195,14 +195,14 @@ export class PresetsRepository {
 }
 
 /**
- * O teto de presets do personagem, cobrado onde os três caminhos de gravação se encontram — ver
+ * O teto de presets do personagem, cobrado onde os três caminhos de gravação se encontram: ver
  * `MAXIMO_DE_PRESETS_POR_PERSONAGEM`. A regra é sobre CRESCER: um arquivo que já veio do disco com
  * mais do que o teto continua legível, editável e apagável; o que não passa é ganhar mais um.
  */
 function conferirTeto(totalDepois: number): void {
   if (totalDepois > MAXIMO_DE_PRESETS_POR_PERSONAGEM) {
     throw new Error(
-      `Limite de ${MAXIMO_DE_PRESETS_POR_PERSONAGEM} presets por personagem atingido — apague alguns antes de criar ou importar outros.`
+      `Limite de ${MAXIMO_DE_PRESETS_POR_PERSONAGEM} presets por personagem atingido: apague alguns antes de criar ou importar outros.`
     )
   }
 }

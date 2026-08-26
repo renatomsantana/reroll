@@ -14,7 +14,7 @@ import { JsonFileStore } from './JsonFileStore'
  *
  * Além de guardar a lista, é ela que diz ONDE ficam os dados de cada personagem: cada perfil tem uma
  * pasta própria dentro de `userData/profiles/<id>/`, e é dali que `NotesRepository` e
- * `PresetsRepository` leem e escrevem. Trocar de perfil não move arquivo nenhum — muda o diretório
+ * `PresetsRepository` leem e escrevem. Trocar de perfil não move arquivo nenhum: muda o diretório
  * que os dois consultam.
  */
 export class ProfilesRepository {
@@ -22,7 +22,7 @@ export class ProfilesRepository {
   private readonly userData: string
   /**
    * Estado em memória. Existe porque `NotesRepository`/`PresetsRepository` precisam do id do perfil
-   * ativo a CADA leitura e gravação — ir ao disco em toda tecla digitada nas anotações seria uma
+   * ativo a CADA leitura e gravação: ir ao disco em toda tecla digitada nas anotações seria uma
    * leitura de arquivo por caractere.
    */
   private state: ProfilesState | null = null
@@ -45,7 +45,7 @@ export class ProfilesRepository {
      *
      * `normalizeProfiles` dá um id novo a perfil com id repetido ou impróprio (ver o comentário
      * dela). Sem gravar de volta, esse id novo vale só pra esta execução: na abertura seguinte o
-     * arquivo ainda traz o id defeituoso e sorteia-se OUTRO id — ou seja, o personagem estreia numa
+     * arquivo ainda traz o id defeituoso e sorteia-se OUTRO id: ou seja, o personagem estreia numa
      * pasta vazia toda vez que o app abre, e tudo o que ele escreveu na sessão anterior fica órfão
      * numa pasta que ninguém mais procura. O conserto instável é pior que o defeito, porque o
      * defeito ao menos era estável.
@@ -75,14 +75,14 @@ export class ProfilesRepository {
    * Grava a lista. Recusa a gravação que faria a lista CRESCER além do teto (`MAX_PROFILES`).
    *
    * A regra é sobre CRESCER, e não sobre o tamanho, e a diferença é o que a torna segura: uma lista
-   * que já veio do disco com vinte personagens — backup restaurado, arquivo de uma versão em que o
-   * teto era outro — continua editável, apagável e gravável. O que não passa é sair de quinze pra
+   * que já veio do disco com vinte personagens: backup restaurado, arquivo de uma versão em que o
+   * teto era outro: continua editável, apagável e gravável. O que não passa é sair de quinze pra
    * dezesseis. Um teto que olhasse só o tamanho travaria o app de quem tem mais, e a única saída
    * seria editar JSON na mão.
    *
    * A trava vive AQUI, e não só no botão da tela, porque o canal `profiles:save` grava o estado
    * inteiro de uma vez: qualquer caminho do renderer que monte uma lista maior chega direto no
-   * disco. Medido no app rodando — a interface parava em quinze e o canal aceitava o décimo sexto
+   * disco. Medido no app rodando: a interface parava em quinze e o canal aceitava o décimo sexto
    * sem reclamar.
    */
   async save(next: ProfilesState): Promise<ProfilesState> {
@@ -91,12 +91,12 @@ export class ProfilesRepository {
     /**
      * O teto do DISCO (`TETO_DE_PERSONAGENS_NO_DISCO`, quinze), e não o de criação (`MAX_PROFILES`,
      * três neste beta): quem testou o beta.2 pode ter mais de três, e a lista dele precisa continuar
-     * gravável — renomear, trocar de ativo, apagar. O três é cobrado onde personagem NASCE
+     * gravável: renomear, trocar de ativo, apagar. O três é cobrado onde personagem NASCE
      * (`ProfilesContext.create` e o canal de importação).
      */
     if (limpo.profiles.length > TETO_DE_PERSONAGENS_NO_DISCO && limpo.profiles.length > atual) {
       throw new Error(
-        `Limite de ${TETO_DE_PERSONAGENS_NO_DISCO} personagens atingido — apague um antes de criar outro.`
+        `Limite de ${TETO_DE_PERSONAGENS_NO_DISCO} personagens atingido: apague um antes de criar outro.`
       )
     }
     this.state = limpo
@@ -105,17 +105,17 @@ export class ProfilesRepository {
   }
 
   /**
-   * Pasta do perfil aberto. Criada sob demanda — perfil recém-criado ainda não tem nada gravado.
+   * Pasta do perfil aberto. Criada sob demanda: perfil recém-criado ainda não tem nada gravado.
    *
    * O id é SANEADO antes de virar nome de pasta, e isso é defesa, não capricho: ele chega do
    * renderer (`profiles.save`) e também é lido de `profiles.json`, um arquivo que qualquer coisa
    * rodando na máquina pode editar. Um id como `..\..\Startup` sairia de `userData` e faria o app
-   * escrever a ficha do personagem numa pasta arbitrária do sistema — o app viraria a ferramenta de
+   * escrever a ficha do personagem numa pasta arbitrária do sistema: o app viraria a ferramenta de
    * escrita de quem plantou o id.
    *
    * A lista branca é a forma certa aqui porque o id de verdade é um UUID: letras, números, hífen e
    * underline cobrem 100% do que o app gera, e qualquer outra coisa é, por definição, alguém
-   * tentando outra coisa. O que não passa vira `_`, então o perfil ainda abre — o app não quebra na
+   * tentando outra coisa. O que não passa vira `_`, então o perfil ainda abre: o app não quebra na
    * mão de quem não fez nada.
    */
   activeDirectory(): string {
@@ -124,7 +124,7 @@ export class ProfilesRepository {
   }
 
   /**
-   * Quem já usava o app tem `notes.json` e `presets.json` soltos em `userData` — o formato de antes
+   * Quem já usava o app tem `notes.json` e `presets.json` soltos em `userData`: o formato de antes
    * dos perfis. Eles viram o conteúdo do perfil padrão em vez de sumir: ninguém perde a ficha nem os
    * presets por causa de uma mudança de tela.
    *
@@ -156,7 +156,7 @@ export class ProfilesRepository {
 
 /**
  * Deixa só o que pode virar nome de pasta com segurança. Fora da classe porque é regra pura e
- * testável sozinha — ver `profileIsolation.test.ts`.
+ * testável sozinha: ver `profileIsolation.test.ts`.
  */
 export function sanearIdDePasta(id: string): string {
   const limpo = id.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64)
