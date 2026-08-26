@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { useTranslation } from '@renderer/i18n/useTranslation'
+import { useDialogo } from '@renderer/components/common/Dialogo'
 import { useNotes } from '@renderer/hooks/useNotes'
 import { FONT_OPTIONS, useSettings } from '@renderer/settings/SettingsContext'
 import type { Language } from '@shared/types/idioma'
@@ -66,6 +67,7 @@ function formatarCriacao(createdAt: number, idioma: Language): string {
  */
 export function NotesTab() {
   const t = useTranslation()
+  const dialogo = useDialogo()
   const { language } = useSettings()
   const { notes, saveError, loadError, updateField, updatePage, goToPage, addPage, removePage } =
     useNotes()
@@ -99,8 +101,9 @@ export function NotesTab() {
   }
 
   function handleRemovePage(): void {
-    if (!confirm(t.notesTab.dayDeleteConfirm.replace('{day}', page.title || dayLabel))) return
-    removePage()
+    void dialogo.confirmar(t.notesTab.dayDeleteConfirm.replace('{day}', page.title || dayLabel)).then((ok) => {
+      if (ok) removePage()
+    })
   }
 
   return (

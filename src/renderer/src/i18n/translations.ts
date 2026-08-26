@@ -107,6 +107,8 @@ export interface TranslationDict {
   statusBar: { shortcutsHint: string }
   /** `restEvent` é a linha do descanso no diário da sessão (spec §3.8): "— {name} —". */
   history: { title: string; empty: string; clear: string; restEvent: string }
+  /** Os botões do diálogo do app ("tem certeza?" / "não deu") — ver `Dialogo.tsx`. */
+  dialog: { ok: string; cancel: string }
   /** O RECORTE da foto — zoom no rosto (ver `recorteDeFoto.ts`). */
   photoCrop: {
     title: string
@@ -561,6 +563,7 @@ export const translations: Record<Language, TranslationDict> = {
     statusBar: {
       shortcutsHint: 'Enter/Espaço : ROLL! · WASD move a câmera · Esc fecha · Ctrl+N novo preset'
     },
+    dialog: { ok: 'OK', cancel: 'Cancelar' },
     history: {
       title: 'Histórico',
       empty: 'Nenhuma rolagem ainda nesta sessão.',
@@ -990,6 +993,7 @@ export const translations: Record<Language, TranslationDict> = {
     statusBar: {
       shortcutsHint: 'Enter/Space : ROLL! · WASD moves the camera · Esc closes · Ctrl+N new preset'
     },
+    dialog: { ok: 'OK', cancel: 'Cancel' },
     history: {
       title: 'History',
       empty: 'No rolls yet this session.',

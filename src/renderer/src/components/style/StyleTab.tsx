@@ -10,6 +10,7 @@ import { AVAILABLE_DICE_TYPES } from '@renderer/dice3d/dice-defs/registry'
 import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
 import { useTranslation } from '@renderer/i18n/useTranslation'
+import { useDialogo } from '@renderer/components/common/Dialogo'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import { ColorWheel } from './ColorWheel'
@@ -90,6 +91,7 @@ function sameColor(a: string, b: string): boolean {
  */
 export function StyleTab() {
   const t = useTranslation()
+  const dialogo = useDialogo()
   const {
     diceBodyColor,
     diceNumberColor,
@@ -169,8 +171,11 @@ export function StyleTab() {
   }
 
   function handleApplyDefaultToAll(): void {
-    if (!confirm(t.styleTab.applyDefaultToAllConfirm.replace('{n}', String(tiposComCorPropria.length)))) return
-    for (const sides of tiposComCorPropria) clearDiceColorOverride(sides)
+    const tipos = [...tiposComCorPropria]
+    void dialogo.confirmar(t.styleTab.applyDefaultToAllConfirm.replace('{n}', String(tipos.length))).then((ok) => {
+      if (!ok) return
+      for (const sides of tipos) clearDiceColorOverride(sides)
+    })
   }
 
   const activeFamily = PALETTE_FAMILIES.find((family) => family.id === paletteFamily) ?? PALETTE_FAMILIES[0]

@@ -29,6 +29,7 @@ import { HudDoPersonagem } from '@renderer/components/hud/HudDoPersonagem'
 import { DescansoEditorModal } from '@renderer/components/recursos/DescansoEditorModal'
 import { aplicarDescanso, resumoDoDescanso, type Descanso } from '@shared/types/descanso'
 import { rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
+import { useDialogo } from '@renderer/components/common/Dialogo'
 import { linhaParaChat } from '@shared/dice/linhaParaChat'
 import { comMarcasDeCritico } from '@shared/dice/critico'
 import { tocarCritico, tocarFalha } from '@renderer/audio/efeitosDeCritico'
@@ -42,6 +43,7 @@ import './App.css'
 export default function App() {
   const { soundEnabled, compactMode, launchMode, autoCopyRolls, copyMarkdown, critSoundEnabled } = useSettings()
   const t = useTranslation()
+  const dialogo = useDialogo()
   const profiles = useProfiles()
   const indiceDoAtivo = Math.max(0, profiles.profiles.findIndex((p) => p.id === profiles.activeId))
   const [showSplash, setShowSplash] = useState(true)
@@ -247,17 +249,23 @@ export default function App() {
       // Deixa o modal aberto (com os dados já digitados) em vez de fechar silenciosamente —
       // o usuário perderia o preset sem nenhum aviso se create/update falhar (ex.: disco
       // cheio, sem permissão em %APPDATA%).
-      alert(t.presets.saveError.replace('{error}', (error as Error).message))
+      void dialogo.avisar(t.presets.saveError.replace('{error}', (error as Error).message))
     }
   }
 
+  /**
+   * O "tem certeza?" é o diálogo do APP (`useDialogo`), não o `confirm()` do sistema — era o
+   * `confirm()` daqui que deixava a janela sem teclado depois de apagar (ver `Dialogo.tsx`).
+   */
   function handleDeletePreset(preset: Preset) {
-    if (!confirm(t.presets.deleteConfirm.replace('{name}', preset.name))) return
-    // `void` com `catch`: apagar é gravação em disco e pode falhar. Sem o `catch`, a falha era uma
-    // rejeição sem dono — o preset continuava na tela e ninguém sabia por quê.
-    void deletePreset(preset.id).catch((causa: unknown) => {
-      console.error('Falha ao apagar o preset:', causa)
-      alert(t.presets.exportError.replace('{error}', String((causa as Error)?.message ?? causa)))
+    void dialogo.confirmar(t.presets.deleteConfirm.replace('{name}', preset.name)).then((ok) => {
+      if (!ok) return
+      // `catch` porque apagar é gravação em disco e pode falhar. Sem ele, a falha era uma rejeição
+      // sem dono — o preset continuava na tela e ninguém sabia por quê.
+      return deletePreset(preset.id).catch((causa: unknown) => {
+        console.error('Falha ao apagar o preset:', causa)
+        return dialogo.avisar(t.presets.exportError.replace('{error}', String((causa as Error)?.message ?? causa)))
+      })
     })
   }
 
@@ -270,19 +278,19 @@ export default function App() {
      */
     try {
       const path = await exportPresets()
-      if (path) alert(t.presets.exportSuccess.replace('{path}', path))
+      if (path) await dialogo.avisar(t.presets.exportSuccess.replace('{path}', path))
     } catch (causa) {
       console.error('Falha ao exportar presets:', causa)
-      alert(t.presets.exportError.replace('{error}', (causa as Error).message))
+      await dialogo.avisar(t.presets.exportError.replace('{error}', (causa as Error).message))
     }
   }
 
   async function handleImportPresets() {
     try {
       const result = await importPresets()
-      if (result) alert(t.presets.importSuccess.replace('{count}', String(result.importedCount)))
+      if (result) await dialogo.avisar(t.presets.importSuccess.replace('{count}', String(result.importedCount)))
     } catch (error) {
-      alert(t.presets.importError.replace('{error}', (error as Error).message))
+      await dialogo.avisar(t.presets.importError.replace('{error}', (error as Error).message))
     }
   }
 
@@ -405,7 +413,7 @@ export default function App() {
                   onToggleFavorite={(preset) =>
                     void setFavorite(preset.id, preset.favorito === undefined).catch((causa: unknown) => {
                       console.error('Falha ao favoritar o preset:', causa)
-                      alert(t.presets.saveError.replace('{error}', String((causa as Error)?.message ?? causa)))
+                      return dialogo.avisar(t.presets.saveError.replace('{error}', String((causa as Error)?.message ?? causa)))
                     })
                   }
                   onMoveFavorite={(preset, direcao) =>

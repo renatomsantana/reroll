@@ -1,0 +1,28 @@
+/* Por cima de QUALQUER outro modal (z 10): o "não deu" da gravação aparece com o editor ainda aberto. */
+.dialogo-overlay {
+  z-index: 20;
+}
+
+.dialogo {
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-style: outset;
+}
+
+.dialogo-texto {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dialogo-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
