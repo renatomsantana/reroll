@@ -145,6 +145,27 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   cabeça de um retrato — foi por isso que a foto virou 3×4 um dia —, então a volta vem com o
   remédio: `object-position: center 20%` puxa o recorte pra cima, onde o rosto está.
 
+### Adicionado (segurança de dados, spec §8.1 e §9.1)
+
+- **Backup da pasta de dados antes de abrir uma versão nova** — na primeira abertura de cada
+  versão o app copia perfis, fichas, presets e preferências pra
+  `%APPDATA%\reroll\backups\pre-<versão>-<data>\`, com um LEIA-ME dizendo como voltar; ficam os
+  três últimos. É o que a spec põe como prioridade máxima ("data loss on update is the single most
+  trust-destroying bug possible"): o app corrige o formato na leitura e grava por cima na primeira
+  tecla, e se uma versão ler errado o arquivo de antes dela ainda existe. Falha de backup é aviso
+  no console, nunca o app sem abrir. `backupsDeDados.node.test.ts`, com disco de verdade.
+- **Personagem apagado vai pra backup** — a pasta dele sai de `profiles\` (onde ficava órfã, e
+  ninguém achava) e vai pra `backups\personagens-apagados\<id>-<data>\`. O "tem certeza?" passou
+  a dizer isso. Apagar por engano continua recuperável: copiar a pasta de volta.
+- **Histórico de rolagens por personagem, gravado** (spec §3.2) — morava na memória da tela e
+  sumia ao fechar o app, e era o mesmo pra todo personagem. Agora é o `historico` do `notes.json`
+  dele: trocar de personagem troca o histórico, fechar o app não apaga, e o pacote exportado leva
+  ele junto. Os últimos 100 itens.
+- **Build portátil** (spec §8.4) — a release passa a ter também `Reroll-Portatil-<versão>.exe`, um
+  arquivo só, sem instalador, pra quem não confia em instalador sem assinatura. Ela não se
+  atualiza sozinha (o atualizador só troca instalação NSIS): o app reconhece que é portátil e as
+  Preferências dizem onde baixar a nova, sem botão de procurar.
+
 ### Testado
 
 - **A fase `perfis` do harness** (`scripts/testarNoApp.mjs`) — pedido dele: "vamos continuar

@@ -43,6 +43,8 @@ export function UpdateSection() {
         return t.settings.updateReady.replace('{version}', status.version)
       case 'error':
         return t.settings.updateError
+      case 'portable':
+        return t.settings.updatePortable
       default:
         return ''
     }
@@ -78,7 +80,7 @@ export function UpdateSection() {
           <Button variant="primary" onClick={handleUpdate}>
             {t.settings.updateNow}
           </Button>
-        ) : (
+        ) : status.state === 'portable' ? null : (
           <Button variant="secondary" disabled={isBusy} onClick={() => void window.api.update.check()}>
             {t.settings.checkUpdates}
           </Button>

@@ -120,10 +120,12 @@ describe.sequential('apagar o personagem e importar o mesmo PDF de novo', () => 
       pages: [{ id: 'dia-1', title: 'Sessão 1', text: 'Genoveva perdeu a besta no rio.', createdAt: 0 }]
     })
 
-    // APAGA — a lista esquece; a pasta, de propósito, fica no disco.
+    // APAGA — a lista esquece, e a pasta vai pro backup (spec §9.1; ver `backupsDeDados.ts`).
     await apagar(primeiro.id)
     expect((await profiles.get()).profiles.some((p) => p.id === primeiro.id)).toBe(false)
-    expect(existsSync(join(userData, 'profiles', primeiro.id))).toBe(true)
+    expect(existsSync(join(userData, 'profiles', primeiro.id))).toBe(false)
+    const apagados = await fs.readdir(join(userData, 'backups', 'personagens-apagados'))
+    expect(apagados.some((pasta) => pasta.startsWith(`${primeiro.id}-`))).toBe(true)
 
     // IMPORTA DE NOVO o mesmo PDF.
     const segundo = await importar()

@@ -144,6 +144,17 @@ export function registerUpdateHandlers(janela: () => BrowserWindow | null): void
    */
   if (!app.isPackaged) return
 
+  /**
+   * A build PORTÁTIL (spec §8.4) não se atualiza: o `electron-updater` baixa um instalador NSIS e
+   * o roda, e quem escolheu o .exe solto escolheu justamente não ter instalador. O lançador
+   * portátil do electron-builder deixa `PORTABLE_EXECUTABLE_DIR` no ambiente; com ele, o estado
+   * fica `portable` e a interface diz onde baixar a nova, sem checagem nenhuma.
+   */
+  if (ehBuildPortatil()) {
+    setStatus({ state: 'portable' })
+    return
+  }
+
   // NÃO baixa sozinho: encontrar a versão nova é uma coisa, gastar a internet de alguém é outra.
   // Quem começa o download é `IpcChannels.updateDownload`, e só depois de duas confirmações.
   autoUpdater.autoDownload = false
@@ -249,8 +260,12 @@ export function textoDasNotas(bruto: unknown): string | undefined {
  * não publicada. Vira uma linha de estado na tela de Preferências e nada mais — nunca um diálogo
  * de erro por cima do app de quem só queria rolar dados.
  */
+export function ehBuildPortatil(): boolean {
+  return typeof process.env.PORTABLE_EXECUTABLE_DIR === 'string' && process.env.PORTABLE_EXECUTABLE_DIR !== ''
+}
+
 async function checkForUpdates(): Promise<void> {
-  if (!app.isPackaged) return
+  if (!app.isPackaged || ehBuildPortatil()) return
   try {
     await autoUpdater.checkForUpdates()
   } catch (error) {

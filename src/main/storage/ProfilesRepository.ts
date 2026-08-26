@@ -8,6 +8,7 @@ import {
   type ProfilesState
 } from '@shared/types/profile'
 import { JsonFileStore } from './JsonFileStore'
+import { guardarPersonagemApagado } from './backupsDeDados'
 
 /**
  * Lista de perfis de personagem + qual está aberto (ver `shared/types/profile.ts`).
@@ -99,8 +100,25 @@ export class ProfilesRepository {
         `Limite de ${TETO_DE_PERSONAGENS_NO_DISCO} personagens atingido: apague um antes de criar outro.`
       )
     }
+    const idsDeAntes = this.state?.profiles.map((p) => p.id) ?? []
     this.state = limpo
     await this.store.write(this.state)
+
+    /**
+     * Personagem que SAIU da lista: a pasta dele vai pra `backups/personagens-apagados/` (spec
+     * §9.1; ver `backupsDeDados.ts`). Antes ela ficava órfã em `profiles/`, onde ninguém acha.
+     * DEPOIS de gravar a lista, e sem derrubar a gravação: a lista nova já está no disco, e uma
+     * pasta que não deu pra mover continua onde estava, sem prejuízo.
+     */
+    const idsDeAgora = new Set(limpo.profiles.map((p) => p.id))
+    for (const id of idsDeAntes) {
+      if (idsDeAgora.has(id)) continue
+      try {
+        await guardarPersonagemApagado(this.userData, sanearIdDePasta(id))
+      } catch (causa) {
+        console.error(`Não deu pra guardar a pasta do personagem apagado ${id}:`, causa)
+      }
+    }
     return this.state
   }
 

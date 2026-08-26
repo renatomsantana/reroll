@@ -8,6 +8,7 @@ import { registerSceneBackgroundHandlers } from './ipc/registerSceneBackgroundHa
 import { registerClipboardHandlers } from './ipc/registerClipboardHandlers'
 import { registerSheetHandlers } from './ipc/registerSheetHandlers'
 import { registerPacoteHandlers } from './ipc/registerPacoteHandlers'
+import { fazerBackupSeMudouDeVersao } from './storage/backupsDeDados'
 import { registerProfilesHandlers } from './ipc/registerProfilesHandlers'
 import { registerUpdateHandlers } from './updater'
 import { aplicarTravasDeSeguranca, preferenciasDeDepuracao } from './seguranca'
@@ -175,6 +176,18 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
      * de anotações cairia na pasta do perfil padrão mesmo que o usuário tenha outro aberto — e o
      * `init` é também quem migra o `notes.json`/`presets.json` soltos de quem já usava o app.
      */
+    /**
+     * ANTES de ler qualquer dado: a primeira abertura de uma versão nova copia a pasta inteira pra
+     * `backups/` (spec §8.1; ver `backupsDeDados.ts`). Falha de backup é aviso, não parada: o app
+     * abrir sem backup é ruim, o app não abrir é pior.
+     */
+    try {
+      const backup = await fazerBackupSeMudouDeVersao(app.getPath('userData'), app.getVersion())
+      if (backup) console.info(`Backup dos dados antes da versão ${app.getVersion()}: ${backup}`)
+    } catch (causa) {
+      console.error('Não deu pra fazer o backup dos dados antes desta versão:', causa)
+    }
+
     const profilesRepository = new ProfilesRepository()
     await profilesRepository.init()
     registerProfilesHandlers(profilesRepository)

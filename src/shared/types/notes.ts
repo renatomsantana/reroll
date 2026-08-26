@@ -3,6 +3,7 @@ import { normalizarRecursos, type RecursoVital } from './recursoVital'
 import { REGRA_DE_CRITICO_PADRAO, normalizarRegraDeCritico, type RegraDeCritico } from '../dice/critico'
 import { normalizarDescansos, type Descanso } from './descanso'
 import { HUD_PADRAO, normalizarCondicoes, normalizarHud, type Condicao, type EstadoDoHud } from './hud'
+import { normalizarHistorico, type ItemDoHistorico } from './historico'
 
 /**
  * Uma página do BLOCO — uma por dia de jogo, viradas pelos botões ◀ ▶ (pedido do usuário: "coloca
@@ -113,6 +114,12 @@ export interface NotesData {
   /** O HUD sobre a cena (spec §3.6): canto, escondido, mini — e as condições do personagem. Ver `hud.ts`. */
   hud: EstadoDoHud
   condicoes: Condicao[]
+  /**
+   * O HISTÓRICO de rolagens e descansos (spec §3.2: "roll history" é parte do que troca junto com o
+   * personagem, e sobrevive a fechar o app). Morava na memória do renderer e sumia ao fechar; agora
+   * é do personagem, como tudo o mais aqui. Os últimos `MAXIMO_DO_HISTORICO`, o mais novo primeiro.
+   */
+  historico: ItemDoHistorico[]
   inventory: string
   appearance: string
   backstory: string
@@ -136,6 +143,7 @@ export const DEFAULT_NOTES: NotesData = {
   descansos: [],
   hud: HUD_PADRAO,
   condicoes: [],
+  historico: [],
   inventory: '',
   appearance: '',
   backstory: '',
@@ -245,5 +253,6 @@ export function normalizeNotes(raw: unknown): NotesData {
   const descansos = normalizarDescansos(data.descansos, recursos)
   const hud = normalizarHud(data.hud)
   const condicoes = normalizarCondicoes(data.condicoes)
-  return { ...data, characterName, pages, currentPage, sections, recursos, critico, descansos, hud, condicoes }
+  const historico = normalizarHistorico(data.historico)
+  return { ...data, characterName, pages, currentPage, sections, recursos, critico, descansos, hud, condicoes, historico }
 }
