@@ -7,6 +7,7 @@ import { useTranslation } from '@renderer/i18n/useTranslation'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
+import { RecorteDeFotoModal } from '../foto/RecorteDeFotoModal'
 import './SheetImportModal.css'
 
 /**
@@ -91,12 +92,14 @@ export function SheetImportModal({
    */
   const [retrato, setRetrato] = useState<string | null>(sheet.retrato ?? null)
   const [erroDoRetrato, setErroDoRetrato] = useState(false)
+  /** A foto escolhida (ou a tirada do PDF) passa pelo RECORTE — zoom no rosto — antes de valer. */
+  const [recortando, setRecortando] = useState<string | null>(null)
 
   async function escolherOutroRetrato(): Promise<void> {
     setErroDoRetrato(false)
     try {
       const escolhido = await window.api.profiles.pickPhoto()
-      if (escolhido) setRetrato(escolhido)
+      if (escolhido) setRecortando(escolhido)
     } catch (causa) {
       console.error('Falha ao escolher o retrato:', causa)
       setErroDoRetrato(true)
@@ -222,6 +225,11 @@ export function SheetImportModal({
               <button type="button" className="sheet-import-portrait-btn" onClick={() => void escolherOutroRetrato()}>
                 {retrato ? t.sheetImport.portraitReplace : t.sheetImport.portraitChoose}
               </button>
+              {retrato && (
+                <button type="button" className="sheet-import-portrait-btn" onClick={() => setRecortando(retrato)}>
+                  {t.photoCrop.adjust}
+                </button>
+              )}
               {retrato && (
                 <button type="button" className="sheet-import-portrait-btn" onClick={() => setRetrato(null)}>
                   {t.sheetImport.portraitRemove}
@@ -408,6 +416,17 @@ export function SheetImportModal({
             {saving ? t.sheetImport.confirming : alvo ? t.sheetImport.update : t.sheetImport.confirm}
           </Button>
         </div>
+
+        {recortando && (
+          <RecorteDeFotoModal
+            imagem={recortando}
+            onConfirm={(foto) => {
+              setRetrato(foto)
+              setRecortando(null)
+            }}
+            onCancel={() => setRecortando(null)}
+          />
+        )}
       </Card>
     </div>
   )

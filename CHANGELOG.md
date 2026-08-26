@@ -94,6 +94,18 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Alterado
 
+- **A foto tem recorte com ZOOM NO ROSTO** — pedido dele ("quero algo que seja zoom no rosto").
+  Escolher a foto (na Ficha ou na conferência da importação, inclusive a tirada do PDF) abre um
+  quadro de 256px: arrasta pra centrar o rosto, zoom pela roda do mouse ou pelo controle (até 4×),
+  "Centrar" volta ao chute inicial — que já olha pra parte de cima do retrato, com 15% de zoom —
+  e "Usar esta" grava um quadrado JPEG de 384px. Sem detector de rosto de propósito: é a pessoa
+  quem diz onde o rosto está, e a geometria é uma só pra prévia e pro arquivo (`recorteDeFoto.ts`,
+  testada). "Recortar…" embaixo da foto que já existe reabre o quadro.
+- **Preparar pra qualquer ficha: mais grafias de recurso** — "12 de 40", "12 of 40", "45 (60)",
+  "HP Current"/"HP Max", "Sanidade Atual"/"Máx", e MP/PM/Mana como nomes vitais. Uma DÉCIMA LEVA
+  de PDFs fabricados cobra a lista exata de barras de cada grafia (`espera.barras` no corpus) e
+  inclui uma ficha com a FOTO num botão de imagem de formulário e um logo maior desenhado na página
+  — o harness prova que a foto (3:4, muitas cores) vence o logo (quadrado, duas cores).
 - **Fonte um tamanho maior** — pedido dele ("aumentar 1 tamanho da fonte"): o texto-base foi de 13
   pra 14px, botões e campos de 12 pra 13, e os textos com tamanho próprio subiram junto (cartão de
   preset, campos da Ficha, crachá, HUD, histórico, Preferências). Medido de novo: a aba de Rolagem
@@ -114,7 +126,12 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   produção numa janela oculta com um processo principal falso e clica, rola, importa e arrasta —
   pedido dele: "vamos continuar testando os tipos de hud, os d20, os tipos diferentes de dados, os
   uploads, os scrapings"). Os sete tipos de dado, 3d6+5, vantagem/desvantagem, ⭐/💀, a linha do
-  chat, o histórico e um d20 assentando na bandeja 3D passaram de primeira. O que não passou, e
+  chat, o histórico e um d20 assentando na bandeja 3D passaram de primeira. Depois entraram as
+  fases `dados3d` (os sete tipos e um 3d6 caindo na bandeja de verdade, d100 em ~6 s), `sons`
+  (`play()` do áudio e os osciladores do Web Audio instrumentados: a rolagem toca uma vez, a
+  fanfarra de quatro notas e o "womp" tocam no ⭐/💀, e NADA toca com o som desligado ou só com o
+  som de crítico desligado), `foto` (o recorte abre, zoom e arrasto mexem, grava 384×384) e
+  `fabricados` (a décima leva pela conferência, com a foto vencendo o logo). O que não passou, e
   foi consertado:
   - **O HUD transbordava a cena** com doze barras e vinte condições (477px num canvas de 462): agora
     tem altura máxima e o miolo (barras e condições) rola; cabeçalho e Descansar ficam parados.

@@ -41,8 +41,12 @@ const PREFIXO_MAXIMO = /^max(?:imum)?\s+(.+)$/i
 /** "HP Current", "HP Max". */
 const SUFIXO_ATUAL_EN = /^(.+?)\s+current$/i
 const SUFIXO_MAXIMO_EN = /^(.+?)\s+max(?:imum)?$/i
-/** "12/40", "12 / 40". */
-const PAR_NO_VALOR = /^\s*(\d{1,7})\s*\/\s*(\d{1,7})\s*$/
+/**
+ * O par escrito NUM valor só, nas formas que as fichas usam: "12/40", "12 / 40", "12 de 40",
+ * "12 of 40", "45 (60)" — a última é o atual com o máximo entre parênteses, comum em ficha de
+ * Cthulhu e em ficha caseira. Todas dizem a mesma coisa: quanto tem, de quanto.
+ */
+const PAR_NO_VALOR = /^\s*(\d{1,7})\s*(?:\/|\bde\b|\bof\b|\()\s*(\d{1,7})\s*\)?\s*$/i
 /**
  * Grupo de ATRIBUTOS: o "n/m" ali é valor sobre a escala do sistema, não gasto sobre reserva. Em
  * Oblívio todo atributo vem como "2/10", e a primeira versão propunha doze barras — "Carne 0/10",
@@ -58,7 +62,8 @@ const GRUPO_DE_ATRIBUTOS = /atribut|attribute|caracter[íi]stica|characteristic|
  * "Vontade" parecia recurso e é PERÍCIA em Ordem (medido na ficha do Vincenzo: virava uma barra
  * "Vontade 10/10" que ninguém gasta).
  */
-const NOME_DE_RECURSO_VITAL = /^(sa[úu]de|vida|health|hp|pv|pe|esfor[çc]o|sanidade|sanity|determina[çc][ãa]o|assimila[çc][ãa]o|mana|stamina|f[ôo]lego|sorte|luck)$/i
+const NOME_DE_RECURSO_VITAL =
+  /^(sa[úu]de|vida|health|hp|pv|pe|mp|pm|esfor[çc]o|sanidade|sanity|determina[çc][ãa]o|assimila[çc][ãa]o|mana|magia|stamina|f[ôo]lego|sorte|luck|hit points|magic points)$/i
 const INTEIRO = /^\s*(\d{1,7})\s*$/
 
 /** O inteiro no começo do valor ("19", " 19 ", "19 (5 temp)"), ou `null` se não há número ali. */

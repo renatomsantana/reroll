@@ -11,6 +11,7 @@ import { ProfileSelect } from './ProfileSelect'
 import { MAX_PROFILES } from '@shared/types/profile'
 import { IMPORTACAO_DE_FICHA_LIGADA } from '@shared/recursos'
 import { SheetImportModal } from './SheetImportModal'
+import { RecorteDeFotoModal } from '../foto/RecorteDeFotoModal'
 import { useSheetImport } from '../../sheets/useSheetImport'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
@@ -117,10 +118,17 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
    */
   const [erroDaFoto, setErroDaFoto] = useState(false)
 
+  /**
+   * A foto escolhida vai pro RECORTE antes de virar a foto do personagem (zoom no rosto — ver
+   * `recorteDeFoto.ts`). O arquivo cru fica só na memória deste modal; o que se grava é o quadrado.
+   */
+  const [recortando, setRecortando] = useState<string | null>(null)
+
   async function escolherFoto(): Promise<void> {
     setErroDaFoto(false)
     try {
-      await profiles.pickPhoto(profiles.activeId)
+      const escolhida = await window.api.profiles.pickPhoto()
+      if (escolhida) setRecortando(escolhida)
     } catch (causa) {
       console.error('Falha ao escolher a foto do personagem:', causa)
       setErroDaFoto(true)
@@ -291,6 +299,12 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                   <span>{t.notesTab.profilePhotoEmpty}</span>
                 )}
               </button>
+              {/* Recortar de novo a foto que já está: mais zoom no rosto, outro enquadramento. */}
+              {profiles.active.photo && (
+                <button type="button" className="sheet-photo-recortar" onClick={() => setRecortando(profiles.active.photo)}>
+                  {t.photoCrop.adjust}
+                </button>
+              )}
               {erroDaFoto && <p className="sheet-photo-error">{t.notesTab.profilePhotoError}</p>}
             </div>
 
@@ -517,6 +531,17 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
           }
           onCancel={importacao.cancelar}
           onConfirm={(escolha) => void importacao.confirmar(escolha)}
+        />
+      )}
+
+      {recortando && (
+        <RecorteDeFotoModal
+          imagem={recortando}
+          onConfirm={(foto) => {
+            profiles.update(profiles.activeId, { photo: foto })
+            setRecortando(null)
+          }}
+          onCancel={() => setRecortando(null)}
         />
       )}
     </Card>

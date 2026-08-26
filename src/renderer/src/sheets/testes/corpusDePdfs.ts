@@ -33,6 +33,12 @@ export interface FichaDeTeste {
     campos?: { label: string; value?: string; valueMatches?: RegExp; group?: string }[]
     /** Nenhum rótulo pode casar com isto — é como se cobra que o nome cru do campo não vazou. */
     semRotulo?: RegExp
+    /**
+     * As BARRAS que a ficha propõe (spec §3.4; ver `extrairRecursos.ts`), como "PV 12/45" — com
+     * `*` no fim quando o atual estava em branco. Lista EXATA e na ordem: barra a mais é tão
+     * defeito quanto barra a menos (o Oblívio já propôs doze de atributo).
+     */
+    barras?: string[]
     /** Nada (rótulo ou valor) pode casar com isto — o que estava fora do teto da varredura. */
     proibidos?: RegExp[]
     /**

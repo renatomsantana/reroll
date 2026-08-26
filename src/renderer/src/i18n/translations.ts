@@ -107,6 +107,18 @@ export interface TranslationDict {
   statusBar: { shortcutsHint: string }
   /** `restEvent` é a linha do descanso no diário da sessão (spec §3.8): "— {name} —". */
   history: { title: string; empty: string; clear: string; restEvent: string }
+  /** O RECORTE da foto — zoom no rosto (ver `recorteDeFoto.ts`). */
+  photoCrop: {
+    title: string
+    hint: string
+    frame: string
+    zoom: string
+    reset: string
+    use: string
+    cancel: string
+    /** O botão que abre o recorte de uma foto que já existe. */
+    adjust: string
+  }
   /** O HUD do personagem sobre a cena (spec §3.6; ver `HudDoPersonagem.tsx`). */
   hud: {
     title: string
@@ -555,6 +567,16 @@ export const translations: Record<Language, TranslationDict> = {
       clear: 'Limpar',
       restEvent: '— {name} —'
     },
+    photoCrop: {
+      title: 'Recortar a foto',
+      hint: 'Arraste a foto pra centrar o rosto no quadro e dê zoom com a roda do mouse ou o controle. O quadrado é o que fica.',
+      frame: 'Quadro do recorte — arraste pra posicionar',
+      zoom: 'Zoom',
+      reset: 'Centrar',
+      use: 'Usar esta',
+      cancel: 'Cancelar',
+      adjust: 'Recortar…'
+    },
     hud: {
       title: 'Personagem',
       dragHint: 'Arraste pra outro canto da cena',
@@ -973,6 +995,16 @@ export const translations: Record<Language, TranslationDict> = {
       empty: 'No rolls yet this session.',
       clear: 'Clear',
       restEvent: '— {name} —'
+    },
+    photoCrop: {
+      title: 'Crop the photo',
+      hint: 'Drag the photo to center the face in the frame and zoom with the mouse wheel or the slider. The square is what stays.',
+      frame: 'Crop frame — drag to position',
+      zoom: 'Zoom',
+      reset: 'Center',
+      use: 'Use this',
+      cancel: 'Cancel',
+      adjust: 'Crop…'
     },
     hud: {
       title: 'Character',

@@ -32,7 +32,7 @@ const SAIDA = join(RAIZ, 'out', 'testar-no-app')
 mkdirSync(SAIDA, { recursive: true })
 const BLANK = join(SAIDA, 'blank.html')
 writeFileSync(BLANK, '<!DOCTYPE html><html><body></body></html>')
-const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'hud', 'fichas']
+const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'hud', 'fichas', 'fabricados']
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms))
 let falhas = 0
@@ -269,6 +269,126 @@ async function faseDados() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase DADOS 3D: cada tipo de dado cai na bandeja de verdade e a face é lida da física.       */
+/* ------------------------------------------------------------------------------------------ */
+async function rolarNaCena() {
+  const antes = await js(`document.querySelector('.dice-roller-3d-result').textContent`)
+  const t0 = Date.now()
+  await clicar('ROLAR')
+  const assentou = await esperarAte(`(() => { const t = document.querySelector('.dice-roller-3d-result').textContent; return t !== ${JSON.stringify(antes)} && /Total/.test(t) })()`, 20000, 200)
+  return { ...(assentou ? await lerResultado() : { valores: [], total: NaN }), ms: Date.now() - t0, assentou }
+}
+async function faseDados3d() {
+  console.log('\n=== DADOS na cena 3D (física + leitura da face), um de cada ===')
+  await abrirApp({ displayMode: '3d' })
+  for (const lados of [4, 6, 8, 10, 12, 20, 100]) {
+    await limparGrupos()
+    await clicar(`d${lados}`)
+    await espera(80)
+    const r = await rolarNaCena()
+    checar(r.assentou && r.valores.length === 1 && r.valores[0] >= 1 && r.valores[0] <= lados, `d${lados} na bandeja: ${r.assentou ? `[${r.valores}] em ${r.ms}ms` : 'não assentou em 20s'}`)
+    if (lados === 100) await foto('dados3d-d100')
+  }
+  // Três d6 de uma vez: três dados assentam, três valores.
+  await limparGrupos()
+  await clicar('d6')
+  await js(`Array.from(document.querySelectorAll('.dice-roller-3d-group-chip button')).find((b) => b.textContent.trim() === '+')?.click()`)
+  await js(`Array.from(document.querySelectorAll('.dice-roller-3d-group-chip button')).find((b) => b.textContent.trim() === '+')?.click()`)
+  const r = await rolarNaCena()
+  checar(r.assentou && r.valores.length === 3 && r.valores.every((v) => v >= 1 && v <= 6), `3d6 na bandeja: ${r.assentou ? `[${r.valores}] em ${r.ms}ms` : 'não assentou'}`)
+  await foto('dados3d-3d6')
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Fase SONS: `play()` do <audio> e os osciladores do Web Audio, instrumentados na página.     */
+/* ------------------------------------------------------------------------------------------ */
+const INSTRUMENTAR_SONS = `(() => {
+  window.__sons = { play: 0, osciladores: 0 }
+  HTMLMediaElement.prototype.play = function () { window.__sons.play++; return Promise.resolve() }
+  const Real = window.AudioContext
+  window.AudioContext = class extends Real {
+    createOscillator() { window.__sons.osciladores++; return super.createOscillator() }
+  }
+  return 'ok'
+})()`
+async function faseSons() {
+  console.log('\n=== SONS ===')
+  await abrirApp({ displayMode: 'quick', soundEnabled: true })
+  await js(INSTRUMENTAR_SONS)
+  await limparGrupos()
+  await clicar('d20')
+  await rolarRapido()
+  let sons = await js('window.__sons')
+  checar(sons.play === 1, `som de rolagem tocou uma vez ao rolar (play=${sons.play})`)
+  let critico = false
+  let falha = false
+  for (let i = 0; i < 300 && !(critico && falha); i++) {
+    const r = await rolarRapido()
+    if (r.critico) critico = true
+    if (r.falha) falha = true
+  }
+  sons = await js('window.__sons')
+  // A fanfarra são QUATRO notas (quatro osciladores); o "womp" é um. Com os dois, pelo menos cinco.
+  checar(critico && falha && sons.osciladores >= 5, `fanfarra do crítico e "womp" da falha tocaram (osciladores=${sons.osciladores}, crítico ${critico}, falha ${falha})`)
+
+  await abrirApp({ displayMode: 'quick', soundEnabled: false })
+  await js(INSTRUMENTAR_SONS)
+  await limparGrupos()
+  await clicar('d20')
+  for (let i = 0; i < 40; i++) await rolarRapido()
+  sons = await js('window.__sons')
+  checar(sons.play === 0 && sons.osciladores === 0, `com o som desligado, nada toca em 40 rolagens (play=${sons.play}, osciladores=${sons.osciladores})`)
+
+  await abrirApp({ displayMode: 'quick', soundEnabled: true, critSoundEnabled: false })
+  await js(INSTRUMENTAR_SONS)
+  await limparGrupos()
+  await clicar('d20')
+  for (let i = 0; i < 120; i++) await rolarRapido()
+  sons = await js('window.__sons')
+  checar(sons.play >= 120 && sons.osciladores === 0, `só o som de crítico desligado: rolagem toca (${sons.play}), crítico não (${sons.osciladores})`)
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Fase FOTO: escolher a foto abre o recorte; "Usar esta" grava um quadrado.                   */
+/* ------------------------------------------------------------------------------------------ */
+async function faseFoto() {
+  console.log('\n=== FOTO (recorte com zoom no rosto) ===')
+  estado.profiles = { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: null, createdAt: 1 }], activeId: 'p1' }
+  estado.notas.set('p1', NOTAS_VAZIAS())
+  await abrirApp({})
+  await aba('Ficha')
+  await clicar('.sheet-profile-photo')
+  const abriu = await esperarAte(`!!document.querySelector('.recorte-foto') && getComputedStyle(document.querySelector('.recorte-foto-quadro img')).visibility === 'visible'`, 8000)
+  checar(abriu, 'clicar na foto abre o recorte com a imagem carregada')
+  await espera(300)
+  await foto('foto-recorte')
+  // Roda do mouse dá zoom; arrastar desloca. Só conferimos que o transform mudou.
+  const antes = await js(`document.querySelector('.recorte-foto-quadro img').style.transform`)
+  const quadro = await js(`(() => { const r = document.querySelector('.recorte-foto-quadro').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } })()`)
+  win.webContents.sendInputEvent({ type: 'mouseWheel', x: quadro.x, y: quadro.y, deltaX: 0, deltaY: -120 })
+  await espera(200)
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: quadro.x, y: quadro.y })
+  win.webContents.sendInputEvent({ type: 'mouseDown', x: quadro.x, y: quadro.y, button: 'left', clickCount: 1 })
+  await espera(60)
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: quadro.x - 30, y: quadro.y - 20, button: 'left' })
+  await espera(60)
+  win.webContents.sendInputEvent({ type: 'mouseUp', x: quadro.x - 30, y: quadro.y - 20, button: 'left', clickCount: 1 })
+  await espera(200)
+  const depois = await js(`document.querySelector('.recorte-foto-quadro img').style.transform`)
+  checar(antes !== depois, `zoom e arrasto mexem no enquadramento (${antes.slice(0, 40)}… → ${depois.slice(0, 40)}…)`)
+  await foto('foto-recorte-ajustado')
+  await clicar('Usar esta')
+  await esperarAte(`!document.querySelector('.recorte-foto')`, 5000)
+  await espera(400)
+  const gravada = estado.profiles.profiles[0].photo
+  const medida = gravada ? await js(`new Promise((r) => { const i = new Image(); i.onload = () => r({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => r(null); i.src = ${JSON.stringify(gravada)} })`) : null
+  checar(!!gravada && gravada.startsWith('data:image/jpeg') && medida && medida.w === 384 && medida.h === 384, `a foto gravada é um quadrado JPEG de 384px (${medida ? `${medida.w}×${medida.h}` : 'nenhuma'})`)
+  const recortar = await js(`!!Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Recortar…')`)
+  checar(recortar, 'com foto, a Ficha oferece "Recortar…"')
+  await foto('foto-ficha-depois')
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase HUD.                                                                                   */
 /* ------------------------------------------------------------------------------------------ */
 function notasCarregadas() {
@@ -339,19 +459,33 @@ async function faseHudArrasto() {
   await clicar('Tirar de PE')
   await espera(200)
   checar(estado.notas.get('p1').recursos[1].atual === notasCarregadas().recursos[1].atual - 1, `"−" do PE no HUD gravou ${estado.notas.get('p1').recursos[1].atual} (era ${notasCarregadas().recursos[1].atual})`)
+  // Digitar "-3" no número do PE (6 → 3), e Shift+clique no "+" (3 → 8).
+  await js(`document.querySelector('button[aria-label^="PE:"]').click()`)
+  await espera(120)
+  await js(`(() => { const i = document.querySelector('input[aria-label^="PE:"]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, '-3'); i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })()`)
+  await espera(200)
+  checar(estado.notas.get('p1').recursos[1].atual === 3, `digitar "-3" no PE gravou ${estado.notas.get('p1').recursos[1].atual} (esperado 3)`)
+  const mais = await js(`(() => { const b = document.querySelector('button[aria-label="Somar em PE"]').getBoundingClientRect(); return { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } })()`)
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: mais.x, y: mais.y })
+  await espera(60)
+  win.webContents.sendInputEvent({ type: 'mouseDown', x: mais.x, y: mais.y, button: 'left', clickCount: 1, modifiers: ['shift'] })
+  await espera(60)
+  win.webContents.sendInputEvent({ type: 'mouseUp', x: mais.x, y: mais.y, button: 'left', clickCount: 1, modifiers: ['shift'] })
+  await espera(250)
+  checar(estado.notas.get('p1').recursos[1].atual === 8, `Shift+clique no "+" do PE gravou ${estado.notas.get('p1').recursos[1].atual} (esperado 8)`)
+  await foto('hud-hp-mp-depois')
 }
 
 /* ------------------------------------------------------------------------------------------ */
 /* Fase FICHAS.                                                                                */
 /* ------------------------------------------------------------------------------------------ */
-async function faseFichas() {
-  console.log('\n=== FICHAS (importação pela tela de conferência) ===')
-  const pasta = join(RAIZ, 'Fichas RPG')
+async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(core|remaster ficha|player core|gm core)).*\.pdf$/i, esperaRetrato = {}) {
+  console.log(`\n=== FICHAS (importação pela tela de conferência): ${pasta} ===`)
   if (!existsSync(pasta)) {
-    console.log('sem a pasta Fichas RPG/ — pulando')
+    console.log(`sem a pasta ${pasta} — pulando`)
     return
   }
-  const pdfs = readdirSync(pasta).filter((n) => n.toLowerCase().endsWith('.pdf') && !/core|remaster ficha|Player Core|GM Core/i.test(n))
+  const pdfs = readdirSync(pasta).filter((n) => filtro.test(n))
   for (const nome of pdfs) {
     estado.profiles = { profiles: [{ id: 'p1', name: '', system: '', photo: null, createdAt: 1 }], activeId: 'p1' }
     estado.notas = new Map([['p1', NOTAS_VAZIAS()]])
@@ -391,6 +525,18 @@ async function faseFichas() {
       ? `${apply.notes.sections.length} seções, ${apply.presets.length} presets, barras [${(apply.recursos ?? []).map((r) => `${r.nome} ${r.atual}/${r.maximo}`).join(', ')}], retrato ${apply.photo ? `${Math.round(apply.photo.length / 1024)} KB` : 'não'}`
       : 'sem apply'
     checar(fechou && !!apply && apply.characterName.trim() !== '', `${nome}\n      ${conf.leitor || 'sem leitor'} · nome "${conf.nome}" · ${conf.titulos.join(' · ')} · barras propostas ${conf.barras.length} · ${conf.avisos} avisos\n      gravou: ${resumo}`)
+    /**
+     * O RETRATO esperado deste arquivo: `null` = nenhum; `'retrato'` = a foto (proporção 3:4 no
+     * arquivo fabricado — o logo é quadrado). Decodificado na página, porque é lá que há canvas.
+     */
+    if (nome in esperaRetrato) {
+      const esperado = esperaRetrato[nome]
+      const medida = apply?.photo
+        ? await js(`new Promise((r) => { const i = new Image(); i.onload = () => r({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => r(null); i.src = ${JSON.stringify(apply.photo)} })`)
+        : null
+      const ok = esperado === null ? !apply?.photo : !!medida && medida.h > medida.w
+      checar(ok, `      retrato de ${nome}: ${medida ? `${medida.w}×${medida.h}` : 'nenhum'} (esperado ${esperado === null ? 'nenhum' : 'a foto 3:4, não o logo quadrado'})`)
+    }
     await espera(600)
     await foto(`ficha-${slug}-ficha`)
     await aba('Rolagem')
@@ -402,9 +548,14 @@ async function faseFichas() {
 app.whenReady().then(async () => {
   for (const [canal, fn] of Object.entries(HANDLERS)) ipcMain.handle(canal, (_e, ...args) => fn(...args))
   if (FASES.includes('dados')) await faseDados()
+  if (FASES.includes('dados3d')) await faseDados3d()
+  if (FASES.includes('sons')) await faseSons()
+  if (FASES.includes('foto')) await faseFoto()
   if (FASES.includes('hud')) await faseHud()
   if (FASES.includes('arrasto')) await faseHudArrasto()
   if (FASES.includes('fichas')) await faseFichas()
+  // A décima leva fabricada (`ESCREVER_PDFS=1 npx vitest run corpusDePdfs` escreve em Fichas RPG/testes/).
+  if (FASES.includes('fabricados')) await faseFichas(join(RAIZ, 'Fichas RPG', 'testes'), /^7[0-3]-.*\.pdf$/i, { '73-foto-no-campo.pdf': 'retrato', '70-hp-mp-em-ingles.pdf': null })
   console.log(falhas === 0 ? '\nTudo passou no app compilado.' : `\n${falhas} checagem(ns) falharam.`)
   if (win && !win.isDestroyed()) win.destroy()
   app.exit(falhas === 0 ? 0 : 1)

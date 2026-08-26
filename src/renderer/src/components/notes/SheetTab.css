@@ -207,6 +207,23 @@
   gap: 4px;
 }
 
+/* O "Recortar…" embaixo da foto: botão miúdo, da largura da foto. */
+.sheet-photo-recortar {
+  width: 112px;
+  padding: 1px 6px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.sheet-photo-recortar:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 5px 0 7px;
+}
+
 .sheet-photo-error {
   margin: 0;
   /* Preso à largura da foto: sem isto o texto estica a coluna e reflui a linha inteira. */
