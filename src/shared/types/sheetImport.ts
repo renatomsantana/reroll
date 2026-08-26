@@ -29,6 +29,11 @@ export interface PdfSheet {
    * `retratoDoPdf.ts`). Ausente quando não há imagem que sirva — e isso nunca segura a importação.
    */
   retrato?: string
+  /**
+   * As PÁGINAS desenhadas em imagem (ver `paginasDaFicha.ts`): pra conferência mostrar o PDF ao
+   * lado dos campos e pra Ficha guardar a ficha original. Ausente quando não deu pra desenhar.
+   */
+  paginas?: string[]
 }
 
 export interface PdfField {
@@ -92,6 +97,8 @@ export interface SheetImport {
   rawText?: string
   /** O retrato candidato (ver `PdfSheet.retrato`), passado adiante pra conferência oferecer. */
   retrato?: string
+  /** As páginas desenhadas (ver `PdfSheet.paginas`), passadas adiante do mesmo jeito. */
+  paginas?: string[]
 }
 
 export interface SheetImportField {
@@ -236,6 +243,11 @@ export interface SheetApplyPayload {
    * na conferência quer dizer "não traga este", não "tire o que já tinha".
    */
   photo?: string | null
+  /**
+   * As PÁGINAS do PDF (ver `paginasDaFicha.ts`) pra ficar na pasta do personagem. Ausente ou vazio
+   * NÃO apaga as que um personagem atualizado já tinha; com páginas, substitui.
+   */
+  paginas?: string[]
 }
 
 export interface RecursoImportado {

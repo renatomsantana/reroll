@@ -347,3 +347,88 @@
   background: var(--win-face);
   border: 2px inset var(--win-highlight);
 }
+
+/*
+ * A PÁGINA DO PDF AO LADO DOS CAMPOS (spec da importação §9; pedido do usuário: "o mais parecido
+ * possível com os PDFs"). Com página, a janela alarga pra 1180px: a coluna da esquerda é a folha,
+ * a da direita é tudo o que já existia, rolando por conta própria pra os botões de confirmar não
+ * saírem da tela.
+ */
+.sheet-import-com-pagina {
+  width: 1180px;
+}
+
+.sheet-import-lado-a-lado {
+  display: flex;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+.sheet-import-campos {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.sheet-import-pagina {
+  flex: 0 0 380px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheet-import-pagina-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.sheet-import-pagina-btn {
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  color: var(--win-text);
+  font-family: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.sheet-import-pagina-btn:active:not(:disabled) {
+  border-style: inset;
+  padding: 1px 0 0 1px;
+}
+
+.sheet-import-pagina-btn:disabled {
+  color: var(--win-text-muted);
+  cursor: default;
+}
+
+/* A folha rola dentro da moldura cinza-escuro, como um visualizador: a página inteira cabe na
+   largura e a altura é a que for. */
+.sheet-import-pagina-folha {
+  flex: 1;
+  min-height: 240px;
+  overflow: auto;
+  background: #808080;
+  border: 2px inset var(--win-face);
+  padding: 6px;
+}
+
+.sheet-import-pagina-folha img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  box-shadow: 2px 2px 0 #000;
+}

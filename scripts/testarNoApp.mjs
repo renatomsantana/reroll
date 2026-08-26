@@ -32,7 +32,7 @@ const SAIDA = join(RAIZ, 'out', 'testar-no-app')
 mkdirSync(SAIDA, { recursive: true })
 const BLANK = join(SAIDA, 'blank.html')
 writeFileSync(BLANK, '<!DOCTYPE html><html><body></body></html>')
-const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'presets', 'pacote', 'perfis', 'hud', 'fichas', 'fabricados']
+const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'retrato', 'presets', 'pacote', 'perfis', 'hud', 'fichas', 'fabricados']
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms))
 let falhas = 0
@@ -52,8 +52,12 @@ const estado = {
   profiles: { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: fotoDeTeste, createdAt: 1 }], activeId: 'p1' },
   notas: new Map([['p1', NOTAS_VAZIAS()]]),
   presets: new Map([['p1', []]]),
+  /** As páginas do PDF por personagem (data URLs), como `PaginasRepository` guardaria em disco. */
+  paginas: new Map(),
   copiado: [],
   console: [],
+  /** A próxima imagem que o "Escolher foto" devolve (fase RETRATO); `null` = a foto de teste de sempre. */
+  fotoParaEscolher: null,
   pdfParaAbrir: null,
   ultimoApply: null
 }
@@ -63,7 +67,7 @@ const presetsDoAtivo = () => estado.presets.get(estado.profiles.activeId) ?? []
 const HANDLERS = {
   'profiles:get': () => estado.profiles,
   'profiles:save': (novo) => (estado.profiles = novo),
-  'profiles:pickPhoto': () => fotoDeTeste,
+  'profiles:pickPhoto': () => estado.fotoParaEscolher ?? fotoDeTeste,
   'notes:get': () => notasDoAtivo(),
   'notes:save': (notas) => {
     estado.notas.set(estado.profiles.activeId, notas)
@@ -127,8 +131,11 @@ const HANDLERS = {
       recursos: (payload.recursos ?? []).map((r) => ({ id: randomUUID(), nome: r.nome, atual: r.atual, maximo: r.maximo }))
     })
     estado.presets.set(perfil.id, payload.presets.map((p) => ({ id: randomUUID(), ...p, createdAt: Date.now(), updatedAt: Date.now() })))
+    if ((payload.paginas ?? []).length > 0) estado.paginas.set(perfil.id, payload.paginas)
     return perfil
   },
+  /** As páginas do PDF do personagem ativo (ver `PaginasRepository`), sem disco. */
+  'sheets:paginas': () => estado.paginas.get(estado.profiles.activeId) ?? [],
   /**
    * O pacote de personagem, sem disco: exportar guarda o pedido (é a APARÊNCIA que interessa
    * conferir — ela vem do renderer), importar cria o personagem de um pacote canónico e devolve a
@@ -774,6 +781,106 @@ async function faseFoto() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase RETRATO: a foto nos QUATRO lugares (Ficha, crachá da Rolagem, HUD, seletor), com       */
+/* imagens de formato difícil: alta, larga, minúscula, enorme, com transparência.              */
+/* ------------------------------------------------------------------------------------------ */
+/** Desenha uma "foto" no renderer: fundo colorido e um rosto (círculo claro) perto do topo. */
+async function imagemDeTeste(largura, altura, formato = 'image/png', transparente = false) {
+  return js(`(() => {
+    const c = document.createElement('canvas'); c.width = ${largura}; c.height = ${altura}
+    const g = c.getContext('2d')
+    if (!${transparente}) { g.fillStyle = '#2a4d69'; g.fillRect(0, 0, c.width, c.height) }
+    g.fillStyle = '#f2d2b6'; g.beginPath(); g.arc(c.width / 2, c.height * 0.22, Math.min(c.width, c.height) * 0.18, 0, Math.PI * 2); g.fill()
+    g.fillStyle = '#b03030'; g.fillRect(0, c.height * 0.6, c.width, c.height * 0.4)
+    return c.toDataURL(${JSON.stringify(formato)}, 0.9)
+  })()`)
+}
+/** Mede a foto num lugar: caixa quadrada? imagem inteira dentro da caixa? `cover`, sem distorção? */
+async function medirFoto(seletor) {
+  return js(`(() => {
+    const el = document.querySelector(${JSON.stringify(seletor)})
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    const pai = el.parentElement.getBoundingClientRect()
+    const cs = getComputedStyle(el)
+    const img = el.tagName === 'IMG' ? el : el.querySelector('img')
+    return {
+      tag: el.tagName, w: Math.round(r.width), h: Math.round(r.height),
+      quadrada: Math.abs(r.width - r.height) <= 1,
+      dentroDoPai: r.left >= pai.left - 1 && r.right <= pai.right + 1 && r.top >= pai.top - 1 && r.bottom <= pai.bottom + 1,
+      cover: (img ? getComputedStyle(img).objectFit : cs.objectFit) === 'cover',
+      natural: img ? [img.naturalWidth, img.naturalHeight] : null,
+      carregou: img ? img.complete && img.naturalWidth > 0 : false
+    }
+  })()`)
+}
+const LUGARES = [
+  ['Ficha', '.sheet-profile-photo'],
+  ['crachá da Rolagem', '.profile-badge-photo'],
+  ['HUD', '.hud-retrato'],
+  ['seletor de personagem', '.profile-select-photo']
+]
+async function conferirOsQuatroLugares(rotulo) {
+  await aba('Ficha')
+  const medidas = { Ficha: await medirFoto('.sheet-profile-photo') }
+  await js(`document.querySelector('.profile-select-value')?.click()`)
+  await esperarAte(`!!document.querySelector('.profile-select-option')`, 3000)
+  medidas['seletor de personagem'] = await medirFoto('.profile-select-option .profile-select-photo')
+  await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`)
+  await aba('Rolagem')
+  await espera(300)
+  medidas['crachá da Rolagem'] = await medirFoto('.profile-badge-photo')
+  medidas.HUD = await medirFoto('.hud-retrato')
+  for (const [lugar] of LUGARES) {
+    const m = medidas[lugar]
+    const ok = !!m && m.quadrada && m.dentroDoPai && m.cover && m.carregou
+    checar(ok, `${rotulo}: ${lugar} ${m ? `${m.w}×${m.h}${m.quadrada ? '' : ' NÃO quadrada'}${m.dentroDoPai ? '' : ' VAZA do pai'}${m.cover ? '' : ' sem cover'}${m.carregou ? '' : ' não carregou'} (natural ${m.natural})` : 'não encontrado'}`)
+  }
+}
+async function faseRetrato() {
+  console.log('\n=== RETRATO (a foto nos quatro lugares, com imagens difíceis) ===')
+  const casos = [
+    ['alta (300×900)', 300, 900, 'image/png'],
+    ['larga (1200×300)', 1200, 300, 'image/jpeg'],
+    ['minúscula (16×16)', 16, 16, 'image/png'],
+    ['enorme (3000×3000)', 3000, 3000, 'image/jpeg'],
+    ['PNG transparente (400×500)', 400, 500, 'image/png', true]
+  ]
+  estado.profiles = { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: null, createdAt: 1 }], activeId: 'p1' }
+  estado.notas = new Map([['p1', { ...NOTAS_VAZIAS(), characterName: 'Matias Oliveira', recursos: [{ id: 'r1', nome: 'PV', atual: 10, maximo: 20 }] }]])
+  estado.presets = new Map([['p1', []]])
+  await abrirApp({ displayMode: '3d' })
+  for (const [rotulo, largura, altura, formato, transparente] of casos) {
+    estado.fotoParaEscolher = await imagemDeTeste(largura, altura, formato, transparente)
+    await aba('Ficha')
+    await clicar('.sheet-profile-photo')
+    const abriu = await esperarAte(`!!document.querySelector('.recorte-foto') && getComputedStyle(document.querySelector('.recorte-foto-quadro img')).visibility === 'visible'`, 8000)
+    checar(abriu, `${rotulo}: o recorte abre com a imagem`)
+    if (!abriu) continue
+    await espera(200)
+    if (rotulo.startsWith('alta')) await foto('retrato-recorte-alta')
+    await clicar('Usar esta')
+    await esperarAte(`!document.querySelector('.recorte-foto')`, 5000)
+    await espera(400)
+    const gravada = estado.profiles.profiles[0].photo
+    const medida = gravada ? await js(`new Promise((r) => { const i = new Image(); i.onload = () => r([i.naturalWidth, i.naturalHeight]); i.onerror = () => r(null); i.src = ${JSON.stringify(gravada)} })`) : null
+    checar(!!medida && medida[0] === 384 && medida[1] === 384, `${rotulo}: gravou um quadrado de 384 (${medida})`)
+    await conferirOsQuatroLugares(rotulo)
+    if (rotulo.startsWith('alta') || rotulo.startsWith('larga')) await foto(`retrato-${rotulo.split(' ')[0]}`)
+  }
+
+  // A foto SEM recorte: o retrato que vem do PDF entra como está (pode ser 3×4, pode ser larga).
+  // Os quatro lugares têm que mostrar um quadrado sem esticar.
+  for (const [rotulo, largura, altura] of [['retrato 3×4 sem recorte', 300, 400], ['banner largo sem recorte', 900, 200]]) {
+    estado.profiles = { profiles: [{ ...estado.profiles.profiles[0], photo: await imagemDeTeste(largura, altura, 'image/jpeg') }], activeId: 'p1' }
+    await abrirApp({ displayMode: '3d' })
+    await conferirOsQuatroLugares(rotulo)
+  }
+  await foto('retrato-sem-recorte')
+  estado.fotoParaEscolher = null
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase HUD.                                                                                   */
 /* ------------------------------------------------------------------------------------------ */
 function notasCarregadas() {
@@ -902,10 +1009,15 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
       const retrato = !!document.querySelector('img.sheet-import-portrait-img')
       const avisos = document.querySelectorAll('.sheet-import-warnings li').length
       const nome = (document.querySelector('.sheet-import-identity input') || {}).value || ''
-      return { leitor: leitor.trim(), titulos, barras, retrato, avisos, nome }
+      const pagina = document.querySelector('.sheet-import-pagina-folha img')
+      const paginaOk = !!pagina && pagina.complete && pagina.naturalWidth >= 900 && pagina.getBoundingClientRect().width > 200
+      const contador = (document.querySelector('.sheet-import-pagina-nav span') || {}).textContent || ''
+      return { leitor: leitor.trim(), titulos, barras, retrato, avisos, nome, paginaOk, contador }
     })()`)
     const slug = nome.replace(/[^a-z0-9]+/gi, '-').replace(/-+$/, '')
     await foto(`ficha-${slug}-conferencia`)
+    // A página do PDF ao lado dos campos (spec §9): desenhada, legível, com o contador certo.
+    checar(conf.paginaOk && /Página 1 de \d+/.test(conf.contador), `      ${nome}: a página do PDF aparece ao lado dos campos (${conf.contador || 'sem página'})`)
     // Modelo em branco não traz nome, e sem nome o "Criar" fica desabilitado de propósito: a pessoa
     // digita um. Aqui, o harness digita — e assim o caminho do modelo em branco também é testado.
     if (!conf.nome.trim()) {
@@ -933,6 +1045,18 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     }
     await espera(600)
     await foto(`ficha-${slug}-ficha`)
+    // A FICHA ORIGINAL na aba: as páginas ficaram com o personagem e abrem num clique.
+    const paginasGravadas = (estado.paginas.get(estado.profiles.activeId) ?? []).length
+    const abriuOriginal = paginasGravadas > 0 && (await clicar(`Mostrar as ${paginasGravadas} páginas`))
+    const original = abriuOriginal
+      ? await esperarAte(`(() => { const imgs = Array.from(document.querySelectorAll('.sheet-original-paginas img')); return imgs.length === ${paginasGravadas} && imgs.every((i) => i.complete && i.naturalWidth >= 900) })()`, 5000)
+      : false
+    checar(original, `      ${nome}: a Ficha guarda ${paginasGravadas} página(s) do PDF e mostra ao clicar`)
+    if (original) {
+      // A captura logo depois do clique vem de um quadro antigo (ver a memória do harness): espera pintar.
+      await espera(600)
+      await foto(`ficha-${slug}-original`)
+    }
     await aba('Rolagem')
     await espera(300)
     await foto(`ficha-${slug}-rolagem`)
@@ -945,6 +1069,7 @@ app.whenReady().then(async () => {
   if (FASES.includes('dados3d')) await faseDados3d()
   if (FASES.includes('sons')) await faseSons()
   if (FASES.includes('foto')) await faseFoto()
+  if (FASES.includes('retrato')) await faseRetrato()
   if (FASES.includes('presets')) await fasePresets()
   if (FASES.includes('pacote')) await fasePacote()
   if (FASES.includes('perfis')) await fasePerfis()

@@ -21,6 +21,7 @@ import { escolherArquivo, escolherOndeSalvar } from './dialogos'
 import type { ProfilesRepository } from '../storage/ProfilesRepository'
 import type { NotesRepository } from '../storage/NotesRepository'
 import type { PresetsRepository } from '../storage/PresetsRepository'
+import type { PaginasRepository } from '../storage/PaginasRepository'
 
 /**
  * EXPORTAR e IMPORTAR o personagem inteiro: ver o cabeçalho de `pacoteDePersonagem.ts`.
@@ -35,8 +36,10 @@ import type { PresetsRepository } from '../storage/PresetsRepository'
  */
 
 /** Só a estrutura: os dados vêm dos repositórios. Separado do handler pra ser testado com disco de verdade. */
+type Repos = { profiles: ProfilesRepository; notes: NotesRepository; presets: PresetsRepository; paginas: PaginasRepository }
+
 export async function montarArquivoDoPacote(
-  repos: { profiles: ProfilesRepository; notes: NotesRepository; presets: PresetsRepository },
+  repos: Repos,
   aparencia: AparenciaDoPersonagem | null,
   idioma: Language,
   versaoDoApp: string
@@ -48,6 +51,7 @@ export async function montarArquivoDoPacote(
     ficha: await repos.notes.get(),
     presets: await repos.presets.getAll(),
     aparencia,
+    paginas: await repos.paginas.ler(),
     versaoDoApp,
     agora: new Date()
   })
@@ -84,10 +88,7 @@ export async function lerPacoteDoArquivo(caminho: string): Promise<PacoteDePerso
  * Tudo ou nada, como a importação de ficha: a lista, a ficha e os presets de antes são guardados e,
  * se qualquer gravação falhar, os três voltam e o erro sobe.
  */
-export async function importarPacote(
-  repos: { profiles: ProfilesRepository; notes: NotesRepository; presets: PresetsRepository },
-  pacote: PacoteDePersonagem
-): Promise<PacoteImportado> {
+export async function importarPacote(repos: Repos, pacote: PacoteDePersonagem): Promise<PacoteImportado> {
   const estado = await repos.profiles.get()
   const nome = pacote.personagem.name.trim() || pacote.ficha.characterName.trim()
   const existente = estado.profiles.find((p) => mesmoNome(p.name, nome))
@@ -116,6 +117,8 @@ export async function importarPacote(
       return ok
     })
     await repos.presets.substituirPeloPacote(validos)
+    // As páginas do PDF, quando o arquivo as traz; sem elas, as que o personagem tinha ficam.
+    if (pacote.paginas.length > 0) await repos.paginas.gravar(pacote.paginas)
   } catch (causa) {
     try {
       await repos.notes.save(fichaAntes)
@@ -132,9 +135,10 @@ export async function importarPacote(
 export function registerPacoteHandlers(
   profiles: ProfilesRepository,
   notes: NotesRepository,
-  presets: PresetsRepository
+  presets: PresetsRepository,
+  paginas: PaginasRepository
 ): void {
-  const repos = { profiles, notes, presets }
+  const repos: Repos = { profiles, notes, presets, paginas }
 
   ipcMain.handle(IpcChannels.pacoteExportar, async (_event, bruto: unknown): Promise<string | null> => {
     const pedido = (typeof bruto === 'object' && bruto !== null ? bruto : {}) as Record<string, unknown>

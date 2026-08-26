@@ -3,6 +3,7 @@ import { favoritoSaneado, type PresetInput } from '../types/preset'
 import { TAMANHO_MAXIMO_DO_NOME, fotoDePerfilValida, type Profile } from '../types/profile'
 import { sanearAparencia, type AparenciaDoPersonagem } from '../types/aparencia'
 import { MAXIMO_DE_PRESETS_POR_PERSONAGEM } from '../diceRegistry'
+import { paginasValidas } from '../types/paginasDaFicha'
 
 /**
  * O PACOTE DE PERSONAGEM — o personagem inteiro num arquivo só (spec §3.2: "profile export/import
@@ -54,6 +55,8 @@ export interface PacoteDePersonagem {
   ficha: NotesData
   presets: PresetDoPacote[]
   aparencia: AparenciaDoPersonagem | null
+  /** As páginas do PDF da ficha (ver `paginasDaFicha.ts`): o mestre vê a ficha original no HTML. */
+  paginas: string[]
 }
 
 export function montarPacote(dados: {
@@ -61,6 +64,7 @@ export function montarPacote(dados: {
   ficha: NotesData
   presets: Array<PresetInput & { favorito?: number }>
   aparencia: AparenciaDoPersonagem | null
+  paginas?: string[]
   versaoDoApp: string
   agora: Date
 }): PacoteDePersonagem {
@@ -78,7 +82,8 @@ export function montarPacote(dados: {
       ...(formula !== undefined ? { formula } : {}),
       ...(favorito !== undefined ? { favorito } : {})
     })),
-    aparencia: dados.aparencia
+    aparencia: dados.aparencia,
+    paginas: paginasValidas(dados.paginas ?? [])
   }
 }
 
@@ -161,7 +166,8 @@ export function lerPacote(bruto: unknown): PacoteDePersonagem {
     },
     ficha: normalizeNotes(ficha),
     presets,
-    aparencia: sanearAparencia(pacote.aparencia)
+    aparencia: sanearAparencia(pacote.aparencia),
+    paginas: paginasValidas(pacote.paginas)
   }
 }
 
