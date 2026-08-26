@@ -153,7 +153,10 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   importação o pdf.js desenha cada página numa imagem (até seis, 1000px de largura, JPEG), e a
   tela de conferência ganha uma coluna à esquerda com a folha, setas e "Página 1 de 3", ao lado de
   tudo o que já existia. Conferido no app compilado com as treze fichas reais do corpus: a página
-  aparece legível em todas.
+  aparece legível em todas. Os CAMPOS PREENCHIDOS aparecem na folha: medido no app, a ficha do
+  Matias vinha com todo campo vazio nos modos normais do pdf.js (ele só pinta a aparência que o
+  arquivo traz, e muita ficha é salva só com o valor); o caminho que funciona é o da impressão de
+  formulário, semeando cada valor lido no `annotationStorage` e desenhando em ENABLE_STORAGE.
 - **A ficha original fica com o personagem** — as páginas vão pra pasta dele (`pagina-01.jpg`...,
   ver `PaginasRepository`; arquivos, e não dentro do `notes.json`, que é gravado a cada tecla), e
   a aba Ficha ganha o bloco "Ficha original (PDF)" com o botão "Mostrar as N páginas": as folhas

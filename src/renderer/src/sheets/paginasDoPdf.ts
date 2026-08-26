@@ -26,12 +26,25 @@ export async function desenharPaginas(doc: PDFDocumentProxy, maximo = MAXIMO_DE_
       contexto.fillStyle = '#ffffff'
       contexto.fillRect(0, 0, canvas.width, canvas.height)
       /**
-       * `annotationMode: 2` (ENABLE_FORMS) desenha os CAMPOS DE FORMULÁRIO com o que está escrito
-       * neles. Sem isto a ficha preenchível (Ordem, Pathfinder) sairia como o modelo em branco: o
-       * pdf.js, por padrão, não pinta os widgets — e a "ficha original" sem os valores não é a ficha
-       * original. A mesma escolha de `retratoDoPdf.ts`, pelo mesmo motivo.
+       * OS CAMPOS PREENCHIDOS TÊM QUE APARECER, senão a "ficha original" da ficha preenchível
+       * (Ordem, Pathfinder) sai como o modelo em branco. Medido no app: com o modo padrão e com
+       * ENABLE_FORMS (2) a página do Matias vinha com todo campo vazio, porque o pdf.js só pinta o
+       * fluxo de aparência que o arquivo traz, e muita ficha é salva sem ele (só com o valor).
+       *
+       * O caminho que funciona é o da IMPRESSÃO de formulário: semear o `annotationStorage` com o
+       * valor de cada campo (o que `getAnnotations` lê) e desenhar em ENABLE_STORAGE (3), que gera a
+       * aparência a partir do valor quando o arquivo não tem uma.
        */
-      await pagina.render({ canvasContext: contexto, viewport, canvas, annotationMode: 2 }).promise
+      for (const anotacao of await pagina.getAnnotations()) {
+        const a = anotacao as { id: string; subtype?: string; fieldType?: string; fieldValue?: unknown; checkBox?: boolean; exportValue?: string; radioButton?: boolean }
+        if (a.subtype !== 'Widget') continue
+        if (a.fieldType === 'Tx' && typeof a.fieldValue === 'string' && a.fieldValue !== '') {
+          doc.annotationStorage.setValue(a.id, { value: a.fieldValue })
+        } else if (a.fieldType === 'Btn' && (a.checkBox || a.radioButton) && typeof a.fieldValue === 'string') {
+          doc.annotationStorage.setValue(a.id, { value: a.fieldValue !== 'Off' && (a.exportValue === undefined || a.fieldValue === a.exportValue) })
+        }
+      }
+      await pagina.render({ canvasContext: contexto, viewport, canvas, annotationMode: 3 }).promise
       paginas.push(canvas.toDataURL('image/jpeg', 0.82))
     } catch (causa) {
       console.warn(`Não deu pra desenhar a página ${numero} do PDF; seguindo sem ela.`, causa)
