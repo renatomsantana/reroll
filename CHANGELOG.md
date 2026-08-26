@@ -145,6 +145,27 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   cabeça de um retrato — foi por isso que a foto virou 3×4 um dia —, então a volta vem com o
   remédio: `object-position: center 20%` puxa o recorte pra cima, onde o rosto está.
 
+### Testado
+
+- **A fase `perfis` do harness** (`scripts/testarNoApp.mjs`) — pedido dele: "vamos continuar
+  testando, deixando clean e menos buggy, com presets, mais dados, mais perfis, se tudo funciona,
+  trocar de perfil, importar, exportar". Três personagens com ficha, presets e aparência
+  diferentes, e o roteiro inteiro no app compilado: abrir no primeiro; trocar pelo seletor e
+  conferir que ficha, presets, cor do dado, forma da bandeja e crachá trocam juntos; digitar no
+  inventário de um, ir pro outro e voltar (gravou no certo, o outro não ganhou nada); criar preset
+  com fórmula, rolar por ele, favoritar, editar o nome, apagar pelo diálogo do app; 2d20 + 3d6 +
+  1d100 de uma vez no modo rápido (seis dados, soma certa); renomear na Ficha (seletor e lista
+  acompanham); no teto de três, "Novo personagem" cinza e importar um nome novo recusado com o
+  aviso; exportar leva a aparência do personagem certo; apagar um personagem deixa o app noutro,
+  com os presets dele; o diário das Anotações é por personagem; e trocar de personagem com a cena
+  3D montada remonta a bandeja na forma do novo e o dado continua assentando. Trinta e cinco
+  checagens, todas verdes. O processo principal falso do harness ganhou `presets:update` e a
+  estrela de verdade (`presets:setFavorito`), e o console do renderer passou a ser capturado pra
+  diagnosticar um passo que falhe. Uma corrida deu "não assentou em 20s" logo depois da cena
+  remontar, com a máquina ocupada pelo harness inteiro que tinha acabado de rodar; três corridas
+  isoladas em seguida assentaram em 3,5 a 4,7s. É a carga, não a bandeja (ver o teste do
+  `diceEscape`, que tem a mesma sensibilidade).
+
 ### Removido
 
 - **O seletor de idioma** — pedido dele: "vamo remover inglês, foda-se, depois botamo, vamo deixar

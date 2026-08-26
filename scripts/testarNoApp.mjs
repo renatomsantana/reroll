@@ -32,7 +32,7 @@ const SAIDA = join(RAIZ, 'out', 'testar-no-app')
 mkdirSync(SAIDA, { recursive: true })
 const BLANK = join(SAIDA, 'blank.html')
 writeFileSync(BLANK, '<!DOCTYPE html><html><body></body></html>')
-const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'presets', 'pacote', 'hud', 'fichas', 'fabricados']
+const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'presets', 'pacote', 'perfis', 'hud', 'fichas', 'fabricados']
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms))
 let falhas = 0
@@ -53,6 +53,7 @@ const estado = {
   notas: new Map([['p1', NOTAS_VAZIAS()]]),
   presets: new Map([['p1', []]]),
   copiado: [],
+  console: [],
   pdfParaAbrir: null,
   ultimoApply: null
 }
@@ -74,8 +75,24 @@ const HANDLERS = {
     estado.presets.set(estado.profiles.activeId, [...presetsDoAtivo(), preset])
     return preset
   },
+  'presets:update': (id, entrada) => {
+    const atualizado = { ...presetsDoAtivo().find((p) => p.id === id), ...entrada, updatedAt: Date.now() }
+    estado.presets.set(estado.profiles.activeId, presetsDoAtivo().map((p) => (p.id === id ? atualizado : p)))
+    return atualizado
+  },
   'presets:delete': (id) => estado.presets.set(estado.profiles.activeId, presetsDoAtivo().filter((p) => p.id !== id)),
-  'presets:setFavorito': () => presetsDoAtivo(),
+  /** A estrela como o main faz: marcar põe no fim da fileira, desmarcar tira e reindexa. */
+  'presets:setFavorito': (id, favorito) => {
+    const lista = presetsDoAtivo()
+    const quantos = lista.filter((p) => p.favorito !== undefined).length
+    const proximos = lista.map((p) => {
+      if (p.id !== id) return p
+      const { favorito: _fora, ...sem } = p
+      return favorito ? { ...sem, favorito: p.favorito ?? quantos } : sem
+    })
+    estado.presets.set(estado.profiles.activeId, proximos)
+    return proximos
+  },
   'presets:moverFavorito': () => presetsDoAtivo(),
   'clipboard:writeText': (texto) => {
     estado.copiado.push(texto)
@@ -122,6 +139,8 @@ const HANDLERS = {
     return 'D:\\Fichas\\Matias Oliveira - Reroll.html'
   },
   'pacote:importar': () => {
+    // O teto do main, quando a fase pede (o "Kieran" do pacote canónico não estaria na lista).
+    if (estado.recusarImportacao) throw new Error('Limite de 3 personagens atingido: o arquivo é de "Outro", que não está na lista. Apague um personagem antes de importar.')
     // Mesmo nome = ATUALIZA o que existe (mantendo o id), como o main faz; senão cria.
     const existente = estado.profiles.profiles.find((p) => p.name.trim().toLowerCase() === 'kieran vance')
     const perfil = existente
@@ -159,7 +178,8 @@ const HANDLERS = {
 /* A janela e os gestos.                                                                       */
 /* ------------------------------------------------------------------------------------------ */
 let win
-async function abrirApp(preferencias = {}, tamanho = { largura: 1300, altura: 800 }) {
+/** `extras`: outras chaves do `localStorage` (a aparência por personagem, `rolador-look::<id>`). */
+async function abrirApp(preferencias = {}, tamanho = { largura: 1300, altura: 800 }, extras = {}) {
   if (!win || win.isDestroyed()) {
     win = new BrowserWindow({
       show: false,
@@ -168,11 +188,17 @@ async function abrirApp(preferencias = {}, tamanho = { largura: 1300, altura: 80
       frame: false,
       webPreferences: { preload: join(RAIZ, 'out', 'preload', 'index.js'), sandbox: true, contextIsolation: true, offscreen: true, backgroundThrottling: false }
     })
+    // O console do renderer, pra diagnosticar um passo que falha (erros da cena, avisos do React).
+    win.webContents.on('console-message', (evento, nivel, mensagem) => {
+      const texto = typeof evento?.message === 'string' ? evento.message : mensagem
+      const grau = typeof evento?.level === 'string' ? evento.level : nivel
+      estado.console.push(`[${grau}] ${texto}`)
+    })
   }
   win.setContentSize(tamanho.largura, tamanho.altura)
   await win.loadFile(BLANK)
   await win.webContents.executeJavaScript(
-    `localStorage.clear(); localStorage.setItem('rolador-settings', JSON.stringify(${JSON.stringify({ soundEnabled: false, ...preferencias })})); 'ok'`
+    `localStorage.clear(); localStorage.setItem('rolador-settings', JSON.stringify(${JSON.stringify({ soundEnabled: false, ...preferencias })})); for (const [k, v] of Object.entries(${JSON.stringify(extras)})) localStorage.setItem(k, v); 'ok'`
   )
   await win.loadFile(join(RAIZ, 'out', 'renderer', 'index.html'))
   await esperarAte(`!!document.querySelector('.app-tab-roll')`, 8000)
@@ -446,6 +472,210 @@ async function fasePresets() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase PERFIS: três personagens, trocar entre eles sem vazar nada, presets, dados, pacote.    */
+/* ------------------------------------------------------------------------------------------ */
+/** Abre a lista do seletor de personagem (aba Ficha) e escolhe pelo nome. */
+async function trocarPara(nome) {
+  await aba('Ficha')
+  await js(`document.querySelector('.profile-select-value')?.click()`)
+  const abriu = await esperarAte(`!!document.querySelector('.profile-select-option')`, 3000)
+  if (!abriu) return false
+  await js(`Array.from(document.querySelectorAll('.profile-select-option')).find((o) => o.textContent.includes(${JSON.stringify(nome)}))?.click()`)
+  return esperarAte(`document.querySelector('.profile-select-value')?.textContent.includes(${JSON.stringify(nome)}) && !document.querySelector('.profile-select-option')`, 4000)
+}
+const nomesDosPresets = () => js(`Array.from(document.querySelectorAll('.preset-card-name')).map((n) => n.textContent)`)
+const preferencia = (chave) => js(`JSON.parse(localStorage.getItem('rolador-settings') || '{}')[${JSON.stringify(chave)}]`)
+async function textoDoBloco(legenda) {
+  return js(`(() => { const f = Array.from(document.querySelectorAll('fieldset')).find((x) => x.querySelector('legend')?.textContent.trim() === ${JSON.stringify(legenda)}); return f?.querySelector('textarea')?.value })()`)
+}
+async function digitarNoBloco(legenda, texto) {
+  await js(`(() => { const f = Array.from(document.querySelectorAll('fieldset')).find((x) => x.querySelector('legend')?.textContent.trim() === ${JSON.stringify(legenda)}); const i = f.querySelector('textarea'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(i, ${JSON.stringify(texto)}); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await espera(400)
+}
+const presetFalso = (nome, lados, favorito) => ({ id: randomUUID(), name: nome, expression: { groups: [{ sides: lados, count: 1 }], modifiers: [] }, ...(favorito === undefined ? {} : { favorito }), createdAt: 1, updatedAt: 1 })
+
+async function fasePerfis() {
+  console.log('\n=== PERFIS (três personagens: trocar, presets, ficha, aparência, dados, pacote) ===')
+  estado.profiles = {
+    profiles: [
+      { id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: fotoDeTeste, createdAt: 1 },
+      { id: 'p2', name: 'Kieran Vance', system: 'Pathfinder 2e', photo: null, createdAt: 2 },
+      { id: 'p3', name: 'Zé da Silva', system: 'Oblívio', photo: null, createdAt: 3 }
+    ],
+    activeId: 'p1'
+  }
+  estado.notas = new Map([
+    ['p1', { ...NOTAS_VAZIAS(), characterName: 'Matias Oliveira', inventory: 'Faca de mato', recursos: [{ id: 'r1', nome: 'PV', atual: 10, maximo: 20 }] }],
+    ['p2', { ...NOTAS_VAZIAS(), characterName: 'Kieran Vance', inventory: 'Espada longa' }],
+    ['p3', { ...NOTAS_VAZIAS(), characterName: 'Zé da Silva', inventory: 'Um pé de cabra' }]
+  ])
+  estado.presets = new Map([
+    ['p1', [presetFalso('Faca', 20, 0), presetFalso('Ritual', 6)]],
+    ['p2', [presetFalso('Espada longa', 8)]],
+    ['p3', []]
+  ])
+  await abrirApp({ displayMode: 'quick', diceBodyColor: '#111111' }, { largura: 1300, altura: 800 }, {
+    'rolador-look::p2': JSON.stringify({ diceBodyColor: '#222222', trayShape: 'circle' }),
+    'rolador-look::p3': JSON.stringify({ diceBodyColor: '#333333' })
+  })
+
+  // 1. O que abre é o p1, com os presets dele.
+  let presets = await nomesDosPresets()
+  checar(presets.join() === 'Faca,Ritual', `abre no Matias com os presets dele (${presets})`)
+
+  // 2. Trocar pro Kieran: presets, ficha e aparência trocam junto; nada do Matias fica.
+  checar(await trocarPara('Kieran'), 'trocar pro Kieran pelo seletor')
+  await espera(600)
+  checar(estado.profiles.activeId === 'p2', 'o processo principal ficou sabendo (activeId = p2)')
+  checar((await textoDoBloco('Inventário')) === 'Espada longa', `a Ficha é a do Kieran (inventário: "${await textoDoBloco('Inventário')}")`)
+  await aba('Rolagem')
+  presets = await nomesDosPresets()
+  checar(presets.join() === 'Espada longa', `os presets são os do Kieran (${presets})`)
+  checar((await preferencia('diceBodyColor')) === '#222222', `a cor do dado é a do Kieran (${await preferencia('diceBodyColor')})`)
+  checar((await preferencia('trayShape')) === 'circle', `a bandeja é a do Kieran (${await preferencia('trayShape')})`)
+  const nomeNoCabecalho = await js(`document.querySelector('.profile-badge, [data-testid=profile-badge]')?.textContent`)
+  checar(nomeNoCabecalho?.includes('Kieran'), `o crachá da rolagem mostra o Kieran ("${nomeNoCabecalho}")`)
+
+  // 3. Digitar na ficha do Kieran, ir pro Zé, voltar: o texto ficou, e o Zé não ganhou nada.
+  await aba('Ficha')
+  await digitarNoBloco('Inventário', 'Espada longa e escudo')
+  checar(await trocarPara('Zé'), 'trocar pro Zé')
+  await espera(600)
+  checar((await textoDoBloco('Inventário')) === 'Um pé de cabra', `a ficha do Zé é a dele ("${await textoDoBloco('Inventário')}")`)
+  checar((await preferencia('diceBodyColor')) === '#333333', `a cor do dado é a do Zé (${await preferencia('diceBodyColor')})`)
+  await aba('Rolagem')
+  presets = await nomesDosPresets()
+  checar(presets.length === 0, `o Zé não tem preset nenhum (${JSON.stringify(presets)})`)
+  checar(estado.notas.get('p2').inventory === 'Espada longa e escudo', `o que foi digitado no Kieran gravou no Kieran ("${estado.notas.get('p2').inventory}")`)
+  checar(estado.notas.get('p3').inventory === 'Um pé de cabra', 'e o Zé continua com o dele')
+
+  // 4. Criar preset no Zé, com fórmula, e rolar por ele; favoritar; o Matias não ganha esse preset.
+  checar(await criarPreset('Machado'), 'criar o preset "Machado" no Zé')
+  const antesDoPreset = await js(`document.querySelector('.dice-roller-3d-result')?.textContent`)
+  await js(`Array.from(document.querySelectorAll('.preset-card')).find((c) => c.querySelector('.preset-card-name')?.textContent === 'Machado')?.querySelector('.preset-card-main')?.click()`)
+  const rolou = await esperarAte(`document.querySelector('.dice-roller-3d-result')?.textContent !== ${JSON.stringify(antesDoPreset)} && !document.querySelector('.dice-roller-3d-result').textContent.includes('Rolando')`, 4000)
+  const resultadoDoPreset = await js(`document.querySelector('.dice-roller-3d-result')?.textContent`)
+  checar(rolou && /\d/.test(resultadoDoPreset ?? ''), `clicar no preset rola ("${(resultadoDoPreset ?? '').trim().slice(0, 50)}")`)
+  await js(`document.querySelector('.preset-card [aria-label^="Favoritar"]')?.click()`)
+  await espera(200)
+  const estrela = await js(`!!document.querySelector('.preset-card [aria-label^="Desfavoritar"], .preset-card [aria-label^="Tirar"]')`)
+  checar(estrela, 'a estrela marcou o preset como favorito')
+  checar((estado.presets.get('p3') ?? []).some((p) => p.name === 'Machado'), 'o preset gravou na pasta do Zé')
+  checar(!(estado.presets.get('p1') ?? []).some((p) => p.name === 'Machado'), 'e não na do Matias')
+
+  // 5. Editar o preset: trocar o nome. Apagar depois.
+  await js(`document.querySelector('.preset-card [aria-label="Editar"]')?.click()`)
+  await esperarAte(`!!document.querySelector('.modal-overlay input')`, 3000)
+  await digitar('.modal-overlay input', 'Machado grande')
+  await js(`Array.from(document.querySelectorAll('.modal-overlay button')).find((b) => b.textContent.trim() === 'Salvar')?.click()`)
+  const renomeou = await esperarAte(`Array.from(document.querySelectorAll('.preset-card-name')).some((n) => n.textContent === 'Machado grande')`, 3000)
+  checar(renomeou, 'editar o preset troca o nome na lista')
+  checar(await apagarPreset('Machado grande'), 'apagar o preset pelo diálogo do app')
+
+  // 6. Vários dados de uma vez no modo rápido: 2d20 + 3d6 + 1d100.
+  await limparGrupos()
+  await clicar('d20')
+  await js(`Array.from(document.querySelectorAll('.dice-roller-3d-group-chip button')).find((b) => b.textContent.trim() === '+')?.click()`)
+  await clicar('d6')
+  for (let i = 0; i < 2; i++) await js(`Array.from(document.querySelectorAll('.dice-roller-3d-group-chip')).at(-1)?.querySelector('button[title*="+"], button')?.textContent; Array.from(document.querySelectorAll('.dice-roller-3d-group-chip')).at(-1)?.querySelectorAll('button').forEach((b) => { if (b.textContent.trim() === '+') b.click() })`)
+  await clicar('d100')
+  await espera(100)
+  const r = await rolarRapido()
+  const soma = r.valores.reduce((a, b) => a + b, 0)
+  checar(r.valores.length === 6 && r.total === soma, `2d20 + 3d6 + 1d100: ${r.valores.length} dados [${r.valores}] total ${r.total}`)
+  await foto('perfis-seis-dados')
+
+  // 7. Voltar pro Matias: tudo dele de volta, inclusive a barra de PV e a cor original.
+  checar(await trocarPara('Matias'), 'voltar pro Matias')
+  await espera(600)
+  await aba('Rolagem')
+  presets = await nomesDosPresets()
+  checar(presets.join() === 'Faca,Ritual', `os presets do Matias voltaram (${presets})`)
+  checar((await preferencia('diceBodyColor')) === '#111111', `a cor do dado voltou a ser a do Matias (${await preferencia('diceBodyColor')})`)
+
+  // 8. Renomear o Matias na Ficha: o seletor e o crachá acompanham.
+  await aba('Ficha')
+  await js(`(() => { const i = document.querySelector('.sheet-profile-fields input'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'Matias Oliveira Jr.'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await espera(500)
+  const seletor = await js(`document.querySelector('.profile-select-value')?.textContent`)
+  checar(seletor?.includes('Jr.'), `renomear na Ficha muda o seletor ("${seletor}")`)
+  checar(estado.profiles.profiles.find((p) => p.id === 'p1')?.name === 'Matias Oliveira Jr.', 'e gravou na lista de perfis')
+
+  // 9. No teto: "Novo personagem" fica cinza; importar um nome NOVO é recusado com o aviso do limite.
+  const novoDesabilitado = await js(`Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Novo personagem')?.disabled`)
+  checar(novoDesabilitado === true, 'com 3 personagens, "Novo personagem" fica desabilitado')
+  estado.recusarImportacao = true
+  await clicar('Importar personagem Reroll')
+  const recusou = await esperarAte(`!!document.querySelector('[role=alertdialog]') && document.querySelector('[role=alertdialog]').textContent.includes('Limite de 3')`, 4000)
+  checar(recusou, 'importar um personagem novo no teto avisa o limite, no diálogo do app')
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  estado.recusarImportacao = false
+  await espera(200)
+  checar(estado.profiles.profiles.length === 3, 'e a lista continua com 3')
+
+  // 10. Exportar o Matias leva a aparência DELE (não a do Kieran).
+  await clicar('Exportar personagem')
+  await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 4000)
+  checar(estado.ultimoExportar?.aparencia?.diceBodyColor === '#111111', `exportar leva a aparência do Matias (${estado.ultimoExportar?.aparencia?.diceBodyColor})`)
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  await espera(200)
+
+  // 11. Apagar o Zé: o app fica em outro personagem, com os presets certos.
+  checar(await trocarPara('Zé'), 'ir pro Zé pra apagar')
+  await espera(400)
+  await js(`document.querySelector('[aria-label="Apagar personagem"]')?.click()`)
+  await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  await esperarAte(`!document.querySelector('[role=alertdialog]')`, 3000)
+  await espera(600)
+  const restantes = estado.profiles.profiles.map((p) => p.name)
+  checar(restantes.length === 2 && !restantes.includes('Zé da Silva'), `apagar o Zé deixa ${JSON.stringify(restantes)}`)
+  const ativoAgora = estado.profiles.profiles.find((p) => p.id === estado.profiles.activeId)?.name
+  await aba('Rolagem')
+  presets = await nomesDosPresets()
+  const esperados = ativoAgora?.startsWith('Matias') ? 'Faca,Ritual' : 'Espada longa'
+  checar(presets.join() === esperados, `o app ficou no ${ativoAgora}, com os presets dele (${presets})`)
+  const novoHabilitado = await js(`(() => { return true })()`)
+  await aba('Ficha')
+  const novoAgora = await js(`Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Novo personagem')?.disabled`)
+  checar(novoAgora === false && novoHabilitado, 'com 2 personagens, "Novo personagem" volta a funcionar')
+  await foto('perfis-final')
+
+  // 12. O DIÁRIO (Anotações) também é por personagem: escrever no Kieran não aparece no Matias.
+  checar(await trocarPara('Kieran'), 'ir pro Kieran pra escrever no diário')
+  await aba('Anotações')
+  await js(`(() => { const i = document.querySelector('.notes-textarea'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(i, 'Sessão 1: a taverna pegou fogo'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await espera(500)
+  checar(await trocarPara('Matias'), 'voltar pro Matias')
+  await aba('Anotações')
+  const diarioDoMatias = await js(`document.querySelector('.notes-textarea')?.value`)
+  checar(diarioDoMatias === '', `o diário do Matias não ganhou o texto do Kieran ("${diarioDoMatias}")`)
+  checar(estado.notas.get('p2').pages[0].text === 'Sessão 1: a taverna pegou fogo', 'e o do Kieran gravou na pasta dele')
+
+  // 13. Com a CENA 3D montada: trocar de personagem troca a bandeja (círculo do Kieran) e continua rolando.
+  estado.profiles.activeId = 'p1'
+  await abrirApp({ displayMode: '3d', diceBodyColor: '#111111' }, { largura: 1300, altura: 800 }, {
+    'rolador-look::p2': JSON.stringify({ diceBodyColor: '#222222', trayShape: 'circle' })
+  })
+  const antesDaTroca = await rolarNaCena()
+  checar(antesDaTroca.assentou, `na cena 3D, o d20 do Matias assenta ([${antesDaTroca.valores}] em ${antesDaTroca.ms}ms)`)
+  checar(await trocarPara('Kieran'), 'trocar pro Kieran com a cena montada')
+  await aba('Rolagem')
+  await espera(1500)
+  const cena = await js(`(() => ({ canvas: !!document.querySelector('.dice-roller-3d-canvas canvas'), bandeja: JSON.parse(localStorage.getItem('rolador-settings') || '{}').trayShape, erro: window.__erroDaCena ?? null }))()`)
+  checar(cena.canvas && cena.bandeja === 'circle', `a cena remontou com a bandeja do Kieran (${cena.bandeja}, canvas ${cena.canvas})`)
+  estado.console.length = 0
+  const depoisDaTroca = await rolarNaCena()
+  checar(depoisDaTroca.assentou && depoisDaTroca.valores.length === 1, `e o dado assenta na bandeja nova ([${depoisDaTroca.valores}] em ${depoisDaTroca.ms}ms)`)
+  if (!depoisDaTroca.assentou) {
+    console.log('  resultado na tela:', JSON.stringify(await js(`document.querySelector('.dice-roller-3d-result')?.textContent`)))
+    console.log('  botão ROLAR:', JSON.stringify(await js(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => x.textContent.trim() === 'ROLAR' || x.textContent.trim() === 'Rolando...'); return b ? { texto: b.textContent.trim(), disabled: b.disabled } : null })()`)))
+    console.log('  console do renderer:', estado.console.slice(-12).join('\n    '))
+  }
+  await foto('perfis-3d-bandeja-do-kieran')
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase PACOTE: exportar leva a aparência do personagem; importar cria o personagem e a traz.  */
 /* ------------------------------------------------------------------------------------------ */
 async function fasePacote() {
@@ -712,6 +942,7 @@ app.whenReady().then(async () => {
   if (FASES.includes('foto')) await faseFoto()
   if (FASES.includes('presets')) await fasePresets()
   if (FASES.includes('pacote')) await fasePacote()
+  if (FASES.includes('perfis')) await fasePerfis()
   if (FASES.includes('hud')) await faseHud()
   if (FASES.includes('arrasto')) await faseHudArrasto()
   if (FASES.includes('fichas')) await faseFichas()
