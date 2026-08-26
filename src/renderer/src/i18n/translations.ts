@@ -403,6 +403,8 @@ export interface TranslationDict {
     profileExportSuccess: string
     profileExportError: string
     profileImportSuccess: string
+    /** O arquivo ATUALIZOU um personagem que já existia com o mesmo nome. */
+    profileImportReplaced: string
     profileImportError: string
     profileSwitch: string
     fontDefault: string
@@ -827,12 +829,14 @@ export const translations: Record<Language, TranslationDict> = {
       profileExport: 'Exportar personagem',
       profileExportHint:
         'Salva a ficha, as anotações, os presets e a aparência dos dados num arquivo só — pra mostrar ao mestre (abre no navegador) ou levar pra outro computador.',
-      profileImport: 'Importar personagem exportado',
-      profileImportHint: 'Abre um arquivo exportado pelo Reroll e cria o personagem aqui, com tudo o que ele tinha.',
+      profileImport: 'Importar personagem Reroll',
+      profileImportHint:
+        'Abre um arquivo exportado pelo Reroll e traz o personagem com tudo o que ele tinha. Se já existe um com o mesmo nome, ele é atualizado — não cria outro.',
       profileExportSuccess:
-        'Personagem exportado em:\n{path}\n\nO arquivo abre no navegador pra mostrar a ficha, e o Reroll traz ele de volta em "Importar personagem exportado".',
+        'Personagem exportado em:\n{path}\n\nO arquivo abre no navegador pra mostrar a ficha, e o Reroll traz ele de volta em "Importar personagem Reroll".',
       profileExportError: 'Não deu pra exportar: {error}',
       profileImportSuccess: '"{name}" chegou inteiro: ficha, anotações, presets e aparência dos dados.',
+      profileImportReplaced: '"{name}" já existia e foi atualizado com o arquivo: ficha, anotações, presets e aparência dos dados.',
       profileImportError: 'Não deu pra importar: {error}',
       profileSwitch: 'Trocar de personagem',
       fontDefault: 'Fonte padrão',
@@ -1267,12 +1271,14 @@ export const translations: Record<Language, TranslationDict> = {
       profileExport: 'Export character',
       profileExportHint:
         'Saves the sheet, notes, presets and dice look in a single file — to show your GM (it opens in a browser) or to move to another computer.',
-      profileImport: 'Import exported character',
-      profileImportHint: 'Opens a file exported by Reroll and creates the character here with everything it had.',
+      profileImport: 'Import Reroll character',
+      profileImportHint:
+        'Opens a file exported by Reroll and brings the character with everything it had. If one with the same name already exists, it is updated — no duplicate.',
       profileExportSuccess:
-        'Character exported to:\n{path}\n\nThe file opens in a browser to show the sheet, and Reroll brings it back with "Import exported character".',
+        'Character exported to:\n{path}\n\nThe file opens in a browser to show the sheet, and Reroll brings it back with "Import Reroll character".',
       profileExportError: 'Could not export: {error}',
       profileImportSuccess: '"{name}" is here in full: sheet, notes, presets and dice look.',
+      profileImportReplaced: '"{name}" already existed and was updated from the file: sheet, notes, presets and dice look.',
       profileImportError: 'Could not import: {error}',
       profileSwitch: 'Switch character',
       fontDefault: 'Default font',

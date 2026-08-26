@@ -188,4 +188,13 @@ export function nomeDoArquivoDoPacote(nome: string): string {
 export interface PacoteImportado {
   perfil: Profile
   aparencia: AparenciaDoPersonagem | null
+  /** `true` quando o arquivo ATUALIZOU um personagem que já existia (mesmo nome), em vez de criar um. */
+  substituiu: boolean
+}
+
+/** Dois nomes são "o mesmo personagem"? Sem espaços nas pontas, sem diferença de caixa; vazio nunca casa. */
+export function mesmoNome(a: string, b: string): boolean {
+  const x = a.trim().toLocaleLowerCase()
+  const y = b.trim().toLocaleLowerCase()
+  return x !== '' && x === y
 }

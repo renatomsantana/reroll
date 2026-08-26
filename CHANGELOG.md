@@ -23,11 +23,14 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   propósito — são dois usos num só: abre em qualquer navegador, sem o app, com a ficha desenhada no
   visual 98 (é o "mostrar pro mestre"), e leva o pacote em JSON embutido num `<script
   type="application/json">` que o navegador ignora e o Reroll lê de volta em **Importar personagem
-  exportado** (é o "outro PC"). A página não tem NADA de fora — nem script, nem fonte, nem imagem
+  Reroll** (é o "outro PC"). A página não tem NADA de fora — nem script, nem fonte, nem imagem
   por URL — e todo texto do personagem vira texto nela, nunca marcação (um preset chamado
-  `</script>` não fecha o bloco: o `<` vai escapado no JSON). Importar cria sempre um personagem
-  NOVO, aberto, respeitando o teto de personagens; tudo ou nada, como a importação de ficha (se a
-  ficha ou os presets falharem, o perfil é desfeito). O convite da ficha vazia ganhou o botão de
+  `</script>` não fecha o bloco: o `<` vai escapado no JSON). Importar ATUALIZA o personagem que
+  já existe com o mesmo nome (ficha, presets e aparência substituídos pelo arquivo, mesmo com ele
+  aberto) e só cria um novo quando não há — pedido dele: "não precisa criar outro, quero que sempre
+  esteja no limite de 3 personagens para todos os testadores"; tudo ou nada, como a importação de
+  ficha (se a ficha ou os presets falharem, lista, ficha e presets voltam ao que eram). O convite
+  da ficha vazia ganhou o botão de
   importar também, porque quem chega num PC novo começa exatamente dali. A lista do que é
   "aparência do personagem" saiu do renderer pra `shared/types/aparencia.ts`, porque passou a
   atravessar o arquivo. Coberto por `pacoteDePersonagem.test.ts` (ida e volta, escapes, recusas,

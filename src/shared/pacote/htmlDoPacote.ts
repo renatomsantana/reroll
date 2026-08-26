@@ -33,7 +33,7 @@ const ROTULOS = {
     favorito: 'favorito',
     condicoes: 'Condições',
     exportado: 'Exportado do Reroll',
-    abrirNoApp: 'Este arquivo também abre no Reroll: Ficha → Importar personagem exportado.',
+    abrirNoApp: 'Este arquivo também abre no Reroll: Ficha → Importar personagem Reroll.',
     semNome: 'Personagem'
   },
   'en-US': {
@@ -50,7 +50,7 @@ const ROTULOS = {
     favorito: 'favorite',
     condicoes: 'Conditions',
     exportado: 'Exported from Reroll',
-    abrirNoApp: 'This file also opens in Reroll: Sheet → Import exported character.',
+    abrirNoApp: 'This file also opens in Reroll: Sheet → Import Reroll character.',
     semNome: 'Character'
   }
 } as const satisfies Record<Language, Record<string, string>>

@@ -2,13 +2,28 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Preset, PresetInput } from '@shared/types/preset'
 import { useProfiles } from '@renderer/settings/ProfilesContext'
 
+/** Disparado na `window` por quem reescreveu os presets do personagem aberto fora deste hook. */
+export const EVENTO_PRESETS_MUDARAM = 'reroll:presets-mudaram'
+
 export function usePresets() {
   const [presets, setPresets] = useState<Preset[]>([])
   const [loading, setLoading] = useState(true)
   const { activeId } = useProfiles()
+  /**
+   * Um contador que força a releitura SEM trocar de personagem. Existe pela importação de pacote
+   * (ver `usePacoteDePersonagem`): quando o arquivo ATUALIZA o personagem que já está aberto, os
+   * presets no disco mudaram e o `activeId` não — e este hook mora no `App`, longe de quem importou.
+   * O aviso chega por um evento da janela, que é o único canal que os dois têm em comum.
+   */
+  const [releitura, setReleitura] = useState(0)
+  useEffect(() => {
+    const ouvir = (): void => setReleitura((n) => n + 1)
+    window.addEventListener(EVENTO_PRESETS_MUDARAM, ouvir)
+    return () => window.removeEventListener(EVENTO_PRESETS_MUDARAM, ouvir)
+  }, [])
 
   /**
-   * Recarrega quando o PERSONAGEM muda: anotações e presets moram na pasta do perfil aberto (ver
+   * Recarrega quando o PERSONAGEM muda (ou quando alguém pediu a releitura acima): anotações e presets moram na pasta do perfil aberto (ver
    * `ProfilesRepository.activeDirectory`), então trocar de perfil sem reler deixaria a tela mostrando
    * a ficha do personagem anterior — e, pior, a primeira digitação gravaria esse conteúdo velho por
    * cima do arquivo do novo.
@@ -38,7 +53,7 @@ export function usePresets() {
     return () => {
       atual = false
     }
-  }, [activeId])
+  }, [activeId, releitura])
 
   const createPreset = useCallback(async (input: PresetInput) => {
     const preset = await window.api.presets.create(input)

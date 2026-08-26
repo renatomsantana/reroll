@@ -89,6 +89,14 @@ describe('o personagem inteiro num arquivo', () => {
     expect(dialogoDeSalvar.mock.calls[0][0].defaultPath).toMatch(/Matias Oliveira - Reroll\.html$/)
   })
 
+  it('guarda um exemplo pra olhar no navegador (ESCREVER_PACOTE=1)', async () => {
+    // Mesmo esquema de `ESCREVER_PDFS`: o arquivo só nasce quando se pede, e vai pra pasta de testes.
+    if (process.env.ESCREVER_PACOTE !== '1') return
+    const pasta = join(process.cwd(), 'Fichas RPG', 'testes')
+    await fs.mkdir(pasta, { recursive: true })
+    await fs.copyFile(arquivo, join(pasta, 'Matias Oliveira - Reroll.html'))
+  })
+
   it('desistir do diálogo não grava nada', async () => {
     dialogoDeSalvar.mockResolvedValueOnce({ canceled: true, filePath: undefined })
     expect(await handlers.get(IpcChannels.pacoteExportar)!(null, { idioma: 'pt-BR' } as never)).toBeNull()
@@ -96,22 +104,34 @@ describe('o personagem inteiro num arquivo', () => {
     expect(await handlers.get(IpcChannels.pacoteImportar)!(null)).toBeNull()
   })
 
-  it('importa como personagem NOVO, aberto, com tudo o que tinha', async () => {
+  it('o mesmo nome ATUALIZA o personagem que já existe — a lista não cresce', async () => {
+    /**
+     * Pedido do usuário: "não precisa criar outro, quero que sempre esteja no limite de 3
+     * personagens". Antes de importar, o Matias daqui é mexido (ficha editada, preset a mais) pra
+     * provar que o ARQUIVO é a palavra final.
+     */
     const antes = await profiles.get()
+    await notes.save({ ...(await notes.get()), inventory: 'editado depois de exportar', pages: [] })
+    await presets.create({ name: 'Preset que não está no arquivo', formula: '1d4' })
+
     dialogoDeAbrir.mockResolvedValueOnce({ canceled: false, filePaths: [arquivo] })
     const importar = handlers.get(IpcChannels.pacoteImportar)!
-    const resultado = (await importar(null)) as { perfil: { id: string; name: string; photo: string | null }; aparencia: unknown }
+    const resultado = (await importar(null)) as {
+      perfil: { id: string; name: string; photo: string | null }
+      aparencia: unknown
+      substituiu: boolean
+    }
 
+    expect(resultado.substituiu).toBe(true)
+    expect(resultado.perfil.id).toBe(antes.activeId)
     expect(resultado.perfil.name).toBe('Matias Oliveira')
     expect(resultado.perfil.photo).toBe(FOTO)
-    expect(resultado.perfil.id).not.toBe(antes.activeId)
     expect(resultado.aparencia).toEqual({ diceBodyColor: '#ff0000', trayShape: 'circle' })
 
     const depois = await profiles.get()
-    expect(depois.profiles).toHaveLength(antes.profiles.length + 1)
-    expect(depois.activeId).toBe(resultado.perfil.id)
+    expect(depois.profiles).toHaveLength(antes.profiles.length)
+    expect(depois.activeId).toBe(antes.activeId)
 
-    // A pasta é OUTRA (o ativo mudou), e a ficha está lá inteira.
     const ficha = await notes.get()
     expect(ficha.characterName).toBe('Matias Oliveira')
     expect(ficha.inventory).toBe('Faca de mato')
@@ -121,23 +141,56 @@ describe('o personagem inteiro num arquivo', () => {
     expect(ficha.recursos.map((r) => `${r.nome} ${r.atual}/${r.maximo}`)).toEqual(['PV 12/40'])
     expect(ficha.pages.map((p) => [p.title, p.text, p.createdAt])).toEqual([['Taverna', 'Primeira missão', 1_700_000_000_000]])
 
+    // Os presets são os DO ARQUIVO — o que foi criado depois de exportar sai, e nada duplica.
     const lista = await presets.getAll()
     expect(lista.map((p) => [p.name, p.favorito])).toEqual([['Faca', undefined], ['Ritual', 0]])
-    // Ids novos: o pacote não carrega id nenhum, então dois imports não colidem.
     expect(new Set(lista.map((p) => p.id)).size).toBe(2)
   })
 
-  it('recusa no teto de personagens, sem tocar em nada', async () => {
+  /** O mesmo pacote com OUTRO nome — o JSON puro também é aceito, então basta reescrever o campo. */
+  async function pacoteRenomeado(nome: string): Promise<string> {
+    const pacote = await lerPacoteDoArquivo(arquivo)
+    const caminho = join(userData, `${nome}.json`)
+    await fs.writeFile(caminho, JSON.stringify({ ...pacote, personagem: { ...pacote.personagem, name: nome } }), 'utf-8')
+    return caminho
+  }
+
+  it('nome que não existe CRIA um personagem novo, aberto', async () => {
+    const antes = await profiles.get()
     const importar = handlers.get(IpcChannels.pacoteImportar)!
-    // Enche até o teto.
+    dialogoDeAbrir.mockResolvedValueOnce({ canceled: false, filePaths: [await pacoteRenomeado('Kieran Vance')] })
+    const resultado = (await importar(null)) as { perfil: { id: string; name: string }; substituiu: boolean }
+
+    expect(resultado.substituiu).toBe(false)
+    expect(resultado.perfil.name).toBe('Kieran Vance')
+    const depois = await profiles.get()
+    expect(depois.profiles).toHaveLength(antes.profiles.length + 1)
+    expect(depois.activeId).toBe(resultado.perfil.id)
+    // A pasta é OUTRA, e a ficha está lá inteira.
+    expect((await notes.get()).characterName).toBe('Kieran Vance')
+    expect((await presets.getAll()).map((p) => p.name)).toEqual(['Faca', 'Ritual'])
+  })
+
+  it('no teto: nome novo é recusado sem tocar em nada; nome que existe ainda atualiza', async () => {
+    const importar = handlers.get(IpcChannels.pacoteImportar)!
+    // Enche até o teto, com nomes diferentes.
+    let n = 0
     while ((await profiles.get()).profiles.length < MAX_PROFILES) {
-      dialogoDeAbrir.mockResolvedValueOnce({ canceled: false, filePaths: [arquivo] })
+      dialogoDeAbrir.mockResolvedValueOnce({ canceled: false, filePaths: [await pacoteRenomeado(`Extra ${n++}`)] })
       await importar(null)
     }
     const cheio = await profiles.get()
-    dialogoDeAbrir.mockResolvedValueOnce({ canceled: false, filePaths: [arquivo] })
+
+    dialogoDeAbrir.mockResolvedValueOnce({ canceled: false, filePaths: [await pacoteRenomeado('Mais um')] })
     await expect(importar(null)).rejects.toThrow(new RegExp(`Limite de ${MAX_PROFILES} personagens`))
     expect(await profiles.get()).toEqual(cheio)
+
+    // Caixa e espaços não separam: "  kieran VANCE " é o Kieran.
+    dialogoDeAbrir.mockResolvedValueOnce({ canceled: false, filePaths: [await pacoteRenomeado('  kieran VANCE ')] })
+    const resultado = (await importar(null)) as { perfil: { name: string }; substituiu: boolean }
+    expect(resultado.substituiu).toBe(true)
+    expect(resultado.perfil.name).toBe('kieran VANCE')
+    expect((await profiles.get()).profiles).toHaveLength(MAX_PROFILES)
   })
 
   it('recusa o que não é pacote, e o que é grande demais, ANTES de ler', async () => {
