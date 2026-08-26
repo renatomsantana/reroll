@@ -25,6 +25,9 @@ export const IpcChannels = {
   sheetsPickPdf: 'sheets:pickPdf',
   /** Cria o personagem e grava anotações e presets dentro dele, em ordem — ver o comentário no handler. */
   sheetsApply: 'sheets:apply',
+  /** O personagem inteiro num arquivo — exportar o ativo, importar um exportado (ver `pacoteDePersonagem.ts`). */
+  pacoteExportar: 'pacote:exportar',
+  pacoteImportar: 'pacote:importar',
   appGetVersion: 'app:getVersion',
   updateGetStatus: 'update:getStatus',
   updateCheck: 'update:check',

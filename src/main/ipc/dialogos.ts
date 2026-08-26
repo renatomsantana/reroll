@@ -28,9 +28,10 @@ import { JsonFileStore } from '../storage/JsonFileStore'
  *
  * - `imagem`: foto do personagem e imagem de fundo da cena — as duas são "minhas imagens";
  * - `ficha`: os PDFs de ficha de RPG;
- * - `presets`: o `.json` de backup/transferência de presets.
+ * - `presets`: o `.json` de backup/transferência de presets;
+ * - `pacote`: o personagem exportado inteiro (`.html`, ver `pacoteDePersonagem.ts`).
  */
-export type PropositoDeDialogo = 'imagem' | 'ficha' | 'presets'
+export type PropositoDeDialogo = 'imagem' | 'ficha' | 'presets' | 'pacote'
 
 type PastasLembradas = Partial<Record<PropositoDeDialogo, string>>
 

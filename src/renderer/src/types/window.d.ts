@@ -3,6 +3,9 @@ import type { NotesData } from '@shared/types/notes'
 import type { UpdateStatus } from '@shared/types/update'
 import type { Profile, ProfilesState } from '@shared/types/profile'
 import type { PdfEscolhido, SheetApplyPayload } from '@shared/types/sheetImport'
+import type { AparenciaDoPersonagem } from '@shared/types/aparencia'
+import type { Language } from '@shared/types/idioma'
+import type { PacoteImportado } from '@shared/pacote/pacoteDePersonagem'
 
 export interface RolladorApi {
   presets: {
@@ -49,6 +52,11 @@ export interface RolladorApi {
      * quebrava a compilação — ela apagava informação na travessia, calada.
      */
     apply: (payload: SheetApplyPayload) => Promise<Profile>
+  }
+  /** O personagem inteiro num arquivo (ver `pacoteDePersonagem.ts`). */
+  pacote: {
+    exportar: (dados: { aparencia: AparenciaDoPersonagem; idioma: Language }) => Promise<string | null>
+    importar: () => Promise<PacoteImportado | null>
   }
   update: {
     getVersion: () => Promise<string>

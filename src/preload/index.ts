@@ -6,6 +6,9 @@ import { IpcChannels } from '@shared/ipcChannels'
 import type { Profile, ProfilesState } from '@shared/types/profile'
 import type { SheetApplyPayload } from '@shared/types/sheetImport'
 import type { PdfEscolhido } from '@shared/types/sheetImport'
+import type { AparenciaDoPersonagem } from '@shared/types/aparencia'
+import type { Language } from '@shared/types/idioma'
+import type { PacoteImportado } from '@shared/pacote/pacoteDePersonagem'
 
 const api = {
   presets: {
@@ -56,6 +59,17 @@ const api = {
     pickPdf: (): Promise<PdfEscolhido> => ipcRenderer.invoke(IpcChannels.sheetsPickPdf),
     apply: (payload: SheetApplyPayload): Promise<Profile> =>
       ipcRenderer.invoke(IpcChannels.sheetsApply, payload)
+  },
+  pacote: {
+    /**
+     * O personagem aberto, inteiro, num `.html` (ver `pacoteDePersonagem.ts`). A aparência vai
+     * daqui porque mora no `localStorage`, que o principal não alcança. Devolve o caminho gravado,
+     * ou `null` se a pessoa desistiu no diálogo.
+     */
+    exportar: (dados: { aparencia: AparenciaDoPersonagem; idioma: Language }): Promise<string | null> =>
+      ipcRenderer.invoke(IpcChannels.pacoteExportar, dados),
+    /** Cria o personagem do arquivo escolhido e devolve ele + a aparência pra gravar. `null` = desistiu. */
+    importar: (): Promise<PacoteImportado | null> => ipcRenderer.invoke(IpcChannels.pacoteImportar)
   },
   update: {
     getVersion: (): Promise<string> => ipcRenderer.invoke(IpcChannels.appGetVersion),

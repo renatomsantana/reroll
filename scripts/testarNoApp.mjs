@@ -32,7 +32,7 @@ const SAIDA = join(RAIZ, 'out', 'testar-no-app')
 mkdirSync(SAIDA, { recursive: true })
 const BLANK = join(SAIDA, 'blank.html')
 writeFileSync(BLANK, '<!DOCTYPE html><html><body></body></html>')
-const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'presets', 'hud', 'fichas', 'fabricados']
+const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'presets', 'pacote', 'hud', 'fichas', 'fabricados']
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms))
 let falhas = 0
@@ -111,6 +111,29 @@ const HANDLERS = {
     })
     estado.presets.set(perfil.id, payload.presets.map((p) => ({ id: randomUUID(), ...p, createdAt: Date.now(), updatedAt: Date.now() })))
     return perfil
+  },
+  /**
+   * O pacote de personagem, sem disco: exportar guarda o pedido (é a APARÊNCIA que interessa
+   * conferir — ela vem do renderer), importar cria o personagem de um pacote canónico e devolve a
+   * aparência dele, como o main faria.
+   */
+  'pacote:exportar': (dados) => {
+    estado.ultimoExportar = dados
+    return 'D:\\Fichas\\Matias Oliveira - Reroll.html'
+  },
+  'pacote:importar': () => {
+    const perfil = { id: randomUUID(), name: 'Kieran Vance', system: 'Pathfinder 2e', photo: fotoDeTeste, createdAt: Date.now() }
+    estado.profiles = { profiles: [...estado.profiles.profiles, perfil], activeId: perfil.id }
+    estado.notas.set(perfil.id, {
+      ...NOTAS_VAZIAS(),
+      characterName: perfil.name,
+      sections: [{ id: 's1', title: 'Atributos', fields: [{ id: 'c1', label: 'Força', value: '18' }] }],
+      recursos: [{ id: 'r1', nome: 'PV', atual: 30, maximo: 42 }]
+    })
+    estado.presets.set(perfil.id, [
+      { id: randomUUID(), name: 'Espada longa', expression: { groups: [{ sides: 8, count: 1 }], modifiers: [] }, favorito: 0, createdAt: 1, updatedAt: 1 }
+    ])
+    return { perfil, aparencia: { diceBodyColor: '#123456', trayShape: 'circle' } }
   },
   'window:setCompact': () => undefined,
   'window:setAppIcon': () => undefined,
@@ -416,6 +439,47 @@ async function fasePresets() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase PACOTE: exportar leva a aparência do personagem; importar cria o personagem e a traz.  */
+/* ------------------------------------------------------------------------------------------ */
+async function fasePacote() {
+  console.log('\n=== PACOTE (exportar o personagem com a aparência; importar e trocar pra ele) ===')
+  estado.profiles = { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: fotoDeTeste, createdAt: 1 }], activeId: 'p1' }
+  estado.notas = new Map([['p1', { ...NOTAS_VAZIAS(), characterName: 'Matias Oliveira', inventory: 'Faca de mato' }]])
+  estado.presets = new Map([['p1', []]])
+  estado.ultimoExportar = null
+  await abrirApp({ displayMode: 'quick', diceBodyColor: '#ab12cd', trayShape: 'square' })
+  await aba('Ficha')
+
+  checar(await clicar('Exportar personagem'), 'o botão "Exportar personagem" existe na Ficha')
+  const avisou = await esperarAte(`!!document.querySelector('[role=alertdialog]') && document.querySelector('[role=alertdialog]').textContent.includes('Reroll.html')`, 4000)
+  checar(avisou, 'exportar avisa onde gravou, no diálogo do app')
+  const pedido = estado.ultimoExportar
+  checar(pedido?.aparencia?.diceBodyColor === '#ab12cd' && pedido?.aparencia?.trayShape === 'square', `o pedido levou a aparência do personagem (${JSON.stringify(pedido?.aparencia && { cor: pedido.aparencia.diceBodyColor, bandeja: pedido.aparencia.trayShape })})`)
+  checar(pedido?.idioma === 'pt-BR', 'e o idioma da interface, pro HTML sair na língua certa')
+  await foto('pacote-exportado')
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  await espera(200)
+
+  checar(await clicar('Importar personagem exportado'), 'o botão "Importar personagem exportado" existe')
+  const chegou = await esperarAte(`!!document.querySelector('[role=alertdialog]') && document.querySelector('[role=alertdialog]').textContent.includes('Kieran Vance')`, 4000)
+  checar(chegou, 'importar avisa que "Kieran Vance" chegou')
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  await espera(600)
+  const ativo = estado.profiles.profiles.find((p) => p.id === estado.profiles.activeId)
+  checar(ativo?.name === 'Kieran Vance', 'o personagem importado fica ABERTO')
+  const ficha = await js(`(() => ({ nome: document.querySelector('.sheet-profile-fields input')?.value, secao: !!Array.from(document.querySelectorAll('.sheet-section-title, legend, h3')).find((e) => e.textContent.includes('Atributos')), forca: Array.from(document.querySelectorAll('.sheet-section-field input')).map((i) => i.value).includes('18') }))()`)
+  checar(ficha.secao && ficha.forca, `a Ficha mostra a seção importada com Força 18 (${JSON.stringify(ficha)})`)
+  const look = await js(`(() => { const chave = Object.keys(localStorage).find((k) => k === 'rolador-look::' + ${JSON.stringify(ativo?.id)}); const gravado = chave ? JSON.parse(localStorage.getItem(chave)) : null; const atual = JSON.parse(localStorage.getItem('rolador-settings') || '{}'); return { gravado: gravado && gravado.diceBodyColor, atual: atual.diceBodyColor, bandeja: atual.trayShape } })()`)
+  checar(look.gravado === '#123456', `a aparência do pacote foi gravada pro personagem novo (${look.gravado})`)
+  checar(look.atual === '#123456' && look.bandeja === 'circle', `e já está valendo na cena: dado ${look.atual}, bandeja ${look.bandeja}`)
+  await aba('Rolagem')
+  await espera(300)
+  const preset = await js(`Array.from(document.querySelectorAll('.preset-card-name')).map((n) => n.textContent)`)
+  checar(preset.includes('Espada longa'), `os presets do pacote estão na Rolagem (${JSON.stringify(preset)})`)
+  await foto('pacote-importado')
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase FOTO: escolher a foto abre o recorte; "Usar esta" grava um quadrado.                   */
 /* ------------------------------------------------------------------------------------------ */
 async function faseFoto() {
@@ -619,6 +683,7 @@ app.whenReady().then(async () => {
   if (FASES.includes('sons')) await faseSons()
   if (FASES.includes('foto')) await faseFoto()
   if (FASES.includes('presets')) await fasePresets()
+  if (FASES.includes('pacote')) await fasePacote()
   if (FASES.includes('hud')) await faseHud()
   if (FASES.includes('arrasto')) await faseHudArrasto()
   if (FASES.includes('fichas')) await faseFichas()

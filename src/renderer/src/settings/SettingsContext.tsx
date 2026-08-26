@@ -5,6 +5,7 @@ import type { TrayShape } from '@renderer/dice3d/geometry/trayShape'
 import { migrarPreferencias, sanearPreferencias } from './sanearSettings'
 import { DEFAULT_APP_ICON_ID, isValidAppIconId } from '@shared/appIcons'
 import type { Language } from '@shared/types/idioma'
+import { CHAVES_DA_APARENCIA, type AparenciaDoPersonagem } from '@shared/types/aparencia'
 
 export type ThemeMode = 'day' | 'night'
 
@@ -385,22 +386,7 @@ const STORAGE_KEY = 'rolador-settings'
  * ícone do app, modo de câmera — e continua valendo pra todos os personagens. A divisão importa:
  * ninguém quer o app trocando de idioma porque mudou de ficha.
  */
-const PROFILE_LOOK_KEYS = [
-  'diceBodyColor',
-  'diceNumberColor',
-  'diceMaterial',
-  'diceColorOverrides',
-  'wallColor',
-  'backgroundColor',
-  'floorColor',
-  'towerStoneColor',
-  'towerRoofColor',
-  'towerFlagColor',
-  'towerDoorColor',
-  'backgroundImage',
-  'launchMode',
-  'trayShape'
-] as const
+const PROFILE_LOOK_KEYS = CHAVES_DA_APARENCIA
 
 type ProfileLook = Pick<Settings, (typeof PROFILE_LOOK_KEYS)[number]>
 
@@ -481,6 +467,17 @@ interface SettingsContextValue extends Settings {
   setCritSoundEnabled: (value: boolean) => void
   setPalettesVisible: (value: boolean) => void
   resetSettings: () => void
+  /**
+   * A aparência do personagem ABERTO, pra ir no pacote exportado (ver `pacoteDePersonagem.ts`) —
+   * é o que está valendo agora, e não o que está gravado, porque a gravação espera 300ms.
+   */
+  aparenciaAtual: () => AparenciaDoPersonagem
+  /**
+   * Grava a aparência de um personagem que ainda NÃO está aberto — o que acabou de ser importado.
+   * Tem que acontecer ANTES de a lista de perfis trocar pra ele: é a troca que lê a chave dele do
+   * `localStorage`, e uma chave gravada depois só valeria na próxima troca.
+   */
+  gravarAparenciaDe: (profileId: string, aparencia: AparenciaDoPersonagem) => void
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
@@ -678,7 +675,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setCritVisualEnabled: (critVisualEnabled) => setSettings((prev) => ({ ...prev, critVisualEnabled })),
       setCritSoundEnabled: (critSoundEnabled) => setSettings((prev) => ({ ...prev, critSoundEnabled })),
       setPalettesVisible: (palettesVisible) => setSettings((prev) => ({ ...prev, palettesVisible })),
-      resetSettings: () => setSettings(DEFAULT_SETTINGS)
+      resetSettings: () => setSettings(DEFAULT_SETTINGS),
+      aparenciaAtual: () => pickLook(settings),
+      gravarAparenciaDe: (profileId, aparencia) => {
+        // Mesma higiene de `loadLook`: acabamento, forma e modo de lançamento desconhecidos caem fora
+        // aqui, e o personagem novo fica com o que o app estava usando nesses campos.
+        try {
+          localStorage.setItem(lookStorageKey(profileId), JSON.stringify(sanearPreferencias(aparencia)))
+        } catch (causa) {
+          console.error('Falha ao gravar a aparência do personagem importado:', causa)
+        }
+      }
     }),
     // `theme` junto: ele é derivado do tema do sistema, então muda sem `settings` mudar — o
     // Windows escurecendo às onze da noite não passa por `setSettings`.

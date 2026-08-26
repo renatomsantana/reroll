@@ -14,6 +14,7 @@ import { SheetImportModal } from './SheetImportModal'
 import { RecorteDeFotoModal } from '../foto/RecorteDeFotoModal'
 import { useDialogo } from '../common/Dialogo'
 import { useSheetImport } from '../../sheets/useSheetImport'
+import { usePacoteDePersonagem } from '../../sheets/usePacoteDePersonagem'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import './SheetTab.css'
@@ -81,6 +82,7 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   const profiles = useProfiles()
   const dialogo = useDialogo()
   const importacao = useSheetImport()
+  const pacote = usePacoteDePersonagem()
   /**
    * Ficha vinda de PDF. É o que decide a forma da página: com seções, ela mostra a ficha DAQUELE
    * sistema; sem, mostra os blocos livres.
@@ -415,6 +417,30 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                   ✕
                 </Button>
               </div>
+              {/*
+                O PACOTE (spec §3.2; ver `pacoteDePersonagem.ts`): o personagem inteiro num arquivo,
+                pra mostrar ao mestre ou levar pra outro computador. Fileira própria, abaixo da de
+                criar/importar ficha, porque é outra pergunta — aquela é "de onde nasce um
+                personagem", esta é "como ele sai daqui e volta inteiro".
+              */}
+              <div className="sheet-profile-actions sheet-profile-pacote">
+                <Button
+                  variant="secondary"
+                  title={t.notesTab.profileExportHint}
+                  disabled={pacote.ocupado}
+                  onClick={() => void pacote.exportar()}
+                >
+                  {t.notesTab.profileExport}
+                </Button>
+                <Button
+                  variant="secondary"
+                  title={t.notesTab.profileImportHint}
+                  disabled={pacote.ocupado || !profiles.podeCriar}
+                  onClick={() => void pacote.importar()}
+                >
+                  {t.notesTab.profileImport}
+                </Button>
+              </div>
             </div>
           </div>
         </fieldset>
@@ -489,6 +515,15 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
               )}
               <Button variant="ghost" onClick={() => setPreencherAMao(true)}>
                 {t.notesTab.sheetEmptyManual}
+              </Button>
+              {/* Quem chega num PC novo com o personagem exportado começa exatamente desta tela. */}
+              <Button
+                variant="ghost"
+                title={t.notesTab.profileImportHint}
+                disabled={pacote.ocupado || !profiles.podeCriar}
+                onClick={() => void pacote.importar()}
+              >
+                {t.notesTab.profileImport}
               </Button>
             </div>
           </div>

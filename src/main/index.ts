@@ -7,6 +7,7 @@ import { resolveAppIconPath } from './appIconPaths'
 import { registerSceneBackgroundHandlers } from './ipc/registerSceneBackgroundHandlers'
 import { registerClipboardHandlers } from './ipc/registerClipboardHandlers'
 import { registerSheetHandlers } from './ipc/registerSheetHandlers'
+import { registerPacoteHandlers } from './ipc/registerPacoteHandlers'
 import { registerProfilesHandlers } from './ipc/registerProfilesHandlers'
 import { registerUpdateHandlers } from './updater'
 import { aplicarTravasDeSeguranca, preferenciasDeDepuracao } from './seguranca'
@@ -195,6 +196,8 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     if (IMPORTACAO_DE_FICHA_LIGADA) {
       registerSheetHandlers(profilesRepository, notesRepository, presetsRepository)
     }
+    // O personagem inteiro num arquivo (spec §3.2) — ver `registerPacoteHandlers.ts`.
+    registerPacoteHandlers(profilesRepository, notesRepository, presetsRepository)
 
     const settingsRepository = new SettingsRepository()
     // Lido ANTES de criar a janela, pra ela já nascer com o ícone escolhido na sessão anterior
