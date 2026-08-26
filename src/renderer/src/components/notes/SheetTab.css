@@ -149,6 +149,11 @@
   margin-top: auto;
 }
 
+/* A segunda fileira (exportar/importar o personagem) fica colada na primeira, não no fundo. */
+.sheet-profile-pacote {
+  margin-top: 6px;
+}
+
 /*
  * A FICHA VAZIA: uma caixa afundada com o convite de importar e o "preencher à mão" — pedido do
  * usuário pro beta (ver o comentário em `SheetTab.tsx`). Centrada e com respiro: é a única coisa

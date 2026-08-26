@@ -139,7 +139,8 @@ export const TAMANHO_MAXIMO_DA_FOTO = 17 * 1024 * 1024
 /** Nome e sistema são rótulos de tela; 200 caracteres é o mesmo teto da importação de ficha. */
 export const TAMANHO_MAXIMO_DO_NOME = 200
 
-function fotoValida(foto: unknown): string | null {
+/** A foto como o app grava (ver acima), exportada porque o pacote de personagem usa a MESMA régua. */
+export function fotoDePerfilValida(foto: unknown): string | null {
   if (typeof foto !== 'string') return null
   if (foto.length > TAMANHO_MAXIMO_DA_FOTO) return null
   return FOTO_EMBUTIDA.test(foto) ? foto : null
@@ -169,7 +170,7 @@ export function normalizeProfiles(raw: unknown): ProfilesState {
       // e um número ali estoura longe daqui, com uma pilha que não aponta pro arquivo.
       name: rotulo(entrada.name),
       system: rotulo(entrada.system),
-      photo: fotoValida(entrada.photo),
+      photo: fotoDePerfilValida(entrada.photo),
       createdAt: typeof entrada.createdAt === 'number' && Number.isFinite(entrada.createdAt) ? entrada.createdAt : 0
     })
   }

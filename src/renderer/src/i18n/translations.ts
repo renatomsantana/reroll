@@ -395,6 +395,15 @@ export interface TranslationDict {
     profileDelete: string
     profileDeleteConfirm: string
     profileUnnamed: string
+    /** O pacote de personagem (spec §3.2; ver `pacoteDePersonagem.ts`): exportar e importar o personagem inteiro. */
+    profileExport: string
+    profileExportHint: string
+    profileImport: string
+    profileImportHint: string
+    profileExportSuccess: string
+    profileExportError: string
+    profileImportSuccess: string
+    profileImportError: string
     profileSwitch: string
     fontDefault: string
     boldLabel: string
@@ -815,6 +824,16 @@ export const translations: Record<Language, TranslationDict> = {
       profileDeleteConfirm:
         'Apagar "{name}" da lista? As anotações e os presets dele continuam no disco, mas ele some daqui.',
       profileUnnamed: 'Personagem {n}',
+      profileExport: 'Exportar personagem',
+      profileExportHint:
+        'Salva a ficha, as anotações, os presets e a aparência dos dados num arquivo só — pra mostrar ao mestre (abre no navegador) ou levar pra outro computador.',
+      profileImport: 'Importar personagem exportado',
+      profileImportHint: 'Abre um arquivo exportado pelo Reroll e cria o personagem aqui, com tudo o que ele tinha.',
+      profileExportSuccess:
+        'Personagem exportado em:\n{path}\n\nO arquivo abre no navegador pra mostrar a ficha, e o Reroll traz ele de volta em "Importar personagem exportado".',
+      profileExportError: 'Não deu pra exportar: {error}',
+      profileImportSuccess: '"{name}" chegou inteiro: ficha, anotações, presets e aparência dos dados.',
+      profileImportError: 'Não deu pra importar: {error}',
       profileSwitch: 'Trocar de personagem',
       fontDefault: 'Fonte padrão',
       boldLabel: 'Negrito',
@@ -1245,6 +1264,16 @@ export const translations: Record<Language, TranslationDict> = {
       profileDeleteConfirm:
         'Remove "{name}" from the list? Their notes and presets stay on disk, but they disappear from here.',
       profileUnnamed: 'Character {n}',
+      profileExport: 'Export character',
+      profileExportHint:
+        'Saves the sheet, notes, presets and dice look in a single file — to show your GM (it opens in a browser) or to move to another computer.',
+      profileImport: 'Import exported character',
+      profileImportHint: 'Opens a file exported by Reroll and creates the character here with everything it had.',
+      profileExportSuccess:
+        'Character exported to:\n{path}\n\nThe file opens in a browser to show the sheet, and Reroll brings it back with "Import exported character".',
+      profileExportError: 'Could not export: {error}',
+      profileImportSuccess: '"{name}" is here in full: sheet, notes, presets and dice look.',
+      profileImportError: 'Could not import: {error}',
       profileSwitch: 'Switch character',
       fontDefault: 'Default font',
       boldLabel: 'Bold',

@@ -120,8 +120,12 @@ Os presets são salvos em `presets.json`, dentro da pasta de dados do usuário d
 
 Cada computador tem seus próprios presets — não há login nem sincronização online. Como é um
 arquivo JSON simples, dá pra copiar esse arquivo entre computadores como uma forma manual de
-backup/transferência (uma função de exportar/importar pela própria interface é uma evolução
-natural disso).
+backup/transferência.
+
+O jeito sem mexer em pasta é a aba **Ficha → Exportar personagem**: o personagem inteiro (ficha,
+diário, barras, presets com as estrelas, foto e a aparência dos dados) vira um único `.html`, que
+abre em qualquer navegador pra mostrar a ficha ao mestre e que o Reroll traz de volta em **Importar
+personagem exportado** — em outro computador ou depois de uma reinstalação.
 
 ## Estrutura do projeto
 

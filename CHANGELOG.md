@@ -13,6 +13,28 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Adicionado
 
+- **O personagem inteiro num arquivo (§3.2)** — pedido dele: "um exportável de ficha, para a
+  pessoa poder mostrar pro mestre a ficha ou talvez usar isso para fazer upload em outro pc, ter um
+  jeito de já estar tudo ajeitadinho, com designs dos dados, anotações, presets — pra que alguém
+  que já use bastante não perca suas informações". Na Ficha, **Exportar personagem** grava um
+  `Nome - Reroll.html` com TUDO do personagem: ficha (seções, blocos, barras, regra de crítico,
+  descansos, HUD e condições), diário, presets COM as estrelas, foto e a aparência dos dados (cores,
+  acabamento, bandeja, torre, imagem de fundo, modo de lançamento). O arquivo é um `.html` de
+  propósito — são dois usos num só: abre em qualquer navegador, sem o app, com a ficha desenhada no
+  visual 98 (é o "mostrar pro mestre"), e leva o pacote em JSON embutido num `<script
+  type="application/json">` que o navegador ignora e o Reroll lê de volta em **Importar personagem
+  exportado** (é o "outro PC"). A página não tem NADA de fora — nem script, nem fonte, nem imagem
+  por URL — e todo texto do personagem vira texto nela, nunca marcação (um preset chamado
+  `</script>` não fecha o bloco: o `<` vai escapado no JSON). Importar cria sempre um personagem
+  NOVO, aberto, respeitando o teto de personagens; tudo ou nada, como a importação de ficha (se a
+  ficha ou os presets falharem, o perfil é desfeito). O convite da ficha vazia ganhou o botão de
+  importar também, porque quem chega num PC novo começa exatamente dali. A lista do que é
+  "aparência do personagem" saiu do renderer pra `shared/types/aparencia.ts`, porque passou a
+  atravessar o arquivo. Coberto por `pacoteDePersonagem.test.ts` (ida e volta, escapes, recusas,
+  campo torto corrigido), `pacoteDePersonagem.node.test.ts` (exportar e importar com disco de
+  verdade, teto, arquivo grande recusado antes de ler) e a fase `pacote` do harness no app
+  compilado (o pedido de exportar leva a aparência da cena; importar troca pro personagem, a ficha
+  aparece, a aparência dele passa a valer e os presets estão na Rolagem).
 - **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela
   de rolagem, no HUD sobre a cena (ver §3.6), com "−" e "+" ao lado de cada uma: clique tira ou soma 1,
   Shift+clique ou segurar o botão anda de 5 em 5, e clicar no número abre um campo que aceita
