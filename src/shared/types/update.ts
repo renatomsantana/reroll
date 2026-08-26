@@ -9,6 +9,8 @@
 export type UpdateStatus =
   /** Nada aconteceu ainda nesta sessão (ou o app não está empacotado, onde não há o que atualizar). */
   | { state: 'idle' }
+  /** A build PORTÁTIL (um .exe, sem instalador): não tem como se trocar sozinha — a nova se baixa no GitHub. */
+  | { state: 'portable' }
   | { state: 'checking' }
   /** Já está na versão mais recente. */
   | { state: 'upToDate' }

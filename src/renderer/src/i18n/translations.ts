@@ -255,6 +255,8 @@ export interface TranslationDict {
     /** Mostrado enquanto o instalador roda e o app está prestes a sumir da tela. */
     updateInstalling: string
     updateError: string
+    /** A build portátil não se atualiza sozinha (ver `updater.ts`). */
+    updatePortable: string
     reset: string
     close: string
   }
@@ -712,6 +714,7 @@ export const translations: Record<Language, TranslationDict> = {
       updateInstalling:
         'Instalando a versão {version}. O Reroll vai fechar e abrir sozinho em alguns segundos: nesse intervalo a tela fica sem ele. Não desligue o computador.',
       updateError: 'Não deu pra procurar atualizações agora.',
+      updatePortable: 'Versão portátil: ela não se atualiza sozinha. A versão nova se baixa na página de releases do Reroll no GitHub.',
       debugMode: 'Modo debug',
       debugModeHint: 'Mostra colisores, normais de face, confiança da leitura e FPS por cima da cena 3D.',
       reset: 'Restaurar padrões',
@@ -814,7 +817,7 @@ export const translations: Record<Language, TranslationDict> = {
       profilePhotoError: 'Não deu pra usar essa imagem. Tente outra, menor que 12 MB.',
       profileNew: 'Novo personagem',
       profileLimit:
-        'Você chegou no limite de {max} personagens. Apague um que não usa mais para criar outro: as anotações dele continuam no disco.',
+        'Você chegou no limite de {max} personagens. Apague um que não usa mais para criar outro: a ficha dele vai pra pasta de backup.',
       sheetImport: 'Importar ficha (PDF)',
       sheetImportReading: 'Lendo PDF...',
       critRule: 'Crítico',
@@ -828,7 +831,7 @@ export const translations: Record<Language, TranslationDict> = {
       sheetRollField: 'Rolar {field}',
       profileDelete: 'Apagar personagem',
       profileDeleteConfirm:
-        'Apagar "{name}" da lista? As anotações e os presets dele continuam no disco, mas ele some daqui.',
+        'Apagar "{name}"? Ele some da lista; a ficha, as anotações e os presets dele vão pra pasta de backup do Reroll.',
       profileUnnamed: 'Personagem {n}',
       profileExport: 'Exportar personagem',
       profileExportHint:
@@ -1154,6 +1157,7 @@ export const translations: Record<Language, TranslationDict> = {
       updateInstalling:
         'Installing version {version}. Reroll will close and reopen by itself in a few seconds: the screen sits without it in between. Do not turn the computer off.',
       updateError: "Couldn't check for updates right now.",
+      updatePortable: 'Portable build: it does not update itself. Download the new version from the Reroll releases page on GitHub.',
       debugMode: 'Debug mode',
       debugModeHint: 'Shows colliders, face normals, reading confidence and FPS over the 3D scene.',
       reset: 'Reset to defaults',
@@ -1256,7 +1260,7 @@ export const translations: Record<Language, TranslationDict> = {
       profilePhotoError: 'That image could not be used. Try another one, under 12 MB.',
       profileNew: 'New character',
       profileLimit:
-        'You have reached the limit of {max} characters. Delete one you no longer use to create another: its notes stay on disk.',
+        'You have reached the limit of {max} characters. Delete one you no longer use to create another: its sheet goes to the backup folder.',
       sheetImport: 'Import sheet (PDF)',
       sheetImportReading: 'Reading PDF...',
       critRule: 'Critical',
@@ -1270,7 +1274,7 @@ export const translations: Record<Language, TranslationDict> = {
       sheetRollField: 'Roll {field}',
       profileDelete: 'Delete character',
       profileDeleteConfirm:
-        'Remove "{name}" from the list? Their notes and presets stay on disk, but they disappear from here.',
+        'Delete "{name}"? They leave the list; their sheet, notes and presets go to the Reroll backup folder.',
       profileUnnamed: 'Character {n}',
       profileExport: 'Export character',
       profileExportHint:

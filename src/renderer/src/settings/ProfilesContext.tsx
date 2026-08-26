@@ -201,9 +201,9 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
           profiles: previous.profiles.map((p) => (p.id === id ? { ...p, ...patch } : p))
         })),
       /**
-       * Apagar NÃO remove a pasta do personagem em disco — as anotações e os presets dele continuam
-       * lá. É de propósito: apagar um personagem por engano é irreversível de outra forma, e um
-       * `profiles.json` editado de volta traz tudo. O que some é a entrada na lista.
+       * Apagar tira o personagem da lista; a pasta dele em disco vai pra
+       * `backups/personagens-apagados/` (quem move é `ProfilesRepository.save`, ao ver o id sumir,
+       * ver `backupsDeDados.ts`). Apagar por engano continua recuperável: é copiar a pasta de volta.
        */
       reload: async () => {
         const carregado = await window.api.profiles.get()

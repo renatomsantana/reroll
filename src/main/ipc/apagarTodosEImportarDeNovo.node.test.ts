@@ -176,13 +176,15 @@ describe.skipIf(!TODAS_EXISTEM).sequential('apaga todos e importa as fichas reai
       pages: [{ id: 'dia-1', title: 'Sessão 1', text: 'MARCA-DO-DIARIO-DA-PRIMEIRA-RODADA', createdAt: 0 }]
     })
 
-    // APAGA TODOS. As pastas de quem TEVE algo gravado ficam no disco; o índice esquece.
+    // APAGA TODOS. As pastas de quem TEVE algo gravado vão pro backup (spec §9.1); o índice esquece.
     // (O personagem de fábrica intocado nunca ganhou pasta — pasta nasce na primeira gravação.)
     const idsImportados = [...primeira.values()].map((retrato) => retrato.id)
     await apagarTodos()
     expect((await profiles.get()).profiles.length).toBe(1)
+    const apagados = readdirSync(join(userData, 'backups', 'personagens-apagados'))
     for (const id of idsImportados) {
-      expect(existsSync(join(userData, 'profiles', id)), `pasta de ${id} devia ficar`).toBe(true)
+      expect(existsSync(join(userData, 'profiles', id)), `pasta de ${id} devia sair de profiles/`).toBe(false)
+      expect(apagados.some((pasta) => pasta.startsWith(`${id}-`)), `pasta de ${id} devia estar no backup`).toBe(true)
     }
 
     // SEGUNDA RODADA: tudo de novo, e cada ficha idêntica à primeira leitura.

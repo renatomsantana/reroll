@@ -584,6 +584,11 @@ async function fasePerfis() {
   const soma = r.valores.reduce((a, b) => a + b, 0)
   checar(r.valores.length === 6 && r.total === soma, `2d20 + 3d6 + 1d100: ${r.valores.length} dados [${r.valores}] total ${r.total}`)
   await foto('perfis-seis-dados')
+  // O HISTÓRICO é do personagem e vai pro disco (spec §3.2): as rolagens do Zé estão na ficha do Zé, e só nela.
+  await espera(300)
+  const historicoDoZe = estado.notas.get('p3').historico ?? []
+  checar(historicoDoZe.length >= 2 && historicoDoZe[0].tipo === 'rolagem' && historicoDoZe[0].rolagem.total === r.total, `o histórico gravou na ficha do Zé (${historicoDoZe.length} itens, o último com total ${historicoDoZe[0]?.rolagem?.total})`)
+  checar((estado.notas.get('p1').historico ?? []).length === 0, 'e a do Matias continua sem histórico')
 
   // 7. Voltar pro Matias: tudo dele de volta, inclusive a barra de PV e a cor original.
   checar(await trocarPara('Matias'), 'voltar pro Matias')

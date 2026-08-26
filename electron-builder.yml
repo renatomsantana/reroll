@@ -73,6 +73,14 @@ win:
     - target: nsis
       arch:
         - x64
+    # A BUILD PORTÁTIL (spec §8.4): um .exe só, sem instalar, pra quem não confia em instalador sem
+    # assinatura. Não se atualiza sozinha (o `electron-updater` só troca instalação NSIS) — o app
+    # sabe que é portátil e diz onde baixar a nova (ver `updater.ts`).
+    - target: portable
+      arch:
+        - x64
+portable:
+  artifactName: ${productName}-Portatil-${version}.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
