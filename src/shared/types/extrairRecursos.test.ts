@@ -46,9 +46,34 @@ describe('extrairRecursos', () => {
     ])
   })
 
+  it('atributo e aspecto "2/10" (as escalas de Oblívio) NÃO são barra, e "0/0" em branco também não', () => {
+    const recursos = extrairRecursos([
+      campo('Carne', '2/10', 'Atributos'),
+      campo('Força', '0/10', 'Atributos'),
+      campo('Coragem', '3/10', 'Aspectos'),
+      campo('Torso', '0/0', 'Corpo'),
+      campo('Braço Direito', '0/3', 'Corpo')
+    ])
+    expect(recursos).toEqual([{ nome: 'Braço Direito', atual: 0, maximo: 3, atualEmBranco: false }])
+  })
+
   it('atual acima do máximo é preso; atual sem máximo vira barra cheia naquele valor', () => {
     expect(extrairRecursos([campo('PV atual', '60'), campo('PV máximo', '45')])[0].atual).toBe(45)
     expect(extrairRecursos([campo('PE atual', '7')])).toEqual([{ nome: 'PE', atual: 7, maximo: 7, atualEmBranco: false }])
+  })
+
+  it('recurso com um número só vira barra cheia — se o nome for de recurso vital', () => {
+    const recursos = extrairRecursos([
+      campo('Saúde', '18'),
+      campo('Determinação', '8'),
+      campo('Defesa', '15'),
+      campo('Deslocamento', '9m'),
+      campo('Sanidade', '0')
+    ])
+    expect(recursos).toEqual([
+      { nome: 'Saúde', atual: 18, maximo: 18, atualEmBranco: false },
+      { nome: 'Determinação', atual: 8, maximo: 8, atualEmBranco: false }
+    ])
   })
 
   it('campo que não é par e valor que não é número não viram barra', () => {

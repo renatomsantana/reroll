@@ -7,6 +7,8 @@
   position: absolute;
   z-index: 8;
   width: 236px;
+  /* Nunca mais alto que a cena menos as margens dos cantos: o miolo (`.hud-corpo`) rola. */
+  max-height: calc(100% - 16px);
   padding: 4px;
   background: var(--win-face);
   border: 2px outset var(--win-highlight);
@@ -14,6 +16,14 @@
   flex-direction: column;
   gap: 4px;
   user-select: none;
+}
+
+.hud-corpo {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* Os quatro cantos, a 8px da borda da cena. */

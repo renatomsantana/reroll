@@ -110,6 +110,30 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Corrigido
 
+- **O que o app compilado mostrou** (`scripts/testarNoApp.mjs`, o harness que abre o renderer de
+  produção numa janela oculta com um processo principal falso e clica, rola, importa e arrasta —
+  pedido dele: "vamos continuar testando os tipos de hud, os d20, os tipos diferentes de dados, os
+  uploads, os scrapings"). Os sete tipos de dado, 3d6+5, vantagem/desvantagem, ⭐/💀, a linha do
+  chat, o histórico e um d20 assentando na bandeja 3D passaram de primeira. O que não passou, e
+  foi consertado:
+  - **O HUD transbordava a cena** com doze barras e vinte condições (477px num canvas de 462): agora
+    tem altura máxima e o miolo (barras e condições) rola; cabeçalho e Descansar ficam parados.
+  - **O arrasto do HUD não encaixava** quando o mouse saía do cabeçalho — todo arrasto rápido —,
+    porque o `pointerup` chegava ao canvas: o mover e o soltar passaram a ser ouvidos na janela. E o
+    canto passou a ser decidido pelo CABEÇALHO (o que se segura), não pelo centro do cartão: um
+    cartão de doze barras é mais alto que metade da cena e pelo centro nunca chegava ao norte.
+  - **Oblívio propunha doze barras de ATRIBUTO** ("Carne 0/10", "Coragem 0/10"…): "n/m" em grupo de
+    atributos ou aspectos é escala, não reserva, e não vira barra; "0/0" em branco também não. Sobram
+    as partes do corpo (Torso 0/5, Braço 0/3), que são dano. Teste com as fichas reais
+    (`barrasDasFichasReais.node.test.ts`).
+  - **Assimilação não propunha barra nenhuma**: "Saúde 18", "Determinação 8", "Assimilação 2" são um
+    número só, sem par — viram barra cheia no valor quando o nome é de recurso vital (lista curta:
+    "Vontade" parecia e é perícia em Ordem — virava "Vontade 10/10" no Vincenzo).
+  - **O retrato do Kieran era um triângulo vermelho**: a maior imagem com proporção de foto era um
+    logo. Candidatas da maior pra menor, e cada uma passa por "parece foto?" — 64×64 em 4 bits por
+    canal, mínimo de 120 cores distintas (o triângulo com serrilhado e JPEG dá dezenas; uma foto,
+    centenas). A lista de operadores passou a incluir a aparência dos campos de formulário
+    (`annotationMode`), que é onde a foto de uma ficha preenchível mora.
 - **"Fontes bugaram quando trocando"** — nas Preferências, a linha "Como o resultado aparece" dava
   largura elástica ao `<select>` e nenhuma ao rótulo: o rótulo com dica embaixo encolhia até ~100px
   e, com uma fonte mais larga (Montserrat), a dica virava uma coluna de seis linhas de uma palavra.

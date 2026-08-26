@@ -69,38 +69,53 @@ export function HudDoPersonagem({
     )
   }
 
+  /**
+   * O arrasto ouve o ponteiro NA JANELA, não no cabeçalho: assim que o mouse sai de cima do cartão
+   * (que é o que acontece em todo arrasto rápido), o cabeçalho para de receber `pointermove`, e
+   * quem recebe o `pointerup` é o canvas embaixo. Medido no harness `testarNoApp.mjs`: os eventos
+   * chegavam ao CANVAS e o encaixe no canto nunca rodava. Captura de ponteiro resolveria, mas ela
+   * pode falhar (ponteiro sintético, janela oculta) — os ouvintes na janela funcionam sempre.
+   */
   function aoPressionar(e: PointerEvent<HTMLDivElement>): void {
-    // Só o botão principal, e nunca a partir de um botão do cabeçalho (mini/esconder).
+    // Só o botão principal, e nunca a partir de um botão do cabeçalho (lápis/mini/esconder).
     if (e.button !== 0 || (e.target as HTMLElement).closest('button')) return
     arrasto.current = { x: e.clientX, y: e.clientY, moveu: false }
-    e.currentTarget.setPointerCapture(e.pointerId)
+    const mover = (ev: globalThis.PointerEvent): void => {
+      if (!arrasto.current) return
+      const dx = ev.clientX - arrasto.current.x
+      const dy = ev.clientY - arrasto.current.y
+      if (!arrasto.current.moveu && Math.hypot(dx, dy) < ARRASTO_MINIMO_PX) return
+      arrasto.current.moveu = true
+      setDeslocamento({ x: dx, y: dy })
+    }
+    const soltar = (): void => {
+      window.removeEventListener('pointermove', mover)
+      window.removeEventListener('pointerup', soltar)
+      window.removeEventListener('pointercancel', soltar)
+      encaixar()
+    }
+    window.addEventListener('pointermove', mover)
+    window.addEventListener('pointerup', soltar)
+    window.addEventListener('pointercancel', soltar)
   }
 
-  function aoMover(e: PointerEvent<HTMLDivElement>): void {
-    if (!arrasto.current) return
-    const dx = e.clientX - arrasto.current.x
-    const dy = e.clientY - arrasto.current.y
-    if (!arrasto.current.moveu && Math.hypot(dx, dy) < ARRASTO_MINIMO_PX) return
-    arrasto.current.moveu = true
-    setDeslocamento({ x: dx, y: dy })
-  }
-
-  function aoSoltar(e: PointerEvent<HTMLDivElement>): void {
+  function encaixar(): void {
     if (!arrasto.current) return
     const moveu = arrasto.current.moveu
     arrasto.current = null
-    e.currentTarget.releasePointerCapture(e.pointerId)
     setDeslocamento(null)
     if (!moveu || !raiz.current?.parentElement) return
     /**
-     * O canto mais perto do CENTRO do cartão onde ele foi solto, medido contra a área da cena —
-     * o pai do HUD é o contêiner do canvas. Snap, e não posição livre: quatro cantos gravam num
-     * campo só e nunca deixam o cartão meio fora da cena depois de redimensionar a janela.
+     * O canto mais perto de onde o CABEÇALHO foi solto — o cabeçalho, e não o centro do cartão,
+     * porque é ele que a pessoa está segurando: um cartão com doze barras é mais alto que metade
+     * da cena, e pelo centro ele nunca chegaria ao norte (medido no harness: arrastar pro canto de
+     * cima gravava "sw"). Snap, e não posição livre: quatro cantos gravam num campo só e nunca
+     * deixam o cartão meio fora da cena depois de redimensionar a janela.
      */
     const cena = raiz.current.parentElement.getBoundingClientRect()
-    const cartao = raiz.current.getBoundingClientRect()
-    const centroX = cartao.left + cartao.width / 2 - cena.left
-    const centroY = cartao.top + cartao.height / 2 - cena.top
+    const cabecalho = raiz.current.querySelector('.hud-cabecalho')?.getBoundingClientRect() ?? raiz.current.getBoundingClientRect()
+    const centroX = cabecalho.left + cabecalho.width / 2 - cena.left
+    const centroY = cabecalho.top + cabecalho.height / 2 - cena.top
     const canto: Canto = `${centroY < cena.height / 2 ? 'n' : 's'}${centroX < cena.width / 2 ? 'w' : 'e'}` as Canto
     if (canto !== hud.canto) onChangeHud({ ...hud, canto })
   }
@@ -138,14 +153,7 @@ export function HudDoPersonagem({
       role="region"
       aria-label={t.hud.title}
     >
-      <div
-        className="hud-cabecalho"
-        onPointerDown={aoPressionar}
-        onPointerMove={aoMover}
-        onPointerUp={aoSoltar}
-        onPointerCancel={aoSoltar}
-        title={t.hud.dragHint}
-      >
+      <div className="hud-cabecalho" onPointerDown={aoPressionar} title={t.hud.dragHint}>
         {profile.photo ? (
           <img className="hud-retrato" src={profile.photo} alt="" draggable={false} />
         ) : (
@@ -180,6 +188,12 @@ export function HudDoPersonagem({
         </span>
       </div>
 
+      {/*
+        O MIOLO (barras e condições) rola quando não cabe: doze barras e vinte condições passam de
+        470px, mais que a cena tem (medido no harness: 477px num canvas de 462). O cabeçalho e o
+        Descansar ficam parados; o que cresce, rola por dentro.
+      */}
+      <div className="hud-corpo">
       {recursos.length > 0 ? (
         <BarrasDeRecurso recursos={recursos} onChange={onChangeRecursos} />
       ) : (
@@ -233,12 +247,13 @@ export function HudDoPersonagem({
               />
             )}
           </div>
-          {onRest && recursos.length > 0 && (
-            <button type="button" className="hud-descansar" onClick={onRest}>
-              {t.rest.button}
-            </button>
-          )}
         </>
+      )}
+      </div>
+      {!hud.mini && onRest && recursos.length > 0 && (
+        <button type="button" className="hud-descansar" onClick={onRest}>
+          {t.rest.button}
+        </button>
       )}
     </div>
   )

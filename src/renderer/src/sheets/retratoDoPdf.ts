@@ -30,29 +30,66 @@ const TOLERANCIA_DE_PROPORCAO = 0.08
 const PROPORCAO_MINIMA = 0.4
 const PROPORCAO_MAXIMA = 2.0
 
+/** As que têm tamanho e proporção de foto, da maior pra menor — a primeira que PARECER foto vence. */
+export function candidatasARetrato(
+  imagens: ImagemDaPagina[],
+  pagina: { largura: number; altura: number }
+): ImagemDaPagina[] {
+  const proporcaoDaPagina = pagina.altura > 0 ? pagina.largura / pagina.altura : 0
+  return imagens
+    .filter((imagem) => {
+      if (imagem.largura < LADO_MINIMO || imagem.altura < LADO_MINIMO) return false
+      const proporcao = imagem.largura / imagem.altura
+      if (proporcao < PROPORCAO_MINIMA || proporcao > PROPORCAO_MAXIMA) return false
+      const grande = imagem.largura >= LADO_DE_PAGINA || imagem.altura >= LADO_DE_PAGINA
+      if (grande && Math.abs(proporcao - proporcaoDaPagina) < TOLERANCIA_DE_PROPORCAO) return false
+      return true
+    })
+    .sort((a, b) => b.largura * b.altura - a.largura * a.altura)
+}
+
 export function escolherRetrato(
   imagens: ImagemDaPagina[],
   pagina: { largura: number; altura: number }
 ): ImagemDaPagina | null {
-  const proporcaoDaPagina = pagina.altura > 0 ? pagina.largura / pagina.altura : 0
-  const candidatas = imagens.filter((imagem) => {
-    if (imagem.largura < LADO_MINIMO || imagem.altura < LADO_MINIMO) return false
-    const proporcao = imagem.largura / imagem.altura
-    if (proporcao < PROPORCAO_MINIMA || proporcao > PROPORCAO_MAXIMA) return false
-    const grande = imagem.largura >= LADO_DE_PAGINA || imagem.altura >= LADO_DE_PAGINA
-    if (grande && Math.abs(proporcao - proporcaoDaPagina) < TOLERANCIA_DE_PROPORCAO) return false
-    return true
-  })
-  if (candidatas.length === 0) return null
-  return candidatas.reduce((maior, imagem) => (imagem.largura * imagem.altura > maior.largura * maior.altura ? imagem : maior))
+  return candidatasARetrato(imagens, pagina)[0] ?? null
+}
+
+/**
+ * Isto PARECE uma foto? Uma foto tem muitas cores; um logo, uma seta, um selo têm meia dúzia.
+ * Medido no harness com a ficha de Assimilação do Kieran: a "maior imagem com proporção de foto"
+ * era um triângulo vermelho sobre preto — duas cores — e ia parar no retrato do personagem.
+ * Amostra de 64×64 quantizada em 16 níveis por canal (4096 cores possíveis); abaixo de
+ * `CORES_MINIMAS` distintas não é foto, e a próxima candidata é tentada. O número foi medido: com
+ * 32 níveis e mínimo de 40, o triângulo passava — o serrilhado das bordas e o JPEG rendem dezenas
+ * de tons de vermelho; uma foto, mesmo escura, rende centenas de cores em 4 bits.
+ */
+export const LADO_DA_AMOSTRA = 64
+export const CORES_MINIMAS = 120
+export function pareceFoto(pixels: Uint8ClampedArray): boolean {
+  const cores = new Set<number>()
+  for (let i = 0; i < pixels.length; i += 4) {
+    if (pixels[i + 3] < 16) continue
+    cores.add(((pixels[i] >> 4) << 8) | ((pixels[i + 1] >> 4) << 4) | (pixels[i + 2] >> 4))
+    if (cores.size >= CORES_MINIMAS) return true
+  }
+  return false
 }
 
 /** O mínimo que se usa do pdf.js aqui — não o tipo inteiro da biblioteca. */
 export interface PaginaComImagens {
   getViewport(opcoes: { scale: number }): { width: number; height: number }
-  getOperatorList(): Promise<{ fnArray: number[]; argsArray: unknown[][] }>
+  getOperatorList(opcoes?: { annotationMode?: number }): Promise<{ fnArray: number[]; argsArray: unknown[][] }>
   objs: { has(nome: string): boolean; get(nome: string): unknown }
 }
+
+/**
+ * `AnnotationMode.ENABLE_FORMS` do pdf.js: a lista de operadores inclui a APARÊNCIA dos campos de
+ * formulário. É onde mora a foto numa ficha preenchível — o campo de imagem da ficha de Ordem
+ * Paranormal é um botão de formulário cuja aparência é a imagem que a pessoa colou; no conteúdo da
+ * página em si não há retrato nenhum. Sem isto, só ficha com a foto impressa na página rendia.
+ */
+const INCLUIR_FORMULARIOS = 2
 
 interface ImagemDoPdfJs {
   width?: number
@@ -70,7 +107,7 @@ const LADO_MAXIMO_DO_RETRATO = 384
 const TAMANHO_MAXIMO_DA_DATA_URL = 1024 * 1024
 
 export async function extrairRetratoDaPagina(pagina: PaginaComImagens, codigoDePintura: number): Promise<string | null> {
-  const lista = await pagina.getOperatorList()
+  const lista = await pagina.getOperatorList({ annotationMode: INCLUIR_FORMULARIOS })
   const imagens: ImagemDaPagina[] = []
   const objetos = new Map<string, ImagemDoPdfJs>()
   for (let i = 0; i < lista.fnArray.length; i++) {
@@ -92,9 +129,11 @@ export async function extrairRetratoDaPagina(pagina: PaginaComImagens, codigoDeP
   }
 
   const viewport = pagina.getViewport({ scale: 1 })
-  const escolhida = escolherRetrato(imagens, { largura: viewport.width, altura: viewport.height })
-  if (!escolhida) return null
-  return desenharComoDataUrl(objetos.get(escolhida.nome)!, escolhida)
+  for (const candidata of candidatasARetrato(imagens, { largura: viewport.width, altura: viewport.height })) {
+    const dataUrl = desenharComoDataUrl(objetos.get(candidata.nome)!, candidata)
+    if (dataUrl) return dataUrl
+  }
+  return null
 }
 
 /**
@@ -133,6 +172,15 @@ function desenharComoDataUrl(objeto: ImagemDoPdfJs, tamanho: ImagemDaPagina): st
     // Cinza de 1 bit (kind 1) é desenho de linha, não foto — e formatos que não se conhece não se adivinham.
     return null
   }
+
+  // Logo, seta, selo: poucas cores — não é retrato de ninguém. Ver `pareceFoto`.
+  const amostra = document.createElement('canvas')
+  amostra.width = LADO_DA_AMOSTRA
+  amostra.height = LADO_DA_AMOSTRA
+  const contextoDaAmostra = amostra.getContext('2d')
+  if (!contextoDaAmostra) return null
+  contextoDaAmostra.drawImage(canvas, 0, 0, LADO_DA_AMOSTRA, LADO_DA_AMOSTRA)
+  if (!pareceFoto(contextoDaAmostra.getImageData(0, 0, LADO_DA_AMOSTRA, LADO_DA_AMOSTRA).data)) return null
 
   const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
   return dataUrl.length <= TAMANHO_MAXIMO_DA_DATA_URL ? dataUrl : null
