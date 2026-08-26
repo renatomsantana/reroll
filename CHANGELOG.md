@@ -122,6 +122,18 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Corrigido
 
+- **Apagar um preset travava o teclado** — os dois bugs que ele achou ("se criarmos um preset,
+  colocarmos nome e tudo, e apagarmos não conseguimos criar outro" e "se uploadarmos uma ficha e
+  apagarmos um preset, a ficha buga, não conseguimos editar mais nada dela") são o mesmo defeito:
+  o "tem certeza?" era o `confirm()` nativo do Electron, e no Windows a janela não recupera o foco
+  do teclado depois que ele fecha — o clique ainda funciona, mas nenhum campo aceita letra, nem o
+  nome do preset novo nem os campos da ficha. Agora todo "tem certeza?" e todo aviso são um
+  diálogo DO APP (`Dialogo.tsx`: cartão 98, OK/Cancelar, Esc cancela, Enter confirma), e o foco
+  fica onde estava. Trocados os oito lugares: apagar preset, exportar/importar, os erros do
+  favorito, apagar página e seção, remover personagem, aplicar o estilo a todos e as duas perguntas
+  da atualização. O harness ganhou a fase `presets`, que faz exatamente o roteiro dele no app
+  compilado: criar, apagar pelo diálogo, criar outro e DIGITAR o nome; importar a ficha do Matias,
+  apagar um preset e digitar num campo da ficha — grava.
 - **O que o app compilado mostrou** (`scripts/testarNoApp.mjs`, o harness que abre o renderer de
   produção numa janela oculta com um processo principal falso e clica, rola, importa e arrasta —
   pedido dele: "vamos continuar testando os tipos de hud, os d20, os tipos diferentes de dados, os

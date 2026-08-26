@@ -32,7 +32,7 @@ const SAIDA = join(RAIZ, 'out', 'testar-no-app')
 mkdirSync(SAIDA, { recursive: true })
 const BLANK = join(SAIDA, 'blank.html')
 writeFileSync(BLANK, '<!DOCTYPE html><html><body></body></html>')
-const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'hud', 'fichas', 'fabricados']
+const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'presets', 'hud', 'fichas', 'fabricados']
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms))
 let falhas = 0
@@ -349,6 +349,73 @@ async function faseSons() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase PRESETS: criar, apagar (pelo diálogo do app) e criar de novo; apagar com ficha aberta.  */
+/* ------------------------------------------------------------------------------------------ */
+async function digitar(seletor, texto) {
+  await js(`(() => { const i = document.querySelector(${JSON.stringify(seletor)}); const set = Object.getOwnPropertyDescriptor(i instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value').set; set.call(i, ${JSON.stringify(texto)}); i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+}
+async function criarPreset(nome) {
+  await clicar('+ Novo preset')
+  const abriu = await esperarAte(`!!document.querySelector('.preset-editor input, .modal-overlay input')`, 4000)
+  if (!abriu) return false
+  await digitar('.modal-overlay input', nome)
+  await espera(100)
+  await js(`Array.from(document.querySelectorAll('.modal-overlay button')).find((b) => b.textContent.trim() === 'Salvar')?.click()`)
+  return esperarAte(`!document.querySelector('.modal-overlay') && Array.from(document.querySelectorAll('.preset-card-name')).some((n) => n.textContent === ${JSON.stringify(nome)})`, 4000)
+}
+async function apagarPreset(nome) {
+  await js(`(() => { const card = Array.from(document.querySelectorAll('.preset-card')).find((c) => c.querySelector('.preset-card-name')?.textContent === ${JSON.stringify(nome)}); card?.querySelector('.preset-card-action-delete')?.click() })()`)
+  const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
+  if (!dialogo) return false
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  return esperarAte(`!document.querySelector('[role=alertdialog]') && !Array.from(document.querySelectorAll('.preset-card-name')).some((n) => n.textContent === ${JSON.stringify(nome)})`, 4000)
+}
+async function fasePresets() {
+  console.log('\n=== PRESETS (criar, apagar pelo diálogo do app, criar de novo; apagar com a ficha aberta) ===')
+  estado.profiles = { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: null, createdAt: 1 }], activeId: 'p1' }
+  estado.notas.set('p1', NOTAS_VAZIAS())
+  estado.presets.set('p1', [])
+  await abrirApp({ displayMode: 'quick' })
+  checar(await criarPreset('Espada'), 'criar o preset "Espada" pelo editor')
+  checar(await apagarPreset('Espada'), 'apagar "Espada": o "tem certeza?" é o diálogo do app, e o preset some')
+  // O bug relatado: depois de apagar, criar outro — e o nome tem que DIGITAR.
+  checar(await criarPreset('Bola de fogo'), 'criar OUTRO preset depois de apagar — o nome digita e salva')
+  await foto('presets-depois-de-apagar')
+
+  // Com a ficha importada: apagar um preset e continuar editando a ficha.
+  const pasta = join(RAIZ, 'Fichas RPG')
+  const ordem = existsSync(pasta) ? readdirSync(pasta).find((n) => /Matais/.test(n)) : null
+  if (!ordem) {
+    console.log('sem a ficha do Matias — pulando a metade da ficha')
+    return
+  }
+  estado.profiles = { profiles: [{ id: 'p1', name: '', system: '', photo: null, createdAt: 1 }], activeId: 'p1' }
+  estado.notas = new Map([['p1', NOTAS_VAZIAS()]])
+  estado.presets = new Map([['p1', []]])
+  estado.pdfParaAbrir = { nome: ordem, bytes: new Uint8Array(readFileSync(join(pasta, ordem))) }
+  await abrirApp({ displayMode: 'quick' })
+  await aba('Ficha')
+  await clicar('Importar ficha (PDF)')
+  await esperarAte(`!!document.querySelector('.sheet-import')`, 40000, 250)
+  await clicar('Criar personagem')
+  await esperarAte(`!document.querySelector('.sheet-import')`, 15000)
+  await espera(500)
+  await aba('Rolagem')
+  const primeiro = await js(`document.querySelector('.preset-card-name')?.textContent`)
+  checar(!!primeiro && (await apagarPreset(primeiro)), `apagar o preset importado "${primeiro}" pelo diálogo do app`)
+  await aba('Ficha')
+  await espera(300)
+  // Digitar num campo da ficha DEPOIS de apagar — o segundo bug relatado.
+  const gravacoesAntes = estado.notas.get(estado.profiles.activeId)
+  await js(`(() => { const i = Array.from(document.querySelectorAll('.sheet-section-field input')).find((c) => c.value === '' || true); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, '77'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await espera(300)
+  const notasDepois = estado.notas.get(estado.profiles.activeId)
+  const gravou = notasDepois !== gravacoesAntes && JSON.stringify(notasDepois).includes('"77"')
+  checar(gravou, 'depois de apagar um preset, digitar num campo da ficha GRAVA (a ficha não travou)')
+  await foto('presets-ficha-depois-de-apagar')
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase FOTO: escolher a foto abre o recorte; "Usar esta" grava um quadrado.                   */
 /* ------------------------------------------------------------------------------------------ */
 async function faseFoto() {
@@ -551,6 +618,7 @@ app.whenReady().then(async () => {
   if (FASES.includes('dados3d')) await faseDados3d()
   if (FASES.includes('sons')) await faseSons()
   if (FASES.includes('foto')) await faseFoto()
+  if (FASES.includes('presets')) await fasePresets()
   if (FASES.includes('hud')) await faseHud()
   if (FASES.includes('arrasto')) await faseHudArrasto()
   if (FASES.includes('fichas')) await faseFichas()

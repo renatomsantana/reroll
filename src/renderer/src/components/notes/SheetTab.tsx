@@ -12,6 +12,7 @@ import { MAX_PROFILES } from '@shared/types/profile'
 import { IMPORTACAO_DE_FICHA_LIGADA } from '@shared/recursos'
 import { SheetImportModal } from './SheetImportModal'
 import { RecorteDeFotoModal } from '../foto/RecorteDeFotoModal'
+import { useDialogo } from '../common/Dialogo'
 import { useSheetImport } from '../../sheets/useSheetImport'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
@@ -78,6 +79,7 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   const t = useTranslation()
   const { notes, saveError, loadError, updateField, loadedFor } = useNotes()
   const profiles = useProfiles()
+  const dialogo = useDialogo()
   const importacao = useSheetImport()
   /**
    * Ficha vinda de PDF. É o que decide a forma da página: com seções, ela mostra a ficha DAQUELE
@@ -193,8 +195,10 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   function handleRemoveProfile(): void {
     const index = profiles.profiles.findIndex((p) => p.id === profiles.activeId)
     if (profiles.profiles.length <= 1) return
-    if (!confirm(t.notesTab.profileDeleteConfirm.replace('{name}', nomeDoPerfil(index)))) return
-    profiles.remove(profiles.activeId)
+    const id = profiles.activeId
+    void dialogo.confirmar(t.notesTab.profileDeleteConfirm.replace('{name}', nomeDoPerfil(index))).then((ok) => {
+      if (ok) profiles.remove(id)
+    })
   }
 
   /**
@@ -216,11 +220,13 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }
 
   function removerSecao(secao: SheetSection): void {
-    if (!confirm(t.notesTab.sectionRemoveConfirm.replace('{title}', secao.title))) return
-    updateField(
-      'sections',
-      notes.sections.filter((atual) => atual.id !== secao.id)
-    )
+    void dialogo.confirmar(t.notesTab.sectionRemoveConfirm.replace('{title}', secao.title)).then((ok) => {
+      if (!ok) return
+      updateField(
+        'sections',
+        notes.sections.filter((atual) => atual.id !== secao.id)
+      )
+    })
   }
 
   /**

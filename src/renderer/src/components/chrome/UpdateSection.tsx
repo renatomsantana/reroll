@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { UpdateStatus } from '@shared/types/update'
 import { useTranslation } from '@renderer/i18n/useTranslation'
+import { useDialogo } from '@renderer/components/common/Dialogo'
 import { Button } from '../common/Button'
 
 /**
@@ -14,6 +15,7 @@ import { Button } from '../common/Button'
  */
 export function UpdateSection() {
   const t = useTranslation()
+  const dialogo = useDialogo()
   const [version, setVersion] = useState('')
   const [status, setStatus] = useState<UpdateStatus>({ state: 'idle' })
 
@@ -46,12 +48,15 @@ export function UpdateSection() {
     }
   }
 
-  /** As duas perguntas, em sequência. `confirm` nativo é o mesmo que o app já usa pra apagar preset. */
+  /** As duas perguntas, em sequência, no diálogo do app (ver `Dialogo.tsx` sobre o `confirm` nativo). */
   function handleUpdate(): void {
     if (status.state !== 'available') return
-    if (!confirm(t.settings.updateConfirm.replace('{version}', status.version))) return
-    if (!confirm(t.settings.updateConfirmAgain)) return
-    void window.api.update.download()
+    const versao = status.version
+    void (async () => {
+      if (!(await dialogo.confirmar(t.settings.updateConfirm.replace('{version}', versao)))) return
+      if (!(await dialogo.confirmar(t.settings.updateConfirmAgain))) return
+      await window.api.update.download()
+    })()
   }
 
   const isBusy = status.state === 'checking' || status.state === 'downloading'
