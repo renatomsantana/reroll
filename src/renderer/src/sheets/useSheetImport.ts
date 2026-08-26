@@ -77,7 +77,11 @@ export function useSheetImport() {
       const sheet = await extractPdfSheet(escolhido.fileName, escolhido.bytes)
       // O retrato atravessa o leitor sem passar por ele: nenhum leitor sabe de imagem, e não precisa.
       const lido = readSheet(sheet, language)
-      setLido(sheet.retrato ? { ...lido, retrato: sheet.retrato } : lido)
+      setLido({
+        ...lido,
+        ...(sheet.retrato ? { retrato: sheet.retrato } : {}),
+        ...(sheet.paginas ? { paginas: sheet.paginas } : {})
+      })
     } catch (causa) {
       /**
        * PDF protegido por senha, arquivo truncado, coisa que não é PDF apesar da extensão. A
@@ -100,6 +104,7 @@ export function useSheetImport() {
       presets: SheetImport['presets']
       recursos: RecursoImportado[]
       photo: string | null
+      paginas: string[]
     }) => {
       setGravando(true)
       try {
@@ -110,6 +115,7 @@ export function useSheetImport() {
           notes: escolha.notes,
           recursos: escolha.recursos,
           photo: escolha.photo,
+          paginas: escolha.paginas,
           /**
            * O preset vai só com o que o app guarda (nome e expressão). O `kind` e o `source` são
            * coisa da tela de conferência — dizer de onde a rolagem saiu — e não têm lugar no preset

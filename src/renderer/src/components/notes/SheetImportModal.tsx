@@ -40,6 +40,8 @@ interface SheetImportModalProps {
     recursos: RecursoImportado[]
     /** A foto escolhida na conferência (spec §3.6): a do PDF, outra, ou nenhuma. */
     photo: string | null
+    /** As páginas desenhadas do PDF, pra ficarem com o personagem (ver `paginasDaFicha.ts`). */
+    paginas: string[]
   }) => void
   /** `true` enquanto a gravação acontece — trava os botões pra não criar dois personagens. */
   saving: boolean
@@ -112,6 +114,13 @@ export function SheetImportModal({
    */
   const [trazerTexto, setTrazerTexto] = useState(true)
   /**
+   * A PÁGINA DO PDF ao lado dos campos (spec da importação §9: "side-by-side view ... so the user
+   * can compare without leaving the app"; pedido do usuário: "o mais parecido possível com os
+   * PDFs"). Uma página por vez, com setas: a coluna é estreita, e a ficha tem uma a quatro.
+   */
+  const paginas = sheet.paginas ?? []
+  const [pagina, setPagina] = useState(0)
+  /**
    * ONDE a ficha vai parar. Começa sempre em "personagem novo", e isso é deliberado: criar é a
    * operação que não estraga nada, e atualizar substitui as seções de quem está aberto. Um padrão
    * que sobrescreve seria a escolha errada pro clique distraído.
@@ -163,7 +172,7 @@ export function SheetImportModal({
 
   return (
     <div className="modal-overlay" onClick={() => !saving && onCancel()}>
-      <Card ref={cardRef} className="sheet-import" onClick={(e) => e.stopPropagation()}>
+      <Card ref={cardRef} className={`sheet-import ${paginas.length > 0 ? 'sheet-import-com-pagina' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-import-header">
           <h2 className="sheet-import-title">{t.sheetImport.title}</h2>
           {/*
@@ -209,6 +218,36 @@ export function SheetImportModal({
           </ul>
         )}
 
+        <div className="sheet-import-lado-a-lado">
+        {paginas.length > 0 && (
+          <aside className="sheet-import-pagina" aria-label={t.sheetImport.pageTitle}>
+            <div className="sheet-import-pagina-nav">
+              <button
+                type="button"
+                className="sheet-import-pagina-btn"
+                onClick={() => setPagina((p) => Math.max(0, p - 1))}
+                disabled={pagina === 0}
+                aria-label={t.sheetImport.pagePrev}
+              >
+                ◀
+              </button>
+              <span>{t.sheetImport.pageOf.replace('{n}', String(pagina + 1)).replace('{total}', String(paginas.length))}</span>
+              <button
+                type="button"
+                className="sheet-import-pagina-btn"
+                onClick={() => setPagina((p) => Math.min(paginas.length - 1, p + 1))}
+                disabled={pagina >= paginas.length - 1}
+                aria-label={t.sheetImport.pageNext}
+              >
+                ▶
+              </button>
+            </div>
+            <div className="sheet-import-pagina-folha">
+              <img src={paginas[Math.min(pagina, paginas.length - 1)]} alt="" draggable={false} />
+            </div>
+          </aside>
+        )}
+        <div className="sheet-import-campos">
         <div className="sheet-import-identity">
           {/*
             O retrato ao lado do nome — é a identidade da ficha. Sem candidato do PDF o bloco ainda
@@ -395,6 +434,9 @@ export function SheetImportModal({
           </section>
         )}
 
+        </div>
+        </div>
+
         <div className="sheet-import-actions">
           <Button variant="ghost" onClick={onCancel} disabled={saving}>
             {t.sheetImport.cancel}
@@ -408,7 +450,8 @@ export function SheetImportModal({
                 notes: paraAFicha,
                 presets: presetsEscolhidos,
                 recursos: recursosEscolhidos.map(({ nome, atual, maximo }) => ({ nome, atual, maximo })),
-                photo: retrato
+                photo: retrato,
+                paginas: sheet.paginas ?? []
               })
             }
             disabled={saving || !nome.trim()}

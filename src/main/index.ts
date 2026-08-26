@@ -9,6 +9,7 @@ import { registerClipboardHandlers } from './ipc/registerClipboardHandlers'
 import { registerSheetHandlers } from './ipc/registerSheetHandlers'
 import { registerPacoteHandlers } from './ipc/registerPacoteHandlers'
 import { fazerBackupSeMudouDeVersao } from './storage/backupsDeDados'
+import { PaginasRepository } from './storage/PaginasRepository'
 import { registerProfilesHandlers } from './ipc/registerProfilesHandlers'
 import { registerUpdateHandlers } from './updater'
 import { aplicarTravasDeSeguranca, preferenciasDeDepuracao } from './seguranca'
@@ -206,11 +207,12 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
      * fora do ar, o app instalado não tem POR ONDE abrir um PDF, nem por um caminho que alguém
      * escreva sem querer amanhã. O que está desligado deve estar desligado dos dois lados.
      */
+    const paginasRepository = new PaginasRepository(profilesRepository)
     if (IMPORTACAO_DE_FICHA_LIGADA) {
-      registerSheetHandlers(profilesRepository, notesRepository, presetsRepository)
+      registerSheetHandlers(profilesRepository, notesRepository, presetsRepository, paginasRepository)
     }
     // O personagem inteiro num arquivo (spec §3.2) — ver `registerPacoteHandlers.ts`.
-    registerPacoteHandlers(profilesRepository, notesRepository, presetsRepository)
+    registerPacoteHandlers(profilesRepository, notesRepository, presetsRepository, paginasRepository)
 
     const settingsRepository = new SettingsRepository()
     // Lido ANTES de criar a janela, pra ela já nascer com o ícone escolhido na sessão anterior

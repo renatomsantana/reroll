@@ -25,6 +25,7 @@ import PdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs?worker'
 import type { PdfSheet } from '@shared/types/sheetImport'
 import { sheetFromPdfDocument } from './sheetFromPdfDocument'
 import { extrairRetratoDaPagina } from './retratoDoPdf'
+import { desenharPaginas } from './paginasDoPdf'
 
 /**
  * Abre o PDF e devolve o que dá pra ler dele: campos de formulário e texto impresso com posição.
@@ -88,6 +89,17 @@ export async function extractPdfSheet(fileName: string, bytes: Uint8Array): Prom
     } catch (causa) {
       console.warn('Não deu pra extrair o retrato da ficha; seguindo sem ele.', causa)
     }
+  }
+
+  /**
+   * As PÁGINAS desenhadas (ver `paginasDaFicha.ts`): a conferência mostra o PDF ao lado dos
+   * campos, e a Ficha guarda a ficha original. Mesmo `try` à parte, pelo mesmo motivo do retrato.
+   */
+  try {
+    const paginas = await desenharPaginas(doc)
+    if (paginas.length > 0) sheet.paginas = paginas
+  } catch (causa) {
+    console.warn('Não deu pra desenhar as páginas da ficha; seguindo sem elas.', causa)
   }
   return sheet
 }

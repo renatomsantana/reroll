@@ -145,6 +145,28 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   cabeça de um retrato — foi por isso que a foto virou 3×4 um dia —, então a volta vem com o
   remédio: `object-position: center 20%` puxa o recorte pra cima, onde o rosto está.
 
+### Adicionado (a ficha parecida com o PDF, spec da importação §9)
+
+- **A página do PDF ao lado dos campos, na conferência** — pedido dele: "as fichas precisam ser
+  intuitivas e o mais parecido possível com os PDFs"; e a spec: "side-by-side view: show the
+  original PDF page next to the fields, so the user can compare without leaving the app". Na
+  importação o pdf.js desenha cada página numa imagem (até seis, 1000px de largura, JPEG), e a
+  tela de conferência ganha uma coluna à esquerda com a folha, setas e "Página 1 de 3", ao lado de
+  tudo o que já existia. Conferido no app compilado com as treze fichas reais do corpus: a página
+  aparece legível em todas.
+- **A ficha original fica com o personagem** — as páginas vão pra pasta dele (`pagina-01.jpg`...,
+  ver `PaginasRepository`; arquivos, e não dentro do `notes.json`, que é gravado a cada tecla), e
+  a aba Ficha ganha o bloco "Ficha original (PDF)" com o botão "Mostrar as N páginas": as folhas
+  abrem ali mesmo, em tamanho de leitura, embaixo dos campos editáveis. Reimportar traz as
+  páginas novas no lugar; apagar o personagem leva as páginas pro backup junto com o resto.
+- **O pacote exportado leva as páginas** — o `.html` que vai pro mestre mostra a ficha original
+  embaixo dos campos, e importar noutro PC traz as páginas junto.
+- **A foto nos quatro lugares, testada** — fase `retrato` do harness: imagem alta (300×900), larga
+  (1200×300), minúscula (16×16), enorme (3000×3000), PNG transparente e retrato 3×4 sem recorte,
+  cada uma conferida na Ficha, no crachá da Rolagem, no HUD e no seletor de personagem: caixa
+  quadrada, imagem dentro, `cover` sem esticar, recorte gravado em 384×384. Trinta e oito
+  checagens, nenhum defeito.
+
 ### Adicionado (segurança de dados, spec §8.1 e §9.1)
 
 - **Backup da pasta de dados antes de abrir uma versão nova** — na primeira abertura de cada

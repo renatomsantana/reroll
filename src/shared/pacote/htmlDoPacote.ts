@@ -34,6 +34,7 @@ const ROTULOS = {
     condicoes: 'Condições',
     exportado: 'Exportado do Reroll',
     abrirNoApp: 'Este arquivo também abre no Reroll: Ficha → Importar personagem Reroll.',
+    fichaOriginal: 'Ficha original (PDF)',
     semNome: 'Personagem'
   },
   'en-US': {
@@ -51,6 +52,7 @@ const ROTULOS = {
     condicoes: 'Conditions',
     exportado: 'Exported from Reroll',
     abrirNoApp: 'This file also opens in Reroll: Sheet → Import Reroll character.',
+    fichaOriginal: 'Original sheet (PDF)',
     semNome: 'Character'
   }
 } as const satisfies Record<Language, Record<string, string>>
@@ -129,6 +131,13 @@ export function htmlDoPacote(pacote: PacoteDePersonagem, idioma: Language): stri
         .join('')}</ul></section>`
     : ''
 
+  // A FICHA ORIGINAL: as páginas do PDF, uma embaixo da outra. É o que o mestre quer olhar.
+  const fichaOriginal = pacote.paginas.length
+    ? `<section class="caixa"><h2>${r.fichaOriginal}</h2><div class="paginas">${pacote.paginas
+        .map((p) => `<img src="${escapar(p)}" alt="">`)
+        .join('')}</div></section>`
+    : ''
+
   const quando = pacote.exportadoEm ? new Date(pacote.exportadoEm).toLocaleString(idioma) : ''
 
   return `<!DOCTYPE html>
@@ -154,6 +163,8 @@ export function htmlDoPacote(pacote: PacoteDePersonagem, idioma: Language): stri
   ul { list-style: none; margin: 0; padding: 0; }
   .barras li, .presets li { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; }
   .barras b, .presets code { margin-left: auto; } .estrela { color: #806000; }
+  .paginas { display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 8px; background: #808080; border: 2px solid; border-color: #808080 #fff #fff #808080; }
+  .paginas img { display: block; width: 100%; max-width: 780px; height: auto; background: #fff; box-shadow: 2px 2px 0 #000; }
   footer { color: #333; font-size: 12px; margin-top: 16px; }
   @media print { body { background: #fff; } .caixa { box-shadow: none; } }
 </style>
@@ -168,6 +179,7 @@ export function htmlDoPacote(pacote: PacoteDePersonagem, idioma: Language): stri
   ${blocos}
   ${listaDePresets}
   ${diario}
+  ${fichaOriginal}
   <footer>${r.exportado}${pacote.app ? ` ${escapar(pacote.app)}` : ''}${quando ? ` · ${escapar(quando)}` : ''}<br>${r.abrirNoApp}</footer>
 </main>
 <script id="${ID_DO_BLOCO_JSON}" type="application/json">${serializarPacote(pacote)}</script>

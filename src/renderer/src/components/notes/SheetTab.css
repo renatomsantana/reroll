@@ -468,3 +468,30 @@
   font-weight: bold;
   padding: 5px 6px;
 }
+
+/* A FICHA ORIGINAL (as páginas do PDF, ver `paginasDaFicha.ts`): recolhida num botão; aberta, as
+   páginas em coluna, na largura da aba, como folhas sobre a mesa cinza. */
+.sheet-original-barra {
+  display: flex;
+  gap: 6px;
+}
+
+.sheet-original-paginas {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  background: #808080;
+  border: 2px inset var(--win-face);
+}
+
+.sheet-original-paginas img {
+  display: block;
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  background: #fff;
+  box-shadow: 2px 2px 0 #000;
+}

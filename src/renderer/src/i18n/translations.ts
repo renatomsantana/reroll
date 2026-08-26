@@ -409,6 +409,10 @@ export interface TranslationDict {
     profileExportSuccess: string
     profileExportError: string
     profileImportSuccess: string
+    /** A FICHA ORIGINAL: as páginas do PDF guardadas com o personagem (ver `paginasDaFicha.ts`). */
+    originalSheet: string
+    originalSheetShow: string
+    originalSheetHide: string
     /** O arquivo ATUALIZOU um personagem que já existia com o mesmo nome. */
     profileImportReplaced: string
     profileImportError: string
@@ -460,6 +464,11 @@ export interface TranslationDict {
     portraitReplace: string
     portraitRemove: string
     portraitFromPdf: string
+    /** A página do PDF ao lado dos campos (spec da importação §9). */
+    pageTitle: string
+    pageOf: string
+    pagePrev: string
+    pageNext: string
     /** "(3 de 12)" — quantos itens seguem marcados. */
     count: string
     rawTextTitle: string
@@ -843,6 +852,9 @@ export const translations: Record<Language, TranslationDict> = {
         'Personagem exportado em:\n{path}\n\nO arquivo abre no navegador pra mostrar a ficha, e o Reroll traz ele de volta em "Importar personagem Reroll".',
       profileExportError: 'Não deu pra exportar: {error}',
       profileImportSuccess: '"{name}" chegou inteiro: ficha, anotações, presets e aparência dos dados.',
+      originalSheet: 'Ficha original (PDF)',
+      originalSheetShow: 'Mostrar as {n} páginas',
+      originalSheetHide: 'Esconder',
       profileImportReplaced: '"{name}" já existia e foi atualizado com o arquivo: ficha, anotações, presets e aparência dos dados.',
       profileImportError: 'Não deu pra importar: {error}',
       profileSwitch: 'Trocar de personagem',
@@ -876,6 +888,10 @@ export const translations: Record<Language, TranslationDict> = {
       portraitReplace: 'Trocar…',
       portraitRemove: 'Tirar',
       portraitFromPdf: 'retrato tirado do PDF',
+      pageTitle: 'Página do PDF',
+      pageOf: 'Página {n} de {total}',
+      pagePrev: 'Página anterior',
+      pageNext: 'Próxima página',
       count: '({selected} de {total})',
       rawTextTitle: 'Texto da ficha',
       rawTextHint: '(vai para o bloco História)',
@@ -1286,6 +1302,9 @@ export const translations: Record<Language, TranslationDict> = {
         'Character exported to:\n{path}\n\nThe file opens in a browser to show the sheet, and Reroll brings it back with "Import Reroll character".',
       profileExportError: 'Could not export: {error}',
       profileImportSuccess: '"{name}" is here in full: sheet, notes, presets and dice look.',
+      originalSheet: 'Original sheet (PDF)',
+      originalSheetShow: 'Show the {n} pages',
+      originalSheetHide: 'Hide',
       profileImportReplaced: '"{name}" already existed and was updated from the file: sheet, notes, presets and dice look.',
       profileImportError: 'Could not import: {error}',
       profileSwitch: 'Switch character',
@@ -1319,6 +1338,10 @@ export const translations: Record<Language, TranslationDict> = {
       portraitReplace: 'Replace…',
       portraitRemove: 'Remove',
       portraitFromPdf: 'portrait taken from the PDF',
+      pageTitle: 'PDF page',
+      pageOf: 'Page {n} of {total}',
+      pagePrev: 'Previous page',
+      pageNext: 'Next page',
       count: '({selected} of {total})',
       rawTextTitle: 'Sheet text',
       rawTextHint: '(goes to the Backstory block)',

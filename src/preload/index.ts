@@ -58,7 +58,9 @@ const api = {
     /** Bytes do PDF escolhido, ou o MOTIVO de não ter dado (ver `PdfEscolhido`). Quem interpreta é o renderer. */
     pickPdf: (): Promise<PdfEscolhido> => ipcRenderer.invoke(IpcChannels.sheetsPickPdf),
     apply: (payload: SheetApplyPayload): Promise<Profile> =>
-      ipcRenderer.invoke(IpcChannels.sheetsApply, payload)
+      ipcRenderer.invoke(IpcChannels.sheetsApply, payload),
+    /** As páginas do PDF do personagem ativo, como data URLs (ver `paginasDaFicha.ts`). */
+    paginas: (): Promise<string[]> => ipcRenderer.invoke(IpcChannels.sheetsPaginas)
   },
   pacote: {
     /**

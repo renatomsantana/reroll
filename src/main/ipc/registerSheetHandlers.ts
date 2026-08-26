@@ -28,6 +28,8 @@ import { escolherArquivo } from './dialogos'
 import type { ProfilesRepository } from '../storage/ProfilesRepository'
 import type { NotesRepository } from '../storage/NotesRepository'
 import type { PresetsRepository } from '../storage/PresetsRepository'
+import type { PaginasRepository } from '../storage/PaginasRepository'
+import { paginasValidas } from '@shared/types/paginasDaFicha'
 
 /**
  * Escolher o PDF e APLICAR o que foi lido dele.
@@ -220,7 +222,9 @@ export function validarSheetApplyPayload(bruto: unknown): SheetApplyPayload {
      * A FOTO (spec §3.6) pela mesma régua de `normalizeProfiles`: imagem embutida dos três formatos
      * e dentro do teto, ou nada. Uma foto torta vira "sem foto", nunca uma importação recusada.
      */
-    photo: fotoDePerfilValida(payload.photo)
+    photo: fotoDePerfilValida(payload.photo),
+    /** As PÁGINAS do PDF (ver `paginasDaFicha.ts`): só imagem embutida dentro dos tetos; o resto cai. */
+    paginas: paginasValidas(payload.paginas)
   }
 }
 
@@ -239,8 +243,12 @@ function numero(valor: unknown): number {
 export function registerSheetHandlers(
   profiles: ProfilesRepository,
   notes: NotesRepository,
-  presets: PresetsRepository
+  presets: PresetsRepository,
+  /** Opcional só pros testes antigos da importação, que não olham página; o app passa sempre. */
+  paginas?: PaginasRepository
 ): void {
+  ipcMain.handle(IpcChannels.sheetsPaginas, async (): Promise<string[]> => (paginas ? paginas.ler() : []))
+
   ipcMain.handle(IpcChannels.sheetsPickPdf, async (): Promise<PdfEscolhido> => {
     // Pela porta de `dialogos.ts`, que é quem lembra a pasta: ver o cabeçalho de lá.
     const caminho = await escolherArquivo({
@@ -454,6 +462,13 @@ ${novoTexto}` : novoTexto
        * o ajuste que a pessoa possa ter feito no editor de presets: e a ficha nova continua ali
        * pra ela conferir.
        */
+      /**
+       * As PÁGINAS do PDF vão pra pasta do personagem (ver `PaginasRepository`), NO LUGAR das que
+       * havia: reimportar a ficha nova traz as páginas novas. Sem página no payload (renderer
+       * anterior, ou PDF que não desenhou), as de antes ficam.
+       */
+      if (paginas && (payload.paginas?.length ?? 0) > 0) await paginas.gravar(payload.paginas ?? [])
+
       const jaExistem = new Set((await presets.getAll()).map((preset) => preset.name))
       for (const preset of payload.presets) {
         if (jaExistem.has(preset.name)) continue

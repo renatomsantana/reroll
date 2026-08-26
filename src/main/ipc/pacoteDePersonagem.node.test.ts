@@ -29,6 +29,7 @@ vi.mock('electron', () => ({
 const { ProfilesRepository } = await import('../storage/ProfilesRepository')
 const { NotesRepository } = await import('../storage/NotesRepository')
 const { PresetsRepository } = await import('../storage/PresetsRepository')
+const { PaginasRepository } = await import('../storage/PaginasRepository')
 const { registerPacoteHandlers, lerPacoteDoArquivo } = await import('./registerPacoteHandlers')
 const { IpcChannels } = await import('@shared/ipcChannels')
 const { MAX_PROFILES } = await import('@shared/types/profile')
@@ -37,6 +38,9 @@ const { TAMANHO_MAXIMO_DO_PACOTE } = await import('@shared/pacote/pacoteDePerson
 const profiles = new ProfilesRepository()
 const notes = new NotesRepository(profiles)
 const presets = new PresetsRepository(profiles)
+const paginas = new PaginasRepository(profiles)
+/** Uma "página" de mentira: o repositório guarda bytes, não decodifica imagem. */
+const PAGINA = `data:image/jpeg;base64,${Buffer.from('JPEG-DA-PAGINA').toString('base64')}`
 
 const FOTO = 'data:image/png;base64,iVBORw0KGgo='
 const arquivo = join(userData, 'Matias Oliveira - Reroll.html')
@@ -45,7 +49,7 @@ describe('o personagem inteiro num arquivo', () => {
   beforeAll(async () => {
     await fs.mkdir(userData, { recursive: true })
     const inicial = await profiles.init()
-    registerPacoteHandlers(profiles, notes, presets)
+    registerPacoteHandlers(profiles, notes, presets, paginas)
 
     // O personagem que vai viajar: nome, sistema, foto, ficha com seção/barra/diário, dois presets.
     await profiles.save({
@@ -64,6 +68,7 @@ describe('o personagem inteiro num arquivo', () => {
     await presets.create({ name: 'Faca', expression: { groups: [{ sides: 20, count: 2 }], modifiers: [] } })
     const ritual = await presets.create({ name: 'Ritual', formula: '3d6 + 2' })
     await presets.setFavorito(ritual.id, true)
+    await paginas.gravar([PAGINA])
   })
 
   afterAll(async () => {
@@ -85,6 +90,9 @@ describe('o personagem inteiro num arquivo', () => {
     expect(pacote.personagem).toEqual({ name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: FOTO })
     expect(pacote.presets.map((p) => [p.name, p.favorito])).toEqual([['Faca', undefined], ['Ritual', 0]])
     expect(pacote.aparencia).toEqual({ diceBodyColor: '#ff0000', trayShape: 'circle' })
+    // A página do PDF vai junto, e o HTML mostra a ficha original pro mestre.
+    expect(pacote.paginas).toEqual([PAGINA])
+    expect(html).toContain('Ficha original (PDF)')
     // O nome sugerido no diálogo é o do personagem.
     expect(dialogoDeSalvar.mock.calls[0][0].defaultPath).toMatch(/Matias Oliveira - Reroll\.html$/)
   })
@@ -145,6 +153,7 @@ describe('o personagem inteiro num arquivo', () => {
     const lista = await presets.getAll()
     expect(lista.map((p) => [p.name, p.favorito])).toEqual([['Faca', undefined], ['Ritual', 0]])
     expect(new Set(lista.map((p) => p.id)).size).toBe(2)
+    expect(await paginas.ler()).toEqual([PAGINA])
   })
 
   /** O mesmo pacote com OUTRO nome — o JSON puro também é aceito, então basta reescrever o campo. */

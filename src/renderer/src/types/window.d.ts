@@ -52,6 +52,7 @@ export interface RolladorApi {
      * quebrava a compilação — ela apagava informação na travessia, calada.
      */
     apply: (payload: SheetApplyPayload) => Promise<Profile>
+    paginas: () => Promise<string[]>
   }
   /** O personagem inteiro num arquivo (ver `pacoteDePersonagem.ts`). */
   pacote: {

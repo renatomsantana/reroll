@@ -84,6 +84,34 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   const importacao = useSheetImport()
   const pacote = usePacoteDePersonagem()
   /**
+   * As páginas do PDF do personagem aberto (ver `PaginasRepository`). Relidas quando a ficha
+   * carrega (`loadedFor`): é o mesmo gatilho de trocar de personagem e de importar por cima.
+   */
+  const [paginasDoPdf, setPaginasDoPdf] = useState<string[]>([])
+  const [mostrarOriginal, setMostrarOriginal] = useState(false)
+  useEffect(() => {
+    let atual = true
+    setMostrarOriginal(false)
+    // Fora do app compilado (testes de componente) o preload não existe: sem páginas, sem erro.
+    const api = (window as unknown as { api?: { sheets?: { paginas?: () => Promise<string[]> } } }).api
+    const pedir = api?.sheets?.paginas
+    if (!pedir || !loadedFor) {
+      setPaginasDoPdf([])
+      return
+    }
+    pedir()
+      .then((paginas) => {
+        if (atual) setPaginasDoPdf(paginas)
+      })
+      .catch((causa: unknown) => {
+        console.error('Falha ao ler as páginas do PDF do personagem:', causa)
+        if (atual) setPaginasDoPdf([])
+      })
+    return () => {
+      atual = false
+    }
+  }, [loadedFor])
+  /**
    * Ficha vinda de PDF. É o que decide a forma da página: com seções, ela mostra a ficha DAQUELE
    * sistema; sem, mostra os blocos livres.
    *
@@ -444,6 +472,32 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
             </div>
           </div>
         </fieldset>
+
+        {/*
+          A FICHA ORIGINAL: as páginas do PDF guardadas com o personagem (ver `paginasDaFicha.ts`).
+          Pedido do usuário: "as fichas precisam ser intuitivas e o mais parecido possível com os
+          PDFs". Recolhida por padrão, porque a ficha editável é o que se usa na sessão; um clique
+          abre as páginas em tamanho de leitura, aqui mesmo, sem sair do app.
+        */}
+        {paginasDoPdf.length > 0 && (
+          <fieldset className="sheet-group sheet-original">
+            <legend>{t.notesTab.originalSheet}</legend>
+            <div className="sheet-original-barra">
+              <Button variant="secondary" onClick={() => setMostrarOriginal((v) => !v)}>
+                {mostrarOriginal
+                  ? t.notesTab.originalSheetHide
+                  : t.notesTab.originalSheetShow.replace('{n}', String(paginasDoPdf.length))}
+              </Button>
+            </div>
+            {mostrarOriginal && (
+              <div className="sheet-original-paginas">
+                {paginasDoPdf.map((pagina, i) => (
+                  <img key={i} src={pagina} alt="" draggable={false} />
+                ))}
+              </div>
+            )}
+          </fieldset>
+        )}
 
         {/*
           A ficha assume a forma do SISTEMA quando veio de um PDF importado: cada seção com o nome
