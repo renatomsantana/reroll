@@ -43,6 +43,23 @@ const SUFIXO_ATUAL_EN = /^(.+?)\s+current$/i
 const SUFIXO_MAXIMO_EN = /^(.+?)\s+max(?:imum)?$/i
 /** "12/40", "12 / 40". */
 const PAR_NO_VALOR = /^\s*(\d{1,7})\s*\/\s*(\d{1,7})\s*$/
+/**
+ * Grupo de ATRIBUTOS: o "n/m" ali é valor sobre a escala do sistema, não gasto sobre reserva. Em
+ * Oblívio todo atributo vem como "2/10", e a primeira versão propunha doze barras — "Carne 0/10",
+ * "Força 0/10"… — numa ficha em branco (medido no harness `testarNoApp.mjs`). Atributo não é
+ * recurso vital em sistema nenhum; o que se gasta na sessão tem outro nome.
+ */
+const GRUPO_DE_ATRIBUTOS = /atribut|attribute|caracter[íi]stica|characteristic|estat[íi]stica|\bstats?\b|aspecto|aspect/i
+/**
+ * Recurso escrito com UM número só — "Saúde 18", "Determinação 8" em Assimilação —, sem par e sem
+ * sufixo. Vira barra cheia naquele valor, mas SÓ quando o nome é de recurso vital: no grupo
+ * "Recursos" de Ordem também moram "Defesa 15" e "Deslocamento 9m", que não se gastam. A lista é
+ * o vocabulário dos sistemas que o app conhece, nas duas línguas — e é CURTA de propósito:
+ * "Vontade" parecia recurso e é PERÍCIA em Ordem (medido na ficha do Vincenzo: virava uma barra
+ * "Vontade 10/10" que ninguém gasta).
+ */
+const NOME_DE_RECURSO_VITAL = /^(sa[úu]de|vida|health|hp|pv|pe|esfor[çc]o|sanidade|sanity|determina[çc][ãa]o|assimila[çc][ãa]o|mana|stamina|f[ôo]lego|sorte|luck)$/i
+const INTEIRO = /^\s*(\d{1,7})\s*$/
 
 /** O inteiro no começo do valor ("19", " 19 ", "19 (5 temp)"), ou `null` se não há número ali. */
 function numeroDoValor(valor: string): number | null {
@@ -76,14 +93,24 @@ export function extrairRecursos(campos: SheetImportField[]): RecursoExtraido[] {
     const parNoValor = PAR_NO_VALOR.exec(campo.value)
     if (parNoValor) {
       const nome = campo.label.trim()
-      if (!nome) continue
+      if (!nome || GRUPO_DE_ATRIBUTOS.test(campo.group ?? '')) continue
       const maximo = Math.min(Number(parNoValor[2]), TETO_DO_VALOR_DE_RECURSO)
+      // "0/0" é um campo em branco desenhado com barra, não uma reserva — barra de zero não se clica.
+      if (maximo === 0) continue
       pares.set(chave(nome), { nome, atual: Math.min(Number(parNoValor[1]), TETO_DO_VALOR_DE_RECURSO), maximo })
       continue
     }
 
     const lado = metade(campo.label)
-    if (!lado) continue
+    if (!lado) {
+      const nome = campo.label.trim()
+      const inteiro = INTEIRO.exec(campo.value)
+      if (inteiro && NOME_DE_RECURSO_VITAL.test(nome) && !pares.has(chave(nome))) {
+        const valor = Math.min(Number(inteiro[1]), TETO_DO_VALOR_DE_RECURSO)
+        if (valor > 0) pares.set(chave(nome), { nome, atual: valor, maximo: valor })
+      }
+      continue
+    }
     const existente = pares.get(chave(lado.base)) ?? { nome: lado.base, atual: null, maximo: null }
     const numero = numeroDoValor(campo.value)
     // A PRIMEIRA leitura de cada metade vale: um leitor que repita o campo (o genérico por baixo

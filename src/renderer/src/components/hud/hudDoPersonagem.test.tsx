@@ -90,20 +90,21 @@ describe('o HUD do personagem', () => {
     const cena = hud.parentElement!
     cena.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600, x: 0, y: 0, toJSON: () => ({}) })
     const cabecalho = hud.querySelector('.hud-cabecalho')!
-    ;(cabecalho as HTMLElement).setPointerCapture = () => {}
-    ;(cabecalho as HTMLElement).releasePointerCapture = () => {}
 
-    // Arrastou pra cima e pra esquerda: o cartão passou a estar no quadrante noroeste.
-    hud.getBoundingClientRect = () => ({ left: 20, top: 20, width: 236, height: 150, right: 256, bottom: 170, x: 20, y: 20, toJSON: () => ({}) })
+    // Arrastou pra cima e pra esquerda: o CABEÇALHO (o que se segura) ficou no quadrante noroeste —
+    // mesmo com o cartão alto demais pra ter o centro lá (12 barras passam da metade da cena).
+    hud.getBoundingClientRect = () => ({ left: 20, top: 20, width: 236, height: 450, right: 256, bottom: 470, x: 20, y: 20, toJSON: () => ({}) })
+    ;(cabecalho as HTMLElement).getBoundingClientRect = () => ({ left: 20, top: 20, width: 236, height: 50, right: 256, bottom: 70, x: 20, y: 20, toJSON: () => ({}) })
+    // O mover e o soltar chegam pela JANELA (o mouse sai do cabeçalho em todo arrasto rápido).
     fireEvent.pointerDown(cabecalho, { button: 0, clientX: 700, clientY: 500, pointerId: 1 })
-    fireEvent.pointerMove(cabecalho, { clientX: 100, clientY: 80, pointerId: 1 })
-    fireEvent.pointerUp(cabecalho, { clientX: 100, clientY: 80, pointerId: 1 })
+    fireEvent.pointerMove(window, { clientX: 100, clientY: 80, pointerId: 1 })
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 80, pointerId: 1 })
     expect(acoes.onChangeHud).toHaveBeenLastCalledWith({ ...HUD, canto: 'nw' })
 
     acoes.onChangeHud.mockClear()
     fireEvent.pointerDown(cabecalho, { button: 0, clientX: 700, clientY: 500, pointerId: 2 })
-    fireEvent.pointerMove(cabecalho, { clientX: 702, clientY: 501, pointerId: 2 })
-    fireEvent.pointerUp(cabecalho, { clientX: 702, clientY: 501, pointerId: 2 })
+    fireEvent.pointerMove(window, { clientX: 702, clientY: 501, pointerId: 2 })
+    fireEvent.pointerUp(window, { clientX: 702, clientY: 501, pointerId: 2 })
     expect(acoes.onChangeHud).not.toHaveBeenCalled()
   })
 })
