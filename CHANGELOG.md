@@ -145,8 +145,20 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   cabeça de um retrato — foi por isso que a foto virou 3×4 um dia —, então a volta vem com o
   remédio: `object-position: center 20%` puxa o recorte pra cima, onde o rosto está.
 
+### Removido
+
+- **O seletor de idioma** — pedido dele: "vamo remover inglês, foda-se, depois botamo, vamo deixar
+  only pt-br". O app fica só em português; quem tinha escolhido inglês volta pro português na
+  próxima abertura. O dicionário em inglês continua no código, testado, pra voltar quando ele
+  mandar.
+
 ### Corrigido
 
+- **Os travessões que sobraram fora do dicionário** — "nas config tem muito travessão também". O
+  "Versão —" das Preferências enquanto a versão carrega (virou "..."), o total do modo rápido antes
+  da primeira rolagem, o traço dos presets sem fórmula, o título do retrato ("Nome — Sistema" virou
+  "Nome (Sistema)"), a linha do histórico, os ataques do leitor de Pathfinder ("+5 · 1d6 — Brawling"
+  virou vírgula) e as mensagens da gramática de fórmula ("Dado sem número de lados: escreva d20").
 - **O HUD só explica o lápis, e nenhum texto do app usa travessão** — pedido dele: "ajeita esse
   HUD do rolador, apenas explique o que é o lápis, não usa nenhum travessão digitando no app". O
   HUD sem barras dizia "Nenhuma barra ainda — o lápis aí em cima cria PV, PE, Sanidade... (ou

@@ -341,7 +341,7 @@ function extrairPathfinder(sheet: Parameters<SheetReader['extract']>[0], idioma:
     const danoBruto = bruto(dano) ?? ''
     const resumo = [bonus ? comSinal(numero(bonus) ?? 0) : '', danoBruto].filter(Boolean).join(' · ')
     const extra = bruto(notas)
-    campos.push({ label: arma, value: extra ? `${resumo} — ${extra}` : resumo, group: t(GRUPOS.ataques), fieldName: nomeCampo })
+    campos.push({ label: arma, value: extra ? `${resumo}, ${extra}` : resumo, group: t(GRUPOS.ataques), fieldName: nomeCampo })
     const expressaoAtaque = parseTestBonus(bonus)
     if (expressaoAtaque) presets.push({ name: `${arma} ${texto('sufixoAtaque')}`, kind: 'test', expression: expressaoAtaque, source: bonus })
     const expressaoDano = parseDiceExpression(danoBruto)

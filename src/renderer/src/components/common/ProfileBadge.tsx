@@ -32,7 +32,7 @@ export function ProfileBadge({ profile, fallbackName, emptyPhotoLabel, variant =
   return (
     <div
       className={`profile-badge ${variant === 'roll' ? 'profile-badge-roll' : ''}`}
-      title={profile.system ? `${nome} — ${profile.system}` : nome}
+      title={profile.system ? `${nome} (${profile.system})` : nome}
       data-testid="profile-badge"
     >
       {profile.photo ? (

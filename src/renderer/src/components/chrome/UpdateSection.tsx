@@ -64,7 +64,7 @@ export function UpdateSection() {
   return (
     <div className="settings-panel-field settings-panel-field-column">
       <span>
-        {t.settings.version} <strong>{version || '—'}</strong>
+        {t.settings.version} <strong>{version || '...'}</strong>
       </span>
       {/* O texto do erro do `electron-updater` é técnico (URL, código HTTP) — vai pro `title`, não pra tela. */}
       <small

@@ -214,7 +214,7 @@ function lerProduto(leitor: Leitor): NoDaFormula {
   for (;;) {
     leitor.pularEspaco()
     const sinal = leitor.espiar()
-    if (sinal === '/') falhar('Divisão não existe na notação — cada sistema arredonda do seu jeito.', leitor.posicao)
+    if (sinal === '/') falhar('Divisão não existe na notação: cada sistema arredonda do seu jeito.', leitor.posicao)
     if (sinal !== '*') return esquerda
     leitor.posicao += 1
     const direita = lerUnario(leitor)
@@ -242,7 +242,7 @@ function lerAtomo(leitor: Leitor): NoDaFormula {
   leitor.pularEspaco()
   const inicio = leitor.posicao
 
-  if (leitor.acabou()) falhar('A fórmula acabou antes da hora — faltou um dado ou um número.', inicio)
+  if (leitor.acabou()) falhar('A fórmula acabou antes da hora: faltou um dado ou um número.', inicio)
 
   if (leitor.espiar() === '(') {
     leitor.posicao += 1
@@ -268,12 +268,12 @@ function lerAtomo(leitor: Leitor): NoDaFormula {
   const numero = leitor.casar(NUMERO)
   if (numero) {
     // "1d" — o dado ficou sem lados; sem esta espiada, o 1 viraria número e o "d" sobraria solto.
-    if (/[dD]/.test(leitor.espiar())) falhar('Dado sem número de lados — escreva d20, d6, d%.', inicio)
+    if (/[dD]/.test(leitor.espiar())) falhar('Dado sem número de lados: escreva d20, d6, d%.', inicio)
     return { tipo: 'numero', valor: lerNumero(numero[0], inicio) }
   }
 
   if (leitor.espiar() === ')') falhar('Parêntese fechado sem abrir.', inicio)
-  if (/[dD]/.test(leitor.espiar())) falhar('Dado sem número de lados — escreva d20, d6, d%.', inicio)
+  if (/[dD]/.test(leitor.espiar())) falhar('Dado sem número de lados: escreva d20, d6, d%.', inicio)
   falhar(`Não entendi "${leitor.espiar()}" aqui.`, inicio)
 }
 
@@ -320,7 +320,7 @@ function lerSufixos(leitor: Leitor, termo: TermoDeDado): TermoDeDado {
     }
 
     if (leitor.espiar() === '!') {
-      if (termo.explodir) falhar('O dado já explode — um "!" basta.', inicio)
+      if (termo.explodir) falhar('O dado já explode: um "!" basta.', inicio)
       leitor.posicao += 1
       termo.explodir = true
       continue

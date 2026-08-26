@@ -163,7 +163,7 @@ export function conferirFormulaPraBandeja(formula: Formula): string | null {
   if (termos.length === 0) return 'Um preset precisa de pelo menos um dado.'
   for (const termo of termos) {
     if (!DEFAULT_DICE_SIDES.includes(termo.lados)) {
-      return `A bandeja não tem d${termo.lados} — tem ${TIPOS_DA_BANDEJA}.`
+      return `A bandeja não tem d${termo.lados}: tem ${TIPOS_DA_BANDEJA}.`
     }
     if (termo.quantidade > MAX_SIMULTANEOUS_DICE) {
       return `São ${termo.quantidade}d${termo.lados} de uma vez, e a bandeja rola no máximo ${MAX_SIMULTANEOUS_DICE} juntos.`
