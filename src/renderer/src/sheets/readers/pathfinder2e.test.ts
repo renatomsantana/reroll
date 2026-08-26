@@ -165,8 +165,8 @@ describe('a ficha do Rilver', () => {
   })
 
   it('ataques viram linhas de resumo e presets de ataque e dano — inclusive a grade à distância torta', () => {
-    expect(valor(lido, 'fist', 'Ataques')).toBe('+5 · 1d6 — Brawling Agile, finesse')
-    expect(valor(lido, 'Shortbow', 'Ataques')).toBe('+7 · 1d8 P — 10 arrows. 60 ft.')
+    expect(valor(lido, 'fist', 'Ataques')).toBe('+5 · 1d6, Brawling Agile, finesse')
+    expect(valor(lido, 'Shortbow', 'Ataques')).toBe('+7 · 1d8 P, 10 arrows. 60 ft.')
     const presets = Object.fromEntries(lido.presets.map((p) => [p.name, p.expression]))
     expect(presets['fist (ataque)']).toEqual({ groups: [{ sides: 20, count: 1 }], modifiers: [{ type: 'flat', value: 5 }] })
     expect(presets['fist (dano)']).toEqual({ groups: [{ sides: 6, count: 1 }], modifiers: [] })

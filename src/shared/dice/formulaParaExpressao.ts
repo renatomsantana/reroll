@@ -45,7 +45,7 @@ export function formulaParaExpressao(formula: Formula): Reducao {
 
   for (const termo of termos) {
     if (!DEFAULT_DICE_SIDES.includes(termo.lados)) {
-      return { ok: false, motivo: `A bandeja não tem d${termo.lados} — tem ${TIPOS_DA_BANDEJA}.` }
+      return { ok: false, motivo: `A bandeja não tem d${termo.lados}: tem ${TIPOS_DA_BANDEJA}.` }
     }
     if (termo.rerolar) return { ok: false, motivo: 'Rerolar (r<2) ainda não entra no preset.' }
     if (termo.contar) return { ok: false, motivo: 'Contar sucessos (#>=5) ainda não entra no preset.' }

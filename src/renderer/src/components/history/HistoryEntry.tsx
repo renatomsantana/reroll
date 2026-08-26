@@ -80,7 +80,7 @@ export function HistoryEntry({ result }: { result: RollResult }) {
                     roll.conta ? null : 'não conta pro total'
                   ]
                     .filter(Boolean)
-                    .join(' — ')
+                    .join(', ')
                 }
               >
                 {roll.value}

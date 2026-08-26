@@ -22,7 +22,7 @@ describe('o crachá do personagem', () => {
     render(<ProfileBadge profile={perfil({ photo: FOTO })} fallbackName="Personagem 1" emptyPhotoLabel="sem foto" />)
     const cracha = screen.getByTestId('profile-badge')
     expect(cracha.textContent).toBe('Aurora Valente')
-    expect(cracha.getAttribute('title')).toBe('Aurora Valente — Ordem Paranormal')
+    expect(cracha.getAttribute('title')).toBe('Aurora Valente (Ordem Paranormal)')
     const foto = cracha.querySelector('img')
     expect(foto?.getAttribute('src')).toBe(FOTO)
     expect(foto?.getAttribute('alt')).toBe('')

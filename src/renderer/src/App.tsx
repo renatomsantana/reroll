@@ -201,7 +201,7 @@ export default function App() {
     if (preset.formula) {
       const lida = analisarFormula(preset.formula)
       if (!lida.ok) {
-        console.error(`Preset de fórmula não lê: "${preset.formula}" — ${lida.mensagem}`)
+        console.error(`Preset de fórmula não lê: "${preset.formula}": ${lida.mensagem}`)
         return
       }
       roller3DRef.current?.rollFormula(lida.formula, preset.name)

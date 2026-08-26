@@ -519,6 +519,9 @@ function loadInitial(): Settings {
       if (!FONT_OPTIONS.some((font) => font.id === merged.fontId)) {
         merged.fontId = DEFAULT_SETTINGS.fontId
       }
+      // Só português por enquanto (ver o comentário no lugar do seletor, em `SettingsPanel.tsx`):
+      // quem escolheu inglês antes volta pro português, senão fica numa língua sem botão pra sair.
+      merged.language = 'pt-BR'
       return merged
     }
   } catch {

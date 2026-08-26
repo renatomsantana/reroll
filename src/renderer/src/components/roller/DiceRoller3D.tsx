@@ -1223,7 +1223,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         <div className="dice-roller-3d-quick">
           {!temWebgl && <p className="dice-roller-3d-quick-aviso">{t.roller.quickForced}</p>}
           <span className="dice-roller-3d-quick-label">{t.roller.total}</span>
-          <span className="dice-roller-3d-quick-total">{lastResult ? lastResult.total : '—'}</span>
+          <span className="dice-roller-3d-quick-total">{lastResult ? lastResult.total : <>&nbsp;</>}</span>
           {lastResult && <span className="dice-roller-3d-quick-expr">{lastResult.label}</span>}
         </div>
       ) : (

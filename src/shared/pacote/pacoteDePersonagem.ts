@@ -128,7 +128,7 @@ export function lerPacote(bruto: unknown): PacoteDePersonagem {
     throw new Error('Este arquivo não é um personagem exportado pelo Reroll.')
   }
   if ((pacote.versao as number) > VERSAO_DO_PACOTE) {
-    throw new Error('Este personagem foi exportado por uma versão mais nova do Reroll — atualize o app pra abri-lo.')
+    throw new Error('Este personagem foi exportado por uma versão mais nova do Reroll: atualize o app pra abri-lo.')
   }
 
   const personagem = (typeof pacote.personagem === 'object' && pacote.personagem !== null ? pacote.personagem : {}) as Record<string, unknown>

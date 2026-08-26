@@ -86,7 +86,7 @@ export const SEXTA_LEVA: FichaDeTeste[] = [
         // O grau mais ALTO marcado vence: Treinado e Perito marcados viram só "Perito".
         { label: 'Armas simples', value: 'Perito', group: 'Proficiências' },
         { label: 'Moedas', value: '12 ouro, 3 prata', group: 'Inventário' },
-        { label: 'Longsword', valueMatches: /\+11 · 1d8\+4 — versatile P/, group: 'Ataques' }
+        { label: 'Longsword', valueMatches: /\+11 · 1d8\+4, versatile P/, group: 'Ataques' }
       ],
       semRotulo: /^(MELEE|RANGED) STRIKE/
     },

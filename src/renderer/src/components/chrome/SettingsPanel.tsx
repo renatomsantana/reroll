@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { useSettings, type Language } from '@renderer/settings/SettingsContext'
-import { LANGUAGE_OPTIONS, useTranslation } from '@renderer/i18n/useTranslation'
+import { useSettings } from '@renderer/settings/SettingsContext'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
 import { APP_ICON_OPTIONS, APP_ICONS_CREDIT } from '@shared/appIcons'
 import { APP_ICON_IMAGES } from '@renderer/assets/icons'
@@ -39,7 +39,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
     theme,
     themeSource,
     fontId,
-    language,
     soundEnabled,
     compactMode,
     debugMode,
@@ -57,7 +56,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
     setDisplayMode,
     toggleTheme,
     setFontId,
-    setLanguage,
     setSoundEnabled,
     setCompactMode,
     setAppIconId,
@@ -71,17 +69,12 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
       <Card ref={cardRef} className="settings-panel" onClick={(e) => e.stopPropagation()}>
         <h2 className="settings-panel-title">{t.settings.title}</h2>
 
-        <label className="settings-panel-field">
-          <span>{t.settings.language}</span>
-          <select value={language} onChange={(e) => setLanguage(e.target.value as Language)}>
-            {LANGUAGE_OPTIONS.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
+        {/*
+          O seletor de IDIOMA saiu daqui a pedido do usuário ("vamo remover inglês, depois botamo"):
+          o app é só em português por enquanto. O dicionário em inglês continua em `translations.ts`,
+          testado, pra voltar quando ele mandar; e `loadInitial` força `pt-BR` pra quem já tinha
+          escolhido inglês não ficar preso numa língua sem botão pra sair.
+        */}
         <label className="settings-panel-field">
           <span>{t.settings.theme}</span>
           {/*
