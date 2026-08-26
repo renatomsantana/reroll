@@ -46,6 +46,25 @@ describe('extrairRecursos', () => {
     ])
   })
 
+  it('as outras grafias do par: "12 de 40", "12 of 40", "45 (60)" — e MP/PM como nome vital', () => {
+    const recursos = extrairRecursos([
+      campo('Vida', '12 de 40'),
+      campo('Stamina', '3 of 10', 'Resources'),
+      campo('Sanity', '45 (60)', 'Resources'),
+      campo('MP', '7', 'Recursos'),
+      campo('Nível', '3 de 20', 'Identificação')
+    ])
+    expect(recursos).toEqual([
+      { nome: 'Vida', atual: 12, maximo: 40, atualEmBranco: false },
+      { nome: 'Stamina', atual: 3, maximo: 10, atualEmBranco: false },
+      { nome: 'Sanity', atual: 45, maximo: 60, atualEmBranco: false },
+      { nome: 'MP', atual: 7, maximo: 7, atualEmBranco: false },
+      // "Nível 3 de 20" vira barra também: o extrator não sabe o que é nível, e a conferência
+      // deixa desmarcar — inventar uma lista do que NÃO é recurso erraria mais que isto.
+      { nome: 'Nível', atual: 3, maximo: 20, atualEmBranco: false }
+    ])
+  })
+
   it('atributo e aspecto "2/10" (as escalas de Oblívio) NÃO são barra, e "0/0" em branco também não', () => {
     const recursos = extrairRecursos([
       campo('Carne', '2/10', 'Atributos'),

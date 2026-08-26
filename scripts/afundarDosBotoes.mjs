@@ -126,6 +126,13 @@ const CASOS = [
     html: `<div class="preset-card" style="width:260px"><div class="preset-card-favorito-coluna"><button class="preset-card-action preset-card-estrela" id="alvo"><b style="font-size:12px;line-height:1">S</b></button></div><button class="preset-card-main"><span class="preset-card-text"><span class="preset-card-name">Bola de fogo</span><span class="preset-card-expression">8d6</span></span></button><div class="preset-card-actions"><button class="preset-card-action">e</button><button class="preset-card-action preset-card-action-delete">x</button></div></div>`,
     esperado: { dx: 1, dy: 1 }
   },
+  /* O "Recortar…" embaixo da foto da Ficha. */
+  {
+    id: 'foto-recortar',
+    nome: 'O "Recortar…" da foto da Ficha',
+    html: `<div class="sheet-profile-photo-column"><button class="sheet-photo-recortar" id="alvo"><b style="font-size:11px;line-height:1">Recortar…</b></button></div>`,
+    esperado: { dx: 1, dy: 1 }
+  },
   /* O copiar pro chat (spec §3.5): plano até o mouse chegar, como o lápis. */
   {
     id: 'copiar',

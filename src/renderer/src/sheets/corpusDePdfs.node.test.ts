@@ -9,6 +9,8 @@ import { SEXTA_LEVA } from './testes/sextaLevaDePdfs'
 import { SETIMA_LEVA } from './testes/setimaLevaDePdfs'
 import { OITAVA_LEVA } from './testes/oitavaLevaDePdfs'
 import { NONA_LEVA } from './testes/nonaLevaDePdfs'
+import { DECIMA_LEVA } from './testes/decimaLevaDePdfs'
+import { extrairRecursos } from '@shared/types/extrairRecursos'
 
 /**
  * O CORPUS DE QUINZE FICHAS FABRICADAS, passando pelo importador de verdade.
@@ -39,7 +41,8 @@ const LEVAS: [string, FichaDeTeste[]][] = [
   ['sexta leva — Pathfinder 2e fabricado e estrutura de PDF que ficha real usa', SEXTA_LEVA],
   ['sétima leva — quinze sistemas que o app nunca viu, todos pelo leitor genérico', SETIMA_LEVA],
   ['oitava leva — a estrutura que todo PDF real tem: compressão, assinatura, anexo', OITAVA_LEVA],
-  ['nona leva — qualquer PDF: o que os testadores vão arrastar sem ser ficha', NONA_LEVA]
+  ['nona leva — qualquer PDF: o que os testadores vão arrastar sem ser ficha', NONA_LEVA],
+  ['décima leva — as grafias de recurso de qualquer ficha, e a foto num campo', DECIMA_LEVA]
 ]
 
 describe.each(LEVAS)('%s', (_leva, fichas) => {
@@ -86,6 +89,10 @@ describe.each(LEVAS)('%s', (_leva, fichas) => {
       if (esperado.value !== undefined) expect(achado.value, `${onde}: valor de "${esperado.label}"`).toBe(esperado.value)
       if (esperado.valueMatches) expect(achado.value, `${onde}: valor de "${esperado.label}"`).toMatch(esperado.valueMatches)
       if (esperado.group !== undefined) expect(achado.group, `${onde}: grupo de "${esperado.label}"`).toBe(esperado.group)
+    }
+    if (ficha.espera.barras) {
+      const barras = extrairRecursos(lido.fields).map((r) => `${r.nome} ${r.atual}/${r.maximo}${r.atualEmBranco ? '*' : ''}`)
+      expect(barras, `${onde}: barras propostas`).toEqual(ficha.espera.barras)
     }
     if (ficha.espera.semRotulo) {
       const vazados = lido.fields.filter((c) => ficha.espera.semRotulo!.test(c.label)).map((c) => c.label)

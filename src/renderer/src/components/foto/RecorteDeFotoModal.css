@@ -1,0 +1,104 @@
+.recorte-foto {
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-style: outset;
+}
+
+.recorte-foto-titulo {
+  margin: 0;
+  align-self: flex-start;
+  font-size: 14px;
+}
+
+.recorte-foto-dica {
+  margin: 0;
+  align-self: flex-start;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--win-text-muted);
+}
+
+/*
+ * O QUADRO: a caixa afundada de sempre, e a imagem por baixo, cortada pela borda. A imagem fica
+ * centrada e o `transform` (ver `transformDaPrevia`) a desloca e amplia — a mesma conta que grava.
+ */
+.recorte-foto-quadro {
+  position: relative;
+  overflow: hidden;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.recorte-foto-quadro:active {
+  cursor: grabbing;
+}
+
+.recorte-foto-quadro img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  /* `image-rendering` padrão: a prévia é um zoom, e serrilhar aqui não representa o JPEG gravado. */
+  pointer-events: none;
+  max-width: none;
+}
+
+.recorte-foto-zoom {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+/*
+ * O controle de zoom no vocabulário do 98: trilho AFUNDADO e um botão quadrado em relevo, como o
+ * controle de volume da época. O `range` nativo do Chromium é azul e arredondado — leu como
+ * moderno na captura, e a regra da casa é sem isso (ver `global.css`).
+ */
+.recorte-foto-zoom input[type='range'] {
+  flex: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.recorte-foto-zoom input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+}
+
+.recorte-foto-zoom input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 20px;
+  margin-top: -9px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.recorte-foto-zoom input[type='range']:focus-visible {
+  outline: 1px dotted var(--win-text);
+  outline-offset: 2px;
+}
+
+.recorte-foto-acoes {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
