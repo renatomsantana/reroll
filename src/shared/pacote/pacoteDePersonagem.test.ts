@@ -58,16 +58,6 @@ describe('o pacote de personagem', () => {
     expect(lido.aparencia).toEqual(original.aparencia)
   })
 
-  it('escreve um exemplo pra olhar no navegador (ESCREVER_PACOTE=1)', async () => {
-    // Mesmo esquema de `ESCREVER_PDFS`: o arquivo só nasce quando se pede, e vai pra pasta de testes.
-    if (process.env.ESCREVER_PACOTE !== '1') return
-    const { promises: fs } = await import('fs')
-    const { join } = await import('path')
-    const pasta = join(process.cwd(), 'Fichas RPG', 'testes')
-    await fs.mkdir(pasta, { recursive: true })
-    await fs.writeFile(join(pasta, 'Matias Oliveira - Reroll.html'), htmlDoPacote(pacoteDoMatias(), 'pt-BR'), 'utf-8')
-  })
-
   it('o JSON puro também abre (alguém salvou só o bloco)', () => {
     const original = pacoteDoMatias()
     const lido = lerPacote(extrairPacoteDoTexto(`  ${JSON.stringify(original)}`))

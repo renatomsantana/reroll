@@ -145,16 +145,17 @@ export class PresetsRepository {
 
   /** Adiciona vários presets de uma vez (importação), sempre com id/timestamps novos. */
   /**
-   * Os presets de um PACOTE DE PERSONAGEM (ver `pacoteDePersonagem.ts`), COM a estrela.
+   * Os presets de um PACOTE DE PERSONAGEM (ver `pacoteDePersonagem.ts`), COM a estrela, NO LUGAR
+   * dos que havia: o pacote é o retrato inteiro do personagem, e acrescentar deixaria a lista com
+   * "Faca" duas vezes a cada importação.
    *
    * Diferente de `importMany`, que deixa a estrela de fora de propósito (o arquivo de presets é
    * pra dar presets a outra pessoa), aqui é a mesma pessoa levando o personagem dela pra outra
    * máquina — a fileira de favoritos faz parte do que ela quer de volta. Reindexa, porque o arquivo
    * pode vir com buracos ou repetidos, e o teto é o mesmo de sempre.
    */
-  async importarPacote(entradas: Array<PresetInput & { favorito?: number }>): Promise<Preset[]> {
-    const presets = await this.store().read()
-    conferirTeto(presets.length + entradas.length)
+  async substituirPeloPacote(entradas: Array<PresetInput & { favorito?: number }>): Promise<Preset[]> {
+    conferirTeto(entradas.length)
     const now = Date.now()
     const importados: Preset[] = entradas.map((entrada) => {
       const favorito = favoritoSaneado(entrada.favorito)
@@ -169,7 +170,7 @@ export class PresetsRepository {
         ...(favorito === undefined ? {} : { favorito })
       }
     })
-    const next = reindexarFavoritos([...presets, ...importados])
+    const next = reindexarFavoritos(importados)
     await this.store().write(next)
     return next
   }

@@ -435,7 +435,7 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                 <Button
                   variant="secondary"
                   title={t.notesTab.profileImportHint}
-                  disabled={pacote.ocupado || !profiles.podeCriar}
+                  disabled={pacote.ocupado}
                   onClick={() => void pacote.importar()}
                 >
                   {t.notesTab.profileImport}
@@ -520,7 +520,7 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
               <Button
                 variant="ghost"
                 title={t.notesTab.profileImportHint}
-                disabled={pacote.ocupado || !profiles.podeCriar}
+                disabled={pacote.ocupado}
                 onClick={() => void pacote.importar()}
               >
                 {t.notesTab.profileImport}

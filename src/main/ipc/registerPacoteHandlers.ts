@@ -9,6 +9,7 @@ import {
   TAMANHO_MAXIMO_DO_PACOTE,
   extrairPacoteDoTexto,
   lerPacote,
+  mesmoNome,
   montarPacote,
   nomeDoArquivoDoPacote,
   type PacoteDePersonagem,
@@ -66,31 +67,47 @@ export async function lerPacoteDoArquivo(caminho: string): Promise<PacoteDePerso
 }
 
 /**
- * Cria o personagem a partir do pacote. SEMPRE um personagem novo, mesmo que já exista um com o
- * mesmo nome: o arquivo pode ser uma versão mais velha do que está aqui, e sobrescrever calado o
- * que a pessoa tem seria o pior desfecho. Quem quiser trocar apaga o antigo depois.
+ * O personagem do pacote entra na lista — ATUALIZANDO o que já existe com o mesmo nome, ou criando
+ * um novo quando não há.
  *
- * Tudo ou nada, como a importação de ficha: se a ficha ou os presets falharem depois de o perfil
- * ter sido gravado, a lista volta a ser a de antes e o erro sobe.
+ * A primeira versão criava sempre um novo, e o usuário mandou trocar: "não precisa criar outro,
+ * quero que sempre esteja no limite de 3 personagens para todos os testadores". Faz sentido pelo
+ * uso: quem exporta o Matias hoje e importa amanhã quer O Matias com o que veio no arquivo, não
+ * dois Matias e o teto estourado. O arquivo é a palavra final — é o mesmo desenho da reimportação
+ * de ficha em PDF (`targetProfileId`), só que casando pelo NOME, porque o arquivo não conhece o id
+ * da outra máquina.
+ *
+ * Quando ATUALIZA, a ficha e os presets do personagem são SUBSTITUÍDOS pelos do arquivo — inclusive
+ * o diário. Acrescentar deixaria duas fichas coladas; o pacote é o retrato inteiro do personagem,
+ * então o que vale é ele.
+ *
+ * Tudo ou nada, como a importação de ficha: a lista, a ficha e os presets de antes são guardados e,
+ * se qualquer gravação falhar, os três voltam e o erro sobe.
  */
 export async function importarPacote(
   repos: { profiles: ProfilesRepository; notes: NotesRepository; presets: PresetsRepository },
   pacote: PacoteDePersonagem
 ): Promise<PacoteImportado> {
   const estado = await repos.profiles.get()
-  if (estado.profiles.length >= MAX_PROFILES) {
-    throw new Error(`Limite de ${MAX_PROFILES} personagens atingido — apague um antes de importar outro.`)
+  const nome = pacote.personagem.name.trim() || pacote.ficha.characterName.trim()
+  const existente = estado.profiles.find((p) => mesmoNome(p.name, nome))
+
+  if (!existente && estado.profiles.length >= MAX_PROFILES) {
+    throw new Error(
+      `Limite de ${MAX_PROFILES} personagens atingido — o arquivo é de "${nome || 'sem nome'}", que não está na lista. Apague um personagem antes de importar.`
+    )
   }
 
-  const perfil: Profile = {
-    id: randomUUID(),
-    name: pacote.personagem.name.trim(),
-    system: pacote.personagem.system.trim(),
-    photo: pacote.personagem.photo,
-    createdAt: Date.now()
-  }
-  await repos.profiles.save({ profiles: [...estado.profiles, perfil], activeId: perfil.id })
+  const perfil: Profile = existente
+    ? { ...existente, name: nome, system: pacote.personagem.system.trim(), photo: pacote.personagem.photo ?? existente.photo }
+    : { id: randomUUID(), name: nome, system: pacote.personagem.system.trim(), photo: pacote.personagem.photo, createdAt: Date.now() }
+  const lista = existente ? estado.profiles.map((p) => (p.id === perfil.id ? perfil : p)) : [...estado.profiles, perfil]
+  await repos.profiles.save({ profiles: lista, activeId: perfil.id })
 
+  // O que havia na pasta do personagem, pra voltar se a gravação falhar no meio. Num personagem novo
+  // a pasta está vazia e isto é o padrão — barato de guardar, e o desfazer fica igual nos dois casos.
+  const fichaAntes = await repos.notes.get()
+  const presetsAntes = await repos.presets.getAll()
   try {
     await repos.notes.save({ ...pacote.ficha, characterName: perfil.name || pacote.ficha.characterName })
     const validos = pacote.presets.filter((preset) => {
@@ -98,13 +115,18 @@ export async function importarPacote(
       if (!ok) console.warn('Preset do pacote recusado pela validação; importando o resto:', preset)
       return ok
     })
-    if (validos.length > 0) await repos.presets.importarPacote(validos)
+    await repos.presets.substituirPeloPacote(validos)
   } catch (causa) {
-    await repos.profiles.save(estado)
+    try {
+      await repos.notes.save(fichaAntes)
+      await repos.presets.substituirPeloPacote(presetsAntes)
+    } finally {
+      await repos.profiles.save(estado)
+    }
     throw causa
   }
 
-  return { perfil, aparencia: pacote.aparencia }
+  return { perfil, aparencia: pacote.aparencia, substituiu: existente !== undefined }
 }
 
 export function registerPacoteHandlers(
@@ -135,7 +157,7 @@ export function registerPacoteHandlers(
   ipcMain.handle(IpcChannels.pacoteImportar, async (): Promise<PacoteImportado | null> => {
     const caminho = await escolherArquivo({
       proposito: 'pacote',
-      titulo: 'Importar personagem exportado',
+      titulo: 'Importar personagem Reroll',
       filtros: [
         { name: 'Personagem do Reroll', extensions: ['html', 'json'] },
         { name: 'Todos os arquivos', extensions: ['*'] }

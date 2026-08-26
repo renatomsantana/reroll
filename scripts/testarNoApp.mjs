@@ -122,8 +122,15 @@ const HANDLERS = {
     return 'D:\\Fichas\\Matias Oliveira - Reroll.html'
   },
   'pacote:importar': () => {
-    const perfil = { id: randomUUID(), name: 'Kieran Vance', system: 'Pathfinder 2e', photo: fotoDeTeste, createdAt: Date.now() }
-    estado.profiles = { profiles: [...estado.profiles.profiles, perfil], activeId: perfil.id }
+    // Mesmo nome = ATUALIZA o que existe (mantendo o id), como o main faz; senão cria.
+    const existente = estado.profiles.profiles.find((p) => p.name.trim().toLowerCase() === 'kieran vance')
+    const perfil = existente
+      ? { ...existente, system: 'Pathfinder 2e', photo: fotoDeTeste }
+      : { id: randomUUID(), name: 'Kieran Vance', system: 'Pathfinder 2e', photo: fotoDeTeste, createdAt: Date.now() }
+    estado.profiles = {
+      profiles: existente ? estado.profiles.profiles.map((p) => (p.id === perfil.id ? perfil : p)) : [...estado.profiles.profiles, perfil],
+      activeId: perfil.id
+    }
     estado.notas.set(perfil.id, {
       ...NOTAS_VAZIAS(),
       characterName: perfil.name,
@@ -133,7 +140,7 @@ const HANDLERS = {
     estado.presets.set(perfil.id, [
       { id: randomUUID(), name: 'Espada longa', expression: { groups: [{ sides: 8, count: 1 }], modifiers: [] }, favorito: 0, createdAt: 1, updatedAt: 1 }
     ])
-    return { perfil, aparencia: { diceBodyColor: '#123456', trayShape: 'circle' } }
+    return { perfil, aparencia: { diceBodyColor: existente ? '#654321' : '#123456', trayShape: 'circle' }, substituiu: !!existente }
   },
   'window:setCompact': () => undefined,
   'window:setAppIcon': () => undefined,
@@ -460,7 +467,7 @@ async function fasePacote() {
   await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
   await espera(200)
 
-  checar(await clicar('Importar personagem exportado'), 'o botão "Importar personagem exportado" existe')
+  checar(await clicar('Importar personagem Reroll'), 'o botão "Importar personagem Reroll" existe')
   const chegou = await esperarAte(`!!document.querySelector('[role=alertdialog]') && document.querySelector('[role=alertdialog]').textContent.includes('Kieran Vance')`, 4000)
   checar(chegou, 'importar avisa que "Kieran Vance" chegou')
   await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
@@ -477,6 +484,18 @@ async function fasePacote() {
   const preset = await js(`Array.from(document.querySelectorAll('.preset-card-name')).map((n) => n.textContent)`)
   checar(preset.includes('Espada longa'), `os presets do pacote estão na Rolagem (${JSON.stringify(preset)})`)
   await foto('pacote-importado')
+
+  // Importar DE NOVO o mesmo nome, com ele aberto: atualiza, não duplica — e a aparência nova vale na hora.
+  await aba('Ficha')
+  const quantosAntes = estado.profiles.profiles.length
+  await clicar('Importar personagem Reroll')
+  const atualizou = await esperarAte(`!!document.querySelector('[role=alertdialog]') && document.querySelector('[role=alertdialog]').textContent.includes('já existia e foi atualizado')`, 4000)
+  checar(atualizou, 'importar o mesmo nome de novo avisa que ATUALIZOU')
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  await espera(600)
+  checar(estado.profiles.profiles.length === quantosAntes, `a lista não cresceu (${estado.profiles.profiles.length} personagens)`)
+  const corDepois = await js(`JSON.parse(localStorage.getItem('rolador-settings') || '{}').diceBodyColor`)
+  checar(corDepois === '#654321', `a aparência do arquivo passou a valer no personagem aberto (${corDepois})`)
 }
 
 /* ------------------------------------------------------------------------------------------ */

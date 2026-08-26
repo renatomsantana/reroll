@@ -478,6 +478,8 @@ interface SettingsContextValue extends Settings {
    * `localStorage`, e uma chave gravada depois só valeria na próxima troca.
    */
   gravarAparenciaDe: (profileId: string, aparencia: AparenciaDoPersonagem) => void
+  /** A aparência do arquivo sobre o personagem que JÁ está aberto — vale na hora, e grava como qualquer mudança. */
+  aplicarAparencia: (aparencia: AparenciaDoPersonagem) => void
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
@@ -677,6 +679,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setPalettesVisible: (palettesVisible) => setSettings((prev) => ({ ...prev, palettesVisible })),
       resetSettings: () => setSettings(DEFAULT_SETTINGS),
       aparenciaAtual: () => pickLook(settings),
+      aplicarAparencia: (aparencia) =>
+        setSettings((prev) => ({ ...prev, ...(sanearPreferencias(aparencia) as Partial<Settings>) })),
       gravarAparenciaDe: (profileId, aparencia) => {
         // Mesma higiene de `loadLook`: acabamento, forma e modo de lançamento desconhecidos caem fora
         // aqui, e o personagem novo fica com o que o app estava usando nesses campos.

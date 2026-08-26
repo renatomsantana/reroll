@@ -125,7 +125,8 @@ backup/transferência.
 O jeito sem mexer em pasta é a aba **Ficha → Exportar personagem**: o personagem inteiro (ficha,
 diário, barras, presets com as estrelas, foto e a aparência dos dados) vira um único `.html`, que
 abre em qualquer navegador pra mostrar a ficha ao mestre e que o Reroll traz de volta em **Importar
-personagem exportado** — em outro computador ou depois de uma reinstalação.
+personagem Reroll** — em outro computador ou depois de uma reinstalação. Se já existe um personagem
+com o mesmo nome, ele é ATUALIZADO com o arquivo em vez de duplicado — a lista não cresce.
 
 ## Estrutura do projeto
 
