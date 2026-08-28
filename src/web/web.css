@@ -1,0 +1,25 @@
+/*
+ * Ajustes que SÓ existem na versão web — este arquivo entra pelo bootstrap.ts e nunca pelo build
+ * do Electron. A estética Windows 98 é a mesma; aqui só sai o que não faz sentido fora de uma
+ * janela e entra o que um navegador (e um celular) precisa.
+ */
+
+/* Minimizar, maximizar e fechar não existem numa aba de navegador; o botão de modo compacto fica,
+   porque esse é da interface (útil em tela pequena). */
+.titlebar-controls .titlebar-btn:not(.titlebar-btn-compact) {
+  display: none;
+}
+
+html {
+  /* Celular em pé não pode reescalar o texto sozinho: quebra o layout de janela do app. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  /* Sem "puxar pra atualizar": o gesto derrubaria a cena 3D no meio de uma rolagem de dados. */
+  overscroll-behavior: none;
+  /* Toque sem o atraso do zoom por toque duplo; o zoom por pinça continua funcionando. */
+  touch-action: manipulation;
+}
