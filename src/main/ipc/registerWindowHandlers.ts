@@ -61,6 +61,29 @@ export function alturaExtraValida(valor: unknown): number {
   return Math.min(Math.max(0, Math.trunc(valor)), TETO_DA_ALTURA_EXTRA_COMPACTA)
 }
 
+/**
+ * `FULL_SIZE` apertado pra dentro da área útil do monitor onde a janela está.
+ *
+ * Sem isto o tamanho cheio era aplicado às cegas, e 1300×800 (o valor da época) é MAIOR que a
+ * área útil de monitor comum de notebook — 1366×768 tem ~728 úteis de altura, e 1920×1080 com
+ * escala 150% tem só 1280×672. A janela saía com título e borda pra fora da tela ("o full
+ * screen buga dependendo do tamanho do monitor", reportado por tester). O mínimo aperta junto,
+ * senão `setMinimumSize` esticaria a janela de volta pra fora da tela logo depois da animação.
+ */
+export function tamanhoCheioQueCabe(workArea: { width: number; height: number }): {
+  width: number
+  height: number
+  minWidth: number
+  minHeight: number
+} {
+  return {
+    width: Math.min(FULL_SIZE.width, workArea.width),
+    height: Math.min(FULL_SIZE.height, workArea.height),
+    minWidth: Math.min(FULL_SIZE.minWidth, workArea.width),
+    minHeight: Math.min(FULL_SIZE.minHeight, workArea.height)
+  }
+}
+
 export function registerWindowHandlers(
   obterJanela: () => BrowserWindow | null,
   settingsRepository: SettingsRepository
@@ -93,7 +116,7 @@ export function registerWindowHandlers(
     const extra = alturaExtraValida(alturaExtra)
     const target = compact
       ? { ...COMPACT_SIZE, height: COMPACT_SIZE.height + extra, minHeight: COMPACT_SIZE.minHeight + extra }
-      : FULL_SIZE
+      : tamanhoCheioQueCabe(screen.getDisplayMatching(window.getBounds()).workArea)
     window.setResizable(true)
     // Mínimo baixo ENQUANTO anima — o mínimo final (`target.minWidth/minHeight`) costuma ser
     // maior que o tamanho de partida (ex.: vindo do splash, 360×320), e `setMinimumSize`

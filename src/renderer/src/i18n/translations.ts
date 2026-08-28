@@ -11,6 +11,8 @@ export interface TranslationDict {
     /** Legenda da caixa de grupo com quantidade/modo/modificador + botão de rolar. */
     rollGroupTitle: string
     rollButton: string
+    /** Botão que abre o histórico direto da rolagem, sem passar pelas Preferências. */
+    historyButton: string
     modifier: string
     /** Botões de menos e mais do modificador — substituíram as setinhas do campo numérico. */
     modifierMinus: string
@@ -346,6 +348,18 @@ export interface TranslationDict {
     inventoryBlock: string
     appearanceBlock: string
     backstoryBlock: string
+    /**
+     * O convite dentro de cada bloco VAZIO: o que se escreve ali. Sem ele, uma ficha importada
+     * mostrava caixas brancas enormes sem uma palavra dizendo pra que servem (visto na conferência
+     * visual: a Aparência de um personagem importado era só branco).
+     */
+    blockHints: {
+      attributes: string
+      abilities: string
+      inventory: string
+      appearance: string
+      backstory: string
+    }
     notesBlock: string
     /**
      * Navegação do diário: uma sessão por dia. `dayCounter`, `dayPrev`, `dayNext` e `dayJump` saíram
@@ -501,6 +515,7 @@ export const translations: Record<Language, TranslationDict> = {
       typeLabel: 'Tipo de dado',
       rollGroupTitle: 'Rolagem',
       rollButton: 'ROLAR',
+      historyButton: 'Histórico',
       modifier: 'Mod:',
       modifierMinus: 'Diminuir o modificador',
       modifierPlus: 'Aumentar o modificador',
@@ -811,6 +826,13 @@ export const translations: Record<Language, TranslationDict> = {
       inventoryBlock: 'Inventário',
       appearanceBlock: 'Aparência',
       backstoryBlock: 'Backstory',
+      blockHints: {
+        attributes: 'Os números do personagem: Força, Agilidade, o que o sistema usar.',
+        abilities: 'Golpes, magias, rituais, talentos.',
+        inventory: 'O que o personagem carrega.',
+        appearance: 'Como o personagem se parece.',
+        backstory: 'De onde o personagem veio e o que ele busca.'
+      },
       notesBlock: 'Bloco',
       dayNumber: 'Sessão {n}',
       dayNew: 'Nova sessão',
@@ -894,7 +916,7 @@ export const translations: Record<Language, TranslationDict> = {
       pageNext: 'Próxima página',
       count: '({selected} de {total})',
       rawTextTitle: 'Texto da ficha',
-      rawTextHint: '(vai para o bloco História)',
+      rawTextHint: '(vai para o bloco Backstory)',
       cancel: 'Cancelar',
       confirm: 'Criar personagem',
       confirming: 'Importando...',
@@ -951,6 +973,7 @@ export const translations: Record<Language, TranslationDict> = {
       typeLabel: 'Dice type',
       rollGroupTitle: 'Roll',
       rollButton: 'ROLL',
+      historyButton: 'History',
       modifier: 'Mod:',
       modifierMinus: 'Decrease the modifier',
       modifierPlus: 'Increase the modifier',
@@ -1261,6 +1284,13 @@ export const translations: Record<Language, TranslationDict> = {
       inventoryBlock: 'Inventory',
       appearanceBlock: 'Appearance',
       backstoryBlock: 'Backstory',
+      blockHints: {
+        attributes: 'The character numbers: Strength, Agility, whatever the system uses.',
+        abilities: 'Attacks, spells, rituals, talents.',
+        inventory: 'What the character carries.',
+        appearance: 'What the character looks like.',
+        backstory: 'Where the character came from and what they seek.'
+      },
       notesBlock: 'Notepad',
       dayNumber: 'Session {n}',
       dayNew: 'New session',

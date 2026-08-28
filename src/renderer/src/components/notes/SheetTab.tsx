@@ -309,6 +309,7 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
         <textarea
           className="sheet-textarea"
           value={notes[field]}
+          placeholder={t.notesTab.blockHints[field]}
           onChange={(e) => updateField(field, e.target.value)}
         />
       </fieldset>
