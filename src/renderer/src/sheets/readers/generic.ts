@@ -169,12 +169,25 @@ export function extrairGenerico(
    */
   const rotulos = rotulosExclusivos(sheet)
 
+  /**
+   * Valores preenchidos que ficaram SEM RÓTULO — nem impresso por perto, nem nome de campo que
+   * preste. Eles não viram linha de conferência (uma linha "1_2 → 7" não informa nada e tira a
+   * confiança do resto), mas também NÃO SOMEM MAIS — regra do usuário: "qualquer anotação de
+   * player no pdf precisamos trazer", mesmo a que parece inútil. Vão pro `rawText`, que a
+   * conferência mostra como texto sem rótulo e a montagem manda pro bloco de história.
+   *
+   * Caixa de seleção fica de fora: sem rótulo, um "sim" não diz nem O QUE foi marcado — não há
+   * anotação recuperável ali, só ruído na certa.
+   */
+  const semRotulo: string[] = []
+
   for (const campo of preenchidos) {
     const valor = valorDeFicha(campo.value, campo.type) as string
     const label = rotulos.get(campo) ?? labelFromFieldName(campo.name)
-    // Sem rótulo impresso E sem nome de campo aproveitável, o valor não tem como ser apresentado:
-    // uma linha "1_2 → 7" na tela de conferência não informa nada e ainda tira a confiança do resto.
-    if (!label) continue
+    if (!label) {
+      if (!TIPOS_DE_CAIXA.has(campo.type ?? '')) semRotulo.push(valor)
+      continue
+    }
     fields.push({ label, value: valor, fieldName: campo.name })
 
     const lido = parseDiceExpression(valor)
@@ -212,6 +225,10 @@ export function extrairGenerico(
 
     presets.push(...presetsDoTexto(sheet))
   }
+
+  // Repetidos fora (a grade de perícias enche isto de cópias), a ordem preservada.
+  const anotacoesSemRotulo = [...new Set(semRotulo)]
+  if (anotacoesSemRotulo.length > 0) rawText = anotacoesSemRotulo.join('\n')
 
   const semRuido = camposSemRepetidos(fields)
   const presetsFinais = semRepetidos(presets)

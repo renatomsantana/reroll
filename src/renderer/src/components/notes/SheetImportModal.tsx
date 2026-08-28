@@ -108,9 +108,11 @@ export function SheetImportModal({
     }
   }
   /**
-   * O texto SEM RÓTULO da ficha (ver `rawText` em `SheetImport`), que só existe quando a ficha é uma
-   * arte com anotação por cima. Vem marcado: nesse tipo de arquivo ele é quase tudo o que há, e
-   * desmarcado por padrão o usuário importaria um personagem vazio sem entender por quê.
+   * O texto SEM RÓTULO da ficha (ver `rawText` em `SheetImport`): a arte com anotação por cima, o
+   * campo preenchido que ficou sem rótulo aproveitável e o "Espaço Livre" de Oblivio — é a rede que
+   * garante a regra do usuário de que anotação de jogador nunca se perde. Vem marcado: nesses
+   * arquivos ele pode ser quase tudo o que há, e desmarcado por padrão o usuário importaria um
+   * personagem incompleto sem entender por quê.
    */
   const [trazerTexto, setTrazerTexto] = useState(true)
   /**

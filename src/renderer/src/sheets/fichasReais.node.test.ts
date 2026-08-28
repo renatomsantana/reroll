@@ -219,6 +219,15 @@ describe.skipIf(!existsSync(OBLIVIO))('ficha real de Oblivio', () => {
     expect(porRotulo.get('Descrição')).toContain('não visível por causa do moletom.')
     // A habilidade tem indentação pendente: a continuação começa 80 pontos à ESQUERDA da primeira.
     expect(porRotulo.get('Estocada')).toContain('cause dano extra igual ao número de casas')
+
+    /**
+     * O ESPAÇO LIVRE da página de habilidades — o jogador digitou as habilidades GERAIS dele ali
+     * (no modelo em branco a área é vazia, conferido nos dois PDFs), e nada disso chegava. Regra
+     * do usuário: "qualquer anotação de player no pdf precisamos trazer".
+     */
+    expect(lido.rawText).toContain('Aprimoramento de Estresse')
+    // E a instrução impressa da segunda área não vem junto — é do modelo, não do jogador.
+    expect(lido.rawText ?? '').not.toContain('Use esse espaço')
   }, 60_000)
 })
 

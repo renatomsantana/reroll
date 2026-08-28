@@ -134,6 +134,141 @@ function equipamentoCarregado(sheet: PdfSheet): ItemCarregado[] {
   return itens.filter((item) => item.texto.trim().length > 0)
 }
 
+/**
+ * O INVENTÁRIO GUARDADO — reporte de tester: "não scrapou os itens do inventário".
+ *
+ * "Equipamentos Guardados:" é uma área LIVRE do documento: o modelo não imprime nada ali (nem as
+ * regiões do corpo — guardado não está vestido), e quem preenche digita os itens como lista do
+ * Google Docs. Este leitor usava o título só como marcador de FIM dos carregados e jogava fora
+ * tudo que vinha depois — o inventário inteiro do personagem.
+ *
+ * A leitura é a mesma ideia da dos carregados, trocando o que abre um item: aqui não há "○ Torso:",
+ * então é o próprio marcador de lista ("○"/"●") que abre. Um trecho que começa com "Mod" cola no
+ * item anterior — é o formato do modificador de arma, aninhado no item (visto na ficha real, seção
+ * de carregados: "● Mod: Mortal: Adiciona 1d6…"). Sem marcador nenhum, o texto inteiro vira um item
+ * só: importar em bloco é melhor que não importar.
+ */
+function equipamentoGuardado(sheet: PdfSheet): ItemCarregado[] {
+  const inicio = sheet.texts.findIndex((t) => /Equipamentos Guardados/i.test(t.text))
+  if (inicio < 0) return []
+  const fim = sheet.texts.findIndex((t, i) => i > inicio && /Espaço Livre|Mazelas/i.test(t.text))
+  const trecho = sheet.texts.slice(inicio + 1, fim > 0 ? fim : undefined)
+
+  const partes: string[] = []
+  let atual: string | null = null
+  for (const fragmento of trecho) {
+    const texto = fragmento.text.trim()
+    if (!texto) continue
+    if (texto === '○' || texto === '●') {
+      if (atual !== null && atual.trim()) partes.push(atual.trim())
+      atual = ''
+      continue
+    }
+    atual = atual === null ? texto : `${atual} ${texto}`.trim()
+  }
+  if (atual !== null && atual.trim()) partes.push(atual.trim())
+
+  const itens: string[] = []
+  for (const parte of partes) {
+    if (/^Mod\b/i.test(parte) && itens.length > 0) itens[itens.length - 1] += ` ${parte}`
+    else itens.push(parte)
+  }
+  return itens.map((texto) => ({ regiao: nomeCurtoDoItem({ regiao: '', texto }), texto }))
+}
+
+/**
+ * O preset de DANO de um item — vale pros carregados e pros guardados, que é por que saiu do
+ * `extract` pra cá: uma arma guardada na mochila continua sendo a arma da pessoa, e o botão dela
+ * custa um clique pra desmarcar na conferência se ninguém quiser.
+ */
+function presetsDeItens(itens: ItemCarregado[], nomear: (item: ItemCarregado) => string): SheetImportPreset[] {
+  return itens
+    .map((item): SheetImportPreset | null => {
+      const dano = DANO_DO_ITEM.exec(item.texto)
+      if (!dano) return null
+      // A notação vem do papel ("1D4 PE."), então quem monta a expressão é o mesmo analisador que
+      // o resto do app usa — nada de montar `{ groups: [...] }` na mão aqui.
+      const lido = parseDiceExpression(dano[1])
+      if (!lido) return null
+      return {
+        name: `${nomear(item)} (dano)`,
+        kind: 'damage',
+        expression: lido.expression,
+        source: item.texto.slice(0, 120)
+      }
+    })
+    .filter((preset): preset is SheetImportPreset => preset !== null)
+}
+
+/**
+ * GOLPE COM TESTE vira preset — reporte de tester: "golpes que tinham o nome do golpe e um teste
+ * no golpe, e não foi criado preset".
+ *
+ * O golpe entra na ficha como habilidade: um parágrafo rotulado com o nome dele. Quando o texto
+ * diz o dado do teste ("Teste: 2D6+1", "Teste de Combate com 1D20") ou do dano, o botão nasce com
+ * o nome do golpe — que é o que a pessoa procura na lista no meio da mesa.
+ *
+ * A âncora nas palavras Teste/Dano é o que separa a rolagem do golpe da prosa que só menciona dado
+ * ("permanentemente reduzido em 1D4 pontos") — foi essa prosa que proibiu preset de texto solto no
+ * genérico (ver `presetsDoTexto`). O dado tem que estar na MESMA frase da âncora (`[^.]`), a até
+ * 60 caracteres dela.
+ */
+const TESTE_DO_GOLPE = /Teste[^.]{0,60}?(\d*[dD]\d+(?:\s*[+-]\s*\d+)?)/
+const DANO_DO_GOLPE = /Dano[^.]{0,60}?(\d*[dD]\d+(?:\s*[+-]\s*\d+)?)/
+
+function presetsDeGolpe(fields: { label: string; value: string; group?: string }[]): SheetImportPreset[] {
+  const presets: SheetImportPreset[] = []
+  for (const campo of fields) {
+    if (campo.group !== 'Habilidades') continue
+    const teste = TESTE_DO_GOLPE.exec(campo.value)
+    if (teste) {
+      const lido = parseDiceExpression(teste[1])
+      if (lido) {
+        presets.push({ name: campo.label, kind: 'test', expression: lido.expression, source: teste[0].slice(0, 120) })
+      }
+    }
+    const dano = DANO_DO_GOLPE.exec(campo.value)
+    if (dano) {
+      const lido = parseDiceExpression(dano[1])
+      if (lido) {
+        presets.push({ name: `${campo.label} (dano)`, kind: 'damage', expression: lido.expression, source: dano[0].slice(0, 120) })
+      }
+    }
+  }
+  return presets
+}
+
+/**
+ * As áreas de "Espaço Livre" — regra do usuário: "qualquer anotação de player no pdf precisamos
+ * trazer", mesmo a que parece inútil.
+ *
+ * A ficha tem DUAS: uma entre as Habilidades e o Inventário, outra entre o inventário e as Mazelas
+ * (esta com a instrução "Use esse espaço para fazer anotações" impressa). No modelo em branco as
+ * duas estão vazias — conferido nos dois PDFs: tudo que aparecer ali é digitado pelo jogador, e
+ * este leitor jogava fora. Na ficha real preenchida o jogador digitou as habilidades GERAIS dele na
+ * primeira área, e nada chegava.
+ *
+ * O texto vai pro `rawText`: a conferência mostra como "texto sem rótulo" (com a caixa de trazer ou
+ * não) e a montagem manda pro bloco de história — é anotação livre, não tem rótulo pra virar campo.
+ * Vazio continua vazio: área sem nada digitado não rende aviso nem linha.
+ */
+function espacoLivre(sheet: PdfSheet): string {
+  const blocos: string[] = []
+  sheet.texts.forEach((fragmento, indice) => {
+    if (fragmento.text.trim() !== 'Espaço Livre') return
+    const linhas: string[] = []
+    for (let i = indice + 1; i < sheet.texts.length; i++) {
+      const texto = sheet.texts[i].text.trim()
+      // Os títulos que fecham cada área — ver o mapa da ficha no comentário acima.
+      if (/^(Inventário|Mazelas)$/.test(texto)) break
+      if (!texto || /Use esse espaço para fazer anotações/i.test(texto)) continue
+      linhas.push(texto)
+    }
+    if (linhas.length > 0) blocos.push(linhas.join('\n'))
+  })
+  return blocos.join('\n\n')
+}
+
 export const oblivioReader: SheetReader = {
   id: 'oblivio',
   label: 'Oblivio',
@@ -172,44 +307,35 @@ export const oblivioReader: SheetReader = {
     })
 
     /**
-     * O equipamento entra como grupo "Equipamento", que `blockForGroup` manda pro bloco de
-     * INVENTÁRIO da ficha — é texto de item, não número em caixa, e é lá que se lê.
+     * O equipamento CARREGADO entra como grupo "Equipamento" e o GUARDADO como "Inventário" —
+     * `blockForGroup` manda os dois pro bloco de inventário da ficha (é texto de item, não número
+     * em caixa, e é lá que se lê), mas na conferência cada um aparece no seu grupo: o que está no
+     * corpo e o que está na mochila são coisas diferentes.
      */
-    const itens = equipamentoCarregado(sheet)
-    const camposDeEquipamento = itens.map((item) => ({
-      label: item.regiao,
-      value: item.texto,
-      group: 'Equipamento'
-    }))
+    const carregados = equipamentoCarregado(sheet)
+    const guardados = equipamentoGuardado(sheet)
+    const camposDeEquipamento = [
+      ...carregados.map((item) => ({ label: item.regiao, value: item.texto, group: 'Equipamento' })),
+      ...guardados.map((item) => ({ label: item.regiao, value: item.texto, group: 'Inventário' }))
+    ]
 
     /**
      * E vira PRESET quando o item diz o próprio dano. Aqui isso é seguro, ao contrário do texto
-     * solto da ficha (ver `presetsDoTexto` no genérico): dentro de "Equipamentos Carregados" um
-     * "Dano: 1D4" é a arma que a pessoa está segurando, não uma regra impressa na página.
+     * solto da ficha (ver `presetsDoTexto` no genérico): dentro do inventário um "Dano: 1D4" é a
+     * arma da pessoa, não uma regra impressa na página. O carregado é nomeado pelo texto do item
+     * (o rótulo dele é a região do corpo); o guardado já tem o nome curto no rótulo.
      */
-    const presetsDeArma = itens
-      .map((item): SheetImportPreset | null => {
-        const dano = DANO_DO_ITEM.exec(item.texto)
-        if (!dano) return null
-        // A notação vem do papel ("1D4 PE."), então quem monta a expressão é o mesmo analisador que
-        // o resto do app usa — nada de montar `{ groups: [...] }` na mão aqui.
-        const lido = parseDiceExpression(dano[1])
-        if (!lido) return null
-        const nomeDoItem = nomeCurtoDoItem(item)
-        return {
-          name: `${nomeDoItem} (dano)`,
-          kind: 'damage',
-          expression: lido.expression,
-          source: item.texto.slice(0, 120)
-        }
-      })
-      .filter((preset): preset is SheetImportPreset => preset !== null)
+    const presetsDeArma = [
+      ...presetsDeItens(carregados, nomeCurtoDoItem),
+      ...presetsDeItens(guardados, (item) => item.regiao)
+    ]
 
     return {
       ...base,
       system: 'Oblivio',
       fields: [...fields, ...camposDeEquipamento],
-      presets: [...(base.presets ?? []), ...presetsDeArma]
+      presets: [...(base.presets ?? []), ...presetsDeArma, ...presetsDeGolpe(fields)],
+      rawText: espacoLivre(sheet) || base.rawText
     }
   }
 }
