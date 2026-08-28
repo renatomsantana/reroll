@@ -49,7 +49,7 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true)
   const [activeTab, setActiveTab] = useState<AppTab>('roll')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  /** Histórico de rolagens, aberto pelo botão dentro das Preferências (ver `HistoryModal`). */
+  /** Histórico de rolagens (ver `HistoryModal`): abre pelo botão ao lado do ROLAR e pelas Preferências. */
   const [historyOpen, setHistoryOpen] = useState(false)
   const [compactLastResult, setCompactLastResult] = useState<RollResult | null>(null)
   const roller3DRef = useRef<DiceRoller3DHandle>(null)
@@ -388,6 +388,8 @@ export default function App() {
                     enquanto a pessoa escrevia nas Anotações.
                   */
                   shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen && !modalDasBarrasAberto}
+                  /* O atalho pro histórico ao lado do ROLAR — o mesmo modal que as Preferências abrem. */
+                  onOpenHistory={() => setHistoryOpen(true)}
                   /* De quem são os dados — o crachá ao lado do ROLAR (ver `ProfileBadge.tsx`). */
                   badge={
                     <ProfileBadge

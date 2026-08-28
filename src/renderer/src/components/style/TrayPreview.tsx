@@ -17,6 +17,7 @@ import {
   type ShelfCaseHandle
 } from '@renderer/dice3d/scene/DiceCanvasMulti'
 import { disposeScene } from '@renderer/dice3d/scene/disposeScene'
+import { setupDiceEnvironment } from '@renderer/dice3d/scene/createDiceEnvironment'
 import { disposePreviewRenderer, previewPixelRatio, startPreviewLoop } from './previewLoop'
 import './StylePreview.css'
 
@@ -307,6 +308,16 @@ export function TrayPreview({
     renderer.setPixelRatio(previewPixelRatio())
     container.appendChild(renderer.domElement)
 
+    /**
+     * O MESMO ambiente de reflexo da cena principal (`DiceCanvasMulti` chama isto também), e ele
+     * não é opcional: sem `scene.environment` os materiais PBR perdem toda a luz indireta, e a
+     * prévia saía com MENOS DA METADE do brilho da mesa — medido offscreen no chão de veludo
+     * padrão, rgb(41,51,76) aqui contra rgb(99,117,166) na rolagem, com luzes idênticas. Era o
+     * "as cores do editor e da mesa tão bem diferentes" reportado pelo usuário; com o ambiente,
+     * a amostra sai idêntica à da mesa (`scripts/medirCoresDaPrevia.mjs`).
+     */
+    const environment = setupDiceEnvironment(scene, renderer)
+
     // Mesma proporção de luz da cena principal (ambiente forte + direcional quente), pra cor
     // escolhida aqui sair igual à que vai aparecer lá.
     const ambient = new THREE.AmbientLight(0xffffff, 0.55)
@@ -375,6 +386,7 @@ export function TrayPreview({
     return () => {
       stopLoop()
       resizeObserver.disconnect()
+      environment.dispose()
       disposeScene(scene)
       disposePreviewRenderer(renderer, container)
       trayRef.current = null

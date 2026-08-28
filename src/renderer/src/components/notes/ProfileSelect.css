@@ -136,13 +136,18 @@
   padding: 2px 4px;
 }
 
+/*
+ * `--win-titlebar-text`, como todo destaque sobre `--win-accent` da casa (FontSelect, StyleTab,
+ * NotesTab). Estava `--win-accent-text`, que não existe em tema NENHUM e não tinha fallback —
+ * `color` inválida herda, e a opção ativa saía com texto preto sobre azul-marinho no modo dia.
+ */
 .profile-select-option-active {
   background: var(--win-accent);
-  color: var(--win-accent-text);
+  color: var(--win-titlebar-text);
 }
 
 /* A linha marcada inverte o texto; o sistema acompanha, senão some contra o azul. */
 .profile-select-option-active .profile-select-system {
-  color: var(--win-accent-text);
+  color: var(--win-titlebar-text);
   opacity: 0.85;
 }

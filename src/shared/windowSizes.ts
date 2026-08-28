@@ -1,10 +1,12 @@
 /**
- * Aumentado de 1100×720 pra 1300×800 (mínimo de 820×560 pra 900×600 junto) a pedido do
- * usuário — a aba "Estilo" (`StyleTab.tsx`) tem bastante opção agora (cor do corpo/número,
- * acabamento, presets metálicos, cor de parede/fundo) e a ideia é caber tudo confortável sem
- * precisar redimensionar a janela na primeira vez que abre.
+ * Foi 1100×720, subiu pra 1300×800 (pra aba "Estilo" caber folgada) e desceu pra 1200×760 a
+ * pedido do usuário — "um pouco menor e compacto". O tamanho daqui é um ALVO, não uma garantia:
+ * num monitor com menos área útil que isso (notebook 1366×768, ou 1920×1080 com escala 150% =
+ * 1280×672 úteis), quem manda é o `workArea` — ver o aperto em `registerWindowHandlers.ts`.
+ * Antes desse aperto a janela "cheia" saía MAIOR que a tela nesses monitores, com barra de
+ * título e borda pra fora — o "full screen buga dependendo do monitor" reportado por tester.
  */
-export const FULL_SIZE = { width: 1300, height: 800, minWidth: 900, minHeight: 600 }
+export const FULL_SIZE = { width: 1200, height: 760, minWidth: 900, minHeight: 600 }
 /**
  * Janelinha de canto de monitor. Foi 300×230 (com o construtor de rolagem dentro), depois 260×200
  * (só presets + resultado em texto) e agora 280×240, que é o que o arranjo do rolador do Google

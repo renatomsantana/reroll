@@ -120,9 +120,9 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
         TRAVADA no tamanho da janela do splash, e centralizada.
 
         Sem isto a caixa era `100% × 100%` e crescia junto com a janela: ao terminar, o app pede o
-        redimensionamento pro tamanho cheio (1300×800) e só ESCONDE o splash quando a animação de
+        redimensionamento pro tamanho cheio (`FULL_SIZE`) e só ESCONDE o splash quando a animação de
         ~280ms acaba — ou seja, durante toda a animação o splash continua na tela sendo esticado de
-        360×320 até 1300×800. Era o "fica uma tela esticada" que o usuário reportou: a barra de
+        360×320 até o tamanho cheio. Era o "fica uma tela esticada" que o usuário reportou: a barra de
         título alongando, o logo e a barra de progresso se afastando.
 
         Com o teto, a caixa fica do tamanho que foi desenhada e o que cresce é só a área em volta.

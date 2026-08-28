@@ -38,7 +38,7 @@ import type { DisplayMode, LaunchMode } from '@renderer/settings/SettingsContext
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { playRollSound } from '@renderer/audio/rollSound'
-import { isTypingTarget } from '@renderer/utils/isTyping'
+import { teclaVeioDeDigitacao } from '@renderer/utils/isTyping'
 import { TRAY_SHAPE_SIDES } from '@renderer/dice3d/geometry/trayShape'
 import { Button } from '../common/Button'
 import { BotaoCopiar, rotulosDoChat } from '../common/BotaoCopiar'
@@ -95,6 +95,13 @@ interface DiceRoller3DProps {
    * de fora porque quem sabe de personagem é o `App`; a bandeja só reserva o lugar.
    */
   badge?: ReactNode
+  /**
+   * Abre o histórico de rolagens direto daqui — pedido do usuário ("um botão de histórico... pra
+   * pessoa não ter que ir nas configs"), depois ajustado de lugar: "pequeno, do lado do resultado
+   * ali na soma". O modal é do `App` (o mesmo que as Preferências abrem); a bandeja só ganha o
+   * atalho, desenhado na linha do resultado.
+   */
+  onOpenHistory?: () => void
   /**
    * O botão Explode aparece? Quem decide é o `App`, pelo SISTEMA do personagem ativo (ver
    * `explodeDoSistema.ts`) — pedido do usuário: o interruptor só aparece com perfil de D&D.
@@ -325,7 +332,7 @@ export function comContagemAjustada(
  * compacta (300×230) foi desenhada de propósito pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange, shortcutsEnabled = true, badge, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
+  { onRoll, onRollingChange, shortcutsEnabled = true, badge, onOpenHistory, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
   ref
 ) {
   const t = useTranslation()
@@ -999,8 +1006,11 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       if (!shortcutsEnabled) return
       if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return
       if (e.repeat || isRolling || document.querySelector('.modal-overlay')) return
+      // Foco atual E alvo original: o Enter que confirma a condição/valor no HUD desmonta o
+      // campo antes de o evento chegar aqui, e só o `activeElement` deixava a rolagem disparar
+      // — ver `teclaVeioDeDigitacao`.
+      if (teclaVeioDeDigitacao(e)) return
       const active = document.activeElement
-      if (isTypingTarget(active)) return
       if (active instanceof HTMLButtonElement && e.code === 'Space') return
       e.preventDefault()
       handleRollClick()
@@ -1360,6 +1370,16 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
             {/* A linha pro chat da mesa (spec §3.5) — ver `linhaParaChat.ts`. */}
             <BotaoCopiar texto={() => linhaParaChat(lastResult, copyMarkdown, rotulosDoChat(t))} />
           </span>
+        )}
+        {/*
+          O atalho pro histórico, pequeno e na ponta da linha da soma — o pedido mudou de lugar: ele
+          nasceu ao lado do ROLAR e o usuário pediu "pequeno, do lado do resultado ali na soma".
+          Fora dos condicionais de propósito: o histórico existe mesmo antes da primeira rolagem.
+        */}
+        {onOpenHistory && (
+          <Button className="dice-roller-3d-history-btn" onClick={onOpenHistory}>
+            {t.roller.historyButton}
+          </Button>
         )}
       </div>
     </div>

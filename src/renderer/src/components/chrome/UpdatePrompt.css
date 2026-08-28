@@ -87,8 +87,14 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   color: var(--win-text);
-  background: var(--win-surface-sunken, #fff);
+  /*
+   * `--win-input-bg`, e não `--win-surface-sunken`: essa segunda variável NUNCA existiu em tema
+   * nenhum — só o fallback `#fff` valia, e no modo noite isso era uma caixa BRANCA com texto
+   * quase branco (`--win-text` noturno é #e8e8f0) ocupando o miolo do aviso. Era o "o update
+   * aparece branco/bugado" reportado. No dia nada muda: `--win-input-bg` é #fff lá.
+   */
+  background: var(--win-input-bg);
   border: 2px solid;
-  border-color: var(--win-shadow, #404040) var(--win-light, #fff) var(--win-light, #fff)
-    var(--win-shadow, #404040);
+  /* Rebaixo do 98: escuro em cima/esquerda, claro embaixo/direita — com as variáveis DO TEMA. */
+  border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
 }
