@@ -39,8 +39,8 @@ describe('lista de fontes', () => {
    * As fontes que PODEM NÃO EXISTIR na máquina de quem instalou.
    *
    * A distinção é o coração da regra, e sem ela o teste vira ruído. Quase toda a lista é garantida:
-   * ou vem com o Windows (Tahoma, Segoe UI, Arial, Times, Courier New, Impact, Comic Sans) ou é
-   * empacotada pelo próprio app (Montserrat, JetBrains Mono, Lora, ver os `@font-face` em
+   * ou vem com o Windows (Tahoma, Arial, Times, Comic Sans) ou é
+   * empacotada pelo próprio app (Montserrat, JetBrains Mono, Lora, Nunito, ver os `@font-face` em
    * `global.css`). Nessas, o reserva é teoria — ele nunca chega a ser usado, e apontar pra outra
    * opção do menu é escolha deliberada de "cair em algo do mesmo peso visual" se o empacotamento um
    * dia falhar.
@@ -54,6 +54,7 @@ describe('lista de fontes', () => {
     ['papyrus', 'não vem com o Windows — vem com o Office/macOS. Foi este o bug relatado.'],
     ['janda-silly-monkey', 'gratuita só pra uso pessoal, então não pode ser empacotada'],
     ['sweetie', 'gratuita só pra uso pessoal (Graphix Line Studio), então não pode ser empacotada'],
+    ['determination', 'gratuita só pra uso pessoal (Lucca Cedro), então não pode ser empacotada'],
     ['algerian', 'vem com o Microsoft Office, não com o Windows — e é comercial, então nem empacotar resolve']
   ])
 
@@ -130,7 +131,11 @@ describe('lista de fontes', () => {
       'georgia',
       'palatino',
       'consolas',
-      'opendyslexic'
+      'opendyslexic',
+      // Segunda limpeza (27/08/2026), a pedido do usuário — as três viraram reserva de quem ficou.
+      'courier',
+      'segoe',
+      'impact'
     ]
     for (const id of removidas) {
       expect(FONT_OPTIONS.some((f) => f.id === id), `"${id}" ainda está na lista`).toBe(false)
@@ -140,9 +145,9 @@ describe('lista de fontes', () => {
     expect(sanearPreferencias({ fontId: 'palatino' })).toEqual({ fontId: 'palatino' })
   })
 
-  it('as três fontes EMPACOTADAS continuam com o arquivo no lugar', async () => {
+  it('as quatro fontes EMPACOTADAS continuam com o arquivo no lugar', async () => {
     /**
-     * Montserrat, JetBrains Mono e Lora não vêm com o Windows — elas são declaradas por `@font-face`
+     * Montserrat, JetBrains Mono, Lora e Nunito não vêm com o Windows — elas são declaradas por `@font-face`
      * em `global.css`, apontando pra um `.woff2` em `assets/fonts/`. Se o arquivo sumir (foi o que
      * aconteceu com a OpenDyslexic ao ser removida), a fonte cai no reserva SEM ERRO NENHUM: a tela
      * mostra outra letra e ninguém descobre por quê.

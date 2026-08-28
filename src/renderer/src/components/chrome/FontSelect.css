@@ -4,10 +4,16 @@
  * clicável, como no 98.
  */
 .settings-panel-field .font-select {
-  flex: 1;
-  /* 180 → 210: o crédito ("by caio", "by xuga") divide a linha com o nome, e em 180 sobrava
-     "JetBr…". Ver `.font-select-credit`. */
-  max-width: 210px;
+  /*
+   * Largura PRÓPRIA, sem encolher — era `flex: 1; max-width: 210px`, mas o `flex: 1` dividia a
+   * linha meio a meio com o rótulo e o seletor acabava com ~145px de fato: "Determination by sat"
+   * e "Janda Silly Monkey by xuga" saíam cortados ("Determi…"). É a mesma regra que os `select`
+   * comuns do painel já seguem ("o rótulo é o elástico da linha, e o controle tem largura
+   * própria" — ver `SettingsPanel.css`). Os 250px foram MEDIDOS no app montado: o pior caso da
+   * lista (nome + crédito + mascote + seta) cabe sem reticências.
+   */
+  flex: 0 0 auto;
+  width: 250px;
   display: flex;
   min-width: 0;
 }

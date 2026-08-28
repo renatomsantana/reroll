@@ -70,7 +70,10 @@ export type CameraMode = 'table' | 'dice' | 'free'
 export type DisplayMode = '3d' | 'quick'
 
 /**
- * CATORZE fontes: doze no fechamento do alfa, mais a Sweetie e a Algerian, pedidas logo depois.
+ * TREZE fontes: doze no fechamento do alfa, a Sweetie e a Algerian pedidas logo depois, a Nunito
+ * (indicação do juba) e a Determination (indicação do sat) em 27/08/2026 — e a SEGUNDA limpeza no
+ * mesmo dia, a pedido do usuário: saíram Courier New, Segoe UI e Impact (as três viram reserva de
+ * quem ficou, ver Montserrat, JetBrains Mono e Algerian).
  *
  * A Parisienne e a Hello Honey chegaram a entrar junto da Sweetie e SAÍRAM a pedido do usuário no
  * mesmo dia — é por isso que `assets/fonts/` não tem mais nenhum arquivo de manuscrita.
@@ -96,7 +99,7 @@ export type DisplayMode = '3d' | 'quick'
  *    menu. Quando a cadeia cai num item da própria lista, escolher uma dá visivelmente a outra — foi
  *    o bug do Papyrus, relatado por ele (ver mais abaixo).
  * 2. Fonte que NÃO vem no Windows precisa de um de dois tratamentos, e o que decide é a LICENÇA.
- *    Montserrat, JetBrains Mono e Lora são OFL: entram empacotadas em `assets/fonts/`, com a
+ *    Montserrat, JetBrains Mono, Lora e Nunito são OFL: entram empacotadas em `assets/fonts/`, com a
  *    licença ao lado e um par de `@font-face` no `global.css`. Janda Silly Monkey e Sweetie são
  *    gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver instaladas vê o
  *    reserva. Fonte de fora sem um dos dois tratamentos cai no reserva calada.
@@ -108,10 +111,12 @@ export type DisplayMode = '3d' | 'quick'
  */
 export const FONT_OPTIONS = [
   { id: 'tahoma', label: 'Tahoma (clássica)', family: "Tahoma, 'MS Sans Serif', Geneva, sans-serif" },
-  { id: 'segoe', label: 'Segoe UI', family: "'Segoe UI', Tahoma, sans-serif" },
-  // Empacotada (`global.css`). O reserva atrás dela é a outra sans moderna da lista, não a Tahoma:
-  // se um dia o `@font-face` sumir, o menos pior é cair em algo do mesmo peso visual.
+  // Empacotada (`global.css`). O reserva é a Segoe UI, que SAIU do menu (segunda limpeza) e virou
+  // reserva legítima, como a Consolas: existe em toda máquina Windows e não é mais opção da lista.
   { id: 'montserrat', label: 'Montserrat', family: "Montserrat, 'Segoe UI', Tahoma, sans-serif" },
+  // Empacotada (`global.css` + `assets/fonts/nunito-*.woff2`, OFL junto) — sans arredondada,
+  // pedida pelo usuário com o crédito do juba. Mesmo reserva da Montserrat, pela mesma razão.
+  { id: 'nunito', label: 'Nunito', family: "Nunito, 'Segoe UI', Tahoma, sans-serif", credit: 'by juba' },
   /**
    * Pedido do usuário, com o crédito de quem indicou — mesmo esquema da JetBrains Mono e da Janda
    * Silly Monkey.
@@ -134,10 +139,10 @@ export const FONT_OPTIONS = [
    * que também é item deste menu faria escolher Lora dar visivelmente outra opção da lista.
    */
   { id: 'lora', label: 'Lora', family: "Lora, serif", credit: 'by cata' },
-  { id: 'courier', label: 'Courier New', family: "'Courier New', Courier, monospace" },
-  // Empacotada (`global.css`). Reserva na Consolas e na Courier — as duas monoespaçadas que o
-  // Windows garante. A Consolas saiu do MENU, mas continua existindo no sistema, então segue sendo
-  // um reserva legítimo: a regra é a cadeia não terminar em outra opção DESTA lista, e ela não é mais.
+  // Empacotada (`global.css`). Reserva na Consolas e na Courier New — as duas monoespaçadas que o
+  // Windows garante. As duas já foram opção DESTE menu e saíram (a Consolas na primeira limpeza, a
+  // Courier New na segunda); continuam existindo no sistema, então seguem reservas legítimas: a
+  // regra é a cadeia não terminar em outra opção da lista, e elas não são mais.
   {
     id: 'jetbrains-mono',
     label: 'JetBrains Mono',
@@ -149,7 +154,6 @@ export const FONT_OPTIONS = [
      */
     credit: 'by caio'
   },
-  { id: 'impact', label: 'Impact', family: "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif" },
   // "MS" fora do rótulo a pedido do usuário — o nome real da fonte continua em `family`, que é o
   // que o navegador procura no sistema.
   /**
@@ -213,6 +217,26 @@ export const FONT_OPTIONS = [
     credit: 'by vivi'
   },
   /**
+   * DETERMINATION — a fonte pixelada de Undertale, pedida pelo usuário com o crédito do sat
+   * (dafont.com/determination.font, de Lucca Cedro).
+   *
+   * NÃO EMPACOTADA, e não pode: o autor escreve "its for free, BUT ONLY FOR PERSONAL USE!!" —
+   * mesma situação da Janda Silly Monkey e da Sweetie, e pôr o `.ttf` num app publicado no GitHub
+   * seria redistribuição. Só o NOME: quem instalou a fonte vê a fonte; quem não instalou vê o
+   * reserva.
+   *
+   * `Consolas` é o reserva: não existe pixelada que venha com o Windows, e o parente mais próximo
+   * do desenho blocado e de largura fixa dela é uma monoespaçada de console — a Consolas vem com o
+   * Windows, já serve de reserva à JetBrains Mono e NÃO é opção deste menu (a `Courier New`, que
+   * também lembraria console, é — e cair em opção do menu é o bug do Papyrus).
+   */
+  {
+    id: 'determination',
+    label: 'Determination',
+    family: 'Determination, Consolas, monospace',
+    credit: 'by sat'
+  },
+  /**
    * ALGERIAN — decorativa, de caixa alta, pedida pelo usuário com o crédito do pedro.
    *
    * Ela é a EXCEÇÃO da regra 3 lá em cima, e entra sabendo disso. A Algerian não vem com o Windows:
@@ -223,20 +247,17 @@ export const FONT_OPTIONS = [
    * nem "grátis pra uso pessoal" como a Sweetie. O que existe aqui é só o NOME, então quem não
    * tiver Office vê o reserva — e por isso o reserva dela é a parte que importa.
    *
-   * `Arial Black` é o reserva, e a escolha tem duas contas:
-   *
-   * - ela vem com o Windows, então existe mesmo na máquina limpa;
-   * - ela NÃO é opção deste menu. A `Impact` seria o parente visual mais próximo da Algerian (as
-   *   duas são display pesadas), mas a Impact está na lista logo acima — e cair numa fonte do
-   *   próprio menu é exatamente o bug do Papyrus, onde escolher uma dava visivelmente a outra.
-   *
-   * A `Arial Black` não se confunde com a `Arial` do menu: uma é preta e condensada, a outra é
-   * regular. São famílias diferentes, e a distinção é visível na primeira palavra.
+   * `Impact` na frente do reserva DESDE a segunda limpeza: ela é o parente visual mais próximo da
+   * Algerian (as duas são display pesadas), vem com o Windows, e enquanto era opção deste menu não
+   * podia ser reserva — cair numa fonte do próprio menu é o bug do Papyrus, onde escolher uma dava
+   * visivelmente a outra. Saindo do menu, virou o primeiro degrau; a `Arial Black` fica atrás
+   * (também vem com o Windows, e não se confunde com a `Arial` da lista: uma é preta e condensada,
+   * a outra é regular).
    */
   {
     id: 'algerian',
     label: 'Algerian',
-    family: "Algerian, 'Arial Black', fantasy",
+    family: "Algerian, Impact, 'Arial Black', fantasy",
     credit: 'by pedro'
   }
 ] as const
