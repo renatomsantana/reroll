@@ -88,6 +88,8 @@ const ABREVIACOES = new Set(['AGI', 'FOR', 'INT', 'PRE', 'VIG'])
 const COLUNA_NOME = 0
 const COLUNA_TESTE = 1
 const COLUNA_DANO = 2
+/** "Crítico/alcance/especial" — anotação livre da arma ("18/2" na ficha do Matias); vai na fonte do preset de dano. */
+const COLUNA_EXTRA = 3
 
 /**
  * Campos com nome estável, e o rótulo com que eles aparecem na conferência.
@@ -398,11 +400,18 @@ function presetsDeAtaques(fields: PdfField[]): SheetImportPreset[] {
 
     const expressaoDano = parseDiceExpression(dano)
     if (expressaoDano) {
+      /**
+       * A QUARTA coluna ("crítico/alcance/especial" — "18/2" na ficha do Matias) não é rolagem,
+       * mas é anotação do jogador sobre esta arma, e o preset é o único lugar em que a arma
+       * aparece (a linha de ataque não vira campo de propósito). Vai na fonte, que a conferência
+       * mostra como "veio daqui".
+       */
+      const extra = colunas.get(COLUNA_EXTRA)?.trim()
       presets.push({
         name: `${nome} (dano)`,
         kind: 'damage',
         expression: expressaoDano.expression,
-        source: dano
+        source: extra ? `${dano} · ${extra}` : dano
       })
     }
   }
@@ -655,6 +664,18 @@ const CONSUMIDOS_B: RegExp[] = [
   /^(corte|perfuracao|impacto|balistica|mental|conhecimento|energia|sangue|morte)$/
 ]
 
+/** Os graus de treinamento de perícia de Ordem Paranormal, com o bônus de cada um. */
+const GRAUS_DE_TREINO: Record<string, { nome: string; bonus: number }> = {
+  treinado: { nome: 'Treinado', bonus: 5 },
+  veterano: { nome: 'Veterano', bonus: 10 },
+  expert: { nome: 'Expert', bonus: 15 }
+}
+
+function grauDeTreino(texto: string | null): { nome: string; bonus: number } | null {
+  if (!texto) return null
+  return GRAUS_DE_TREINO[texto.trim().toLowerCase()] ?? null
+}
+
 function extrairFichaDaComunidade(sheet: PdfSheet): SheetImport {
   const base = extrairGenerico(sheet, 'ordem-paranormal', 'Ordem Paranormal', 0.95)
 
@@ -719,6 +740,21 @@ function extrairFichaDaComunidade(sheet: PdfSheet): SheetImport {
   const cargaMax = bruto('carga_max')
   push('Carga', cargaAtual && cargaMax ? `${cargaAtual}/${cargaMax}` : (cargaAtual ?? cargaMax), 'Recursos')
   push('Pontos de prestígio', bruto('pontos_prestigio'), 'Recursos')
+  /**
+   * Os "EXTRA" de cada recurso (o "±" impresso ao lado de PV, PE e SAN — "san_extra = -8" na ficha
+   * do Vincenzo) eram consumidos e não lidos. E, na página 2, os limites do inventário: `limite_1..3`
+   * embaixo do "LIMITE" impresso, `LIMITE DE` (= "Médio") e `mod_extra`. Os rótulos aqui são os
+   * impressos, mesmo quando curtos, porque inventar um ("limite de carga") seria chute.
+   */
+  push('PV extra', bruto('pv_extra'), 'Recursos', undefined, false, 'pv_extra')
+  push('PE extra', bruto('pe_extra'), 'Recursos', undefined, false, 'pe_extra')
+  push('Sanidade extra', bruto('san_extra'), 'Recursos', undefined, false, 'san_extra')
+  const limites = [1, 2, 3].map((i) => bruto(`limite_${i}`))
+  if (limites.some(Boolean)) {
+    campos.push({ label: 'Limite', value: limites.map((v, i) => `${['I', 'II', 'III'][i]}: ${v ?? '-'}`).join(' · '), group: 'Inventário' })
+  }
+  push('Limite de', bruto('LIMITE DE'), 'Inventário', undefined, false, 'LIMITE DE')
+  push('Mod. extra', bruto('mod_extra'), 'Inventário', undefined, false, 'mod_extra')
 
   /**
    * O bônus da perícia: o total calculado (`b_`) ou, com ele vazio, treinamento + outros — a mesma
@@ -726,12 +762,19 @@ function extrairFichaDaComunidade(sheet: PdfSheet): SheetImport {
    * oficial: linha vazia é espaço pra preencher, "0" escrito seria afirmação.
    */
   for (const pericia of PERICIAS_DA_COMUNIDADE) {
+    /**
+     * `t_` é o TREINAMENTO, e na ficha do Vincenzo ele é um menu ("TREINADO", "VETERANO"), não
+     * um número — a conta de antes lia isso como zero e o grau sumia. O grau vai junto do total,
+     * porque é o que se olha pra saber se a perícia sobe com o NEX.
+     */
+    const treino = bruto(`t_${pericia.slug}`)
+    const grau = grauDeTreino(treino)
     const total =
       inteiro(bruto(`b_${pericia.slug}`)) ??
-      (bruto(`t_${pericia.slug}`) !== null || bruto(`o_${pericia.slug}`) !== null
-        ? (inteiro(bruto(`t_${pericia.slug}`)) ?? 0) + (inteiro(bruto(`o_${pericia.slug}`)) ?? 0)
+      (treino !== null || bruto(`o_${pericia.slug}`) !== null
+        ? (grau?.bonus ?? inteiro(treino) ?? 0) + (inteiro(bruto(`o_${pericia.slug}`)) ?? 0)
         : null)
-    push(pericia.label, total ? String(total) : null, 'Perícias', undefined, true, `b_${pericia.slug}`)
+    push(pericia.label, total ? (grau ? `${total} (${grau.nome})` : String(total)) : null, 'Perícias', undefined, true, `b_${pericia.slug}`)
   }
 
   // Ataques: seis linhas; o dano vira preset e a linha vira resumo, como no leitor de Pathfinder.
@@ -753,7 +796,10 @@ function extrairFichaDaComunidade(sheet: PdfSheet): SheetImport {
   }
 
   for (let i = 1; i <= 6; i++) {
-    push(`Habilidade ${i}`, bruto(`Habilidade_${i}`), 'Habilidades', undefined, false, `Habilidade_${i}`)
+    // A página do livro que o jogador anotou ao lado ("Pagina_Hab_1 = 37") vai junto.
+    const habilidade = bruto(`Habilidade_${i}`)
+    const pagina = bruto(`Pagina_Hab_${i}`)
+    push(`Habilidade ${i}`, habilidade && pagina ? `${habilidade} (pág. ${pagina})` : habilidade, 'Habilidades', undefined, false, `Habilidade_${i}`)
   }
 
   /**

@@ -14,6 +14,33 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
 
 ### Adicionado (o jeito do Oblívio, pra toda ficha)
 
+- **Cada sistema do banco raspado no nível do Oblívio, cada um pelo formato do seu PDF** — pedido
+  dele: "todos os sistemas que temos no banco já precisam fazer o scraping igual o de Oblívio, mas
+  cada um com seu jeito específico de cada ficha dependendo do pdf". Primeiro a MEDIDA: uma
+  ferramenta de cobertura (`cobertura.node.test.ts`, `FICHAS="…"`) lista, ficha real por ficha
+  real, cada valor preenchido que não chega em campo, texto ou preset; e `camposBrutos.node.test.ts`
+  mostra os campos crus do PDF (nome, página, retângulo) pra escrever o leitor pelo formato. Depois,
+  o que cada ficha perdia, zerado:
+  - **D&D 5e (ficha do Go)**: as magias da página de conjuração viravam só um aviso, porque o campo
+    não tem nome (`Spells 1014`). Agora são lidas pela POSIÇÃO: três colunas, cada nível é o bloco
+    embaixo do cabeçalho `SlotsTotal N`, truques são o bloco do alto sem cabeçalho. Sai uma linha
+    por nível ("Truques = mãos mágicas, raio de fogo, lufada"; "Magias de nível 1 (3 espaços) =
+    flash, mísseis mágicos…"). O dado de vida ("1d8") vira campo e preset. O aviso
+    `dnd5e-magias-sem-nome` deixou de existir.
+  - **Ordem Paranormal, ficha da comunidade (Vincenzo)**: o grau de treino da perícia é um MENU
+    ("TREINADO"/"VETERANO") que a conta lia como zero — agora vai junto do total ("15 (Veterano)"), e
+    o total sem `b_` é refeito pelo bônus do grau (5/10/15). A página do livro anotada ao lado da
+    habilidade vai junto ("Conhecimento Aplicado (pág. 37)"). Os "extra" de PV/PE/Sanidade e os
+    limites do inventário (`limite_1..3`, "LIMITE DE", `mod_extra`) eram consumidos sem ser lidos.
+  - **Ordem Paranormal, ficha oficial (Matias)**: a quarta coluna da grade de ataques ("18/2",
+    crítico) vai na fonte do preset de dano, que é onde a arma aparece.
+  - **Pathfinder 2e (Rilver)**: os EFEITOS das ações e o gatilho/efeito das reações (página 3 da
+    ficha remaster) sumiam inteiros — na ficha real eram as descrições dos talentos, escritas sem
+    nome de ação. E a caixa livre das proficiências de arma ("bow - E").
+  - **Assimilação (Kieran)**: já chegava inteira; conferido pela ferramenta, zero perdas.
+  O que ainda aparece como "perdido" em Pathfinder é valor de fábrica do modelo (`REACTIONS PAGE 1
+  = 257`, `CANTRIPS PER DAY = ∞`, os menus em "NADA"), presente igual na ficha em branco.
+
 - **Golpe escrito em prosa vira preset em QUALQUER ficha** — pedido dele: "esse jeito do Oblívio,
   vamos deixar pra TODAS as fichas". O que o leitor de Oblívio fazia só com as habilidades dele
   (habilidade cujo texto diz Teste/Dano com o dado na mesma frase vira preset com o nome do golpe)

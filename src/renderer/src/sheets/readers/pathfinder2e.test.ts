@@ -209,3 +209,36 @@ describe('o modelo em branco', () => {
     expect(lido.fields.length).toBeLessThan(20)
   })
 })
+
+/**
+ * O JEITO ESPECÍFICO da página 3 da ficha remaster: ações e reações têm nome, efeito e gatilho em
+ * caixas separadas, e a ficha do Rilver tinha os EFEITOS dos talentos escritos ali sem nome de ação
+ * — sumiam inteiros (pedido do usuário: cada sistema raspado "igual o de Oblívio").
+ */
+describe('ações, reações e a caixa livre de proficiências', () => {
+  const lido = readSheet(
+    ficha([
+      ...RILVER,
+      campo('ACTION NAME 2', 'FAST RECOVERY'),
+      campo('EFFECTS 2-1', 'You regain twice as many Hit Points from resting.'),
+      campo('EFFECTS 3-1', 'You gain a 1st-level class feat.'),
+      campo('REACTION NAME 1', 'Contra-ataque'),
+      campo('REACTIONS TRIGGER 1-2', 'um inimigo erra você'),
+      campo('REACTIONS EFFECTS 1-1', 'Faça um Strike'),
+      campo('UNARMED, SIMPLE, ADVANCED, OTHER', 'bow - E')
+    ])
+  )
+
+  it('a ação leva o efeito junto do nome, e o efeito SEM nome não se perde', () => {
+    expect(valor(lido, 'Ação 2', 'Habilidades')).toBe('FAST RECOVERY: You regain twice as many Hit Points from resting.')
+    expect(valor(lido, 'Ação 3', 'Habilidades')).toBe('You gain a 1st-level class feat.')
+  })
+
+  it('a reação leva gatilho e efeito', () => {
+    expect(valor(lido, 'Reação 1', 'Habilidades')).toBe('Contra-ataque: gatilho: um inimigo erra você. Faça um Strike')
+  })
+
+  it('a caixa livre das proficiências de arma chega', () => {
+    expect(valor(lido, 'Outras proficiências', 'Proficiências')).toBe('bow - E')
+  })
+})

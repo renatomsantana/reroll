@@ -34,6 +34,69 @@ function chave(nome: string): string {
 }
 
 /**
+ * AS MAGIAS DA PÁGINA DE CONJURAÇÃO, lidas pela POSIÇÃO — pedido do usuário: cada sistema raspado
+ * "igual o de Oblívio, cada um com seu jeito específico dependendo do PDF".
+ *
+ * O nome do campo não diz nada (`Spells 1014`, `Spells 10100` — numeração de quem montou o
+ * formulário por cópia), e por isso elas viravam só um aviso. Mas a PÁGINA diz: a folha oficial
+ * tem três colunas, cada nível é um bloco encabeçado pelo campo `SlotsTotal N` (N de 19, o 1º
+ * nível, a 27, o 9º), e os truques são o bloco do alto da primeira coluna, sem cabeçalho. Uma
+ * magia pertence ao cabeçalho mais próximo ACIMA dela na mesma coluna; sem cabeçalho acima, é
+ * truque. Medido na ficha do Go (goblin ladino/mago): oito truques e onze magias de 1º nível
+ * chegavam como "Spells 1014" e sumiam.
+ *
+ * Sai uma linha por nível ("Magias de nível 1 (3 espaços) = flash, mísseis mágicos…"), e não uma
+ * por magia: é assim que se lê a lista na mesa, e uma ficha de conjurador tem dezenas delas.
+ */
+const CABECALHO_DE_NIVEL = /^slotstotal\s*(\d+)$/i
+const LINHA_DE_MAGIA = /^spells\s*\d+$/i
+/** `SlotsTotal 19` é o 1º nível; 27 é o 9º. */
+const PRIMEIRO_CABECALHO = 19
+/** Distância horizontal entre o cabeçalho (x=52) e a magia (x=40) na mesma coluna: 12. Colunas distam ~190. */
+const MESMA_COLUNA = 60
+
+function magiasPorNivel(
+  fields: PdfField[],
+  nesteIdioma: (par: Rotulo) => string,
+  grupo: string
+): SheetImportField[] {
+  const cabecalhos = fields
+    .map((campo) => ({ campo, nivel: CABECALHO_DE_NIVEL.exec(campo.name) }))
+    .filter((c): c is { campo: PdfField; nivel: RegExpExecArray } => c.nivel !== null)
+    .map(({ campo, nivel }) => ({
+      nivel: Number(nivel[1]) - PRIMEIRO_CABECALHO + 1,
+      page: campo.page,
+      x: campo.rect[0],
+      topo: campo.rect[3],
+      espacos: valorDeFicha(campo.value, campo.type)
+    }))
+
+  const porNivel = new Map<number, string[]>()
+  for (const campo of fields) {
+    if (!LINHA_DE_MAGIA.test(campo.name)) continue
+    const nomeDaMagia = valorDeFicha(campo.value, campo.type)
+    if (!nomeDaMagia) continue
+    const acima = cabecalhos
+      .filter((c) => c.page === campo.page && Math.abs(c.x - campo.rect[0]) <= MESMA_COLUNA && c.topo >= campo.rect[3])
+      .sort((a, b) => a.topo - b.topo)[0]
+    const nivel = acima ? acima.nivel : 0
+    porNivel.set(nivel, [...(porNivel.get(nivel) ?? []), nomeDaMagia])
+  }
+
+  return [...porNivel]
+    .sort((a, b) => a[0] - b[0])
+    .map(([nivel, nomes]) => {
+      const espacos = cabecalhos.find((c) => c.nivel === nivel)?.espacos
+      const rotulo =
+        nivel === 0
+          ? nesteIdioma(TEXTO.truques)
+          : nesteIdioma(TEXTO.nivelDeMagia).replace('{n}', String(nivel)) +
+            (espacos ? ` (${espacos} ${nesteIdioma(TEXTO.espacos)})` : '')
+      return { label: rotulo, value: nomes.join(', '), group: grupo }
+    })
+}
+
+/**
  * Um rótulo nos dois idiomas da interface.
  *
  * D&D é o único leitor daqui que precisa disto, e a razão é que o sistema é publicado em inglês: os
@@ -149,6 +212,8 @@ const COMBATE: { name: string; pt: string; en: string; roll?: 'd20' }[] = [
   { name: 'hpcurrent', pt: 'PV atual', en: 'Current HP' },
   { name: 'hptemp', pt: 'PV temporário', en: 'Temp HP' },
   { name: 'hdtotal', pt: 'Dados de vida', en: 'Hit Dice' },
+  // O DADO de vida ("1d8") — campo `HD` ao lado do total. Vira preset também (ver `extract`).
+  { name: 'hd', pt: 'Dado de vida', en: 'Hit Die' },
   { name: 'profbonus', pt: 'Bônus de proficiência', en: 'Proficiency Bonus' },
   { name: 'passive', pt: 'Percepção passiva', en: 'Passive Perception' }
 ]
@@ -200,6 +265,10 @@ const TEXTO = {
   atributoConjurador: { pt: 'Atributo de conjuração', en: 'Spellcasting Ability' },
   cdDeMagia: { pt: 'CD das magias', en: 'Spell Save DC' },
   ataqueMagico: { pt: 'Ataque mágico', en: 'Spell Attack' },
+  dadoDeVida: { pt: 'Dado de vida', en: 'Hit Die' },
+  truques: { pt: 'Truques', en: 'Cantrips' },
+  nivelDeMagia: { pt: 'Magias de nível {n}', en: 'Level {n} spells' },
+  espacos: { pt: 'espaços', en: 'slots' },
   sufixoAtaque: { pt: '(ataque)', en: '(attack)' },
   sufixoDano: { pt: '(dano)', en: '(damage)' }
 } satisfies Record<string, Rotulo>
@@ -352,6 +421,8 @@ export const dnd5eReader: SheetReader = {
 
     for (const campo of TEXTOS) push(nesteIdioma(campo), valor(campo.name), nesteIdioma(campo.grupo))
 
+    campos.push(...magiasPorNivel(sheet.fields, nesteIdioma, grupo.magia))
+
     const dinheiro = MOEDAS.map((moeda) => {
       const bruto = valor(moeda.name)
       return bruto && Number(bruto) !== 0 ? `${bruto} ${nesteIdioma(moeda)}` : null
@@ -363,23 +434,27 @@ export const dnd5eReader: SheetReader = {
     const presets = presetsDeArmas(porNome, valorPorPrefixo(ATAQUE_MAGICO) ?? '', nesteIdioma)
 
     /**
+     * O DADO DE VIDA é uma rolagem do personagem (o descanso curto rola ele), e este leitor não
+     * aproveita os presets do genérico — então o botão nasce aqui.
+     */
+    const dadoDeVida = valor('hd')
+    const expressaoDoDado = dadoDeVida ? parseDiceExpression(dadoDeVida) : null
+    if (expressaoDoDado) {
+      presets.push({ name: nesteIdioma(TEXTO.dadoDeVida), kind: 'other', expression: expressaoDoDado.expression, source: dadoDeVida ?? '' })
+    }
+
+    /**
      * O que o GENÉRICO achou e este leitor não tratou fica de fora, e esta é a única diferença de
      * fundo entre este leitor e o de Ordem Paranormal.
      *
      * Lá o restante vale a pena: a ficha tem rótulo impresso ao lado dos campos, então o que sobra
      * chega com nome legível. Aqui não há rótulo impresso nenhum — é tudo desenho —, e o que o
-     * genérico produz pra um campo não catalogado é o nome cru do PDF: "Check Box 11 = sim",
-     * "Spells 1014 = Mísseis Mágicos". Numa ficha de D&D isso são DEZENAS de linhas, e o usuário já
-     * disse o que essa lista vira na tela: "fica uma bagunça, não dá para entender".
-     *
-     * O que se perde de verdade são as magias preparadas, que moram em campos numerados sem nome
-     * (`Spells 1014`, `Spells 1015`…). Elas viram um AVISO em vez de sessenta linhas de lixo.
+     * genérico produz pra um campo não catalogado é o nome cru do PDF: "Check Box 11 = sim". Numa
+     * ficha de D&D isso são DEZENAS de linhas, e o usuário já disse o que essa lista vira na tela:
+     * "fica uma bagunça, não dá para entender". As magias, que também moram em campos sem nome,
+     * são lidas pela POSIÇÃO — ver `magiasPorNivel`.
      */
-    const magiasEscritas = [...porNome].some(
-      ([nome, campo]) => nome.startsWith('spells ') && valorDeFicha(campo.value, campo.type)
-    )
     const avisos = [...base.warnings]
-    if (magiasEscritas) avisos.push('dnd5e-magias-sem-nome')
 
     /**
      * O MODELO EM BRANCO baixado do site da Wizards, importado por engano antes de preencher. É o

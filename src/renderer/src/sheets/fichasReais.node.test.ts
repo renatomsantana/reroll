@@ -385,8 +385,8 @@ describe.skipIf(!existsSync(VINCENZO))('ficha real da comunidade de Ordem Parano
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Trilha', value: 'Médico de Combate' }))
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Proteção', value: 'Leve' }))
 
-    // b_medicina não está gravado no arquivo: 15 = treino 10 + outros 5, conferido no PDF.
-    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Medicina', value: '15', group: 'Perícias' }))
+    // 15 = treino 10 (t_medicina = "VETERANO", o menu da ficha) + outros 5, conferido no PDF; o GRAU vai junto.
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Medicina', value: '15 (Veterano)', group: 'Perícias' }))
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'PV atual', value: '51' }))
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Carga', value: '18/30' }))
 
