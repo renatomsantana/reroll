@@ -1,4 +1,4 @@
-import type { PdfSheet, SheetImportPreset } from '@shared/types/sheetImport'
+import type { PdfText, PdfSheet, SheetImportPreset } from '@shared/types/sheetImport'
 import { parseDiceExpression } from '@shared/dice/parseDiceExpression'
 import { extrairGenerico } from './generic'
 import type { SheetReader } from './types'
@@ -201,44 +201,6 @@ function presetsDeItens(itens: ItemCarregado[], nomear: (item: ItemCarregado) =>
 }
 
 /**
- * GOLPE COM TESTE vira preset — reporte de tester: "golpes que tinham o nome do golpe e um teste
- * no golpe, e não foi criado preset".
- *
- * O golpe entra na ficha como habilidade: um parágrafo rotulado com o nome dele. Quando o texto
- * diz o dado do teste ("Teste: 2D6+1", "Teste de Combate com 1D20") ou do dano, o botão nasce com
- * o nome do golpe — que é o que a pessoa procura na lista no meio da mesa.
- *
- * A âncora nas palavras Teste/Dano é o que separa a rolagem do golpe da prosa que só menciona dado
- * ("permanentemente reduzido em 1D4 pontos") — foi essa prosa que proibiu preset de texto solto no
- * genérico (ver `presetsDoTexto`). O dado tem que estar na MESMA frase da âncora (`[^.]`), a até
- * 60 caracteres dela.
- */
-const TESTE_DO_GOLPE = /Teste[^.]{0,60}?(\d*[dD]\d+(?:\s*[+-]\s*\d+)?)/
-const DANO_DO_GOLPE = /Dano[^.]{0,60}?(\d*[dD]\d+(?:\s*[+-]\s*\d+)?)/
-
-function presetsDeGolpe(fields: { label: string; value: string; group?: string }[]): SheetImportPreset[] {
-  const presets: SheetImportPreset[] = []
-  for (const campo of fields) {
-    if (campo.group !== 'Habilidades') continue
-    const teste = TESTE_DO_GOLPE.exec(campo.value)
-    if (teste) {
-      const lido = parseDiceExpression(teste[1])
-      if (lido) {
-        presets.push({ name: campo.label, kind: 'test', expression: lido.expression, source: teste[0].slice(0, 120) })
-      }
-    }
-    const dano = DANO_DO_GOLPE.exec(campo.value)
-    if (dano) {
-      const lido = parseDiceExpression(dano[1])
-      if (lido) {
-        presets.push({ name: `${campo.label} (dano)`, kind: 'damage', expression: lido.expression, source: dano[0].slice(0, 120) })
-      }
-    }
-  }
-  return presets
-}
-
-/**
  * As áreas de "Espaço Livre" — regra do usuário: "qualquer anotação de player no pdf precisamos
  * trazer", mesmo a que parece inútil.
  *
@@ -257,12 +219,25 @@ function espacoLivre(sheet: PdfSheet): string {
   sheet.texts.forEach((fragmento, indice) => {
     if (fragmento.text.trim() !== 'Espaço Livre') return
     const linhas: string[] = []
+    let ultimo: PdfText | null = null
     for (let i = indice + 1; i < sheet.texts.length; i++) {
-      const texto = sheet.texts[i].text.trim()
+      const atual = sheet.texts[i]
+      const texto = atual.text.trim()
       // Os títulos que fecham cada área — ver o mapa da ficha no comentário acima.
       if (/^(Inventário|Mazelas)$/.test(texto)) break
       if (!texto || /Use esse espaço para fazer anotações/i.test(texto)) continue
-      linhas.push(texto)
+      /**
+       * Fragmentos da MESMA LINHA viram uma linha só. O Google Docs exporta o texto justificado
+       * palavra por palavra ("Náusea", "ou", "Sem", "Fôlego."), e na ficha real o Espaço Livre
+       * chegava assim, uma palavra por linha — ilegível no bloco de história. Mesma página e mesmo
+       * `y` (a folga de 2 é a de `MESMA_LINHA` em `camposDoTexto`) é a mesma linha do papel.
+       */
+      if (ultimo && ultimo.page === atual.page && Math.abs(ultimo.y - atual.y) <= 2) {
+        linhas[linhas.length - 1] = `${linhas[linhas.length - 1]} ${texto}`.replace(/\s+([.,;:])/g, '$1')
+      } else {
+        linhas.push(texto)
+      }
+      ultimo = atual
     }
     if (linhas.length > 0) blocos.push(linhas.join('\n'))
   })
@@ -334,7 +309,8 @@ export const oblivioReader: SheetReader = {
       ...base,
       system: 'Oblivio',
       fields: [...fields, ...camposDeEquipamento],
-      presets: [...(base.presets ?? []), ...presetsDeArma, ...presetsDeGolpe(fields)],
+      // O golpe com Teste/Dano no texto vira preset em TODA ficha agora — ver `presetsDeProsa` no `readSheet`.
+      presets: [...(base.presets ?? []), ...presetsDeArma],
       rawText: espacoLivre(sheet) || base.rawText
     }
   }
