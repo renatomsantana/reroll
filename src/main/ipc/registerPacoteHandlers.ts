@@ -18,6 +18,7 @@ import {
 import { htmlDoPacote } from '@shared/pacote/htmlDoPacote'
 import { isValidPresetInput } from './registerPresetsHandlers'
 import { escolherArquivo, escolherOndeSalvar } from './dialogos'
+import { ehPdf } from './registerSheetHandlers'
 import type { ProfilesRepository } from '../storage/ProfilesRepository'
 import type { NotesRepository } from '../storage/NotesRepository'
 import type { PresetsRepository } from '../storage/PresetsRepository'
@@ -66,8 +67,16 @@ export async function lerPacoteDoArquivo(caminho: string): Promise<PacoteDePerso
     const mb = Math.round(TAMANHO_MAXIMO_DO_PACOTE / (1024 * 1024))
     throw new Error(`Arquivo grande demais para ser um personagem exportado (o limite é ${mb} MB).`)
   }
-  const texto = await fs.readFile(caminho, 'utf-8')
-  return lerPacote(extrairPacoteDoTexto(texto))
+  const bytes = await fs.readFile(caminho)
+  /**
+   * Uma FICHA EM PDF aqui é o arquivo errado mais provável (os dois botões ficam lado a lado na
+   * Ficha), e "não é um personagem exportado" não diria o que fazer. Pedido dele: "se uploadarem o
+   * arquivo errado, aparecer uma mensagem".
+   */
+  if (ehPdf(bytes)) {
+    throw new Error('Este arquivo é uma ficha em PDF, não um personagem exportado pelo Reroll. Use o botão "Importar ficha (PDF)" pra ler a ficha.')
+  }
+  return lerPacote(extrairPacoteDoTexto(bytes.toString('utf-8')))
 }
 
 /**

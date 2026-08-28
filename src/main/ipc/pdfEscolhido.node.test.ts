@@ -87,11 +87,11 @@ describe('ler o PDF escolhido', () => {
     expect(resultado.ok).toBe(true)
   })
 
-  it('arquivo vazio é recusado aqui como ilegível — zero bytes não é um PDF', async () => {
+  it('arquivo vazio é recusado aqui como "não é PDF" — zero bytes não tem a assinatura', async () => {
     /**
      * Esta regra já foi "quem recusa PDF vazio é o pdf.js": os bytes atravessavam o IPC pra
      * falharem do outro lado. Com a conferência da assinatura `%PDF-` (Stage 0 do spec de
-     * importação), a recusa vem daqui, com o mesmo motivo que a tela já sabia mostrar.
+     * importação), a recusa vem daqui — com motivo próprio, que a tela traduz em "não é PDF".
      */
     const caminho = join(pasta, 'vazio.pdf')
     await fs.writeFile(caminho, Buffer.alloc(0))
@@ -99,7 +99,22 @@ describe('ler o PDF escolhido', () => {
     const resultado = await lerPdfEscolhido(caminho)
     expect(resultado.ok).toBe(false)
     if (resultado.ok) return
-    expect(resultado.motivo).toBe('ilegivel')
+    expect(resultado.motivo).toBe('nao-e-pdf')
+  })
+
+  it('arquivo que não é PDF diz isso, e o personagem exportado pelo Reroll aponta o botão certo', async () => {
+    // Pedido dele: "se uploadarem o arquivo errado, aparecer uma mensagem". Antes os dois eram "ilegível".
+    const docx = join(pasta, 'ficha.docx')
+    await fs.writeFile(docx, 'PK\u0003\u0004 isto é um zip de docx')
+    expect(await lerPdfEscolhido(docx)).toEqual({ ok: false, motivo: 'nao-e-pdf' })
+
+    const pacote = join(pasta, 'Matias - Reroll.html')
+    await fs.writeFile(pacote, '<html><body><script id="reroll-personagem" type="application/json">{"formato":"reroll-personagem"}</script></body></html>', 'utf-8')
+    expect(await lerPdfEscolhido(pacote)).toEqual({ ok: false, motivo: 'pacote-do-reroll' })
+
+    const json = join(pasta, 'matias.json')
+    await fs.writeFile(json, '{"formato":"reroll-personagem","versao":1}', 'utf-8')
+    expect(await lerPdfEscolhido(json)).toEqual({ ok: false, motivo: 'pacote-do-reroll' })
   })
 
   it('nome com acento, espaço e parêntese volta inteiro', async () => {
@@ -119,15 +134,11 @@ describe('ler o PDF escolhido', () => {
  * just the extension". Um `.pdf` renomeado é a coisa mais comum que chega num diálogo de arquivo.
  */
 describe('assinatura %PDF-', () => {
-  it('um arquivo renomeado pra .pdf é recusado como ilegível, antes de atravessar o IPC', async () => {
+  it('um arquivo renomeado pra .pdf é recusado como "não é PDF", antes de atravessar o IPC', async () => {
     const caminho = join(pasta, 'video.pdf')
     await fs.writeFile(caminho, Buffer.from('RIFF\u0000\u0000\u0000\u0000AVI LIST'))
     const resultado = await lerPdfEscolhido(caminho)
-    expect(resultado.ok).toBe(false)
-    if (resultado.ok) return
-    expect(resultado.motivo).toBe('ilegivel')
-    if (resultado.motivo !== 'ilegivel') return
-    expect(resultado.detalhe).toMatch(/%PDF-/)
+    expect(resultado).toEqual({ ok: false, motivo: 'nao-e-pdf' })
   })
 
   it('cabeçalho com lixo antes do %PDF- passa — o padrão tolera até 1024 bytes', async () => {

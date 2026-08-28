@@ -15,8 +15,12 @@ export interface EstadoDoHud {
   mini: boolean
 }
 
-/** Embaixo à direita, longe do seletor de câmera (que fica em cima) e do popup do total. */
-export const HUD_PADRAO: EstadoDoHud = { canto: 'se', visivel: true, mini: false }
+/**
+ * Em cima à ESQUERDA — pedido dele ("deixa o hud na esquerda superior"): nasceu embaixo à direita,
+ * longe do seletor de câmera e do popup do total, e ele arrastou todos os personagens pro canto
+ * oposto. O canto continua sendo do personagem: quem arrastar, fica onde soltou.
+ */
+export const HUD_PADRAO: EstadoDoHud = { canto: 'nw', visivel: true, mini: false }
 
 const CANTOS: Canto[] = ['nw', 'ne', 'sw', 'se']
 
