@@ -6,6 +6,62 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [1.1.3] — 2026-08-28
+
+A importação de ficha, de novo: o que o leitor de Oblívio já fazia passa a valer pra todas as
+fichas, e cada sistema do banco (D&D 5e, Ordem Paranormal nas duas fichas, Pathfinder 2e,
+Assimilação) foi medido contra a ficha real e deixou de perder o que perdia. O teto continua em
+três personagens.
+
+### Adicionado
+
+- **Cada sistema do banco raspado no nível do Oblívio, cada um pelo formato do seu PDF** — pedido
+  dele: "todos os sistemas que temos no banco já precisam fazer o scraping igual o de Oblívio, mas
+  cada um com seu jeito específico de cada ficha dependendo do pdf". Primeiro a MEDIDA: uma
+  ferramenta de cobertura (`cobertura.node.test.ts`, `FICHAS="…"`) lista, ficha real por ficha
+  real, cada valor preenchido que não chega em campo, texto ou preset; e `camposBrutos.node.test.ts`
+  mostra os campos crus do PDF (nome, página, retângulo) pra escrever o leitor pelo formato. Depois,
+  o que cada ficha perdia, zerado:
+  - **D&D 5e (ficha do Go)**: as magias da página de conjuração viravam só um aviso, porque o campo
+    não tem nome (`Spells 1014`). Agora são lidas pela POSIÇÃO: três colunas, cada nível é o bloco
+    embaixo do cabeçalho `SlotsTotal N`, truques são o bloco do alto sem cabeçalho. Sai uma linha
+    por nível ("Truques = mãos mágicas, raio de fogo, lufada"; "Magias de nível 1 (3 espaços) =
+    flash, mísseis mágicos…"). O dado de vida ("1d8") vira campo e preset. O aviso
+    `dnd5e-magias-sem-nome` deixou de existir.
+  - **Ordem Paranormal, ficha da comunidade (Vincenzo)**: o grau de treino da perícia é um MENU
+    ("TREINADO"/"VETERANO") que a conta lia como zero — agora vai junto do total ("15 (Veterano)"), e
+    o total sem `b_` é refeito pelo bônus do grau (5/10/15). A página do livro anotada ao lado da
+    habilidade vai junto ("Conhecimento Aplicado (pág. 37)"). Os "extra" de PV/PE/Sanidade e os
+    limites do inventário (`limite_1..3`, "LIMITE DE", `mod_extra`) eram consumidos sem ser lidos.
+  - **Ordem Paranormal, ficha oficial (Matias)**: a quarta coluna da grade de ataques ("18/2",
+    crítico) vai na fonte do preset de dano, que é onde a arma aparece.
+  - **Pathfinder 2e (Rilver)**: os EFEITOS das ações e o gatilho/efeito das reações (página 3 da
+    ficha remaster) sumiam inteiros — na ficha real eram as descrições dos talentos, escritas sem
+    nome de ação. E a caixa livre das proficiências de arma ("bow - E").
+  - **Assimilação (Kieran)**: já chegava inteira; conferido pela ferramenta, zero perdas.
+  O que ainda aparece como "perdido" em Pathfinder é valor de fábrica do modelo (`REACTIONS PAGE 1
+  = 257`, `CANTRIPS PER DAY = ∞`, os menus em "NADA"), presente igual na ficha em branco.
+
+- **Golpe escrito em prosa vira preset em QUALQUER ficha** — pedido dele: "esse jeito do Oblívio,
+  vamos deixar pra TODAS as fichas". O que o leitor de Oblívio fazia só com as habilidades dele
+  (habilidade cujo texto diz Teste/Dano com o dado na mesma frase vira preset com o nome do golpe)
+  saiu do leitor e passou a rodar no `readSheet`, sobre os campos finais de qualquer leitor: o
+  "Características" de D&D, o "Habilidades" de Ordem, o talento de Pathfinder, o campo sem sistema
+  do genérico (`presetsDeProsa.ts`). O nome vem do "Nome:" que abre a frase ("Corte Cruel: Teste de
+  Combate com 2D6+1"), ou do rótulo do campo; a âncora dentro do nome ("ataque furtivo: 1d6", na
+  ficha do Go) ainda vale, com o tipo em aberto; "3d6 extra damage" é dano mesmo com "Attack" antes.
+  O preset de "campo inteiro" que o genérico fazia de um parágrafo com dado (um botão "Habilidades"
+  rolando o primeiro dado do texto) sai quando a prosa rendeu golpes com nome. Campo que o leitor
+  dedicado já transformou em preset (o item de Oblívio com "Dano:") não ganha um segundo botão.
+  Conferido nas fichas reais do corpus: nenhum preset novo de regra impressa.
+- **Ficha de texto sem formulário: o que não virou campo vai pro texto da ficha** (só no genérico;
+  o leitor dedicado conhece o modelo). Antes, o que não era "Rótulo: valor" era jogado fora — o
+  Espaço Livre de Oblívio mostrou que é ali que o jogador escreve o que não coube em campo. Ficam de
+  fora só o título da ficha e o rótulo impresso sem valor.
+- **O Espaço Livre de Oblívio em linhas legíveis**: o Google Docs exporta o texto justificado uma
+  palavra por fragmento ("Náusea", "ou", "Sem", "Fôlego."), e a ficha real chegava assim no bloco de
+  história. Fragmentos da mesma linha do papel viram uma linha.
+
 ## [1.1.2] — 2026-08-28
 
 O que sai pra quem testa: o personagem inteiro num arquivo (exportar na Ficha, importar noutro

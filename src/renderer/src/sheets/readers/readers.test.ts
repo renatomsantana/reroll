@@ -824,6 +824,32 @@ describe('equipamento carregado (Oblivio)', () => {
     expect(lido.rawText ?? '').toBe('')
   })
 
+  it('o item que já virou preset pelo leitor não ganha um segundo botão pela região do corpo', () => {
+    // A "Lâmina Curta" no braço esquerdo diz "Dano: 1D4": o leitor faz "Lâmina Curta (dano)", e a
+    // leitura em prosa (que agora vale pra toda ficha) NÃO pode fazer "Braço Esquerdo (dano)" em cima.
+    const lido = readSheet(fichaCom(EQUIPAMENTO))
+    const nomes = lido.presets.map((p) => p.name)
+    expect(nomes).toContain('Lâmina Curta (dano)')
+    expect(nomes.some((n) => /Braço|Torso/.test(n))).toBe(false)
+    expect(lido.presets.filter((p) => p.kind === 'damage')).toHaveLength(1)
+  })
+
+  it('os fragmentos da mesma linha do Espaço Livre viram uma linha só, e não uma palavra por linha', () => {
+    const lido = readSheet(
+      fichaCom([
+        ['Espaço Livre', 400],
+        ['Cão Velho (Efeito Passivo)', 380],
+        ['Náusea', 360],
+        ['ou', 360],
+        ['Sem', 360],
+        ['Fôlego', 360],
+        ['.', 360],
+        ['Inventário', 300]
+      ])
+    )
+    expect(lido.rawText).toBe('Cão Velho (Efeito Passivo)\nNáusea ou Sem Fôlego.')
+  })
+
   it('golpe que também diz o dano ganha o segundo preset, e prosa sem âncora não ganha nenhum', () => {
     const lido = readSheet(
       fichaCom([
@@ -1135,5 +1161,174 @@ describe('leitor de Assimilação', () => {
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Característica 1', group: 'Habilidades' }))
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Assimilação 1', group: 'Habilidades' }))
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Notas', group: 'História' }))
+  })
+})
+
+/**
+ * O JEITO DO OBLÍVIO, PRA TODA FICHA — pedido do usuário: "esse jeito do Oblívio, vamos deixar pra
+ * TODAS as fichas". O golpe escrito em prosa com Teste/Dano e o dado na mesma frase vira preset
+ * (`presetsDeProsa`, no `readSheet`), e a ficha de texto sem formulário não joga fora o que não
+ * virou campo. Os testes de Oblívio acima continuam valendo: são o mesmo código.
+ */
+describe('golpe em prosa vira preset — em qualquer ficha', () => {
+  it('formulário genérico: o "Nome:" que abre a frase nomeia o preset, e Teste/Dano dizem o tipo', () => {
+    const lido = readSheet(
+      ficha([
+        campo(
+          'Habilidades',
+          'Corte Cruel: Realize um Teste de Combate com 2D6+1 contra o alvo. Investida Feroz: Teste de Prontidão com 1D20 e, ao acertar, Dano: 2D4+2 na região atingida.'
+        )
+      ])
+    )
+    expect(lido.readerId).toBe('generico')
+    const golpes = lido.presets.filter((p) => /Corte Cruel|Investida Feroz/.test(p.name))
+    expect(golpes.map((p) => `${p.kind} ${p.name}`)).toEqual([
+      'test Corte Cruel',
+      'test Investida Feroz',
+      'damage Investida Feroz (dano)'
+    ])
+    expect(golpes[0].expression.groups).toEqual([{ count: 2, sides: 6 }])
+    expect(golpes[0].expression.modifiers).toEqual([{ type: 'flat', value: 1 }])
+    expect(golpes[2].expression.groups).toEqual([{ count: 2, sides: 4 }])
+  })
+
+  it('"ataque furtivo: 1d6" (a ficha de D&D do Go): a âncora dentro do nome ainda vale, e o tipo fica em aberto', () => {
+    const lido = readSheet(ficha([campo('Características', '(ladino) ataque furtivo: 1d6')]))
+    const furtivo = lido.presets.find((p) => /ataque furtivo/.test(p.name))
+    expect(furtivo?.kind).toBe('other')
+    expect(furtivo?.expression.groups).toEqual([{ count: 1, sides: 6 }])
+    // "Teste: 2D6" e "Dano: 1d8" não são nome de golpe: quem nomeia é o campo.
+    const semNome = readSheet(ficha([campo('Golpe especial', 'Teste: 2D6')]))
+    expect(semNome.presets.some((p) => p.name === 'Golpe especial' && p.kind === 'test')).toBe(true)
+    expect(semNome.presets.some((p) => p.name === 'Teste')).toBe(false)
+  })
+
+  it('o que vem DEPOIS do dado desempata: "3d6 extra damage" é dano, mesmo com "Attack" antes', () => {
+    const lido = readSheet(ficha([campo('Features', 'Sneak Attack: deals 3d6 extra damage.')]))
+    const furtivo = lido.presets.find((p) => /Sneak Attack/.test(p.name))
+    expect(furtivo?.kind).toBe('damage')
+    expect(furtivo?.name).toBe('Sneak Attack (dano)')
+  })
+
+  it('sem "Nome:" quem nomeia é o campo, e a segunda rolagem do mesmo bloco leva o dado no nome', () => {
+    const lido = readSheet(ficha([campo('Features', 'attack roll 1d20 to hit; attack roll 1d8 to hit')]))
+    const doBloco = lido.presets.filter((p) => p.kind === 'test')
+    expect(doBloco.map((p) => p.name)).toEqual(['Features', 'Features 1d8'])
+  })
+
+  it('prosa de regra sem âncora continua não virando preset', () => {
+    const lido = readSheet(
+      ficha([campo('Habilidades', 'Fardo Sombrio: seu atributo é permanentemente reduzido em 1D4 pontos ao usar esta técnica')])
+    )
+    expect(lido.presets.some((p) => /Fardo Sombrio/.test(p.name))).toBe(false)
+  })
+
+  it('vale pros leitores dedicados também: uma habilidade escrita na ficha de Ordem vira o preset do golpe', () => {
+    const lido = readSheet(
+      ficha([
+        campo('Personagem', 'Riebeck'),
+        ...ATRIBUTOS,
+        ...ataque(0, 'Faca', '+7', '1d4+2'),
+        campo('Habilidades', 'Golpe Certeiro: Teste de Luta com 1d20+5 e Dano: 2d6 no alvo.')
+      ])
+    )
+    expect(lido.readerId).toBe('ordem-paranormal')
+    const nomes = lido.presets.map((p) => p.name)
+    expect(nomes).toContain('Golpe Certeiro')
+    expect(nomes).toContain('Golpe Certeiro (dano)')
+    // E os presets que o leitor já fazia continuam lá, sem repetir.
+    expect(nomes.filter((n) => /Faca/.test(n))).toHaveLength(2)
+  })
+
+  it('ficha de TEXTO sem formulário: o que não virou campo vai pro texto da ficha, sem o título nem o rótulo vazio', () => {
+    const muitoTexto = Array.from({ length: 60 }, (_, i) => texto(`linha ${i}`, 50, 700 - i * 11))
+    const lido = readSheet(
+      ficha(
+        [],
+        [
+          texto('FICHA DE PERSONAGEM', 50, 780),
+          texto('Nome: Elias Ramos', 50, 760),
+          texto('Ocupação:', 50, 740),
+          texto('Deve 50 moedas ao ferreiro', 50, 720),
+          ...muitoTexto
+        ]
+      )
+    )
+    expect(lido.readerId).toBe('generico')
+    expect(lido.fields.find((c) => c.label === 'Nome')?.value).toBe('Elias Ramos')
+    expect(lido.rawText).toContain('Deve 50 moedas ao ferreiro')
+    expect(lido.rawText).toContain('linha 7')
+    expect(lido.rawText).not.toContain('FICHA DE PERSONAGEM')
+    expect(lido.rawText).not.toContain('Ocupação:')
+    expect(lido.rawText).not.toContain('Elias Ramos')
+  })
+})
+
+/**
+ * O JEITO ESPECÍFICO das duas fichas de Ordem Paranormal — pedido do usuário: cada sistema raspado
+ * "igual o de Oblívio, cada um com seu jeito específico dependendo do PDF". Medido nas fichas reais
+ * do Vincenzo (comunidade) e do Matias (oficial) com a ferramenta de cobertura.
+ */
+describe('Ordem Paranormal — o que a ficha da comunidade ainda perdia', () => {
+  const lido = readSheet(
+    ficha([
+      campo('Nome do Personagem', 'Vincenzo Moretti'),
+      campo('atr_agi', '1'),
+      campo('atr_for', '1'),
+      campo('atr_int', '5'),
+      campo('atr_pre', '3'),
+      campo('atr_vig', '1'),
+      campo('NivelExposicao', '65'),
+      // O treinamento é um MENU na ficha ("TREINADO"/"VETERANO"/"EXPERT"), não um número.
+      campo('t_medicina', 'VETERANO'),
+      campo('o_medicina', '5'),
+      campo('b_crime', '5'),
+      campo('t_crime', 'TREINADO'),
+      campo('Habilidade_1', 'Conhecimento Aplicado'),
+      campo('Pagina_Hab_1', '37'),
+      campo('san_extra', '-8'),
+      campo('limite_1', '3'),
+      campo('limite_2', '2'),
+      campo('limite_3', '1'),
+      campo('LIMITE DE', 'Médio'),
+      campo('mod_extra', '25')
+    ])
+  )
+  const valorDe = (label: string) => lido.fields.find((c) => c.label === label)?.value
+
+  it('o grau de treino vai junto do total, e o total sem b_ é refeito pelo bônus do grau', () => {
+    expect(valorDe('Medicina')).toBe('15 (Veterano)')
+    expect(valorDe('Crime')).toBe('5 (Treinado)')
+  })
+
+  it('a página do livro anotada ao lado da habilidade vai junto', () => {
+    expect(valorDe('Habilidade 1')).toBe('Conhecimento Aplicado (pág. 37)')
+  })
+
+  it('os "extra" dos recursos e os limites do inventário chegam com o rótulo impresso', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Sanidade extra', value: '-8', group: 'Recursos' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Limite', value: 'I: 3 · II: 2 · III: 1', group: 'Inventário' }))
+    expect(valorDe('Limite de')).toBe('Médio')
+    expect(valorDe('Mod. extra')).toBe('25')
+  })
+})
+
+describe('Ordem Paranormal — a quarta coluna da grade de ataques da ficha oficial', () => {
+  it('"18/2" (crítico) vai na fonte do preset de dano, que é onde a arma aparece', () => {
+    const lido = readSheet(
+      ficha([
+        campo('Personagem', 'Matias'),
+        ...ATRIBUTOS,
+        campo('Atq1.0.0.0.0', 'Ataque com Faca'),
+        campo('Atq1.0.0.0.1', '2d20'),
+        campo('Atq1.0.0.0.2', '2d6'),
+        campo('Atq1.0.0.0.3', '18/2')
+      ])
+    )
+    const dano = lido.presets.find((p) => p.name === 'Ataque com Faca (dano)')
+    expect(dano?.source).toBe('2d6 · 18/2')
+    // Sem a quarta coluna, a fonte continua sendo só o dano.
+    const semExtra = readSheet(ficha([campo('Personagem', 'Matias'), ...ATRIBUTOS, ...ataque(0, 'Faca', '+7', '1d4+2')]))
+    expect(semExtra.presets.find((p) => p.name === 'Faca (dano)')?.source).toBe('1d4+2')
   })
 })

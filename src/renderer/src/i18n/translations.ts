@@ -950,8 +950,6 @@ export const translations: Record<Language, TranslationDict> = {
           'Esta ficha é uma IMAGEM com o texto escrito por cima: os nomes dos campos fazem parte do desenho, então o app não tem como saber o que é cada valor. Trouxe tudo o que você escreveu, na ordem em que está na página, pra você organizar na ficha do personagem.',
         'ordem-maior-dado':
           'Nos testes desta ficha vale o MAIOR dado, e não a soma: é a regra de Ordem Paranormal, e os presets de teste já foram criados assim. Se algum ataque seu usa um atributo ZERO, que rola dois e fica com o PIOR, troque para "menor" no editor do preset.',
-        'dnd5e-magias-sem-nome':
-          'Esta ficha tem magias escritas na página de conjuração. O PDF guarda cada linha delas sem nome nenhum (só a posição na página), então não dá pra trazer o nome de cada magia: as que estiverem na caixa "Ataques e Magias" da primeira página vieram, e o resto você escreve no bloco de habilidades.',
         'dnd5e-modelo-em-branco':
           'Não achei nome de personagem nem nenhum ataque nesta ficha: ela parece ser o modelo em branco. Confira o que veio abaixo antes de importar.',
         'paginas-demais':
@@ -1408,8 +1406,6 @@ export const translations: Record<Language, TranslationDict> = {
           'This sheet is an IMAGE with the text typed over it: the field names are part of the drawing, so the app cannot tell what each value is. I brought everything you wrote, in the order it appears on the page, for you to organize in the character sheet.',
         'ordem-maior-dado':
           'Checks on this sheet use the HIGHEST die, not the sum: that is the Ordem Paranormal rule, and the check presets were created that way. If one of your attacks uses a ZERO attribute, which rolls two and keeps the WORST, switch it to "lowest" in the preset editor.',
-        'dnd5e-magias-sem-nome':
-          'This sheet has spells written on the spellcasting page. The PDF stores each of those lines with no name at all (only its position on the page), so the name of each spell cannot be brought over: whatever is in the "Attacks & Spellcasting" box on page one did come through, and you can write the rest in the abilities block.',
         'dnd5e-modelo-em-branco':
           'I found no character name and no attack in this sheet: it looks like the blank template. Check what came through before importing.',
         'paginas-demais':

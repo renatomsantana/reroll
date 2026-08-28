@@ -1,6 +1,7 @@
 import type { PdfSheet, SheetImport } from '@shared/types/sheetImport'
 import type { Language } from '@shared/types/idioma'
-import { genericReader } from './generic'
+import { genericReader, presetsSemRepetidos } from './generic'
+import { presetsDeProsa } from './presetsDeProsa'
 import { ordemParanormalReader } from './ordemParanormal'
 import { oblivioReader } from './oblivio'
 import { dnd5eReader } from './dnd5e'
@@ -45,7 +46,16 @@ export function readSheet(sheet: PdfSheet, idioma: Language = 'pt-BR'): SheetImp
       escolhido = leitor
     }
   }
-  return escolhido.extract(sheet, idioma)
+  const lido = escolhido.extract(sheet, idioma)
+  /**
+   * O que vale pra TODA ficha, depois do leitor: golpe escrito em prosa ("Corte Cruel: Teste de
+   * Combate com 2D6+1") vira preset com o nome do golpe — ver `presetsDeProsa`. Roda aqui, e não em
+   * cada leitor, porque cada um compõe os presets do seu jeito (D&D e Pathfinder nem aproveitam os
+   * do genérico) e o pedido do usuário foi "esse jeito do Oblívio, pra TODAS as fichas".
+   */
+  const prosa = presetsDeProsa(lido.fields, lido.presets)
+  const doLeitor = lido.presets.filter((preset) => !prosa.substituidos.has(preset))
+  return { ...lido, presets: presetsSemRepetidos([...doLeitor, ...prosa.presets]) }
 }
 
 export type { SheetReader }

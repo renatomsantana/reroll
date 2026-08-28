@@ -129,10 +129,13 @@ describe('ficha de D&D 5e, do PDF até a aba Ficha', () => {
     expect(nomes.some((n) => /^\+?\d+$/.test(n))).toBe(false)
   })
 
-  it('as magias escritas na página de conjuração viram AVISO, e não sessenta linhas sem nome', async () => {
+  it('as magias da página de conjuração chegam por NÍVEL, lidas pela posição na página', async () => {
     const lido = await importar()
+    // Uma linha por nível, e não uma por magia: "Missil Magico" está dentro da linha do nível dela.
+    const linhasDeMagia = lido.fields.filter((c) => c.group === 'Magia' && /Missil Magico/.test(c.value))
+    expect(linhasDeMagia).toHaveLength(1)
+    expect(linhasDeMagia[0].label).toMatch(/^Truques$|^Magias de nível \d/)
     expect(lido.fields.some((c) => c.value === 'Missil Magico')).toBe(false)
-    expect(lido.warnings).toContain('dnd5e-magias-sem-nome')
   })
 
   it('na aba Ficha, cada coisa cai no seu lugar', async () => {

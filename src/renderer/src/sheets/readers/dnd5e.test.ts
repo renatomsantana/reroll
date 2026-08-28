@@ -243,8 +243,9 @@ describe('o que a ficha de D&D 5e entrega', () => {
     ])
     const lidoComLixo = readSheet(comLixo)
     expect(lidoComLixo.fields.some((c) => /^Check Box|^Spells |^1_2$/.test(c.label))).toBe(false)
-    // Mas o que se perdeu é DITO: magia escrita na página de conjuração vira aviso, não silêncio.
-    expect(lidoComLixo.warnings).toContain('dnd5e-magias-sem-nome')
+    // A magia NÃO se perde: sem cabeçalho de nível acima dela, é truque (ver `magiasPorNivel`).
+    expect(lidoComLixo.fields.find((c) => c.label === 'Truques')).toMatchObject({ value: 'Mísseis Mágicos', group: 'Magia' })
+    expect(lidoComLixo.warnings).not.toContain('dnd5e-magias-sem-nome')
   })
 })
 
@@ -324,5 +325,48 @@ describe('atributo de D&D preenchido de todo jeito', () => {
     // e é o que acontece quando a pessoa preenche a ficha pensando na hora de rolar.
     const seis = [campo('STR', '+3'), campo('DEX', ''), campo('CON', ''), campo('INT', ''), campo('WIS', ''), campo('CHA', '')]
     expect(atributo(seis)?.roll).toBe('d20')
+  })
+})
+
+/**
+ * O JEITO ESPECÍFICO da ficha oficial de D&D: as magias moram em campos sem nome (`Spells 1014`),
+ * e o que diz o nível delas é a POSIÇÃO na página de conjuração — pedido do usuário: cada sistema
+ * raspado "igual o de Oblívio, cada um com seu jeito específico dependendo do PDF".
+ */
+describe('as magias da página de conjuração, lidas pela posição', () => {
+  function campoEm(name: string, value: string, rect: [number, number, number, number], page = 3): PdfField {
+    return { name, type: 'text', value, page, rect }
+  }
+  // Retângulos MEDIDOS na ficha do Go: três colunas (x 40, 230, 417), cabeçalho `SlotsTotal N` por nível.
+  const PAGINA_DE_MAGIA = [
+    campoEm('SlotsTotal 19', '3', [52, 457, 91, 478]),
+    campoEm('SlotsTotal 20', '', [52, 229, 91, 250]),
+    campoEm('SlotsTotal 21', '', [241, 625, 280, 646]),
+    campoEm('Spells 1014', 'mãos mágicas', [40, 607, 199, 620]),
+    campoEm('Spells 1016', 'raio de fogo', [40, 594, 199, 606]),
+    campoEm('Spells 1015', 'flash', [41, 422, 199, 432]),
+    campoEm('Spells 1023', 'mísseis mágicos', [41, 408, 199, 418]),
+    campoEm('Spells 1034', 'invisibilidade', [41, 200, 199, 210]),
+    campoEm('Spells 1048', 'bola de fogo', [230, 606, 388, 616])
+  ]
+  const lido = readSheet(ficha([...PERSONAGEM.fields, ...PAGINA_DE_MAGIA]))
+  const porRotulo = new Map(lido.fields.filter((c) => c.group === 'Magia').map((c) => [c.label, c.value]))
+
+  it('acima do primeiro cabeçalho da coluna é truque; abaixo de cada cabeçalho é o nível dele', () => {
+    expect(porRotulo.get('Truques')).toBe('mãos mágicas, raio de fogo')
+    expect(porRotulo.get('Magias de nível 1 (3 espaços)')).toBe('flash, mísseis mágicos')
+    expect(porRotulo.get('Magias de nível 2')).toBe('invisibilidade')
+    expect(porRotulo.get('Magias de nível 3')).toBe('bola de fogo')
+  })
+
+  it('uma linha por nível, e nenhuma "Spells 1014" crua', () => {
+    expect(lido.fields.some((c) => /^Spells/.test(c.label))).toBe(false)
+    expect(lido.fields.filter((c) => /^Magias de nível|^Truques/.test(c.label))).toHaveLength(4)
+  })
+
+  it('o dado de vida ("1d8") vira campo E preset', () => {
+    const comDado = readSheet(ficha([...PERSONAGEM.fields, campo('HD', '1d8')]))
+    expect(comDado.fields).toContainEqual(expect.objectContaining({ label: 'Dado de vida', value: '1d8', group: 'Combate' }))
+    expect(comDado.presets).toContainEqual(expect.objectContaining({ name: 'Dado de vida', kind: 'other', source: '1d8' }))
   })
 })

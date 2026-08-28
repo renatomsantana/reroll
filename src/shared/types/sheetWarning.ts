@@ -30,8 +30,6 @@ export type SheetWarningId =
   | 'arte-com-anotacao'
   /** Ordem Paranormal: os testes valem o MAIOR dado, e os presets já foram criados com essa regra. */
   | 'ordem-maior-dado'
-  /** D&D 5e: as magias da página de conjuração não têm nome de campo pra serem lidas. */
-  | 'dnd5e-magias-sem-nome'
   /** D&D 5e: nenhum nome e nenhum ataque — parece o modelo em branco baixado do site. */
   | 'dnd5e-modelo-em-branco'
   /** Mais páginas do que uma ficha tem (`MAXIMO_DE_PAGINAS_DA_FICHA`): é um livro, e nada foi lido. */
