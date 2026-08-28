@@ -499,7 +499,16 @@ export interface TranslationDict {
     destinationUpdateHint: string
     update: string
     kinds: { test: string; damage: string; other: string }
-    errors: { picker: string; tooLarge: string; unreadable: string; parse: string; save: string }
+    errors: {
+      picker: string
+      tooLarge: string
+      unreadable: string
+      parse: string
+      save: string
+      /** O arquivo escolhido não é PDF, e o caso mais comum: é o personagem exportado pelo Reroll. */
+      notPdf: string
+      rerollPackage: string
+    }
     warnings: Record<SheetWarningId, string>
   }
   errorBoundary: { title: string; message: string; reload: string }
@@ -935,6 +944,8 @@ export const translations: Record<Language, TranslationDict> = {
         unreadable:
           'Não consegui abrir esse arquivo. Confira se ele ainda está no lugar e se você tem permissão para lê-lo.',
         parse: 'Não consegui ler este PDF. Ele pode estar protegido por senha ou danificado.',
+        notPdf: 'Este arquivo não é um PDF. Aqui entra a ficha de personagem em PDF; pra trazer um personagem exportado pelo Reroll, use "Importar personagem Reroll".',
+        rerollPackage: 'Este arquivo é um personagem exportado pelo Reroll, não uma ficha em PDF. Use o botão "Importar personagem Reroll" pra trazer ele.',
         save: 'Li a ficha, mas não consegui gravar o personagem.'
       },
       warnings: {
@@ -1391,6 +1402,8 @@ export const translations: Record<Language, TranslationDict> = {
         unreadable:
           'Could not open that file. Check that it is still there and that you have permission to read it.',
         parse: 'Could not read this PDF. It may be password protected or damaged.',
+        notPdf: 'This file is not a PDF. This button takes the character sheet as a PDF; to bring in a character exported by Reroll, use "Import Reroll character".',
+        rerollPackage: 'This file is a character exported by Reroll, not a PDF sheet. Use the "Import Reroll character" button to bring it in.',
         save: 'I read the sheet, but could not save the character.'
       },
       warnings: {

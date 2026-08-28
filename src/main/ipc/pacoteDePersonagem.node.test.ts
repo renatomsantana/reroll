@@ -207,6 +207,11 @@ describe('o personagem inteiro num arquivo', () => {
     await fs.writeFile(qualquer, '<html><body>uma página qualquer</body></html>', 'utf-8')
     await expect(lerPacoteDoArquivo(qualquer)).rejects.toThrow(/não é um personagem exportado/)
 
+    // A ficha em PDF no botão errado: a mensagem diz qual é o botão certo (pedido dele).
+    const pdf = join(userData, 'ficha.pdf')
+    await fs.writeFile(pdf, '%PDF-1.4\n1 0 obj << >> endobj', 'latin1')
+    await expect(lerPacoteDoArquivo(pdf)).rejects.toThrow(/Importar ficha \(PDF\)/)
+
     const gordo = join(userData, 'gordo.html')
     await fs.writeFile(gordo, '')
     await fs.truncate(gordo, TAMANHO_MAXIMO_DO_PACOTE + 1)

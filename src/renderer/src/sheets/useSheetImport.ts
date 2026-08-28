@@ -62,6 +62,15 @@ export function useSheetImport() {
     if (!escolhido.ok) {
       // Fechar o diálogo não é erro — é a pessoa desistindo, e mensagem aqui seria acusação.
       if (escolhido.motivo === 'cancelado') return
+      // Arquivo errado, dito com o nome do botão certo — pedido dele.
+      if (escolhido.motivo === 'pacote-do-reroll') {
+        setErro(t.sheetImport.errors.rerollPackage)
+        return
+      }
+      if (escolhido.motivo === 'nao-e-pdf') {
+        setErro(t.sheetImport.errors.notPdf)
+        return
+      }
       if (escolhido.motivo === 'muito-grande') {
         const mb = Math.round(escolhido.tamanho / (1024 * 1024))
         setErro(t.sheetImport.errors.tooLarge.replace('{mb}', String(mb)))

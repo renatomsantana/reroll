@@ -12,6 +12,24 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
 (§3.8): pronto na `main`, instalado na máquina dele, guardado pra uma liberação própria — é o
 `HUD_LIBERADO` em `src/shared/liberacoes.ts`, que o branch de lançamento vira pra `false`.
 
+### Corrigido (arquivo errado na importação)
+
+- **Subir o arquivo errado mostra uma mensagem que diz o botão certo** — pedido dele: "se
+  uploadarem o arquivo errado, aparecer uma mensagem". Os dois botões da Ficha ficam lado a lado e
+  se cruzam: o personagem exportado pelo Reroll (`Nome - Reroll.html`, ou o JSON dele) no
+  "Importar ficha (PDF)" agora diz "é um personagem exportado pelo Reroll, use Importar personagem
+  Reroll"; qualquer outro arquivo que não seja PDF diz "não é um PDF"; e uma ficha em PDF no
+  "Importar personagem Reroll" diz "é uma ficha em PDF, use Importar ficha (PDF)". Antes os dois
+  primeiros caíam em "não consegui ler este PDF, pode estar protegido por senha ou danificado", que
+  não era o caso, e o terceiro em "não é um personagem exportado", sem dizer o que fazer. PDF que
+  não é ficha (livro, imagem digitalizada, modelo em branco) já virava aviso na conferência.
+
+### Alterado (o cliente dele)
+
+- **O HUD nasce em cima à esquerda** — pedido dele ("deixa o hud na esquerda superior"); nascia
+  embaixo à direita e ele tinha arrastado todos os personagens pro canto oposto. O canto continua
+  sendo do personagem: quem arrastar, fica onde soltou.
+
 ### Adicionado
 
 - **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela

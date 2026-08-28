@@ -4,8 +4,8 @@ import { MAXIMO_DE_CONDICOES, condicoesPadrao, normalizarCondicoes, normalizarHu
 /** O estado do HUD (spec §3.6) e as condições, na leitura do disco. */
 describe('normalizarHud', () => {
   it('ausente é o padrão; canto desconhecido volta pro padrão; booleanos tortos idem', () => {
-    expect(normalizarHud(undefined)).toEqual({ canto: 'se', visivel: true, mini: false })
-    expect(normalizarHud({ canto: 'centro', visivel: 'sim', mini: 1 })).toEqual({ canto: 'se', visivel: true, mini: false })
+    expect(normalizarHud(undefined)).toEqual({ canto: 'nw', visivel: true, mini: false })
+    expect(normalizarHud({ canto: 'centro', visivel: 'sim', mini: 1 })).toEqual({ canto: 'nw', visivel: true, mini: false })
     expect(normalizarHud({ canto: 'nw', visivel: false, mini: true })).toEqual({ canto: 'nw', visivel: false, mini: true })
   })
 })

@@ -198,6 +198,10 @@ export type PdfEscolhido =
   | { ok: false; motivo: 'cancelado' }
   | { ok: false; motivo: 'muito-grande'; tamanho: number }
   | { ok: false; motivo: 'ilegivel'; detalhe: string }
+  /** Não tem a assinatura de PDF: outro tipo de arquivo (ver `parecePacoteDoReroll` pro caso especial). */
+  | { ok: false; motivo: 'nao-e-pdf' }
+  /** É o personagem exportado pelo Reroll: o botão certo é "Importar personagem Reroll". */
+  | { ok: false; motivo: 'pacote-do-reroll' }
 
 export interface SheetApplyPayload {
   /**
