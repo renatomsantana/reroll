@@ -8,7 +8,7 @@ import {
 import type { SheetWarningId } from '@shared/types/sheetWarning'
 import { parseDiceExpression } from '@shared/dice/parseDiceExpression'
 import { labelFromFieldName, rotulosExclusivos } from '../labelForField'
-import { camposDoTexto } from '../camposDoTexto'
+import { lerCamposDoTexto } from '../camposDoTexto'
 import {
   TEXTO_MINIMO,
   camposDeAnotacao,
@@ -221,17 +221,35 @@ export function extrairGenerico(
   if (sheet.fields.length === 0) {
     // Rótulo e valor tirados do TEXTO impresso (ver `camposDoTexto`) — é o que faz uma ficha sem
     // formulário render um personagem em vez de só um punhado de rolagens soltas.
-    fields.push(...camposDoTexto(sheet))
+    const lidoDoTexto = lerCamposDoTexto(sheet)
+    fields.push(...lidoDoTexto.campos)
 
     presets.push(...presetsDoTexto(sheet))
+
+    /**
+     * O QUE SOBROU do texto vai junto, como texto da ficha — só no leitor GENÉRICO. Numa ficha de
+     * texto sem formulário, o que não é "Rótulo: valor" era jogado fora, e o Espaço Livre de Oblívio
+     * mostrou que é ali que o jogador escreve o que não coube em campo nenhum (regra do usuário:
+     * "qualquer anotação de player no pdf precisamos trazer"). O leitor dedicado conhece o modelo e
+     * sabe separar o impresso do digitado (Oblívio faz isso em `espacoLivre`); o genérico não
+     * conhece, então traz tudo e deixa a caixa da conferência decidir. Ficam de fora só o título da
+     * ficha e o rótulo impresso sem valor ("Nome:"), que são o modelo falando.
+     */
+    if (readerId === 'generico') {
+      const sobra = sheet.texts
+        .filter((texto) => !lidoDoTexto.usados.has(texto))
+        .map((texto) => texto.text.trim())
+        .filter((texto) => /[\p{L}\p{N}]{2}/u.test(texto) && !ehTituloDeFicha(texto) && !texto.endsWith(':'))
+      if (sobra.length > 0) rawText = [...new Set(sobra)].join('\n')
+    }
   }
 
   // Repetidos fora (a grade de perícias enche isto de cópias), a ordem preservada.
   const anotacoesSemRotulo = [...new Set(semRotulo)]
-  if (anotacoesSemRotulo.length > 0) rawText = anotacoesSemRotulo.join('\n')
+  if (anotacoesSemRotulo.length > 0) rawText = [rawText, anotacoesSemRotulo.join('\n')].filter(Boolean).join('\n\n')
 
   const semRuido = camposSemRepetidos(fields)
-  const presetsFinais = semRepetidos(presets)
+  const presetsFinais = presetsSemRepetidos(presets)
   const nome = acharNome(sheet, fields, readerId, leuAlgumaCoisa(sheet, semRuido, presetsFinais))
 
   /**
@@ -568,7 +586,7 @@ export function pareceNomeDePersonagem(valor: string): boolean {
  * formulário lê o mesmo texto uma vez por fragmento que o extrator devolve. Vinte presets "1d6"
  * iguais na tela é o tipo de resultado que faz o usuário fechar a janela.
  */
-function semRepetidos(presets: SheetImportPreset[]): SheetImportPreset[] {
+export function presetsSemRepetidos(presets: SheetImportPreset[]): SheetImportPreset[] {
   const vistos = new Set<string>()
   return presets.filter((preset) => {
     const chave = `${preset.name}|${JSON.stringify(preset.expression)}`

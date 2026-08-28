@@ -12,6 +12,28 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
 (§3.8): pronto na `main`, instalado na máquina dele, guardado pra uma liberação própria — é o
 `HUD_LIBERADO` em `src/shared/liberacoes.ts`, que o branch de lançamento vira pra `false`.
 
+### Adicionado (o jeito do Oblívio, pra toda ficha)
+
+- **Golpe escrito em prosa vira preset em QUALQUER ficha** — pedido dele: "esse jeito do Oblívio,
+  vamos deixar pra TODAS as fichas". O que o leitor de Oblívio fazia só com as habilidades dele
+  (habilidade cujo texto diz Teste/Dano com o dado na mesma frase vira preset com o nome do golpe)
+  saiu do leitor e passou a rodar no `readSheet`, sobre os campos finais de qualquer leitor: o
+  "Características" de D&D, o "Habilidades" de Ordem, o talento de Pathfinder, o campo sem sistema
+  do genérico (`presetsDeProsa.ts`). O nome vem do "Nome:" que abre a frase ("Corte Cruel: Teste de
+  Combate com 2D6+1"), ou do rótulo do campo; a âncora dentro do nome ("ataque furtivo: 1d6", na
+  ficha do Go) ainda vale, com o tipo em aberto; "3d6 extra damage" é dano mesmo com "Attack" antes.
+  O preset de "campo inteiro" que o genérico fazia de um parágrafo com dado (um botão "Habilidades"
+  rolando o primeiro dado do texto) sai quando a prosa rendeu golpes com nome. Campo que o leitor
+  dedicado já transformou em preset (o item de Oblívio com "Dano:") não ganha um segundo botão.
+  Conferido nas fichas reais do corpus: nenhum preset novo de regra impressa.
+- **Ficha de texto sem formulário: o que não virou campo vai pro texto da ficha** (só no genérico;
+  o leitor dedicado conhece o modelo). Antes, o que não era "Rótulo: valor" era jogado fora — o
+  Espaço Livre de Oblívio mostrou que é ali que o jogador escreve o que não coube em campo. Ficam de
+  fora só o título da ficha e o rótulo impresso sem valor.
+- **O Espaço Livre de Oblívio em linhas legíveis**: o Google Docs exporta o texto justificado uma
+  palavra por fragmento ("Náusea", "ou", "Sem", "Fôlego."), e a ficha real chegava assim no bloco de
+  história. Fragmentos da mesma linha do papel viram uma linha.
+
 ### Adicionado
 
 - **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela

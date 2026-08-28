@@ -44,6 +44,16 @@ const ALCANCE_NA_LINHA = 95
 const MESMA_LINHA = 4
 
 export function camposDoTexto(sheet: PdfSheet): SheetImportField[] {
+  return lerCamposDoTexto(sheet).campos
+}
+
+/**
+ * A mesma leitura, dizendo também QUAIS fragmentos ela consumiu. É o que o genérico precisa pra
+ * guardar o resto como texto da ficha (regra do usuário: "qualquer anotação de player no pdf
+ * precisamos trazer") — sem isto, numa ficha de texto sem formulário tudo que não era "Rótulo:
+ * valor" era jogado fora, e o Espaço Livre de Oblívio mostrou que ali mora anotação de jogador.
+ */
+export function lerCamposDoTexto(sheet: PdfSheet): { campos: SheetImportField[]; usados: Set<PdfText> } {
   const campos: SheetImportField[] = []
   const usados = new Set<PdfText>()
 
@@ -86,10 +96,13 @@ export function camposDoTexto(sheet: PdfSheet): SheetImportField[] {
       if (dx < -2 || dx > ALCANCE_NA_LINHA) continue
       if (!melhor || dx < melhor.distancia) melhor = { distancia: dx, label: rotulo.text.trim().slice(0, -1) }
     }
-    if (melhor) campos.push({ label: melhor.label, value: valor })
+    if (melhor) {
+      campos.push({ label: melhor.label, value: valor })
+      usados.add(item)
+    }
   }
 
-  return semRepetidos(campos)
+  return { campos: semRepetidos(campos), usados }
 }
 
 /**
