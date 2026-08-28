@@ -28,6 +28,8 @@ import { DescansoModal } from '@renderer/components/recursos/DescansoModal'
 import { HudDoPersonagem } from '@renderer/components/hud/HudDoPersonagem'
 import { DescansoEditorModal } from '@renderer/components/recursos/DescansoEditorModal'
 import { aplicarDescanso, resumoDoDescanso, type Descanso } from '@shared/types/descanso'
+import { HUD_LIBERADO } from '@shared/liberacoes'
+import type { RecursoVital } from '@shared/types/recursoVital'
 import { rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
 import { useDialogo } from '@renderer/components/common/Dialogo'
 import { linhaParaChat } from '@shared/dice/linhaParaChat'
@@ -39,6 +41,9 @@ import { StyleTab } from '@renderer/components/style/StyleTab'
 import { UpdatePrompt } from '@renderer/components/chrome/UpdatePrompt'
 import { SplashScreen } from '@renderer/components/splash/SplashScreen'
 import './App.css'
+
+/** Lista vazia e ESTÁVEL pra quando o HUD não está liberado: mesma referência a cada render. */
+const SEM_BARRAS: RecursoVital[] = []
 
 export default function App() {
   const { soundEnabled, compactMode, launchMode, autoCopyRolls, copyMarkdown, critSoundEnabled } = useSettings()
@@ -100,7 +105,8 @@ export default function App() {
    * por que não pode ser uma cópia própria.
    */
   const notas = useNotes()
-  const recursos = notas.notes.recursos
+  /** Com o HUD ainda não liberado (ver `liberacoes.ts`), as barras existem no arquivo, não na tela. */
+  const recursos = HUD_LIBERADO ? notas.notes.recursos : SEM_BARRAS
   const [editandoRecursos, setEditandoRecursos] = useState(false)
   const quantidadeDeBarras = recursos.length
   /** Algum modal das barras aberto — trava os atalhos da cena e o Ctrl+N. */
@@ -367,7 +373,7 @@ export default function App() {
                     criar/editar barras e o Descansar moram no HUD por isso.
                   */
                   overlay={
-                    notas.loadedFor === profiles.activeId && (
+                    HUD_LIBERADO && notas.loadedFor === profiles.activeId && (
                       <HudDoPersonagem
                         profile={profiles.active}
                         fallbackName={t.notesTab.profileUnnamed.replace('{n}', String(indiceDoAtivo + 1))}

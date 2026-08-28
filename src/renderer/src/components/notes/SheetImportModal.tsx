@@ -8,6 +8,7 @@ import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap'
 import { RecorteDeFotoModal } from '../foto/RecorteDeFotoModal'
+import { HUD_LIBERADO } from '@shared/liberacoes'
 import './SheetImportModal.css'
 
 /**
@@ -331,9 +332,10 @@ export function SheetImportModal({
         {/*
           As barras vêm ANTES das duas listas: são poucas (três numa ficha de Ordem) e são o que a
           pessoa vai clicar em toda sessão — o que mais vale conferir, e o que mais custa se vier
-          errado. "Atual em branco" é dito barra por barra, como a spec pede.
+          errado. "Atual em branco" é dito barra por barra, como a spec pede. Com o HUD ainda não
+          liberado (`liberacoes.ts`) a seção não aparece: as barras vão gravadas, mas ninguém as veria.
         */}
-        {recursosLidos.length > 0 && (
+        {HUD_LIBERADO && recursosLidos.length > 0 && (
           <section className="sheet-import-section sheet-import-resources">
             <h3>
               {t.sheetImport.resourcesTitle} <span>{contagem(recursosEscolhidos.length, recursosLidos.length)}</span>
