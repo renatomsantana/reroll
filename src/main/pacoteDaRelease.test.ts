@@ -114,8 +114,13 @@ describe.skipIf(!temBuild)('o pacote de release', () => {
      * A pasta guarda os instaladores antigos, e o `latest.yml` é reescrito a cada build. Se um build
      * falhar no meio, sobra um `latest.yml` novo apontando pra um `.exe` velho — e aí a release sai
      * com o instalador errado, que é pior que sair sem nenhum.
+     *
+     * Só os INSTALADORES (`Reroll-Setup-*`): o build portátil (`Reroll-Portatil-*`, alvo `portable`
+     * no `electron-builder.yml`) é empacotado DEPOIS do NSIS no mesmo build, então é sempre o
+     * arquivo mais novo da pasta e não é o que o `latest.yml` nomeia. Foi o que derrubou o CI do
+     * 1.1.2 na primeira tentativa: o pacote estava certo, o teste é que olhava o arquivo errado.
      */
-    const exes = readdirSync(PASTA).filter((n) => n.endsWith('.exe') && !n.includes('uninstaller'))
+    const exes = readdirSync(PASTA).filter((n) => /^Reroll-Setup-.*.exe$/.test(n))
     const maisNovo = exes
       .map((nome) => ({ nome, mtime: statSync(join(PASTA, nome)).mtimeMs }))
       .sort((a, b) => b.mtime - a.mtime)[0]
