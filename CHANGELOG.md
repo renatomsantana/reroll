@@ -8,10 +8,96 @@ Cada versão publicada tem o SHA-256 do instalador na página da release — con
 
 ## [Não lançado]
 
-Enquanto os testadores rodam o beta.2, entram as especificações novas da spec (§3.4–3.9): o app
-como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
+O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) e o Descansar
+(§3.8): pronto na `main`, instalado na máquina dele, guardado pra uma liberação própria — é o
+`HUD_LIBERADO` em `src/shared/liberacoes.ts`, que o branch de lançamento vira pra `false`.
 
 ### Adicionado
+
+- **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela
+  de rolagem, no HUD sobre a cena (ver §3.6), com "−" e "+" ao lado de cada uma: clique tira ou soma 1,
+  Shift+clique ou segurar o botão anda de 5 em 5, e clicar no número abre um campo que aceita
+  conta (`-7`), valor exato (`12`) ou o par inteiro (`12/40`). A cor muda de bloco com o estado:
+  verde, oliva abaixo da metade, bordô abaixo de um quarto — as três da paleta do Windows — ou uma
+  cor fixa escolhida por barra. Cada clique GRAVA na hora no `notes.json` do personagem, então
+  trocar de ficha e voltar, ou fechar o app no meio do combate, não perde o PV.
+
+- **As barras no modo compacto também**: uma linha fina por barra entre o dado e os presets, e a
+  janelinha CRESCE 19px por barra (medido numa janela oculta com zero, uma e três barras — o painel
+  do dado fica com os mesmos 101px em todos os casos; `scripts/medirBarrasCompactas.mjs`).
+
+- **Editor de barras** (o lápis no cabeçalho do HUD): nome, atual, máximo, cor, acrescentar e
+  remover — até doze por personagem. Subir de nível é mexer no máximo ali, sem reimportar. Sem
+  nenhuma barra, o HUD mostra a dica e o lápis é o caminho pra criar a primeira.
+
+- **A importação de ficha PROPÕE as barras**: os pares "PV atual / PV máximo" que os leitores já
+  traziam como campos soltos (Ordem, D&D, Pathfinder), o "12/40" num campo só (Oblívio, a Carga de
+  Ordem) e o "Current HP / Max HP" em inglês viram barras na tela de conferência, cada uma com a
+  própria caixa. Ficha com só o máximo preenchido (a do Matias) vira barra CHEIA, marcada como
+  "atual em branco". Reimportar funde pelo nome: o PV com máximo novo é a MESMA barra, com a cor
+  que a pessoa escolheu; barra criada à mão fica.
+
+- **Descansar (§3.8)** — um botão na legenda das barras. Cada personagem tem os seus TIPOS de
+  descanso (D&D: longo devolve tudo, curto vem vazio pra pessoa preencher; Ordem: descanso
+  devolve tudo, intervalo só o PE; sistema desconhecido: um descanso que devolve tudo — a ficha
+  importada já nasce com eles), e cada tipo diz, barra por barra: volta ao máximo, soma N, ou
+  nada. O clique NUNCA é silencioso: abre a confirmação com o delta ("PV 12 → 45, PE 4 → 12"),
+  com o tipo escolhível quando há mais de um, e um "Editar tipos…" ali mesmo. Confirmado, as
+  barras mudam, gravam, e o histórico da sessão ganha a linha "— Descanso longo — PV 12→45" —
+  o histórico passou a aceitar EVENTOS além de rolagens (`ItemDoHistorico`), em vez de fingir
+  que um descanso é uma rolagem de total zero. Sem tipo configurado, o botão oferece um
+  descanso completo sem gravar nada. Nada de timer, nada automático.
+
+- **HUD do personagem sobre a cena (§3.6)** — um cartão de jogo flutuando num canto da cena 3D:
+  retrato, nome, as MESMAS barras de recurso (com os mesmos "−"/"+"), as condições como chips
+  que ligam e desligam com um clique ("Machucado", "Enlouquecendo" — sugeridas na importação de
+  Ordem; qualquer outra pelo "+"), e o Descansar. Arrasta-se pelo cabeçalho e ENCAIXA no canto
+  mais perto ao soltar; encolhe pra "mini" (retrato e barras finas, sem rótulo); esconde num
+  clique e volta pelo retrato miúdo que fica no canto. Canto, mini e escondido são do personagem
+  e gravam na hora. É DOM por cima do canvas — texto nítido, custo zero por quadro, o relevo do
+  98 — e não existe no modo compacto, que já tem as barras finas.
+
+### Corrigido
+
+- **O HUD só explica o lápis, e nenhum texto do app usa travessão** — pedido dele: "ajeita esse
+  HUD do rolador, apenas explique o que é o lápis, não usa nenhum travessão digitando no app". O
+  HUD sem barras dizia "Nenhuma barra ainda — o lápis aí em cima cria PV, PE, Sanidade... (ou
+  importe uma ficha)"; agora diz só o que o lápis faz ("O lápis ali em cima cria as barras de PV,
+  PE, Sanidade e o que mais o seu sistema usar"), e o próprio lápis explica no `title`. E os 75
+  textos da interface que usavam "—" pra emendar frase e explicação (avisos, dicas, mensagens de
+  erro, a linha do descanso no histórico, que virou "[ Descanso ]") trocaram por dois pontos, ponto
+  ou vírgula; as mensagens de erro do processo principal também. `traducoes.test.ts` passa a
+  recusar travessão em qualquer texto dos dois idiomas.
+
+## [1.1.2] — 2026-08-28
+
+O que sai pra quem testa: o personagem inteiro num arquivo (exportar na Ficha, importar noutro
+PC), a ficha de Oblívio lida por inteiro, copiar a rolagem pro chat, crítico e falha, favoritos,
+a página do PDF ao lado dos campos na conferência, backup da pasta de dados a cada versão nova,
+fontes novas e um monte de conserto. O teto continua em três personagens.
+
+### Adicionado
+
+- **A ficha de Oblívio inteira** — reporte de tester: "não scrapou os itens do inventário" e
+  "golpes com teste não viraram preset". "Equipamentos Guardados" era só o marcador de fim dos
+  carregados e tudo depois dele ia fora; agora é lido item por item (o "Mod:" cola no item de cima),
+  entra no Inventário, e arma guardada com "Dano:" vira preset. Habilidade cujo texto diz o dado do
+  teste ou do dano ("Teste de Combate com 2D6+1") vira preset com o nome do golpe. As duas áreas de
+  "Espaço Livre" chegam como texto da ficha (na ficha real eram as habilidades gerais do jogador,
+  perdidas inteiras). E em qualquer ficha, o campo preenchido que ficou sem rótulo aproveitável não
+  some mais: vai pro texto da ficha, com a caixa de trazer ou não. Regra dele: "qualquer anotação
+  de player no pdf precisamos trazer".
+
+- **Fontes: Nunito e Determination** — a Nunito (arredondada, indicação do juba) vem empacotada;
+  a Determination (a pixelada de Undertale, indicação do sat) é só uso pessoal, então entra pelo
+  nome: quem tem instalada vê, quem não tem vê a reserva. As Preferências ficaram um pouco mais
+  largas pra caber o nome inteiro da fonte com o crédito.
+
+- **Botão "Histórico" na linha do resultado** — pequeno, ao lado da soma, pra não ter que abrir as
+  Preferências.
+
+- **Cada bloco vazio da Ficha diz pra que serve** — uma ficha importada mostrava caixas brancas
+  mudas (a Aparência era só branco).
 
 - **O personagem inteiro num arquivo (§3.2)** — pedido dele: "um exportável de ficha, para a
   pessoa poder mostrar pro mestre a ficha ou talvez usar isso para fazer upload em outro pc, ter um
@@ -38,25 +124,6 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   verdade, teto, arquivo grande recusado antes de ler) e a fase `pacote` do harness no app
   compilado (o pedido de exportar leva a aparência da cena; importar troca pro personagem, a ficha
   aparece, a aparência dele passa a valer e os presets estão na Rolagem).
-- **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela
-  de rolagem, no HUD sobre a cena (ver §3.6), com "−" e "+" ao lado de cada uma: clique tira ou soma 1,
-  Shift+clique ou segurar o botão anda de 5 em 5, e clicar no número abre um campo que aceita
-  conta (`-7`), valor exato (`12`) ou o par inteiro (`12/40`). A cor muda de bloco com o estado:
-  verde, oliva abaixo da metade, bordô abaixo de um quarto — as três da paleta do Windows — ou uma
-  cor fixa escolhida por barra. Cada clique GRAVA na hora no `notes.json` do personagem, então
-  trocar de ficha e voltar, ou fechar o app no meio do combate, não perde o PV.
-- **As barras no modo compacto também**: uma linha fina por barra entre o dado e os presets, e a
-  janelinha CRESCE 19px por barra (medido numa janela oculta com zero, uma e três barras — o painel
-  do dado fica com os mesmos 101px em todos os casos; `scripts/medirBarrasCompactas.mjs`).
-- **Editor de barras** (o lápis no cabeçalho do HUD): nome, atual, máximo, cor, acrescentar e
-  remover — até doze por personagem. Subir de nível é mexer no máximo ali, sem reimportar. Sem
-  nenhuma barra, o HUD mostra a dica e o lápis é o caminho pra criar a primeira.
-- **A importação de ficha PROPÕE as barras**: os pares "PV atual / PV máximo" que os leitores já
-  traziam como campos soltos (Ordem, D&D, Pathfinder), o "12/40" num campo só (Oblívio, a Carga de
-  Ordem) e o "Current HP / Max HP" em inglês viram barras na tela de conferência, cada uma com a
-  própria caixa. Ficha com só o máximo preenchido (a do Matias) vira barra CHEIA, marcada como
-  "atual em branco". Reimportar funde pelo nome: o PV com máximo novo é a MESMA barra, com a cor
-  que a pessoa escolheu; barra criada à mão fica.
 
 - **Copiar rolagem pro chat (§3.5)** — um botão de copiar na linha de resultado, em cada entrada
   do histórico e no painel do modo compacto. Sai uma linha só, pronta pro Discord/WhatsApp:
@@ -91,25 +158,6 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   (`presets:setFavorito`, `presets:moverFavorito`) que devolvem a lista reindexada — apagar ou
   desmarcar nunca deixa buraco na fileira.
 
-- **Descansar (§3.8)** — um botão na legenda das barras. Cada personagem tem os seus TIPOS de
-  descanso (D&D: longo devolve tudo, curto vem vazio pra pessoa preencher; Ordem: descanso
-  devolve tudo, intervalo só o PE; sistema desconhecido: um descanso que devolve tudo — a ficha
-  importada já nasce com eles), e cada tipo diz, barra por barra: volta ao máximo, soma N, ou
-  nada. O clique NUNCA é silencioso: abre a confirmação com o delta ("PV 12 → 45, PE 4 → 12"),
-  com o tipo escolhível quando há mais de um, e um "Editar tipos…" ali mesmo. Confirmado, as
-  barras mudam, gravam, e o histórico da sessão ganha a linha "— Descanso longo — PV 12→45" —
-  o histórico passou a aceitar EVENTOS além de rolagens (`ItemDoHistorico`), em vez de fingir
-  que um descanso é uma rolagem de total zero. Sem tipo configurado, o botão oferece um
-  descanso completo sem gravar nada. Nada de timer, nada automático.
-
-- **HUD do personagem sobre a cena (§3.6)** — um cartão de jogo flutuando num canto da cena 3D:
-  retrato, nome, as MESMAS barras de recurso (com os mesmos "−"/"+"), as condições como chips
-  que ligam e desligam com um clique ("Machucado", "Enlouquecendo" — sugeridas na importação de
-  Ordem; qualquer outra pelo "+"), e o Descansar. Arrasta-se pelo cabeçalho e ENCAIXA no canto
-  mais perto ao soltar; encolhe pra "mini" (retrato e barras finas, sem rótulo); esconde num
-  clique e volta pelo retrato miúdo que fica no canto. Canto, mini e escondido são do personagem
-  e gravam na hora. É DOM por cima do canvas — texto nítido, custo zero por quadro, o relevo do
-  98 — e não existe no modo compacto, que já tem as barras finas.
 - **Retrato tirado do PDF (§3.6)** — a importação procura na primeira página a maior imagem
   raster com cara de foto (mínimo 64px, proporção entre 2:5 e 2:1, e NÃO a ficha digitalizada
   inteira, que tem a proporção da página) e a oferece na conferência ao lado do nome, reduzida a
@@ -126,18 +174,22 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   e "Usar esta" grava um quadrado JPEG de 384px. Sem detector de rosto de propósito: é a pessoa
   quem diz onde o rosto está, e a geometria é uma só pra prévia e pro arquivo (`recorteDeFoto.ts`,
   testada). "Recortar…" embaixo da foto que já existe reabre o quadro.
+
 - **Preparar pra qualquer ficha: mais grafias de recurso** — "12 de 40", "12 of 40", "45 (60)",
   "HP Current"/"HP Max", "Sanidade Atual"/"Máx", e MP/PM/Mana como nomes vitais. Uma DÉCIMA LEVA
   de PDFs fabricados cobra a lista exata de barras de cada grafia (`espera.barras` no corpus) e
   inclui uma ficha com a FOTO num botão de imagem de formulário e um logo maior desenhado na página
   — o harness prova que a foto (3:4, muitas cores) vence o logo (quadrado, duas cores).
+
 - **Fonte um tamanho maior** — pedido dele ("aumentar 1 tamanho da fonte"): o texto-base foi de 13
   pra 14px, botões e campos de 12 pra 13, e os textos com tamanho próprio subiram junto (cartão de
   preset, campos da Ficha, crachá, HUD, histórico, Preferências). Medido de novo: a aba de Rolagem
   continua cabendo em 1300×800 sem rolar, e nenhuma das sete fontes transborda.
+
 - **O seletor de personagem não repete a foto** — pedido dele ("a lista com foto tá estranho porque
   aparece a foto duas vezes"): o botão fechado, que fica ao lado da foto grande na Ficha, mostra só
   o nome; a miniatura continua na lista aberta, onde há vários pra distinguir.
+
 - **Foto do personagem QUADRADA, como avatar da Steam** — pedido dele ("mais quadrada, tipo um zoom
   no rosto"). Era 3×4 de foto de documento em todo lugar; agora é quadrada no crachá da rolagem
   (56×56), no seletor e no crachá das anotações (32×32), na Ficha (112×112), no HUD (44×44; 30×30
@@ -157,13 +209,16 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   Matias vinha com todo campo vazio nos modos normais do pdf.js (ele só pinta a aparência que o
   arquivo traz, e muita ficha é salva só com o valor); o caminho que funciona é o da impressão de
   formulário, semeando cada valor lido no `annotationStorage` e desenhando em ENABLE_STORAGE.
+
 - **A ficha original fica com o personagem** — as páginas vão pra pasta dele (`pagina-01.jpg`...,
   ver `PaginasRepository`; arquivos, e não dentro do `notes.json`, que é gravado a cada tecla), e
   a aba Ficha ganha o bloco "Ficha original (PDF)" com o botão "Mostrar as N páginas": as folhas
   abrem ali mesmo, em tamanho de leitura, embaixo dos campos editáveis. Reimportar traz as
   páginas novas no lugar; apagar o personagem leva as páginas pro backup junto com o resto.
+
 - **O pacote exportado leva as páginas** — o `.html` que vai pro mestre mostra a ficha original
   embaixo dos campos, e importar noutro PC traz as páginas junto.
+
 - **A foto nos quatro lugares, testada** — fase `retrato` do harness: imagem alta (300×900), larga
   (1200×300), minúscula (16×16), enorme (3000×3000), PNG transparente e retrato 3×4 sem recorte,
   cada uma conferida na Ficha, no crachá da Rolagem, no HUD e no seletor de personagem: caixa
@@ -179,13 +234,16 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   trust-destroying bug possible"): o app corrige o formato na leitura e grava por cima na primeira
   tecla, e se uma versão ler errado o arquivo de antes dela ainda existe. Falha de backup é aviso
   no console, nunca o app sem abrir. `backupsDeDados.node.test.ts`, com disco de verdade.
+
 - **Personagem apagado vai pra backup** — a pasta dele sai de `profiles\` (onde ficava órfã, e
   ninguém achava) e vai pra `backups\personagens-apagados\<id>-<data>\`. O "tem certeza?" passou
   a dizer isso. Apagar por engano continua recuperável: copiar a pasta de volta.
+
 - **Histórico de rolagens por personagem, gravado** (spec §3.2) — morava na memória da tela e
   sumia ao fechar o app, e era o mesmo pra todo personagem. Agora é o `historico` do `notes.json`
   dele: trocar de personagem troca o histórico, fechar o app não apaga, e o pacote exportado leva
   ele junto. Os últimos 100 itens.
+
 - **Build portátil** (spec §8.4) — a release passa a ter também `Reroll-Portatil-<versão>.exe`, um
   arquivo só, sem instalador, pra quem não confia em instalador sem assinatura. Ela não se
   atualiza sozinha (o atualizador só troca instalação NSIS): o app reconhece que é portátil e as
@@ -214,6 +272,9 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Removido
 
+- **Courier New, Segoe UI e Impact saem do menu de fontes** — pedido dele (segunda limpeza); as
+  três continuam como reserva de quem ficou.
+
 - **O seletor de idioma** — pedido dele: "vamo remover inglês, foda-se, depois botamo, vamo deixar
   only pt-br". O app fica só em português; quem tinha escolhido inglês volta pro português na
   próxima abertura. O dicionário em inglês continua no código, testado, pra voltar quando ele
@@ -221,20 +282,31 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
 
 ### Corrigido
 
+- **O aviso de atualização aparecia BRANCO no modo noite** — a caixa do "o que mudou" usava uma
+  variável de cor que não existe em tema nenhum e caía no branco fixo, com texto quase branco por
+  cima. Mesma família de defeito na opção marcada do seletor de personagem (preto sobre azul no
+  modo dia), no modo rápido e na marcação do ícone nas Preferências. Todas com as cores do tema.
+
+- **"Full screen buga dependendo do tamanho do monitor"** (tester) — a janela cheia era
+  1300×800, maior que a área útil de um notebook 1366×768 ou de um 1080p a 150%: saía com título
+  e borda pra fora da tela. Agora é 1200×760 e nunca passa da área útil do monitor onde está.
+
+- **Enter que fecha um campo não rola mais os dados** — confirmar um campo com Enter desmontava o
+  campo antes de o atalho de rolar ver onde a tecla nasceu, e a rolagem disparava junto.
+
+- **A prévia da aba Estilo saía escura** — "as cores do editor e da mesa tão bem diferentes":
+  faltava na prévia o mesmo ambiente de reflexo da cena; medido, a amostra saía com menos da metade
+  do brilho. Agora é idêntica à mesa.
+
+- **O nome da fonte saía cortado no seletor** ("Determi…"): o seletor ganhou largura própria,
+  medida no pior caso da lista.
+
 - **Os travessões que sobraram fora do dicionário** — "nas config tem muito travessão também". O
   "Versão —" das Preferências enquanto a versão carrega (virou "..."), o total do modo rápido antes
   da primeira rolagem, o traço dos presets sem fórmula, o título do retrato ("Nome — Sistema" virou
   "Nome (Sistema)"), a linha do histórico, os ataques do leitor de Pathfinder ("+5 · 1d6 — Brawling"
   virou vírgula) e as mensagens da gramática de fórmula ("Dado sem número de lados: escreva d20").
-- **O HUD só explica o lápis, e nenhum texto do app usa travessão** — pedido dele: "ajeita esse
-  HUD do rolador, apenas explique o que é o lápis, não usa nenhum travessão digitando no app". O
-  HUD sem barras dizia "Nenhuma barra ainda — o lápis aí em cima cria PV, PE, Sanidade... (ou
-  importe uma ficha)"; agora diz só o que o lápis faz ("O lápis ali em cima cria as barras de PV,
-  PE, Sanidade e o que mais o seu sistema usar"), e o próprio lápis explica no `title`. E os 75
-  textos da interface que usavam "—" pra emendar frase e explicação (avisos, dicas, mensagens de
-  erro, a linha do descanso no histórico, que virou "[ Descanso ]") trocaram por dois pontos, ponto
-  ou vírgula; as mensagens de erro do processo principal também. `traducoes.test.ts` passa a
-  recusar travessão em qualquer texto dos dois idiomas.
+
 - **Apagar um preset travava o teclado** — os dois bugs que ele achou ("se criarmos um preset,
   colocarmos nome e tudo, e apagarmos não conseguimos criar outro" e "se uploadarmos uma ficha e
   apagarmos um preset, a ficha buga, não conseguimos editar mais nada dela") são o mesmo defeito:
@@ -247,6 +319,7 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   da atualização. O harness ganhou a fase `presets`, que faz exatamente o roteiro dele no app
   compilado: criar, apagar pelo diálogo, criar outro e DIGITAR o nome; importar a ficha do Matias,
   apagar um preset e digitar num campo da ficha — grava.
+
 - **O que o app compilado mostrou** (`scripts/testarNoApp.mjs`, o harness que abre o renderer de
   produção numa janela oculta com um processo principal falso e clica, rola, importa e arrasta —
   pedido dele: "vamos continuar testando os tipos de hud, os d20, os tipos diferentes de dados, os
@@ -276,6 +349,7 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
     canal, mínimo de 120 cores distintas (o triângulo com serrilhado e JPEG dá dezenas; uma foto,
     centenas). A lista de operadores passou a incluir a aparência dos campos de formulário
     (`annotationMode`), que é onde a foto de uma ficha preenchível mora.
+
 - **"Fontes bugaram quando trocando"** — nas Preferências, a linha "Como o resultado aparece" dava
   largura elástica ao `<select>` e nenhuma ao rótulo: o rótulo com dica embaixo encolhia até ~100px
   e, com uma fonte mais larga (Montserrat), a dica virava uma coluna de seis linhas de uma palavra.
@@ -283,6 +357,7 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   menos visível. Agora o rótulo é o elástico da linha e o seletor tem largura própria — e nessa
   linha, a única com dica longa e seletor, ele vai EMBAIXO do rótulo. As sete fontes foram medidas
   na aba de Rolagem e nas Preferências: nenhuma transborda.
+
 - **"Rolar os dados, recursos e presets estão passando um em cima do outro"** (relato dele, na
   primeira olhada nas barras). Três causas, todas MEDIDAS no app de verdade numa janela oculta
   (`scripts/medirAbaDeRolagem.mjs`, que abre o renderer compilado com IPC falso e mede as
@@ -308,9 +383,11 @@ como COMPANHEIRO DE SESSÃO — o que se faz na mesa entre uma rolagem e outra.
   acabou de escrever. E importar a ficha por cima do personagem já aberto agora RELÊ as anotações
   (`recarregar`) — antes o `activeId` não mudava, a tela ficava com a ficha velha, e a próxima
   tecla gravava as seções velhas por cima das novas.
+
 - `afundarDosBotoes.mjs` ganhou as quatro famílias novas ("−"/"+" da barra, cheia e compacta; o
   número; o lápis). A primeira versão afundava só MEIO pixel: conteúdo centralizado com padding
   zero não tem de onde tirar — partir de 1px em volta e ir pra `2px 0 0 2px` é o que anda (1, 1).
+
 ## [1.1.0-beta.4] — 2026-08-25
 
 A ficha de um personagem novo agora nasce VAZIA de verdade — um convite pra importar o PDF, que é o
