@@ -120,7 +120,7 @@ describe.skipIf(!temBuild)('o pacote de release', () => {
      * arquivo mais novo da pasta e não é o que o `latest.yml` nomeia. Foi o que derrubou o CI do
      * 1.1.2 na primeira tentativa: o pacote estava certo, o teste é que olhava o arquivo errado.
      */
-    const exes = readdirSync(PASTA).filter((n) => /^Reroll-Setup-.*.exe$/.test(n))
+    const exes = readdirSync(PASTA).filter((n) => /^Reroll-Setup-.*\.exe$/.test(n))
     const maisNovo = exes
       .map((nome) => ({ nome, mtime: statSync(join(PASTA, nome)).mtimeMs }))
       .sort((a, b) => b.mtime - a.mtime)[0]
