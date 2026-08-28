@@ -15,4 +15,4 @@
  * importação não propõe barras — mas as barras que a ficha traz continuam GRAVADAS no
  * `notes.json`, só não aparecem: no dia em que o HUD for liberado, elas já estão lá.
  */
-export const HUD_LIBERADO = true
+export const HUD_LIBERADO = false

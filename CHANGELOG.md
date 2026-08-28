@@ -6,69 +6,6 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
-## [Não lançado]
-
-O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) e o Descansar
-(§3.8): pronto na `main`, instalado na máquina dele, guardado pra uma liberação própria — é o
-`HUD_LIBERADO` em `src/shared/liberacoes.ts`, que o branch de lançamento vira pra `false`.
-
-### Adicionado
-
-- **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela
-  de rolagem, no HUD sobre a cena (ver §3.6), com "−" e "+" ao lado de cada uma: clique tira ou soma 1,
-  Shift+clique ou segurar o botão anda de 5 em 5, e clicar no número abre um campo que aceita
-  conta (`-7`), valor exato (`12`) ou o par inteiro (`12/40`). A cor muda de bloco com o estado:
-  verde, oliva abaixo da metade, bordô abaixo de um quarto — as três da paleta do Windows — ou uma
-  cor fixa escolhida por barra. Cada clique GRAVA na hora no `notes.json` do personagem, então
-  trocar de ficha e voltar, ou fechar o app no meio do combate, não perde o PV.
-
-- **As barras no modo compacto também**: uma linha fina por barra entre o dado e os presets, e a
-  janelinha CRESCE 19px por barra (medido numa janela oculta com zero, uma e três barras — o painel
-  do dado fica com os mesmos 101px em todos os casos; `scripts/medirBarrasCompactas.mjs`).
-
-- **Editor de barras** (o lápis no cabeçalho do HUD): nome, atual, máximo, cor, acrescentar e
-  remover — até doze por personagem. Subir de nível é mexer no máximo ali, sem reimportar. Sem
-  nenhuma barra, o HUD mostra a dica e o lápis é o caminho pra criar a primeira.
-
-- **A importação de ficha PROPÕE as barras**: os pares "PV atual / PV máximo" que os leitores já
-  traziam como campos soltos (Ordem, D&D, Pathfinder), o "12/40" num campo só (Oblívio, a Carga de
-  Ordem) e o "Current HP / Max HP" em inglês viram barras na tela de conferência, cada uma com a
-  própria caixa. Ficha com só o máximo preenchido (a do Matias) vira barra CHEIA, marcada como
-  "atual em branco". Reimportar funde pelo nome: o PV com máximo novo é a MESMA barra, com a cor
-  que a pessoa escolheu; barra criada à mão fica.
-
-- **Descansar (§3.8)** — um botão na legenda das barras. Cada personagem tem os seus TIPOS de
-  descanso (D&D: longo devolve tudo, curto vem vazio pra pessoa preencher; Ordem: descanso
-  devolve tudo, intervalo só o PE; sistema desconhecido: um descanso que devolve tudo — a ficha
-  importada já nasce com eles), e cada tipo diz, barra por barra: volta ao máximo, soma N, ou
-  nada. O clique NUNCA é silencioso: abre a confirmação com o delta ("PV 12 → 45, PE 4 → 12"),
-  com o tipo escolhível quando há mais de um, e um "Editar tipos…" ali mesmo. Confirmado, as
-  barras mudam, gravam, e o histórico da sessão ganha a linha "— Descanso longo — PV 12→45" —
-  o histórico passou a aceitar EVENTOS além de rolagens (`ItemDoHistorico`), em vez de fingir
-  que um descanso é uma rolagem de total zero. Sem tipo configurado, o botão oferece um
-  descanso completo sem gravar nada. Nada de timer, nada automático.
-
-- **HUD do personagem sobre a cena (§3.6)** — um cartão de jogo flutuando num canto da cena 3D:
-  retrato, nome, as MESMAS barras de recurso (com os mesmos "−"/"+"), as condições como chips
-  que ligam e desligam com um clique ("Machucado", "Enlouquecendo" — sugeridas na importação de
-  Ordem; qualquer outra pelo "+"), e o Descansar. Arrasta-se pelo cabeçalho e ENCAIXA no canto
-  mais perto ao soltar; encolhe pra "mini" (retrato e barras finas, sem rótulo); esconde num
-  clique e volta pelo retrato miúdo que fica no canto. Canto, mini e escondido são do personagem
-  e gravam na hora. É DOM por cima do canvas — texto nítido, custo zero por quadro, o relevo do
-  98 — e não existe no modo compacto, que já tem as barras finas.
-
-### Corrigido
-
-- **O HUD só explica o lápis, e nenhum texto do app usa travessão** — pedido dele: "ajeita esse
-  HUD do rolador, apenas explique o que é o lápis, não usa nenhum travessão digitando no app". O
-  HUD sem barras dizia "Nenhuma barra ainda — o lápis aí em cima cria PV, PE, Sanidade... (ou
-  importe uma ficha)"; agora diz só o que o lápis faz ("O lápis ali em cima cria as barras de PV,
-  PE, Sanidade e o que mais o seu sistema usar"), e o próprio lápis explica no `title`. E os 75
-  textos da interface que usavam "—" pra emendar frase e explicação (avisos, dicas, mensagens de
-  erro, a linha do descanso no histórico, que virou "[ Descanso ]") trocaram por dois pontos, ponto
-  ou vírgula; as mensagens de erro do processo principal também. `traducoes.test.ts` passa a
-  recusar travessão em qualquer texto dos dois idiomas.
-
 ## [1.1.2] — 2026-08-28
 
 O que sai pra quem testa: o personagem inteiro num arquivo (exportar na Ficha, importar noutro
