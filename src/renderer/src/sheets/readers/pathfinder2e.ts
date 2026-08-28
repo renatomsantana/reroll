@@ -77,7 +77,9 @@ const TEXTO = {
   inata: { pt: 'Magia inata', en: 'Innate spell' },
   ritual: { pt: 'Ritual', en: 'Ritual' },
   acao: { pt: 'Ação', en: 'Action' },
-  reacao: { pt: 'Reação', en: 'Reaction' }
+  reacao: { pt: 'Reação', en: 'Reaction' },
+  gatilho: { pt: 'gatilho', en: 'trigger' },
+  outrasProficiencias: { pt: 'Outras proficiências', en: 'Other proficiencies' }
 } satisfies Record<string, Rotulo>
 
 /** Campo → rótulo, nos dois idiomas. `sempre` = entra vazio numa ficha com dono (lacuna). */
@@ -392,13 +394,29 @@ function extrairPathfinder(sheet: Parameters<SheetReader['extract']>[0], idioma:
     }
   }
 
-  // Ações e reações com nome.
+  /**
+   * Ações e reações — com o EFEITO e o GATILHO escritos, não só o nome. A página 3 da ficha
+   * remaster tem, pra cada ação, `ACTION NAME i` e a caixa `EFFECTS i-1`; pra cada reação,
+   * `REACTION NAME i`, `REACTIONS TRIGGER i-2` e `REACTIONS EFFECTS i-1`. Na ficha do Rilver os
+   * efeitos dos talentos estavam nessas caixas SEM nome de ação, e sumiam inteiros.
+   */
   for (const i of [1, 2, 3, 4]) {
     const acao = bruto(`action name ${i}`)
-    if (acao) campos.push({ label: `${texto('acao')} ${i}`, value: acao, group: t(GRUPOS.habilidades), fieldName: `action name ${i}` })
+    const efeito = bruto(`effects ${i}-1`)
+    if (acao || efeito) {
+      campos.push({ label: `${texto('acao')} ${i}`, value: [acao, efeito].filter(Boolean).join(': '), group: t(GRUPOS.habilidades), fieldName: `action name ${i}` })
+    }
     const reacao = bruto(`reaction name ${i}`)
-    if (reacao) campos.push({ label: `${texto('reacao')} ${i}`, value: reacao, group: t(GRUPOS.habilidades), fieldName: `reaction name ${i}` })
+    const gatilho = bruto(`reactions trigger ${i}-2`)
+    const efeitoDaReacao = bruto(`reactions effects ${i}-1`)
+    if (reacao || gatilho || efeitoDaReacao) {
+      const detalhe = [gatilho && `${texto('gatilho')}: ${gatilho}`, efeitoDaReacao].filter(Boolean).join('. ')
+      campos.push({ label: `${texto('reacao')} ${i}`, value: [reacao, detalhe].filter(Boolean).join(': '), group: t(GRUPOS.habilidades), fieldName: `reaction name ${i}` })
+    }
   }
+
+  // A caixa livre das proficiências de arma ("bow - E" na ficha do Rilver).
+  push(texto('outrasProficiencias'), bruto('unarmed, simple, advanced, other'), GRUPOS.proficiencias, undefined, false, 'unarmed, simple, advanced, other')
 
   for (const livre of TEXTOS_LIVRES) push(t(livre), bruto(livre.name), livre.grupo, undefined, false, livre.name)
 

@@ -1263,3 +1263,72 @@ describe('golpe em prosa vira preset — em qualquer ficha', () => {
     expect(lido.rawText).not.toContain('Elias Ramos')
   })
 })
+
+/**
+ * O JEITO ESPECÍFICO das duas fichas de Ordem Paranormal — pedido do usuário: cada sistema raspado
+ * "igual o de Oblívio, cada um com seu jeito específico dependendo do PDF". Medido nas fichas reais
+ * do Vincenzo (comunidade) e do Matias (oficial) com a ferramenta de cobertura.
+ */
+describe('Ordem Paranormal — o que a ficha da comunidade ainda perdia', () => {
+  const lido = readSheet(
+    ficha([
+      campo('Nome do Personagem', 'Vincenzo Moretti'),
+      campo('atr_agi', '1'),
+      campo('atr_for', '1'),
+      campo('atr_int', '5'),
+      campo('atr_pre', '3'),
+      campo('atr_vig', '1'),
+      campo('NivelExposicao', '65'),
+      // O treinamento é um MENU na ficha ("TREINADO"/"VETERANO"/"EXPERT"), não um número.
+      campo('t_medicina', 'VETERANO'),
+      campo('o_medicina', '5'),
+      campo('b_crime', '5'),
+      campo('t_crime', 'TREINADO'),
+      campo('Habilidade_1', 'Conhecimento Aplicado'),
+      campo('Pagina_Hab_1', '37'),
+      campo('san_extra', '-8'),
+      campo('limite_1', '3'),
+      campo('limite_2', '2'),
+      campo('limite_3', '1'),
+      campo('LIMITE DE', 'Médio'),
+      campo('mod_extra', '25')
+    ])
+  )
+  const valorDe = (label: string) => lido.fields.find((c) => c.label === label)?.value
+
+  it('o grau de treino vai junto do total, e o total sem b_ é refeito pelo bônus do grau', () => {
+    expect(valorDe('Medicina')).toBe('15 (Veterano)')
+    expect(valorDe('Crime')).toBe('5 (Treinado)')
+  })
+
+  it('a página do livro anotada ao lado da habilidade vai junto', () => {
+    expect(valorDe('Habilidade 1')).toBe('Conhecimento Aplicado (pág. 37)')
+  })
+
+  it('os "extra" dos recursos e os limites do inventário chegam com o rótulo impresso', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Sanidade extra', value: '-8', group: 'Recursos' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Limite', value: 'I: 3 · II: 2 · III: 1', group: 'Inventário' }))
+    expect(valorDe('Limite de')).toBe('Médio')
+    expect(valorDe('Mod. extra')).toBe('25')
+  })
+})
+
+describe('Ordem Paranormal — a quarta coluna da grade de ataques da ficha oficial', () => {
+  it('"18/2" (crítico) vai na fonte do preset de dano, que é onde a arma aparece', () => {
+    const lido = readSheet(
+      ficha([
+        campo('Personagem', 'Matias'),
+        ...ATRIBUTOS,
+        campo('Atq1.0.0.0.0', 'Ataque com Faca'),
+        campo('Atq1.0.0.0.1', '2d20'),
+        campo('Atq1.0.0.0.2', '2d6'),
+        campo('Atq1.0.0.0.3', '18/2')
+      ])
+    )
+    const dano = lido.presets.find((p) => p.name === 'Ataque com Faca (dano)')
+    expect(dano?.source).toBe('2d6 · 18/2')
+    // Sem a quarta coluna, a fonte continua sendo só o dano.
+    const semExtra = readSheet(ficha([campo('Personagem', 'Matias'), ...ATRIBUTOS, ...ataque(0, 'Faca', '+7', '1d4+2')]))
+    expect(semExtra.presets.find((p) => p.name === 'Faca (dano)')?.source).toBe('1d4+2')
+  })
+})
