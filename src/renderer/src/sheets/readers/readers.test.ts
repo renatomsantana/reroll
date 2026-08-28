@@ -76,10 +76,22 @@ describe('leitor genérico — a ficha que ninguém previu', () => {
     ])
   })
 
-  it('ignora campo sem rótulo impresso E com nome sem significado', () => {
-    // Uma linha "1_2 → 7" na conferência não informa nada e faz duvidar do resto da leitura.
-    const lido = readSheet(ficha([campo('1_2', '7')]))
+  it('campo sem rótulo não vira linha, mas o valor NÃO se perde — vai pro texto sem rótulo', () => {
+    /**
+     * Uma linha "1_2 → 7" na conferência não informa nada e faz duvidar do resto da leitura — por
+     * isso não vira campo. Mas descartar o VALOR era perder anotação de jogador, e a regra do
+     * usuário é: "qualquer anotação de player no pdf precisamos trazer", mesmo a que parece inútil.
+     * O valor vai pro `rawText`, que a conferência mostra e manda pro bloco de história.
+     */
+    const lido = readSheet(ficha([campo('1_2', '7'), campo('text_9xk2f', 'Deve 50 moedas ao ferreiro')]))
     expect(lido.fields).toEqual([])
+    expect(lido.rawText).toContain('7')
+    expect(lido.rawText).toContain('Deve 50 moedas ao ferreiro')
+  })
+
+  it('caixa marcada sem rótulo não vai nem pro texto — um "sim" solto não diz o que foi marcado', () => {
+    const sheet = ficha([{ ...campo('checkbox_a1b2c', 'On'), type: 'checkbox' }])
+    expect(readSheet(sheet).rawText ?? '').toBe('')
   })
 
   it('não importa caixa de seleção desmarcada', () => {
@@ -703,6 +715,128 @@ describe('equipamento carregado (Oblivio)', () => {
   it('ficha sem a seção de equipamento não ganha campo nenhum a mais', () => {
     const lido = readSheet(fichaCom([['Mazelas', 400]]))
     expect(lido.fields.filter((c) => c.group === 'Equipamento')).toEqual([])
+  })
+
+  /**
+   * O INVENTÁRIO GUARDADO — reporte de tester: os itens digitados em "Equipamentos Guardados"
+   * não eram importados (a seção só servia de marcador de fim dos carregados). Ali não há regiões
+   * do corpo: é lista livre do Google Docs, um item por marcador, e o "● Mod:" aninhado pertence
+   * ao item de cima (mesmo formato visto nos carregados da ficha real).
+   */
+  const GUARDADOS: [string, number][] = [
+    ['Equipamentos Guardados:', 200],
+    ['○', 180],
+    ['Corda de Escalada', 180],
+    ['Espaços de Inventário', 176],
+    [': 1.', 176],
+    ['○', 160],
+    ['Besta de Mão (Pistola, Garrucha…)', 160],
+    ['Dano:', 156],
+    ['1D6 PE. /', 156],
+    ['●', 150],
+    ['Mod:', 150],
+    ['Mortal: Adiciona 1d6 de dano.', 150],
+    ['Espaço Livre', 100]
+  ]
+
+  it('lê os itens guardados, um por marcador, com o Mod colado no item de cima', () => {
+    // `slice(0, -3)` tira o "Equipamentos Guardados: ○ Perna Direita:" do fixture de cima — o
+    // título vem do fixture de GUARDADOS, senão a seção apareceria duas vezes.
+    const lido = readSheet(fichaCom([...EQUIPAMENTO.slice(0, -3), ...GUARDADOS]))
+    const guardados = lido.fields.filter((c) => c.group === 'Inventário')
+
+    expect(guardados.map((c) => c.label)).toEqual(['Corda de Escalada', 'Besta de Mão'])
+    expect(guardados[1].value).toContain('Mod: Mortal')
+  })
+
+  it('arma guardada que diz o próprio dano também vira preset', () => {
+    const lido = readSheet(fichaCom([...EQUIPAMENTO.slice(0, -3), ...GUARDADOS]))
+    const besta = lido.presets?.find((p) => /Besta/.test(p.name))
+
+    expect(besta?.name).toBe('Besta de Mão (dano)')
+    expect(besta?.expression.groups).toEqual([{ count: 1, sides: 6 }])
+    // A corda não vira preset: não tem dano.
+    expect(lido.presets?.some((p) => /Corda/.test(p.name))).toBe(false)
+  })
+
+  it('guardados sem marcador nenhum entram como um item só — importar em bloco é melhor que perder', () => {
+    const lido = readSheet(
+      fichaCom([
+        ['Equipamentos Guardados:', 200],
+        ['Lanterna, corda e três tochas', 180],
+        ['Espaço Livre', 100]
+      ])
+    )
+    const guardados = lido.fields.filter((c) => c.group === 'Inventário')
+    expect(guardados).toHaveLength(1)
+    expect(guardados[0].value).toBe('Lanterna, corda e três tochas')
+  })
+
+  /**
+   * GOLPE COM TESTE — reporte de tester: o golpe entra como habilidade (parágrafo rotulado com o
+   * nome), tinha o dado do teste escrito dentro, e nenhum preset nascia. A âncora na palavra
+   * Teste/Dano é o que deixa criar preset de prosa aqui sem repetir o lixo que proibiu isso no
+   * genérico ("permanentemente reduzido em 1D4 pontos" não tem âncora e continua de fora).
+   */
+  it('golpe com o dado do teste no texto vira preset com o nome do golpe', () => {
+    const lido = readSheet(
+      fichaCom([['Corte Cruel: Realize um Teste de Combate com 2D6+1 contra o alvo à sua frente', 400]])
+    )
+    const golpe = lido.presets?.find((p) => p.name === 'Corte Cruel')
+
+    expect(golpe?.kind).toBe('test')
+    expect(golpe?.expression.groups).toEqual([{ count: 2, sides: 6 }])
+    expect(golpe?.expression.modifiers).toEqual([{ type: 'flat', value: 1 }])
+  })
+
+  /**
+   * O ESPAÇO LIVRE — regra do usuário: "qualquer anotação de player no pdf precisamos trazer". No
+   * modelo em branco a área é vazia (conferido nos dois PDFs), então tudo que aparece ali é
+   * digitado pelo jogador — na ficha real eram as habilidades GERAIS dele, perdidas inteiras.
+   */
+  it('o que o jogador digitou no Espaço Livre chega, e área vazia não rende nada', () => {
+    const lido = readSheet(
+      fichaCom([
+        ['Espaço Livre', 400],
+        ['Aprimoramento de Estresse (Efeito Passivo)', 380],
+        ['Aumente seu limite máximo de Estresse em +3.', 376],
+        ['Inventário', 300],
+        ['Espaço Livre', 200],
+        ['Use esse espaço para fazer anotações, caso necessário.', 180],
+        ['Mazelas', 100]
+      ])
+    )
+
+    // A primeira área veio inteira; a segunda, só com a instrução impressa, não rende nada.
+    expect(lido.rawText).toContain('Aprimoramento de Estresse')
+    expect(lido.rawText).toContain('Aumente seu limite máximo')
+    expect(lido.rawText).not.toContain('Use esse espaço')
+    expect(lido.rawText).not.toContain('Inventário')
+  })
+
+  it('ficha sem nada digitado nos espaços livres fica sem texto solto', () => {
+    const lido = readSheet(
+      fichaCom([
+        ['Espaço Livre', 400],
+        ['Inventário', 300]
+      ])
+    )
+    expect(lido.rawText ?? '').toBe('')
+  })
+
+  it('golpe que também diz o dano ganha o segundo preset, e prosa sem âncora não ganha nenhum', () => {
+    const lido = readSheet(
+      fichaCom([
+        ['Investida Feroz: Teste de Prontidão com 1D20 e, ao acertar, Dano: 2D4+2 na região atingida', 400],
+        ['Fardo Sombrio: seu atributo é permanentemente reduzido em 1D4 pontos ao usar esta técnica', 380]
+      ])
+    )
+
+    expect(lido.presets?.find((p) => p.name === 'Investida Feroz')?.kind).toBe('test')
+    expect(lido.presets?.find((p) => p.name === 'Investida Feroz (dano)')?.expression.groups).toEqual([
+      { count: 2, sides: 4 }
+    ])
+    expect(lido.presets?.some((p) => /Fardo Sombrio/.test(p.name))).toBe(false)
   })
 })
 
