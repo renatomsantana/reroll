@@ -90,12 +90,6 @@ interface DiceRoller3DProps {
    */
   shortcutsEnabled?: boolean
   /**
-   * O crachá do personagem ativo (foto e nome), desenhado ao lado do ROLAR — pedido do usuário
-   * ("em Rolagem colocar também uma fotinha e nome", e depois "aumenta a imagem da rolagem"). Vem
-   * de fora porque quem sabe de personagem é o `App`; a bandeja só reserva o lugar.
-   */
-  badge?: ReactNode
-  /**
    * Abre o histórico de rolagens direto daqui — pedido do usuário ("um botão de histórico... pra
    * pessoa não ter que ir nas configs"), depois ajustado de lugar: "pequeno, do lado do resultado
    * ali na soma". O modal é do `App` (o mesmo que as Preferências abrem); a bandeja só ganha o
@@ -332,7 +326,7 @@ export function comContagemAjustada(
  * compacta (300×230) foi desenhada de propósito pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange, shortcutsEnabled = true, badge, onOpenHistory, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
+  { onRoll, onRollingChange, shortcutsEnabled = true, onOpenHistory, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
   ref
 ) {
   const t = useTranslation()
@@ -1209,7 +1203,11 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
               </div>
             </div>
 
-            {badge && <div className="dice-roller-3d-badge">{badge}</div>}
+            {/*
+              O crachá do personagem (foto e nome) morou aqui, encostado no ROLAR, até 02/09/2026 —
+              pedido dele: "tirar o nome e foto de perfil do lado do rolar e deixar apenas no HUD".
+              Quem diz de quem são os dados agora é só o HUD sobre a cena.
+            */}
             <Button
               variant="primary"
               className="dice-roller-3d-roll-btn"

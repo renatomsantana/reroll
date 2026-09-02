@@ -156,13 +156,13 @@ const CASOS = [
   {
     id: 'hud-condicao',
     nome: 'HUD — chip de condição desligado',
-    html: `<div class="hud" style="position:relative;width:236px"><div class="hud-condicoes"><button class="hud-condicao" id="alvo"><b style="font-size:10px;line-height:1">Machucado</b><span class="hud-condicao-remover">×</span></button></div></div>`,
+    html: `<div class="hud" style="position:relative;width:236px"><div class="hud-condicoes"><span class="hud-condicao" id="alvo"><label class="hud-condicao-cor"></label><button class="hud-condicao-nome"><b style="font-size:10px;line-height:1">Machucado</b></button><button class="hud-condicao-remover">×</button></span></div></div>`,
     esperado: { dx: 1, dy: 1 }
   },
   {
     id: 'hud-condicao-ligada',
     nome: 'HUD — chip de condição LIGADO: já afundado, o clique não afunda de novo',
-    html: `<div class="hud" style="position:relative;width:236px"><div class="hud-condicoes"><button class="hud-condicao hud-condicao-ativa" id="alvo"><b style="font-size:10px;line-height:1">Machucado</b><span class="hud-condicao-remover">×</span></button></div></div>`,
+    html: `<div class="hud" style="position:relative;width:236px"><div class="hud-condicoes"><span class="hud-condicao hud-condicao-ativa" id="alvo"><label class="hud-condicao-cor"></label><button class="hud-condicao-nome"><b style="font-size:10px;line-height:1">Machucado</b></button><button class="hud-condicao-remover">×</button></span></div></div>`,
     esperado: { dx: 0, dy: 0 }
   },
   {

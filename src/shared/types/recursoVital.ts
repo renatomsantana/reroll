@@ -1,3 +1,5 @@
+import { corPadraoDoRecurso, ehCorHex } from './cor'
+
 /**
  * RECURSO VITAL — o que o personagem gasta e recupera durante a sessão: PV, PE, Sanidade em Ordem
  * Paranormal; HP em D&D; o que for no sistema da mesa. É a barra clicável da tela de rolagem
@@ -23,12 +25,18 @@ export interface RecursoVital {
   atual: number
   maximo: number
   /**
-   * Cor da barra escolhida pela pessoa, `#rrggbb`. AUSENTE é o normal: aí a cor vem do ESTADO
-   * (cheia, abaixo da metade, abaixo de um quarto — ver `estadoDoRecurso`), que é a informação que
-   * importa numa olhada de relance. A cor fixa existe pra quem quer PE azul e Sanidade roxo, e ela
-   * substitui a de estado — a barra ainda encolhe, só não muda de cor.
+   * Cor da barra escolhida pela pessoa, `#rrggbb`. AUSENTE é o normal, e aí a cor sai do NOME
+   * (`corPadraoDoRecurso`: PV bordô, PE marinho, Sanidade roxo) — pedido dele (02/09/2026): "para
+   * cada atributo atribuir cor também; a pessoa decide a cor também". A cor já foi a do ESTADO
+   * (verde, oliva abaixo da metade, bordô abaixo de um quarto); o estado continua sendo mostrado,
+   * agora no NÚMERO da barra (ver `BarrasDeRecurso.css`), pra cor da barra poder ser da barra.
    */
   cor?: string
+}
+
+/** A cor com que a barra aparece: a escolhida, ou a que o nome sugere. */
+export function corDoRecurso(recurso: Pick<RecursoVital, 'nome' | 'cor'>): string {
+  return recurso.cor ?? corPadraoDoRecurso(recurso.nome)
 }
 
 /**
@@ -49,9 +57,6 @@ export const TAMANHO_MAXIMO_DO_NOME_DO_RECURSO = 40
  * e quebra a proporção de preenchimento de todas.
  */
 export const TETO_DO_VALOR_DE_RECURSO = 999_999
-
-/** A cor fixa só entra no formato exato que o `<input type="color">` produz. */
-const COR_HEX = /^#[0-9a-f]{6}$/i
 
 /** Inteiro dentro de `[0, teto]`; qualquer coisa que não seja número finito vira `null`. */
 function inteiroLimitado(valor: unknown, teto: number): number | null {
@@ -108,7 +113,7 @@ export function normalizarRecursos(raw: unknown): RecursoVital[] {
     const id = typeof entrada.id === 'string' && entrada.id.trim() && !usados.has(entrada.id) ? entrada.id : crypto.randomUUID()
     usados.add(id)
     const recurso: RecursoVital = { id, nome, atual, maximo }
-    if (typeof entrada.cor === 'string' && COR_HEX.test(entrada.cor)) recurso.cor = entrada.cor.toLowerCase()
+    if (ehCorHex(entrada.cor)) recurso.cor = entrada.cor.toLowerCase()
     limpos.push(recurso)
   }
   return limpos

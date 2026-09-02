@@ -5,8 +5,8 @@ import type { Profile } from '@shared/types/profile'
 import { ProfileBadge } from './ProfileBadge'
 
 /**
- * O crachá do personagem — o que as Anotações e a Rolagem mostram no lugar do seletor, que ficou
- * só na Ficha (pedido do usuário).
+ * O crachá do personagem — o que as Anotações mostram no lugar do seletor, que ficou só na Ficha
+ * (pedido do usuário). Na Rolagem ele saiu em 02/09/2026: lá o HUD já mostra retrato e nome.
  */
 
 afterEach(cleanup)
@@ -42,15 +42,5 @@ describe('o crachá do personagem', () => {
     expect(screen.queryByRole('button')).toBeNull()
     expect(screen.queryByRole('combobox')).toBeNull()
     expect(document.querySelector('.profile-select')).toBeNull()
-  })
-
-  it('a versão da barra de rolagem só muda a classe — o conteúdo é o mesmo', () => {
-    render(
-      <ProfileBadge profile={perfil({ photo: FOTO })} fallbackName="Personagem 1" emptyPhotoLabel="sem foto" variant="roll" />
-    )
-    const cracha = screen.getByTestId('profile-badge')
-    expect(cracha.className).toContain('profile-badge-roll')
-    expect(cracha.textContent).toBe('Aurora Valente')
-    expect(cracha.querySelector('img')?.getAttribute('src')).toBe(FOTO)
   })
 })

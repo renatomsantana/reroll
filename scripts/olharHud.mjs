@@ -17,12 +17,13 @@ const ASSETS = join(RAIZ, 'out', 'renderer', 'assets')
 const css = readdirSync(ASSETS).find((n) => n.startsWith('index-') && n.endsWith('.css'))
 if (!css) throw new Error('Rode `npx electron-vite build` antes.')
 
-const barra = (nome, atual, maximo, estado) =>
-  `<div class="barra-recurso barra-${estado} barra-compacta"><span class="barra-nome">${nome}</span><div class="barra-trilho"><div class="barra-preenchido" style="width:${(atual / maximo) * 100}%"></div></div><button class="barra-passo">−</button><button class="barra-valor">${atual}<span class="barra-valor-max">/${maximo}</span></button><button class="barra-passo">+</button></div>`
-const barras = `<div class="barras-compactas">${barra('PV', 12, 45, 'aviso')}${barra('PE', 2, 12, 'perigo')}${barra('Sanidade', 38, 40, 'normal')}</div>`
+const barra = (nome, atual, maximo, estado, cor) =>
+  `<div class="barra-recurso barra-${estado} barra-compacta" style="--recurso-cor:${cor}"><span class="barra-nome">${nome}</span><div class="barra-trilho"><div class="barra-preenchido" style="width:${(atual / maximo) * 100}%"></div></div><button class="barra-passo">−</button><button class="barra-valor">${atual}<span class="barra-valor-max">/${maximo}</span></button><button class="barra-passo">+</button></div>`
+const barras = `<div class="barras-compactas">${barra('PV', 12, 45, 'aviso', '#800000')}${barra('PE', 2, 12, 'perigo', '#000080')}${barra('Sanidade', 38, 40, 'normal', '#800080')}</div>`
 const cabecalho = (mini) =>
   `<div class="hud-cabecalho"><span class="hud-retrato hud-retrato-vazio">M</span>${mini ? '' : '<span class="hud-nome">Matias Oliveira</span>'}<span class="hud-botoes"><button class="hud-botao">${mini ? '▢' : '▁'}</button><button class="hud-botao">✕</button></span></div>`
-const condicoes = `<div class="hud-condicoes"><button class="hud-condicao hud-condicao-ativa">Machucado<span class="hud-condicao-remover">×</span></button><button class="hud-condicao">Enlouquecendo<span class="hud-condicao-remover">×</span></button><button class="hud-condicao hud-condicao-nova">+</button></div>`
+const chip = (nome, cor, texto, ativa) => `<span class="hud-condicao ${ativa ? 'hud-condicao-ativa' : ''}" style="--condicao-cor:${cor};--condicao-texto:${texto}"><label class="hud-condicao-cor"></label><button class="hud-condicao-nome">${nome}</button><button class="hud-condicao-remover">×</button></span>`
+const condicoes = `<div class="hud-condicoes">${chip('Machucado', '#800000', '#ffffff', true)}${chip('Enlouquecendo', '#800080', '#ffffff', false)}${chip('Caído', '#808000', '#ffffff', true)}<button class="hud-condicao hud-condicao-nova">+</button></div>`
 
 const html = `<!DOCTYPE html><html data-theme="day"><head><meta charset="utf-8">
 <link rel="stylesheet" href="${pathToFileURL(join(ASSETS, css)).href}">

@@ -19,7 +19,6 @@ import { StatusBar } from '@renderer/components/chrome/StatusBar'
 import { SettingsPanel } from '@renderer/components/chrome/SettingsPanel'
 import { DiceRoller3D, type DiceRoller3DHandle } from '@renderer/components/roller/DiceRoller3D'
 import { CompactWidget } from '@renderer/components/compact/CompactWidget'
-import { ProfileBadge } from '@renderer/components/common/ProfileBadge'
 import { PresetList } from '@renderer/components/presets/PresetList'
 import { PresetEditorModal } from '@renderer/components/presets/PresetEditorModal'
 import { HistoryModal } from '@renderer/components/history/HistoryModal'
@@ -396,15 +395,6 @@ export default function App() {
                   shortcutsEnabled={activeTab === 'roll' && !settingsOpen && !isEditorOpen && !modalDasBarrasAberto}
                   /* O atalho pro histórico ao lado do ROLAR — o mesmo modal que as Preferências abrem. */
                   onOpenHistory={() => setHistoryOpen(true)}
-                  /* De quem são os dados — o crachá ao lado do ROLAR (ver `ProfileBadge.tsx`). */
-                  badge={
-                    <ProfileBadge
-                      profile={profiles.active}
-                      fallbackName={t.notesTab.profileUnnamed.replace('{n}', String(indiceDoAtivo + 1))}
-                      emptyPhotoLabel={t.notesTab.profilePhotoEmpty}
-                      variant="roll"
-                    />
-                  }
                 />
               </section>
 

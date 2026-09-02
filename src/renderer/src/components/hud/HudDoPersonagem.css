@@ -157,34 +157,82 @@
   gap: 3px;
 }
 
-/* O chip de condição: relevo pra fora desligado, afundado com fundo branco ligado. */
+/*
+ * O chip de condição: relevo pra fora desligado; ligado, AFUNDADO e pintado com a cor DELA
+ * (`--condicao-cor`, a escolhida ou a do nome — ver `corDaCondicao`), com o texto preto ou branco
+ * conforme a cor (`--condicao-texto`). Desligado, a cor fica só no quadradinho da esquerda, que é
+ * também o seletor: clicar nele abre o de cor do sistema.
+ */
 .hud-condicao {
+  --condicao-cor: #800000;
+  --condicao-texto: #ffffff;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 1px 5px;
+  padding: 1px 4px 1px 3px;
   background: var(--win-face);
   border: 2px outset var(--win-highlight);
   color: var(--win-text);
   font-family: inherit;
   font-size: 10px;
-  cursor: pointer;
-}
-
-.hud-condicao:active:not(:disabled) {
-  border: 2px inset var(--win-highlight);
-  padding: 2px 4px 0 6px;
 }
 
 .hud-condicao-ativa {
   border: 2px inset var(--win-highlight);
-  background: var(--win-input-bg);
+  background: var(--condicao-cor);
+  color: var(--condicao-texto);
   font-weight: bold;
-  color: #800000;
 }
 
-.hud-condicao-ativa:active:not(:disabled) {
-  padding: 1px 5px;
+/* O clique no nome AFUNDA o chip inteiro (o degrau do 98), como quando o chip era um botão só. */
+.hud-condicao:not(.hud-condicao-ativa):has(.hud-condicao-nome:active) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 3px 0 4px;
+}
+
+/* O quadradinho de cor: 8×10, com o `<input type="color">` invisível por cima pra receber o clique. */
+.hud-condicao-cor {
+  position: relative;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 10px;
+  background: var(--condicao-cor);
+  border: 1px solid var(--win-shadow);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.hud-condicao-ativa .hud-condicao-cor {
+  border-color: var(--condicao-texto);
+}
+
+.hud-condicao-cor input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* O nome é o botão de ligar/desligar: sem moldura própria, o chip em volta é a moldura. */
+.hud-condicao-nome,
+.hud-condicao-remover {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.hud-condicao-nome:active:not(:disabled),
+.hud-condicao-remover:active:not(:disabled) {
+  padding: 0;
+  border: 0;
 }
 
 .hud-condicao-remover {
@@ -193,13 +241,30 @@
   color: var(--win-text-muted);
 }
 
+.hud-condicao-ativa .hud-condicao-remover {
+  color: var(--condicao-texto);
+}
+
 .hud-condicao-remover:hover {
   color: #800000;
 }
 
+.hud-condicao-ativa .hud-condicao-remover:hover {
+  color: var(--condicao-texto);
+  font-weight: bold;
+}
+
+/* O "+" é um botão de verdade, com o degrau seco dos outros. */
 .hud-condicao-nova {
   min-width: 20px;
   justify-content: center;
+  padding: 1px 5px;
+  cursor: pointer;
+}
+
+.hud-condicao-nova:active:not(:disabled) {
+  border: 2px inset var(--win-highlight);
+  padding: 2px 4px 0 6px;
 }
 
 .hud-condicao-entrada {

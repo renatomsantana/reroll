@@ -7,6 +7,7 @@ import {
   normalizarRecursos,
   type RecursoVital
 } from '@shared/types/recursoVital'
+import { corPadraoDoRecurso } from '@shared/types/cor'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
 import { Button } from '../common/Button'
@@ -132,9 +133,10 @@ export function RecursoEditorModal({ recursos, onSave, onCancel }: RecursoEditor
                 onChange={(e) => mudar(linha.id, { maximo: e.target.value })}
               />
               <span className="recurso-editor-cor">
+                {/* Sem cor escolhida, o seletor já mostra a cor que o NOME dá (PV bordô, PE marinho...). */}
                 <input
                   type="color"
-                  value={linha.cor ?? '#008000'}
+                  value={linha.cor ?? corPadraoDoRecurso(linha.nome)}
                   aria-label={t.resources.color}
                   onChange={(e) => mudar(linha.id, { cor: e.target.value })}
                 />
