@@ -437,14 +437,25 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                   inteiro em vez de aparecer cinza — botão que nunca liga só faz a pessoa procurar o
                   que está faltando. Ligada desde o 1.1.0, que é o beta do scraping.
                 */}
+                {/*
+                  Importar SEMPRE cria um personagem novo (regra dele, 02/09/2026), então no teto o
+                  botão fica APAGADO, e a dica ao passar o mouse diz o limite. O `span` em volta
+                  existe porque botão desabilitado não recebe eventos de mouse, e é nele que a dica
+                  precisa aparecer.
+                */}
                 {IMPORTACAO_DE_FICHA_LIGADA && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => void importacao.escolherArquivo()}
-                    disabled={importacao.lendo}
+                  <span
+                    className="sheet-import-wrap"
+                    title={profiles.podeCriar ? undefined : t.notesTab.sheetImportLimit.replace('{max}', String(MAX_PROFILES))}
                   >
-                    {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
-                  </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void importacao.escolherArquivo()}
+                      disabled={importacao.lendo || !profiles.podeCriar}
+                    >
+                      {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
+                    </Button>
+                  </span>
                 )}
                 <Button
                   variant="ghost"
@@ -585,7 +596,6 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
               )}
             </p>
             <p className="sheet-import-feito-resumo">
-              {importacao.feito.atualizou && `${t.sheetImport.doneUpdated.replace('{name}', importacao.feito.nome)} `}
               {t.sheetImport.done
                 .replace('{fields}', String(importacao.feito.campos))
                 .replace('{presets}', String(importacao.feito.rolagens))}
@@ -616,9 +626,14 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
             <p className="sheet-empty-hint">{t.notesTab.sheetEmptyHint}</p>
             <div className="sheet-empty-actions">
               {IMPORTACAO_DE_FICHA_LIGADA && (
-                <Button variant="primary" onClick={() => void importacao.escolherArquivo()} disabled={importacao.lendo}>
-                  {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
-                </Button>
+                <span
+                  className="sheet-import-wrap"
+                  title={profiles.podeCriar ? undefined : t.notesTab.sheetImportLimit.replace('{max}', String(MAX_PROFILES))}
+                >
+                  <Button variant="primary" onClick={() => void importacao.escolherArquivo()} disabled={importacao.lendo || !profiles.podeCriar}>
+                    {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
+                  </Button>
+                </span>
               )}
               <Button variant="ghost" onClick={() => setPreencherAMao(true)}>
                 {t.notesTab.sheetEmptyManual}

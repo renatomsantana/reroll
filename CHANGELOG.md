@@ -14,6 +14,10 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
 
 ### Alterado (importação sem janela, e o teto de 3 vira aviso)
 
+- **Importar ficha SEMPRE cria um personagem novo, depois de um "tem certeza?"** — regra dele (02/09/2026): "toda vez que uploadar uma ficha nova, que CRIE um personagem novo, para não perder o que já está lá; clicou em uploadar, tem certeza? aí cria um novo". Caíram as duas regras que gravavam por cima de alguém (preencher a ficha vazia do personagem aberto; atualizar o homônimo na reimportação): o clique abre o diálogo do app com a pergunta, depois o seletor de PDF, e o personagem nasce já aberto, com tudo dentro: as seções da ficha, os golpes como presets, as barras de PV/PE/PM que viram o HUD, a foto do PDF na frente e as páginas guardadas. No teto de personagens (3 nos testadores) o botão de importar fica APAGADO, e passar o mouse diz "Limite alcançado: apenas 3 personagens!"; o hook ainda recusa por conta própria se o clique escapar. O harness `fichas` clica no OK do diálogo.
+
+- **Anotações: clicar em qualquer pauta do caderno já leva o cursor pra ela** — pedido dele (02/09/2026): "deixar possível que clique em qualquer linha no anotações para começar a digitar, que não seja apenas no Enter". O caderno desenha as pautas até o fim da área, mas o texto só existia até onde foi digitado, e o clique abaixo dele caía no fim do texto. Agora o clique numa pauta vazia acrescenta as quebras de linha que faltam até ela e põe o cursor lá, como a caneta no papel; clique em cima de texto que existe continua sendo do navegador. A conta é pura (`cliqueNaLinha.ts`) e conta as linhas VISUAIS, então linha comprida que quebra na largura não ganha quebra a mais.
+
 - **Importar ficha é um gesto só: escolher o PDF** — pedido dele, em duas rodadas (30/08 e
   02/09/2026): "não precisa mostrar a página inteira, apenas aperte o PDF e diga ok importaremos"
   e depois "não precisa perguntar para a pessoa, apenas upload, scrap tudo, e deixa editável para
@@ -89,6 +93,21 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
   sendo do personagem: quem arrastar, fica onde soltou.
 
 ### Adicionado
+
+- **Ficha de Tormenta20 reconhecida (leitor `tormenta20`)** — pedido dele (02/09/2026): "deixa o
+  scraping pronto para fichas de T20 também". Sem ficha real na mão, o leitor casa o VOCABULÁRIO do
+  sistema em vez de nomes exatos de campo (com ou sem acento, em caixa alta ou não, como nome de
+  formulário ou rótulo impresso), então serve pra editável da Jambô, pra caseira do Google Docs e
+  pra de comunidade: Identificação (Raça, Classe, Origem, Divindade), os seis atributos, PV e PM
+  como barras (com atual e máximo, ou "7/12" num campo só), Defesa e Deslocamento, as 29
+  perícias rolando d20 + o número, a grade de ataques (Arma/Teste/Dano/Crítico, em colunas ou
+  numa célula só) virando uma linha por arma e os presets de teste e dano, Poderes, Magias,
+  Equipamento, Tibar e História nos blocos certos. A edição decide a rolagem do atributo: valor
+  (Força 18 → 1d20+4, livro de 2019) ou modificador (Força +4, Jogo do Ano), olhando os seis
+  juntos. Ficha com dono traz o esqueleto de lacunas; modelo em branco não traz nada. Ficha de D&D
+  traduzida, de Ordem e de Pathfinder continuam com os leitores delas: os atributos em português
+  não bastam sem uma marca que só Tormenta tem (PM, Tibar, Misticismo, Jogatina, Nobreza, Guerra,
+  Cavalgar ou o título). Os dois PDFs de teste de Tormenta que caíam no genérico agora caem aqui.
 
 - **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela
   de rolagem, no HUD sobre a cena (ver §3.6), com "−" e "+" ao lado de cada uma: clique tira ou soma 1,

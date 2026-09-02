@@ -440,6 +440,17 @@ async function criarPreset(nome) {
   await js(`Array.from(document.querySelectorAll('.modal-overlay button')).find((b) => b.textContent.trim() === 'Salvar')?.click()`)
   return esperarAte(`!document.querySelector('.modal-overlay') && Array.from(document.querySelectorAll('.preset-card-name')).some((n) => n.textContent === ${JSON.stringify(nome)})`, 4000)
 }
+/**
+ * O "tem certeza?" da importação de ficha (desde 02/09/2026 importar SEMPRE cria um personagem
+ * novo, e este diálogo é a única pergunta): clica em OK. Sem o diálogo em 3s, segue; o teste da
+ * frente diz se a importação aconteceu.
+ */
+async function confirmarImportacaoDeFicha() {
+  const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
+  if (!dialogo) return false
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  return esperarAte(`!document.querySelector('[role=alertdialog]')`, 3000)
+}
 async function apagarPreset(nome) {
   await js(`(() => { const card = Array.from(document.querySelectorAll('.preset-card')).find((c) => c.querySelector('.preset-card-name')?.textContent === ${JSON.stringify(nome)}); card?.querySelector('.preset-card-action-delete')?.click() })()`)
   const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
@@ -473,6 +484,7 @@ async function fasePresets() {
   await abrirApp({ displayMode: 'quick' })
   await aba('Ficha')
   await clicar('Importar ficha (PDF)')
+  await confirmarImportacaoDeFicha()
   // Sem janela nenhuma: o PDF é lido e gravado direto, e a Ficha diz o que importou.
   await esperarAte(`!!document.querySelector('.sheet-import-feito')`, 60000, 250)
   await espera(500)
@@ -1025,7 +1037,8 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     await abrirApp({})
     await aba('Ficha')
     await clicar('Importar ficha (PDF)')
-    // Sem janela: lê, decide o destino e grava sozinho; a Ficha mostra o aviso do que importou.
+    await confirmarImportacaoDeFicha()
+    // Sem janela: lê, cria o personagem e grava sozinho; a Ficha mostra o aviso do que importou.
     const importou = await esperarAte(`!!document.querySelector('.sheet-import-feito') || !!document.querySelector('.sheet-save-error')`, 60000, 250)
     const conf = await js(`(() => {
       const feito = document.querySelector('.sheet-import-feito')
