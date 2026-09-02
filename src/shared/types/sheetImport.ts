@@ -44,6 +44,15 @@ export interface PdfField {
   page: number
   /** Retângulo do campo na página, em pontos: `[x0, y0, x1, y1]`, origem embaixo à esquerda. */
   rect: [number, number, number, number]
+  /**
+   * Campo que a pessoa NÃO VÊ (bandeiras HIDDEN/NOVIEW do PDF). O leitor genérico o ignora por
+   * inteiro: é como formulário calculado esconde total interno, e um "TOTAL_INTERNO = 999" na
+   * ficha tem cara de dado lido. Mas o leitor DEDICADO precisa dele: na ficha editável de Tenebra
+   * as Gotas de Suor e a Barra de Feridas moram em caixas ocultas que os botões da página ligam
+   * e desligam, e na de Tormenta20 o modificador de cada perícia é um campo oculto. Vêm no FIM da
+   * lista, depois de todos os visíveis, pra um mapa "primeiro nome ganha" preferir o visível.
+   */
+  oculto?: boolean
 }
 
 export interface PdfText {
