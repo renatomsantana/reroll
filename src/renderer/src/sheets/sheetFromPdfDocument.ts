@@ -108,6 +108,7 @@ function textoDePrimitivo(valor: unknown): string {
 
 export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocument): Promise<PdfSheet> {
   const fields: PdfField[] = []
+  const ocultos: PdfField[] = []
   const texts: PdfText[] = []
   const pageCount = numero(doc.numPages)
   /**
@@ -164,7 +165,7 @@ export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocumen
          * de teste). O que está visível no papel continua entrando igual.
          */
         const bandeiras = numero(anotacao.annotationFlags)
-        if ((bandeiras & 2) !== 0 || (bandeiras & 32) !== 0) continue
+        const oculto = (bandeiras & 2) !== 0 || (bandeiras & 32) !== 0
         // Ver `MAXIMO_DE_CAMPOS_DA_FICHA`: a partir daqui o resto é ignorado, com aviso.
         if (fields.length >= MAXIMO_DE_CAMPOS_DA_FICHA) {
           if (fields.length === MAXIMO_DE_CAMPOS_DA_FICHA) {
@@ -173,7 +174,9 @@ export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocumen
           }
           break
         }
-        fields.push({
+        // Oculto vai pra lista de trás (ver `PdfField.oculto`); o genérico nem o vê.
+        ;(oculto ? ocultos : fields).push({
+          ...(oculto ? { oculto: true } : {}),
           name: anotacao.fieldName,
           // `fieldType` vem como `unknown` do pdf.js. Mesmo motivo de `textoDePrimitivo`: um objeto
           // aqui viraria o "tipo" `[object object]`, que nenhum leitor reconhece e ninguém entende.
@@ -218,5 +221,6 @@ export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocumen
     }
   }
 
+  fields.push(...ocultos)
   return { fileName, pageCount, fields, texts }
 }

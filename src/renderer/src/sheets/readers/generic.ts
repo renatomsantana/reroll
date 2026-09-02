@@ -110,11 +110,15 @@ export const genericReader: SheetReader = {
  * que é exatamente a parte que não muda de sistema pra sistema.
  */
 export function extrairGenerico(
-  sheet: PdfSheet,
+  original: PdfSheet,
   readerId: string,
   readerLabel: string,
   confidence: number
 ): SheetImport {
+  /** Campo OCULTO não é ficha de ninguém pra este leitor (ver `PdfField.oculto`). */
+  const sheet: PdfSheet = original.fields.some((campo) => campo.oculto)
+    ? { ...original, fields: original.fields.filter((campo) => !campo.oculto) }
+    : original
   const warnings: SheetWarningId[] = []
   const fields: SheetImportField[] = []
   const presets: SheetImportPreset[] = []
