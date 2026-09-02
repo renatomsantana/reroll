@@ -13,6 +13,8 @@
  * programa, não do personagem. Alguém que joga de Rodrigo e de Marina não quer o app em inglês
  * quando muda de ficha. A divisão está em `PROFILE_LOOK_KEYS`, em `SettingsContext.tsx`.
  */
+import { PERSONAGENS_LIBERADOS } from '../liberacoes'
+
 export interface Profile {
   id: string
   /** Nome do personagem. Vazio = a interface mostra "Personagem N" pela posição, como as sessões. */
@@ -44,31 +46,32 @@ export interface ProfilesState {
 export const DEFAULT_PROFILE_ID = 'default'
 
 /**
- * QUANTOS PERSONAGENS a pessoa pode CRIAR. Três, neste beta.
- *
- * Era quinze (a escolha do usuário em cima do "pelo menos 10" da spec), e continua sendo quinze o
- * que o DISCO aceita (`TETO_DE_PERSONAGENS_NO_DISCO`). O três é decisão de LANÇAMENTO, não técnica:
- * o beta vai pros testadores com poucos personagens e o usuário vai "liberando mais" depois —
- * subir este número é uma linha, e cada versão libera o que ele mandar.
- *
- * O teto vale na CRIAÇÃO, e não na leitura. `normalizeProfiles` NUNCA corta a lista, mesmo que ela
- * venha do disco com mais que isto: um arquivo restaurado de backup, ou escrito por uma versão em
- * que o teto era outro (quem testou o beta.2 pode ter mais de três), não pode perder personagem por
- * causa de um número que mudou. O que o app faz é parar de deixar criar mais — o que sobra continua
- * lá, editável e apagável.
- *
- * Quem cobra o teto: `ProfilesContext.create` (o botão "Novo personagem") e o canal de importação de
- * ficha. Os dois, porque são os dois jeitos de nascer um personagem.
- */
-export const MAX_PROFILES = 3
-
-/**
  * O que o `profiles.json` ACEITA gravar — o teto de segurança do disco (`ProfilesRepository.save`),
- * separado do teto de criação de cima. Quinze é o número do alfa: um arquivo de quem já tinha
+ * separado do teto de criação logo abaixo. Quinze é o número do alfa: um arquivo de quem já tinha
  * quinze personagens continua sendo gravado (renomear, trocar de ativo, apagar), e um `profiles.json`
  * absurdo (centenas) continua recusado.
  */
 export const TETO_DE_PERSONAGENS_NO_DISCO = 15
+
+/**
+ * QUANTOS PERSONAGENS a pessoa pode CRIAR — e aqui vale a regra do dono (30/08/2026): "EU o DONO
+ * posso ter quantos personagens quiser, OS OUTROS usuários apenas 3, eles são bloqueados e recebem
+ * um aviso: máximo de personagens atingido = 3".
+ *
+ * Quem escolhe o lado é `PERSONAGENS_LIBERADOS` (`shared/liberacoes.ts`), a mesma chave de
+ * liberação do HUD: ligada na `main` (o cliente dele), o teto é o do disco; desligada no branch
+ * `lancamento` (os testadores), o teto é TRÊS, duro — o botão "Novo personagem" responde com o
+ * aviso de limite pelo diálogo do app, e a importação trava o OK com o mesmo motivo.
+ *
+ * O teto vale na CRIAÇÃO, e não na leitura. `normalizeProfiles` NUNCA corta a lista, mesmo que ela
+ * venha do disco com mais que isto: um arquivo restaurado de backup, ou escrito por uma versão em
+ * que o teto era outro, não pode perder personagem por causa de um número que mudou. O que o app
+ * faz é parar de deixar criar mais — o que sobra continua lá, editável e apagável.
+ *
+ * Quem cobra o teto: `ProfilesContext.create` (o botão "Novo personagem") e o canal de importação de
+ * ficha. Os dois, porque são os dois jeitos de nascer um personagem.
+ */
+export const MAX_PROFILES = PERSONAGENS_LIBERADOS ? TETO_DE_PERSONAGENS_NO_DISCO : 3
 
 export function createProfile(name = '', system = ''): Profile {
   return { id: crypto.randomUUID(), name, system, photo: null, createdAt: Date.now() }

@@ -91,26 +91,21 @@
   min-width: 0;
 }
 
-/** "Rolar" é a ação da tela inteira: ocupa a altura toda da caixa e fica separado do resto. */
+/**
+ * "Rolar" é a ação da tela inteira: ocupa a altura toda da caixa e fica separado do resto, na ponta
+ * direita (`margin-left: auto`). O crachá do personagem que ficava encostado nele saiu em 02/09/2026
+ * — pedido dele: "deixar apenas no HUD".
+ */
 .dice-roller-3d-roll-btn {
   flex: 0 0 auto;
   min-width: 104px;
+  margin-left: auto;
   font-size: 14px;
   padding: 6px 18px;
 }
 
 .dice-roller-3d-roll-btn:active:not(:disabled) {
   padding: 7px 17px 5px 19px;
-}
-
-/* O crachá do personagem, encostado no ROLAR: `margin-left: auto` leva os dois pra ponta direita. */
-.dice-roller-3d-badge {
-  flex: 0 1 auto;
-  min-width: 0;
-  margin-left: auto;
-  align-self: center;
-  display: flex;
-  align-items: center;
 }
 
 .dice-roller-3d-row {

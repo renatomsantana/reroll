@@ -495,3 +495,28 @@
   background: #fff;
   box-shadow: 2px 2px 0 #000;
 }
+
+/*
+ * O aviso do que a importação trouxe (sem janela desde 02/09/2026): caixa afundada como um campo,
+ * texto miúdo, os avisos do leitor em bordô, e o "Entendi" fecha.
+ */
+.sheet-import-feito {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+  font-size: 11px;
+}
+
+.sheet-import-feito p {
+  margin: 0;
+}
+
+.sheet-import-feito ul {
+  margin: 0;
+  padding-left: 16px;
+  color: #800000;
+}

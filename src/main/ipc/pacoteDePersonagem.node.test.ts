@@ -180,7 +180,10 @@ describe('o personagem inteiro num arquivo', () => {
     expect((await presets.getAll()).map((p) => p.name)).toEqual(['Faca', 'Ritual'])
   })
 
-  it('no teto: nome novo é recusado sem tocar em nada; nome que existe ainda atualiza', async () => {
+  // Timeout próprio: encher até o teto são QUINZE importações de verdade no disco (o teto de
+  // criação virou o do disco quando o limite de três do beta caiu, 30/08/2026), e os 5s padrão
+  // já não davam nem com a máquina folgada.
+  it('no teto: nome novo é recusado sem tocar em nada; nome que existe ainda atualiza', { timeout: 30_000 }, async () => {
     const importar = handlers.get(IpcChannels.pacoteImportar)!
     // Enche até o teto, com nomes diferentes.
     let n = 0

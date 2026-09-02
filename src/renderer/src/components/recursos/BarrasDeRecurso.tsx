@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import {
+  corDoRecurso,
   estadoDoRecurso,
   lerEntradaDeRecurso,
   prenderAtual,
@@ -119,7 +120,8 @@ function BarraDeRecurso({ recurso, onChange }: BarraDeRecursoProps) {
   return (
     <div
       className={`barra-recurso barra-${estado} barra-compacta ${recurso.cor ? 'barra-cor-fixa' : ''}`}
-      style={recurso.cor ? ({ '--recurso-cor': recurso.cor } as React.CSSProperties) : undefined}
+      /* A cor é DA BARRA (escolhida ou pelo nome); o estado aparece no número — ver o CSS. */
+      style={{ '--recurso-cor': corDoRecurso(recurso) } as React.CSSProperties}
     >
       <span className="barra-nome" title={recurso.nome}>
         {recurso.nome}

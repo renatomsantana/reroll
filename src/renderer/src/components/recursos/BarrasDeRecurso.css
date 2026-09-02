@@ -1,11 +1,13 @@
 /*
  * As barras de recurso, no vocabulário do 98: trilho AFUNDADO branco como todo campo, e o
  * preenchimento em cor CHAPADA — sem degradê, sem arredondamento, sem transição (ver o cabeçalho de
- * `global.css`). A cor muda de bloco com o estado, como a barra de progresso da época mudava de
- * bloco.
+ * `global.css`).
  *
- * As três cores de estado são as da paleta de 16 cores do Windows: verde, oliva e bordô. São as
- * que o tema clássico já tinha, e por isso não destoam do cinza em volta.
+ * A COR É DA BARRA (pedido dele, 02/09/2026: "para cada atributo atribuir cor"): PV bordô, PE
+ * marinho, Sanidade roxo, ou a que a pessoa escolher no editor — vem por `--recurso-cor` no
+ * elemento (ver `corDoRecurso`). O ESTADO (abaixo da metade, abaixo de um quarto), que antes
+ * mudava a cor do bloco inteiro, agora pinta o NÚMERO: oliva no aviso, bordô no perigo. As duas
+ * informações continuam na tela; só não disputam mais o mesmo pixel.
  *
  * Uma linha FINA de 16px por barra: é a versão que mora no HUD sobre a cena e na janelinha do modo
  * compacto (as duas casas das barras). As medidas fecham com `ALTURA_DA_BARRA_COMPACTA` em
@@ -28,15 +30,15 @@
   min-width: 0;
 }
 
-.barra-aviso {
-  --recurso-cor: #808000;
+/* O estado no NÚMERO (e no nome, no perigo): a barra fica com a cor dela. */
+.barra-aviso .barra-valor {
+  color: #808000;
 }
 
-.barra-perigo {
-  --recurso-cor: #800000;
+.barra-perigo .barra-valor,
+.barra-perigo .barra-nome {
+  color: #800000;
 }
-
-/* A cor escolhida pela pessoa vem por `style` no elemento, e ganha das três acima. */
 
 /* 52px: "Sanidade" inteira em 10px bold — com 40px ela saía "Sanid..." na captura medida. */
 .barra-nome {

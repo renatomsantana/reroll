@@ -1,4 +1,4 @@
-import { app, Menu, session, shell, type Session, type WebContents } from 'electron'
+import { app, ipcMain, Menu, session, shell, type IpcMainInvokeEvent, type Session, type WebContents } from 'electron'
 
 /**
  * As travas de segurança do app — as que valem pra TUDO que rodar dentro dele, e não só pra uma
@@ -200,6 +200,54 @@ function travarConteudo(conteudo: WebContents): void {
 }
 
 /**
+ * A PÁGINA DO APP: o único remetente que os canais de IPC aceitam.
+ *
+ * Todo `ipcMain.handle` do Reroll confiava em quem chamasse: qualquer `webContents` do processo
+ * (uma janela nova, um quadro, uma página que um dia conseguisse tomar o lugar da interface)
+ * falaria com os canais que gravam ficha, leem arquivo e trocam de personagem. As travas de
+ * navegação acima tornam isso improvável; esta torna inútil: o pedido só é atendido se vier do
+ * QUADRO PRINCIPAL de uma janela carregando a interface empacotada (`.../out/renderer/index.html`)
+ * ou o servidor de desenvolvimento. É o item "validate the sender of all IPC messages" da lista
+ * de segurança do Electron, aplicado num lugar só.
+ */
+export function ehPaginaDoApp(url: string): boolean {
+  if (ehEnderecoDeDesenvolvimento(url)) return true
+  try {
+    const alvo = new URL(url)
+    return alvo.protocol === 'file:' && alvo.pathname.endsWith('/out/renderer/index.html')
+  } catch {
+    return false
+  }
+}
+
+/** O evento de IPC veio do quadro principal da página do app? Quadro já destruído (`null`) não. */
+export function remetenteConfiavel(evento: Pick<IpcMainInvokeEvent, 'senderFrame' | 'sender'>): boolean {
+  const quadro = evento.senderFrame
+  if (!quadro) return false
+  // Só o quadro PRINCIPAL: o app não tem <iframe>, e um que aparecesse não ganharia os canais.
+  if (quadro !== evento.sender.mainFrame) return false
+  return ehPaginaDoApp(quadro.url)
+}
+
+/**
+ * Embrulha `ipcMain.handle` UMA vez, antes de qualquer canal ser registrado: todo handler passa a
+ * conferir o remetente sem que cada arquivo de `ipc/` precise lembrar de fazê-lo, e o canal que
+ * alguém escrever no ano que vem já nasce conferido. Pedido recusado vira erro pra quem chamou (a
+ * promessa do renderer rejeita) e uma linha no console do main, e nada é executado.
+ */
+export function travarCanaisDeIpc(): void {
+  const registrar = ipcMain.handle.bind(ipcMain)
+  ipcMain.handle = (canal, ouvinte) =>
+    registrar(canal, (evento, ...args) => {
+      if (!remetenteConfiavel(evento)) {
+        console.warn('[segurança] pedido de IPC recusado, remetente fora da página do app:', canal, evento.senderFrame?.url)
+        throw new Error('Pedido recusado: não veio da interface do Reroll.')
+      }
+      return ouvinte(evento, ...args)
+    })
+}
+
+/**
  * O app roda EMPACOTADO? É o que separa a máquina de quem programa da de quem joga.
  *
  * Só isto, e não `NODE_ENV`: o `electron-vite` não carimba `NODE_ENV` no bundle do processo
@@ -251,6 +299,8 @@ export function preferenciasDeDepuracao(): { devTools: boolean } {
 /** Instala as travas. Chamar UMA vez, depois do `app.whenReady()` e antes de abrir janela. */
 export function aplicarTravasDeSeguranca(): void {
   tirarMenuDeProducao()
+  // ANTES de qualquer `register*Handlers`: é o embrulho de `ipcMain.handle` que confere o remetente.
+  travarCanaisDeIpc()
 
   /**
    * A sessão padrão JÁ EXISTE quando o app fica pronto, então ela não dispara `session-created` — por

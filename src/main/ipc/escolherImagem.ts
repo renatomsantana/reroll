@@ -69,8 +69,7 @@ export async function escolherImagemComoDataUrl(titulo: string): Promise<string 
  * nativa. Mesma divisão de `lerPdfEscolhido`, e pelo mesmo motivo.
  */
 export async function lerImagemComoDataUrl(caminho: string): Promise<string> {
-  const mime = MIME_POR_EXTENSAO[extname(caminho).toLowerCase()]
-  if (!mime) throw new Error('Formato de imagem não suportado.')
+  if (!(extname(caminho).toLowerCase() in MIME_POR_EXTENSAO)) throw new Error('Formato de imagem não suportado.')
 
   // ANTES de ler: o ponto do limite é não trazer os bytes pra memória, nem convertê-los a base64.
   const info = await fs.stat(caminho)
@@ -81,5 +80,26 @@ export async function lerImagemComoDataUrl(caminho: string): Promise<string> {
   }
 
   const buffer = await fs.readFile(caminho)
-  return `data:${mime};base64,${buffer.toString('base64')}`
+  /**
+   * A ASSINATURA do formato, e não só a extensão (a mesma régua do `%PDF-` da ficha): um `.png`
+   * que não começa com os bytes de PNG é outra coisa renomeada. O que vai gravado no perfil, e
+   * desenhado em `<img>` em quatro lugares do app, é o tipo que os BYTES dizem ter, nunca o que o
+   * nome do arquivo alegou. Arquivo que não é imagem nenhuma é recusado com o motivo.
+   */
+  const formato = formatoDaImagem(buffer)
+  if (!formato) throw new Error('Este arquivo não é uma imagem PNG, JPEG ou WebP.')
+  return `data:${formato};base64,${buffer.toString('base64')}`
+}
+
+/** O tipo de imagem pelos primeiros bytes: PNG, JPEG ou WebP; `null` pra qualquer outra coisa. */
+export function formatoDaImagem(bytes: Uint8Array): 'image/png' | 'image/jpeg' | 'image/webp' | null {
+  const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+  if (bytes.length >= 8 && PNG.every((byte, i) => bytes[i] === byte)) return 'image/png'
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
+  if (bytes.length >= 12 && ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 12) === 'WEBP') return 'image/webp'
+  return null
+}
+
+function ascii(bytes: Uint8Array, de: number, ate: number): string {
+  return String.fromCharCode(...bytes.subarray(de, ate))
 }

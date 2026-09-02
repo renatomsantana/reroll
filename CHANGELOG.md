@@ -12,6 +12,64 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
 (§3.8): pronto na `main`, instalado na máquina dele, guardado pra uma liberação própria — é o
 `HUD_LIBERADO` em `src/shared/liberacoes.ts`, que o branch de lançamento vira pra `false`.
 
+### Alterado (importação sem janela, e o teto de 3 vira aviso)
+
+- **Importar ficha é um gesto só: escolher o PDF** — pedido dele, em duas rodadas (30/08 e
+  02/09/2026): "não precisa mostrar a página inteira, apenas aperte o PDF e diga ok importaremos"
+  e depois "não precisa perguntar para a pessoa, apenas upload, scrap tudo, e deixa editável para
+  o user". A tela de conferência campo a campo saiu primeiro (virou um "ok, importaremos"
+  pequeno) e depois saiu a janela por inteiro: o app lê o PDF, decide sozinho e grava TUDO
+  (anotações, presets, barras, retrato, páginas e o texto sem rótulo). O que a janela ainda
+  perguntava virou regra (`escolherDestino`): se a ficha do personagem aberto está vazia, ela é
+  preenchida; se já existe um personagem com o mesmo nome que a ficha traz, ele é atualizado (a
+  reimportação depois de subir de nível, sem criar um segundo igual); senão nasce um novo. O nome
+  é o que o leitor achou, ou o do personagem atualizado, ou o do arquivo, nunca vazio. Logo
+  depois, a aba Ficha diz o que entrou ("Reconhecemos como ficha de Ordem Paranormal. 42 campos e
+  7 rolagens importados") e os avisos do leitor sobre o que NÃO foi lido, com um "Entendi"; tudo
+  continua editável e apagável ali, a qualquer momento. PDF sem nada legível (imagem digitalizada,
+  livro de 100+ páginas) não cria personagem: mostra o motivo no lugar.
+
+- **Personagens: o dono à vontade, os testadores em 3 com aviso** — a regra dele (30/08/2026): "EU
+  o DONO posso ter quantos personagens quiser, OS OUTROS usuários apenas 3, eles são bloqueados e
+  recebem um aviso: máximo de personagens atingido = 3". Nasceu a chave `PERSONAGENS_LIBERADOS`
+  (`liberacoes.ts`, a mesma mecânica do HUD): ligada na `main` (o cliente dele), o teto de criação
+  é o do disco (15); desligada no branch `lancamento`, o teto é 3, duro. E o bloqueio agora FALA:
+  o botão "Novo personagem" no teto responde com "Máximo de personagens atingido: {max}" no diálogo
+  do app (antes era só o botão cinza com tooltip), e a importação recusa criar um personagem além
+  do teto, com o mesmo aviso na Ficha.
+
+### Alterado (HUD e cores, 02/09/2026)
+
+- **Cada barra tem a sua cor, e cada condição também** — pedido dele: "para cada atributo atribuir
+  cor também; Caído, a pessoa decide a cor também". A barra deixa de trocar de cor com o estado
+  (verde, oliva, bordô) e ganha a cor DELA: PV bordô, PE azul-marinho, Sanidade roxo, Sorte oliva,
+  Fôlego verde, e o que não tem convenção sai da paleta de 16 cores do Windows pelo nome, sempre a
+  mesma cor pro mesmo nome; o lápis do HUD troca (o "↺" volta à cor do nome). O estado continua à
+  vista, agora no NÚMERO: abaixo da metade ele fica oliva, abaixo de um quarto o número e o nome
+  ficam bordô. A condição ganhou um quadradinho de cor à esquerda do nome, que é o seletor: clicar
+  abre o de cor do sistema e a escolha grava na hora; ligada, o chip fica pintado com a cor dela
+  (Machucado bordô, Enlouquecendo roxo, Caído oliva por padrão), com o texto preto ou branco
+  conforme a cor.
+
+- **O crachá saiu de perto do ROLAR** — pedido dele: "tirar o nome e foto de perfil do lado do
+  rolar e deixar apenas no HUD". A foto e o nome na tela de rolagem eram a mesma informação duas
+  vezes; agora quem diz de quem são os dados é só o HUD sobre a cena. Nas Anotações o crachá
+  continua.
+
+### Segurança
+
+- **Os canais de IPC conferem quem chama** — todo `ipcMain.handle` passa por um embrulho único
+  (`travarCanaisDeIpc`, em `seguranca.ts`) que só atende o quadro principal da página do app (a
+  interface empacotada ou o servidor de desenvolvimento); qualquer outro `webContents` recebe
+  "pedido recusado" e nada roda. É o item "validate the sender of all IPC messages" da lista de
+  segurança do Electron: as travas de navegação já tornavam o caso improvável, esta o torna inútil.
+  O canal que alguém escrever no ano que vem já nasce conferido.
+
+- **A foto do personagem é aceita pelos BYTES, não pela extensão** — a mesma régua do `%PDF-` da
+  ficha: um `.png` que não começa com a assinatura de PNG, JPEG ou WebP é recusado com o motivo, e
+  o tipo gravado no perfil é o que os bytes dizem (um JPEG salvo como `.png` entra como JPEG, que é
+  o que o `<img>` consegue desenhar).
+
 ### Corrigido (arquivo errado na importação)
 
 - **Subir o arquivo errado mostra uma mensagem que diz o botão certo** — pedido dele: "se
