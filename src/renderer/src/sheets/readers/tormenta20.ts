@@ -1,9 +1,10 @@
-import type { PdfSheet, SheetImport, SheetImportField, SheetImportPreset } from '@shared/types/sheetImport'
+import type { PdfField, PdfSheet, SheetImport, SheetImportField, SheetImportPreset } from '@shared/types/sheetImport'
 import type { SheetRollKind } from '@shared/types/sheetRoll'
 import { parseDiceExpression, parseTestBonus } from '@shared/dice/parseDiceExpression'
 import { lerCamposDoTexto } from '../camposDoTexto'
 import { ehTituloDeFicha } from '../anotacoesSobreImagem'
-import { extrairGenerico, presetsSemRepetidos } from './generic'
+import { nomeDeCampoDecodificado } from '../labelForField'
+import { extrairGenerico, presetsSemRepetidos, valorDeFicha } from './generic'
 import type { SheetReader } from './types'
 
 /**
@@ -278,11 +279,268 @@ function sobraDoTexto(sheet: PdfSheet): string | undefined {
   return sobra.length > 0 ? [...new Set(sobra)].join('\n') : undefined
 }
 
+/* ------------------------------------------------------------------------------------------ */
+/* O MODELO EDITÁVEL: a "Ficha Tormenta20 editável" que circula na comunidade.                 */
+/* ------------------------------------------------------------------------------------------ */
+
+/**
+ * A ficha que um testador trouxe (a do Milo, 02/09/2026) e que "ficou horrível" pelo caminho do
+ * vocabulário: é a editável de comunidade, com 343 campos de NOME PRÓPRIO, e o que ela tem de
+ * bom é exatamente o que o vocabulário não vê. Medido no arquivo:
+ *
+ * - atributos como MODIFICADOR em `ModFor`…`ModCar`; PV/PM em `Pontos de Vida atuais` e
+ *   `Pontos de Vida m#C3#A1ximos` (o `#C3#A1` é "á" escapado à moda do PDF, ver
+ *   `nomeDeCampoDecodificado`);
+ * - a GRADE DE PERÍCIAS em células numeradas por linha: `NN1` é a metade do nível, `NN3` o bônus
+ *   de treino, `NN4` outros bônus, `ModAtribXxxx` o modificador do atributo escolhido em
+ *   `SeleAtribXxxx`, e `Mar Trei xxxx` a caixa de treinada. `ModAtribXxxx` é campo OCULTO
+ *   (bandeira 2 do PDF) e o extrator o descarta de propósito, então o modificador sai do atributo
+ *   ESCOLHIDO: `SeleAtribAcro = "Des"` lê `ModDes`. O TOTAL só existe gravado em algumas linhas
+ *   (`NN0`, e zerado onde o JavaScript do PDF não rodou), então ele é REFEITO daqui: metade do
+ *   nível + atributo + treino + outros (+ o modificador de tamanho, na Furtividade). Conferido
+ *   nas linhas em que o arquivo guardou o total: Pilotagem 6, Pontaria 4, Reflexos 6, Vontade 4;
+ * - cinco linhas de ataque (`Ataque N`, `Bonus do ataque N`, `Dano causado pelo ataque N`,
+ *   `Margem de cr#C3#ADtico e multiplicador N`, `Tipo de dano do ataque N`, `Alcance do ataque N`);
+ * - dezessete linhas de item (`Item N`, `Quantidade Item N`, `Slots Item N`), `Tibares`, `Carga
+ *   Usada` e `Limite de carga`;
+ * - Defesa em `CA` (com os componentes em `Base CA`, `ModAtribDefe`, `B.Arm`, `B.Esc`, `Outros
+ *   B.CA`), armadura e escudo com bônus e penalidade, `Lv`, `SeleTamanho`, e os textos longos
+ *   da página 2 (habilidades de raça/origem e de classe, magias, descrição, anotações).
+ *
+ * As células numéricas da grade não têm rótulo e caíam no texto sem rótulo da ficha ("2 0 4 6 5
+ * 8 10 3" no bloco de história): neste modelo TODO campo é conhecido, então nada vai pra lá.
+ */
+const MARCAS_DO_MODELO = ['modfor', 'moddes', 'modcar', 'seleatribacro', 'pontos de vida atuais', 'pontos de mana atuais', 'ataque 1', 'tibares', 'lv']
+
+function confiancaDoModelo(sheet: PdfSheet): number {
+  if (sheet.fields.length === 0) return 0
+  const nomes = new Set(sheet.fields.map((campo) => chave(nomeDeCampoDecodificado(campo.name))))
+  const achadas = MARCAS_DO_MODELO.filter((marca) => nomes.has(marca)).length
+  return achadas >= 6 ? 0.97 : 0
+}
+
+const ATRIBUTOS_DO_MODELO = [
+  { sigla: 'For', nome: 'Força' },
+  { sigla: 'Des', nome: 'Destreza' },
+  { sigla: 'Con', nome: 'Constituição' },
+  { sigla: 'Int', nome: 'Inteligência' },
+  { sigla: 'Sab', nome: 'Sabedoria' },
+  { sigla: 'Car', nome: 'Carisma' }
+]
+
+/** As 30 linhas da grade, na ordem da ficha: linha, sufixo de `SeleAtrib`/`ModAtrib`, sufixo de `Mar Trei`, nome. */
+const GRADE_DE_PERICIAS: { linha: string; atrib: string; trei: string; nome: string }[] = [
+  { linha: '01', atrib: 'Acro', trei: 'acro', nome: 'Acrobacia' },
+  { linha: '02', atrib: 'Ades', trei: 'ades', nome: 'Adestramento' },
+  { linha: '03', atrib: 'Atle', trei: 'atle', nome: 'Atletismo' },
+  { linha: '04', atrib: 'Atua', trei: 'atua', nome: 'Atuação' },
+  { linha: '05', atrib: 'Cava', trei: 'caval', nome: 'Cavalgar' },
+  { linha: '06', atrib: 'Conh', trei: 'conhe', nome: 'Conhecimento' },
+  { linha: '07', atrib: 'Cura', trei: 'cura', nome: 'Cura' },
+  { linha: '08', atrib: 'Dipl', trei: 'dipl', nome: 'Diplomacia' },
+  { linha: '09', atrib: 'Enga', trei: 'enga', nome: 'Enganação' },
+  { linha: '10', atrib: 'Fort', trei: 'forti', nome: 'Fortitude' },
+  { linha: '11', atrib: 'Furt', trei: 'furti', nome: 'Furtividade' },
+  { linha: '12', atrib: 'Guer', trei: 'guerra', nome: 'Guerra' },
+  { linha: '13', atrib: 'Inic', trei: 'ini', nome: 'Iniciativa' },
+  { linha: '14', atrib: 'Inti', trei: 'inti', nome: 'Intimidação' },
+  { linha: '15', atrib: 'Intu', trei: 'intu', nome: 'Intuição' },
+  { linha: '16', atrib: 'Inve', trei: 'inve', nome: 'Investigação' },
+  { linha: '17', atrib: 'Joga', trei: 'joga', nome: 'Jogatina' },
+  { linha: '18', atrib: 'Ladi', trei: 'ladi', nome: 'Ladinagem' },
+  { linha: '19', atrib: 'Luta', trei: 'luta', nome: 'Luta' },
+  { linha: '20', atrib: 'Mist', trei: 'misti', nome: 'Misticismo' },
+  { linha: '21', atrib: 'Nobr', trei: 'nobre', nome: 'Nobreza' },
+  { linha: '22', atrib: 'Ofi1', trei: 'ofi1', nome: 'Ofício 1' },
+  { linha: '23', atrib: 'Ofi2', trei: 'ofi2', nome: 'Ofício 2' },
+  { linha: '24', atrib: 'Perc', trei: 'perce', nome: 'Percepção' },
+  { linha: '25', atrib: 'Pilo', trei: 'pilo', nome: 'Pilotagem' },
+  { linha: '26', atrib: 'Pont', trei: 'ponta', nome: 'Pontaria' },
+  { linha: '27', atrib: 'Refl', trei: 'refle', nome: 'Reflexos' },
+  { linha: '28', atrib: 'Reli', trei: 'reli', nome: 'Religião' },
+  { linha: '29', atrib: 'Sobr', trei: 'sobre', nome: 'Sobrevivência' },
+  { linha: '30', atrib: 'Vont', trei: 'vonta', nome: 'Vontade' }
+]
+
+/** "+4" pra positivo, "-1" pra negativo, "0" pra zero: como toda ficha d20 escreve um bônus. */
+function comSinal(n: number): string {
+  return n > 0 ? `+${n}` : String(n)
+}
+
+function extrairModeloEditavel(sheet: PdfSheet): SheetImport {
+  const base = extrairGenerico(sheet, 'tormenta20', 'Tormenta20', 0.97)
+
+  const porNome = new Map<string, PdfField>()
+  for (const campo of sheet.fields) {
+    const k = chave(nomeDeCampoDecodificado(campo.name))
+    if (!porNome.has(k)) porNome.set(k, campo)
+  }
+  /** Os nomes CRUS dos campos que este leitor leu: o que sobrar do genérico entra como veio. */
+  const consumidos = new Set<string>()
+  const pegar = (nome: string): string | null => {
+    const campo = porNome.get(chave(nome))
+    if (!campo) return null
+    consumidos.add(campo.name)
+    const valor = valorDeFicha(campo.value, campo.type)
+    // "?" é o que o modelo deixa impresso no nome do ofício ainda não escolhido; "-" é alcance vazio.
+    return valor === '?' || valor === '-' ? null : valor
+  }
+  const numeroDe = (nome: string): number | null => {
+    const lido = numero(pegar(nome) ?? '')
+    return lido ? lido.n : null
+  }
+
+  const nome = pegar('Nome do Personagem') ?? ''
+  const temDono = nome !== ''
+
+  const campos: SheetImportField[] = []
+  const presets: SheetImportPreset[] = []
+  const push = (label: string, valor: string | null, grupo: string, roll?: SheetRollKind, sempre = false): void => {
+    if (valor) campos.push({ label, value: valor, group: grupo, roll })
+    else if (sempre && temDono) campos.push({ label, value: '', group: grupo, roll })
+  }
+
+  push('Nome', nome || null, GRUPOS.identificacao, undefined, true)
+  push('Jogador', pegar('Nome do Jogador'), GRUPOS.identificacao, undefined, true)
+  push('Raça', pegar('Raca do Personagem'), GRUPOS.identificacao, undefined, true)
+  push('Classe', pegar('Classe(s) do personagem'), GRUPOS.identificacao, undefined, true)
+  push('Nível', pegar('Lv'), GRUPOS.identificacao, undefined, true)
+  push('Origem', pegar('Origem do Personagem'), GRUPOS.identificacao, undefined, true)
+  push('Divindade', pegar('Divindade'), GRUPOS.identificacao, undefined, true)
+  push('Tamanho', pegar('SeleTamanho'), GRUPOS.identificacao)
+  push('Experiência', pegar('Experiencia total do personagem'), GRUPOS.identificacao)
+
+  // Atributos: o modelo guarda o MODIFICADOR, e é ele que rola (Força +2 → 1d20+2).
+  for (const atributo of ATRIBUTOS_DO_MODELO) {
+    const n = numeroDe(`Mod${atributo.sigla}`)
+    push(atributo.nome, n === null ? null : comSinal(n), GRUPOS.atributos, 'd20', true)
+  }
+
+  push('PV atual', pegar('Pontos de Vida atuais'), GRUPOS.recursos, undefined, true)
+  push('PV máximo', pegar('Pontos de Vida máximos'), GRUPOS.recursos, undefined, true)
+  push('PM atual', pegar('Pontos de Mana atuais'), GRUPOS.recursos, undefined, true)
+  push('PM máximo', pegar('Pontos de Mana máximos'), GRUPOS.recursos, undefined, true)
+
+  /**
+   * COMBATE. A Defesa é o total em `CA`; os componentes são consumidos pra não sobrarem como
+   * "Base CA = 10" e "Outros B.CA = 0" numa seção "Outros". Armadura e escudo entram com o nome
+   * e o que dão (bônus e penalidade), que é como a ficha impressa os mostra.
+   */
+  push('Defesa', pegar('CA'), GRUPOS.combate, undefined, true)
+  for (const componente of ['Base CA', 'SeleAtribDefe', 'ModAtribDefe', 'B.Arm', 'B.Esc', 'Outros B.CA', 'PArmTotal', 'arm pesa', 'Reset']) pegar(componente)
+  const equipamentoDeDefesa = (campoNome: string, bonus: string, penalidade: string): string | null => {
+    const nomeDoItem = pegar(campoNome)
+    const b = numeroDe(bonus)
+    const p = numeroDe(penalidade)
+    if (!nomeDoItem) return null
+    const detalhes = [b !== null && b !== 0 ? `Defesa ${comSinal(b)}` : '', p !== null && p !== 0 ? `penalidade ${p}` : ''].filter(Boolean)
+    return detalhes.length > 0 ? `${nomeDoItem} (${detalhes.join(', ')})` : nomeDoItem
+  }
+  push('Armadura', equipamentoDeDefesa('Armadura', 'B.Arm1', 'Pa'), GRUPOS.combate)
+  push('Escudo', equipamentoDeDefesa('Escudo', 'B.Esc2', 'Pe'), GRUPOS.combate)
+  push('Deslocamento', pegar('Deslocamento do personagem'), GRUPOS.combate, undefined, true)
+  const modFurtividadeTamanho = numeroDe('ModFurtTam')
+  const modManobraTamanho = numeroDe('ModManTam')
+  if ((modFurtividadeTamanho ?? 0) !== 0 || (modManobraTamanho ?? 0) !== 0) {
+    push('Modificadores de tamanho', `Furtividade ${comSinal(modFurtividadeTamanho ?? 0)}, manobras ${comSinal(modManobraTamanho ?? 0)}`, GRUPOS.combate)
+  }
+  push('Testes de resistência', pegar('Teste de resistencias'), GRUPOS.combate)
+
+  /**
+   * PERÍCIAS: o total refeito dos componentes (ver o cabeçalho), com "(treinada)" quando a caixa
+   * está marcada. Linha sem componente nenhum numa ficha com dono é lacuna; num modelo em branco
+   * não entra.
+   */
+  for (const pericia of GRADE_DE_PERICIAS) {
+    const metadeDoNivel = numeroDe(`${pericia.linha}1`)
+    const treino = numeroDe(`${pericia.linha}3`)
+    const outros = numeroDe(`${pericia.linha}4`)
+    pegar(`${pericia.linha}0`)
+    const atributoEscolhido = pegar(`SeleAtrib${pericia.atrib}`)
+    // O `ModAtrib` é oculto e não chega aqui; o valor está no `Mod<atributo escolhido>` (ver o cabeçalho).
+    const atributo = numeroDe(`ModAtrib${pericia.atrib}`) ?? (atributoEscolhido ? numeroDe(`Mod${atributoEscolhido}`) : null)
+    const treinada = pegar(`Mar Trei ${pericia.trei}`) === 'sim'
+    const partes = [metadeDoNivel, treino, outros, atributo, pericia.atrib === 'Furt' ? modFurtividadeTamanho : null]
+    const temAlgo = partes.some((parte) => parte !== null)
+    const total = partes.reduce<number>((soma, parte) => soma + (parte ?? 0), 0)
+    let rotulo = pericia.nome
+    let semOficio = false
+    if (pericia.atrib === 'Ofi1' || pericia.atrib === 'Ofi2') {
+      const nomeDoOficio = pegar(pericia.atrib === 'Ofi1' ? 'Ofício 1' : 'Ofício_2')
+      if (nomeDoOficio) rotulo = `Ofício (${nomeDoOficio})`
+      // Ofício sem nome escolhido e sem treino é a linha vazia do modelo: fica como lacuna, não como "+1".
+      else semOficio = !treinada
+    }
+    push(rotulo, temAlgo && !semOficio ? `${comSinal(total)}${treinada ? ' (treinada)' : ''}` : null, GRUPOS.pericias, 'd20', true)
+  }
+
+  // Ataques: uma linha por arma, e os presets de teste e dano.
+  for (let i = 1; i <= 5; i++) {
+    const arma = pegar(`Ataque ${i}`)
+    const bonus = numeroDe(`Bonus do ataque ${i}`)
+    const dano = pegar(`Dano causado pelo ataque ${i}`) ?? ''
+    const critico = pegar(`Margem de crítico e multiplicador ${i}`) ?? ''
+    const tipo = pegar(`Tipo de dano do ataque ${i}`) ?? ''
+    const alcance = pegar(`Alcance do ataque ${i}`) ?? ''
+    if (!arma) continue
+    const linha: LinhaDeAtaque = { nome: arma, teste: bonus === null ? '' : comSinal(bonus), dano, critico }
+    const resumo = [linha.teste, dano, critico, tipo, alcance].filter(Boolean).join(' · ')
+    campos.push({ label: arma, value: resumo, group: GRUPOS.ataques })
+    presets.push(...presetsDoAtaque(linha, resumo))
+  }
+
+  // Magia: o texto das magias e o atributo-chave com o modificador.
+  push('Magias', pegar('Magias'), GRUPOS.magia)
+  const atributoChave = pegar('SeleAtribMagia')
+  const modChave = numeroDe('ModAtribMagia') ?? (atributoChave ? numeroDe(`Mod${atributoChave}`) : null)
+  push('Atributo-chave', atributoChave ? `${atributoChave}${modChave !== null ? ` (${comSinal(modChave)})` : ''}` : null, GRUPOS.magia)
+
+  push('Habilidades de raça e origem', pegar('Habilidades de raca e origem'), GRUPOS.habilidades)
+  push('Habilidades de classe e poderes', pegar('Habilidades de Classe e poderes'), GRUPOS.habilidades)
+  push('Proficiências', pegar('Proficiencias e outras caracteristicas'), GRUPOS.habilidades)
+
+  // Inventário: cada item com quantidade e espaços; um item com dado escrito ("Poção 2d4+4") vira preset.
+  for (let i = 1; i <= 17; i++) {
+    const item = pegar(`Item ${i}`)
+    const quantidade = numeroDe(`Quantidade Item ${i}`)
+    const espacos = numeroDe(`Slots Item ${i}`)
+    if (!item) continue
+    const detalhes = [quantidade !== null && quantidade !== 1 ? `×${quantidade}` : '', espacos !== null ? `${espacos} espaço${espacos === 1 ? '' : 's'}` : ''].filter(Boolean)
+    campos.push({ label: item, value: detalhes.join(', '), group: GRUPOS.inventario })
+    const dado = /(\d*[dD]\d+(?:\s*[+-]\s*\d+)?)/.exec(item)
+    const expressao = dado ? parseDiceExpression(dado[1]) : null
+    if (dado && expressao) {
+      presets.push({ name: item.slice(0, dado.index).trim() || item, kind: 'other', expression: expressao.expression, source: item })
+    }
+  }
+  push('Tibares', pegar('Tibares'), GRUPOS.inventario, undefined, true)
+  const cargaUsada = pegar('Carga Usada')
+  const limiteDeCarga = pegar('Limite de carga')
+  push('Carga', cargaUsada && limiteDeCarga ? `${cargaUsada}/${limiteDeCarga}` : cargaUsada ?? limiteDeCarga, GRUPOS.inventario)
+
+  push('Descrição', pegar('Descricao'), GRUPOS.aparencia)
+  push('Anotações', pegar('Anotacoes'), GRUPOS.historia)
+
+  // O que o genérico leu e este leitor não conhece entra como veio: é anotação de jogador.
+  const restantes = base.fields.filter((campo) => !campo.fieldName || !consumidos.has(campo.fieldName))
+  const presetsRestantes = base.presets.filter((preset) => !preset.fieldName || !consumidos.has(preset.fieldName))
+
+  return {
+    ...base,
+    characterName: nome || base.characterName,
+    system: 'Tormenta20',
+    fields: [...campos, ...restantes],
+    presets: presetsSemRepetidos([...presets, ...presetsRestantes]),
+    // As células da grade sem rótulo iam pro texto sem rótulo; aqui todo campo é conhecido.
+    rawText: undefined
+  }
+}
+
 export const tormenta20Reader: SheetReader = {
   id: 'tormenta20',
   label: 'Tormenta20',
-  detect: confiancaDeTormenta,
-  extract: (sheet) => extrairTormenta(sheet)
+  detect: (sheet) => Math.max(confiancaDoModelo(sheet), confiancaDeTormenta(sheet)),
+  extract: (sheet) => (confiancaDoModelo(sheet) > 0 ? extrairModeloEditavel(sheet) : extrairTormenta(sheet))
 }
 
 function extrairTormenta(sheet: PdfSheet): SheetImport {
