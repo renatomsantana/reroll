@@ -318,3 +318,133 @@ describe('leitor de Tormenta20 — o que ele NÃO reivindica', () => {
     expect(lido.warnings).toContain('formulario-vazio')
   })
 })
+
+/**
+ * A FICHA EDITÁVEL da comunidade, a que o testador trouxe (a do Milo, 02/09/2026): os nomes de
+ * campo e os valores abaixo foram lidos do arquivo real com `scripts/dump-campos.mjs`. O que se
+ * cobra é o que "ficou horrível" pelo caminho do vocabulário: a grade de perícias em células
+ * numeradas, o `#C3#A1` nos nomes, os componentes da Defesa vazando como campos soltos.
+ */
+describe('leitor de Tormenta20 — a ficha editável da comunidade (a do Milo)', () => {
+  const caixa = (name: string, marcada: boolean): PdfField => ({ name, type: 'checkbox', value: marcada ? 'Yes' : 'Off', page: 1, rect: [0, 0, 10, 10] })
+  const sheet: PdfSheet = {
+    fileName: 'Milo - T20.pdf',
+    pageCount: 2,
+    texts: [],
+    fields: [
+      campo('Nome do Personagem', 'Milo Alta-Colina Prato-Cheio'),
+      campo('Nome do Jogador', 'Caio'),
+      campo('Raca do Personagem', 'Halfling'),
+      campo('Origem do Personagem', 'Capanga'),
+      campo('Classe(s) do personagem', 'Ladino'),
+      campo('Divindade', ''),
+      campo('Lv', '5'),
+      campo('SeleTamanho', 'Pequeno'),
+      campo('ModFor', '2'),
+      campo('ModDes', '2'),
+      campo('ModCon', '1'),
+      campo('ModInt', '1'),
+      campo('ModSab', '2'),
+      campo('ModCar', '4'),
+      campo('Pontos de Vida m#C3#A1ximos', '29'),
+      campo('Pontos de Vida atuais', '22'),
+      campo('Pontos de Mana m#C3#A1ximos', '20'),
+      campo('Pontos de Mana atuais', '20'),
+      campo('CA', '14'),
+      campo('Base CA', '10'),
+      campo('SeleAtribDefe', 'Des'),
+      campo('B.Arm', '2'),
+      campo('B.Esc', '0'),
+      campo('Outros B.CA', '0'),
+      campo('Armadura', 'Armadura de Couro'),
+      campo('B.Arm1', '2'),
+      campo('Pa', '0'),
+      campo('Deslocamento do personagem', '6'),
+      campo('ModFurtTam', '2'),
+      campo('ModManTam', '-2'),
+      // Acrobacia (linha 01): metade do nível 2, sem treino, Destreza +2 → +4.
+      campo('011', '2'), campo('013', '0'), campo('014', ''), campo('SeleAtribAcro', 'Des'), caixa('Mar Trei acro', false),
+      // Enganação (linha 09): 2 + treino 2 + outros 2 + Carisma 4 → +10, treinada.
+      campo('091', '2'), campo('093', '2'), campo('094', '2'), campo('SeleAtribEnga', 'Car'), caixa('Mar Trei enga', true),
+      // Furtividade (linha 11): 2 + 2 + Destreza 2 + tamanho 2 → +8.
+      campo('111', '2'), campo('113', '2'), campo('114', ''), campo('SeleAtribFurt', 'Des'), caixa('Mar Trei furti', true),
+      // Pilotagem (linha 25): o arquivo guardou o total 6, e a conta dá o mesmo.
+      campo('250', '6'), campo('251', '2'), campo('253', '2'), campo('254', ''), campo('SeleAtribPilo', 'Des'),
+      campo('Ofício 1', '?'),
+      campo('SeleAtribOfi1', 'Int'),
+      campo('Ataque 1', 'Rapieira'),
+      campo('Bonus do ataque 1', '6'),
+      campo('Dano causado pelo ataque 1', '1d8'),
+      campo('Margem de cr#C3#ADtico e multiplicador 1', '19'),
+      campo('Tipo de dano do ataque 1', 'Perfuração'),
+      campo('Alcance do ataque 1', '-'),
+      campo('Ataque 2', ''),
+      campo('Item 1', 'Anel de Sinete'),
+      campo('Quantidade Item 1', '1'),
+      campo('Slots Item 1', '0'),
+      campo('Item 9', 'Poção de Cura Grande 2d4+4'),
+      campo('Tibares', '5000'),
+      campo('Carga Usada', '5'),
+      campo('Limite de carga', ''),
+      campo('Proficiencias e outras caracteristicas', 'Fala Comum e Hafling'),
+      campo('Habilidades de raca e origem', 'Arremessador: Ataques com funda ganham mais 1 passo de dano'),
+      campo('Magias', 'Imagem Espelhada - 1 PM, Dura a cena'),
+      campo('SeleAtribMagia', 'Int'),
+      campo('ModAtribMagia', '1')
+    ]
+  }
+  const lido = readSheet(sheet)
+
+  it('é reconhecida pelos nomes de campo do modelo, com confiança acima do vocabulário', () => {
+    expect(tormenta20Reader.detect(sheet)).toBeGreaterThanOrEqual(0.95)
+    expect(lido.readerId).toBe('tormenta20')
+    expect(lido.characterName).toBe('Milo Alta-Colina Prato-Cheio')
+  })
+
+  it('identificação, atributos como modificador, PV/PM com o "#C3#A1" decodificado', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Raça', value: 'Halfling', group: 'Identificação' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Classe', value: 'Ladino', group: 'Identificação' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Nível', value: '5', group: 'Identificação' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Divindade', value: '', group: 'Identificação' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Carisma', value: '+4', group: 'Atributos', roll: 'd20' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'PV máximo', value: '29', group: 'Recursos' }))
+    const barras = extrairRecursos(lido.fields).map((r) => `${r.nome} ${r.atual}/${r.maximo}`)
+    expect(barras).toEqual(['PV 22/29', 'PM 20/20'])
+    expect(lido.fields.some((c) => /#C3|m#/.test(c.label))).toBe(false)
+  })
+
+  it('a grade de perícias vira o total refeito: metade do nível + atributo escolhido + treino + outros', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Acrobacia', value: '+4', group: 'Perícias', roll: 'd20' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Enganação', value: '+10 (treinada)', group: 'Perícias' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Furtividade', value: '+8 (treinada)', group: 'Perícias' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Pilotagem', value: '+6', group: 'Perícias' }))
+    // O "?" do ofício é impressão do modelo, não nome; e a linha sem nada vira lacuna (ficha com dono).
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Ofício 1', value: '', group: 'Perícias' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Vontade', value: '', group: 'Perícias' }))
+    // As células numeradas e os seletores não sobram como campos soltos, nem viram texto sem rótulo.
+    expect(lido.fields.some((c) => /^\d{3}$|SeleAtrib|Mar Trei|ModAtrib|Base CA|B\.Arm/.test(c.label))).toBe(false)
+    expect(lido.rawText ?? '').toBe('')
+  })
+
+  it('Defesa com a armadura por extenso, e os componentes consumidos', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Defesa', value: '14', group: 'Combate' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Armadura', value: 'Armadura de Couro (Defesa +2)', group: 'Combate' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Modificadores de tamanho', value: 'Furtividade +2, manobras -2' }))
+  })
+
+  it('ataque vira uma linha e dois presets; item com dado vira preset com o nome do item', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Rapieira', value: '+6 · 1d8 · 19 · Perfuração', group: 'Ataques' }))
+    expect(lido.presets).toContainEqual(expect.objectContaining({ name: 'Rapieira (ataque)', kind: 'test' }))
+    expect(lido.presets).toContainEqual(expect.objectContaining({ name: 'Rapieira (dano)', kind: 'damage' }))
+    expect(lido.presets).toContainEqual(expect.objectContaining({ name: 'Poção de Cura Grande' }))
+    expect(lido.presets.some((p) => /^(Item|Dano causado|Bonus)/.test(p.name))).toBe(false)
+  })
+
+  it('inventário com espaços, Tibares e carga; magia com o atributo-chave', () => {
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Anel de Sinete', value: '0 espaços', group: 'Inventário' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Tibares', value: '5000', group: 'Inventário' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Carga', value: '5', group: 'Inventário' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Atributo-chave', value: 'Int (+1)', group: 'Magia' }))
+    expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Proficiências', group: 'Habilidades' }))
+  })
+})

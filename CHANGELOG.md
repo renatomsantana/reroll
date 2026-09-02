@@ -94,6 +94,8 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
 
 ### Adicionado
 
+- **A ficha editável de Tormenta20 da comunidade lida campo a campo** — um testador importou a dele (a do Milo, 02/09/2026) e "ficou horrível": 104 campos numa seção "Outros" (`ModFor`, `SeleAtribAcro`, `Base CA`), a grade de perícias em células numeradas caindo como "2 0 4 6 5 8 10 3" no bloco de história, e "Pontos de Vida m#C3#A1ximos" como rótulo. O leitor de Tormenta agora reconhece esse modelo pelos nomes de campo e o lê pela estrutura: atributos como modificador (rolam d20), PV/PM atual e máximo como barras, Defesa com a armadura e o escudo por extenso (e os componentes consumidos), as 30 perícias com o total REFEITO (metade do nível + atributo escolhido + treino + outros, mais o tamanho na Furtividade; o `ModAtrib` do PDF é campo oculto e não chega), marcadas "(treinada)", os cinco ataques como linha e presets de teste e dano, os dezessete itens com espaços, Tibares e carga, magias com o atributo-chave, e os textos de habilidades, descrição e anotações nos blocos certos. Ofício sem nome escolhido fica como lacuna. E os escapes `#XX` dos nomes de campo do PDF passam a ser decodificados pra toda ficha (`nomeDeCampoDecodificado`).
+
 - **Ficha de Tormenta20 reconhecida (leitor `tormenta20`)** — pedido dele (02/09/2026): "deixa o
   scraping pronto para fichas de T20 também". Sem ficha real na mão, o leitor casa o VOCABULÁRIO do
   sistema em vez de nomes exatos de campo (com ou sem acento, em caixa alta ou não, como nome de
