@@ -351,16 +351,20 @@ export const QUINTA_LEVA: FichaDeTeste[] = [
   },
   {
     arquivo: '23-tormenta20-formulario-em-portugues.pdf',
-    proposito: 'sistema que ninguém cadastrou (Tormenta20), formulário com nomes em português e acento',
+    proposito: 'Tormenta20 em formulário com nomes em português e acento: o leitor dedicado reconhece pelo vocabulário, agrupa, e PV/PM viram barra',
     espera: {
-      leitor: 'generico',
+      leitor: 'tormenta20',
       nome: 'Kaori',
       minimoDeCampos: 10,
       minimoDePresets: 1,
       // O rótulo IMPRESSO ("CONSTITUIÇÃO", como a ficha grita) passou a vencer o nome interno do
       // campo desde que rótulo na mesma linha vale metade da distância — é o rótulo que a pessoa
-      // vê no papel, na caixa em que ele está.
-      campos: [{ label: 'CONSTITUIÇÃO', value: '14' }]
+      // vê no papel, na caixa em que ele está. O leitor de Tormenta o mantém e só acrescenta o grupo.
+      campos: [
+        { label: 'CONSTITUIÇÃO', value: '14', group: 'Atributos' },
+        { label: 'Adaga', value: '1d4+2', group: 'Ataques' }
+      ],
+      barras: ['PV 38/38', 'PM 25/25']
     },
     bytes: () => {
       const campos: [string, string][] = [

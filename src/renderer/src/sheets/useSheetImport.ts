@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { SheetWarningId } from '@shared/types/sheetWarning'
 import { MAX_PROFILES } from '@shared/types/profile'
-import { fichaEstaVazia } from '@shared/types/notes'
 import { montarFicha } from '@shared/types/montarFicha'
 import { extrairRecursos } from '@shared/types/extrairRecursos'
 import { useProfiles } from '../settings/ProfilesContext'
@@ -9,6 +8,7 @@ import { useNotes } from '../hooks/useNotes'
 import { EVENTO_PRESETS_MUDARAM } from '../hooks/usePresets'
 import { useSettings } from '../settings/SettingsContext'
 import { useTranslation } from '../i18n/useTranslation'
+import { useDialogo } from '../components/common/Dialogo'
 import { extractPdfSheet } from './extractPdfSheet'
 import { readSheet } from './readers'
 import { escolherDestino } from './destinoDaImportacao'
@@ -24,15 +24,17 @@ import { escolherDestino } from './destinoDaImportacao'
  * 1. o processo principal abre o seletor e devolve os BYTES do PDF;
  * 2. o pdf.js extrai campos e texto (`extractPdfSheet`);
  * 3. o leitor certo interpreta (`readSheet`);
- * 4. o app DECIDE nome e destino por regra (`escolherDestino`) e o processo principal grava tudo:
- *    anotações, presets, barras, retrato, páginas e o texto sem rótulo.
+ * 4. o app decide o nome por regra (`escolherDestino`) e o processo principal CRIA o personagem
+ *    e grava tudo nele: anotações, presets, barras (o HUD), retrato, páginas e o texto sem rótulo.
  *
- * O que torna aceitável um importador que adivinha e grava sem perguntar: nada é destruído. Criar
- * é a operação que não estraga nada; preencher a ficha VAZIA do personagem aberto idem; e atualizar
- * um personagem de mesmo nome substitui só as seções da ficha (diário, anotações, presets e barras
- * feitas à mão ficam, ver `registerSheetHandlers`). E tudo o que entrou é editável e apagável na
- * aba Ficha, na hora. O que a tela ainda diz, DEPOIS de importar, é o que foi lido e o que NÃO foi
- * (`feito`): silêncio sobre isso viraria "o app importou errado".
+ * Antes da etapa 1 há UM "tem certeza?" (o diálogo do app), e é a única pergunta. Regra dele
+ * (02/09/2026): "toda vez que uploadar uma ficha nova, que CRIE um personagem novo, para não perder
+ * o que já está lá; clicou em uploadar, tem certeza? aí cria um novo". Importar nunca grava por
+ * cima de ninguém: é por isso que um importador que adivinha e grava sem conferência é aceitável.
+ * No teto de personagens o botão fica apagado com a dica do limite (ver `SheetTab`), e este hook
+ * ainda recusa por conta própria, pro caso de o clique escapar. Tudo o que entrou é editável e
+ * apagável na aba Ficha, na hora. O que a tela ainda diz, DEPOIS de importar, é o que foi lido e o
+ * que NÃO foi (`feito`): silêncio sobre isso viraria "o app importou errado".
  */
 export interface ImportacaoFeita {
   /** O personagem que recebeu a ficha: o aviso só aparece enquanto ele estiver aberto. */
@@ -46,8 +48,6 @@ export interface ImportacaoFeita {
   /** Campos que ficaram de fora pelo teto por seção (`MAXIMO_DE_CAMPOS_POR_SECAO`). */
   cortados: number
   warnings: SheetWarningId[]
-  /** A ficha caiu por cima de um personagem que já tinha ficha (a reimportação). */
-  atualizou: boolean
 }
 
 export function useSheetImport() {
@@ -62,13 +62,27 @@ export function useSheetImport() {
    */
   const [erro, setErro] = useState<string | null>(null)
   const t = useTranslation()
+  const dialogo = useDialogo()
   const { language } = useSettings()
-  const { profiles, activeId, active, reload } = useProfiles()
-  const { notes, loadedFor, recarregar: recarregarAnotacoes } = useNotes()
+  const { profiles, reload } = useProfiles()
+  const { recarregar: recarregarAnotacoes } = useNotes()
 
   const escolherArquivo = useCallback(async () => {
     setErro(null)
     setFeito(null)
+
+    /**
+     * O TETO de personagens (`MAX_PROFILES`: três nos testadores, o do disco no cliente do dono),
+     * antes de qualquer pergunta: importar sempre cria um personagem, então no teto não há o que
+     * importar. O botão já vem apagado com a dica do limite; isto é a segunda tranca.
+     */
+    if (profiles.length >= MAX_PROFILES) {
+      setErro(t.sheetImport.atLimit.replace('{max}', String(MAX_PROFILES)))
+      return
+    }
+
+    // O único "tem certeza?": a ficha vira um personagem NOVO, e os de antes ficam como estão.
+    if (!(await dialogo.confirmar(t.sheetImport.confirmNew))) return
 
     /**
      * A ESCOLHA do arquivo também dentro de `try`.
@@ -149,28 +163,11 @@ export function useSheetImport() {
       /** As barras (spec §3.4), de TODOS os campos lidos: gravadas mesmo com o HUD ainda fechado. */
       const recursos = extrairRecursos(lido.fields)
 
-      const destino = escolherDestino({
-        nomeLido: lido.characterName,
-        fileName: escolhido.fileName,
-        perfis: profiles,
-        ativo: active,
-        // Só conta como vazia a ficha que JÁ CARREGOU: no meio de uma troca de personagem, não decide.
-        fichaDoAtivoVazia: loadedFor === activeId && fichaEstaVazia(notes)
-      })
-
-      /**
-       * O teto de personagens (`MAX_PROFILES`: três nos testadores, o do disco no cliente do dono),
-       * só quando a importação CRIA um novo. O processo principal recusaria de qualquer jeito, mas o
-       * erro de lá é genérico; este diz o motivo e o que fazer.
-       */
-      if (!destino.targetProfileId && profiles.length >= MAX_PROFILES) {
-        setErro(t.sheetImport.atLimit.replace('{max}', String(MAX_PROFILES)))
-        return
-      }
+      const destino = escolherDestino({ nomeLido: lido.characterName, fileName: escolhido.fileName })
 
       try {
+        // Sem `targetProfileId`: o processo principal CRIA o personagem e o deixa aberto.
         const perfil = await window.api.sheets.apply({
-          targetProfileId: destino.targetProfileId,
           characterName: destino.characterName,
           system: lido.system,
           notes: paraAFicha,
@@ -191,17 +188,12 @@ export function useSheetImport() {
          */
         await reload()
         /**
-         * E relê as ANOTAÇÕES: importar em cima do personagem que já está aberto não muda o
-         * `activeId`, então o `useNotes` não perceberia sozinho, e a ficha na tela continuaria a
-         * de antes, pronta pra gravar as seções velhas por cima das novas na próxima tecla.
+         * E relê as ANOTAÇÕES e os PRESETS. O personagem novo fica aberto e o `activeId` muda, o
+         * que já faz a ficha e a lista de rolagem relerem; os dois avisos ficam como cinto de
+         * segurança do caso em que o id não muda (medido no harness quando a importação ainda
+         * caía no personagem aberto: presets só apareciam depois de trocar de personagem).
          */
         recarregarAnotacoes()
-        /**
-         * E os PRESETS: a importação grava na pasta do personagem de destino, e quando o destino é o
-         * que já está aberto (a ficha vazia recém-criada, a reimportação) o `activeId` não muda e a
-         * lista da tela de rolagem não relê sozinha. Medido no harness: os presets importados só
-         * apareciam depois de trocar de personagem. O evento é o mesmo do pacote de personagem.
-         */
         window.dispatchEvent(new Event(EVENTO_PRESETS_MUDARAM))
         setFeito({
           profileId: perfil.id,
@@ -211,8 +203,7 @@ export function useSheetImport() {
           campos: lido.fields.length,
           rolagens: lido.presets.length,
           cortados: paraAFicha.cortados ?? 0,
-          warnings: lido.warnings,
-          atualizou: destino.atualizou
+          warnings: lido.warnings
         })
       } catch (causa) {
         console.error('Falha ao criar o personagem a partir da ficha:', causa)
@@ -221,7 +212,7 @@ export function useSheetImport() {
     } finally {
       setLendo(false)
     }
-  }, [t, language, profiles, activeId, active, reload, notes, loadedFor, recarregarAnotacoes])
+  }, [t, dialogo, language, profiles, reload, recarregarAnotacoes])
 
   /** Fecha o aviso do que foi importado. Trocar de personagem também o esconde (ver `profileId`). */
   const dispensar = useCallback(() => {

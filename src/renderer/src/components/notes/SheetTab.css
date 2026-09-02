@@ -520,3 +520,8 @@
   padding-left: 16px;
   color: #800000;
 }
+
+/** O embrulho do botão de importar: a dica do teto mora nele, porque botão apagado não recebe o mouse. */
+.sheet-import-wrap {
+  display: inline-flex;
+}

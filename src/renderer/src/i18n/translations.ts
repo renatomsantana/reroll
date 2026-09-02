@@ -400,9 +400,11 @@ export interface TranslationDict {
     profileNew: string
     /** Explica por que "Novo personagem" está travado — ver `MAX_PROFILES`. */
     profileLimit: string
-    /** Botão e estado de espera da importação de ficha em PDF (`SheetImportModal`). */
+    /** Botão e estado de espera da importação de ficha em PDF. */
     sheetImport: string
     sheetImportReading: string
+    /** A dica do botão de importar APAGADO no teto de personagens (pedido dele). */
+    sheetImportLimit: string
     /** A regra de CRÍTICO do personagem (spec §3.7): qual dado e em que direção. `{die}` é "d20". */
     critRule: string
     critRuleHigh: string
@@ -462,8 +464,8 @@ export interface TranslationDict {
     unrecognized: string
     /** `{fields}` campos e `{presets}` rolagens, e a lembrança de que tudo é editável. */
     done: string
-    /** A ficha caiu por cima de `{name}`, que já tinha ficha: o que muda e o que fica. */
-    doneUpdated: string
+    /** O "tem certeza?" antes de escolher o PDF: importar sempre cria um personagem novo. */
+    confirmNew: string
     dismiss: string
     /** PDF sem nada que dê pra importar: nenhum personagem nasce. */
     nothingRead: string
@@ -833,6 +835,7 @@ export const translations: Record<Language, TranslationDict> = {
         'Máximo de personagens atingido: {max}. Apague um que não usa mais para criar outro: a ficha dele vai pra pasta de backup.',
       sheetImport: 'Importar ficha (PDF)',
       sheetImportReading: 'Lendo PDF...',
+      sheetImportLimit: 'Limite alcançado: apenas {max} personagens!',
       critRule: 'Crítico',
       critRuleHigh: '{die}: máximo é crítico, 1 é falha',
       critRuleLow: '{die}: 1 é crítico, máximo é falha',
@@ -875,7 +878,7 @@ export const translations: Record<Language, TranslationDict> = {
       recognized: 'Reconhecemos como ficha de',
       unrecognized: 'Sistema não reconhecido: importamos o que deu pra ler.',
       done: '{fields} campos e {presets} rolagens importados. Tudo fica editável aqui embaixo, a qualquer momento.',
-      doneUpdated: 'Atualizamos "{name}" com a ficha nova: as seções vieram do PDF; diário, anotações e presets que já existiam ficaram.',
+      confirmNew: 'Importar uma ficha cria um personagem novo. Os que já existem não mudam. Continuar?',
       dismiss: 'Entendi',
       nothingRead: 'Não achei nada pra importar neste PDF, então nenhum personagem foi criado.',
       atLimit: 'Máximo de personagens atingido: {max}. Apague um antes de importar outra ficha.',
@@ -1262,6 +1265,7 @@ export const translations: Record<Language, TranslationDict> = {
         'Maximum number of characters reached: {max}. Delete one you no longer use to create another: its sheet goes to the backup folder.',
       sheetImport: 'Import sheet (PDF)',
       sheetImportReading: 'Reading PDF...',
+      sheetImportLimit: 'Limit reached: only {max} characters!',
       critRule: 'Critical',
       critRuleHigh: '{die}: max is a critical, 1 is a fumble',
       critRuleLow: '{die}: 1 is a critical, max is a fumble',
@@ -1304,7 +1308,7 @@ export const translations: Record<Language, TranslationDict> = {
       recognized: 'Recognized as a sheet for',
       unrecognized: 'System not recognized: we imported what could be read.',
       done: '{fields} fields and {presets} rolls imported. Everything stays editable down here, anytime.',
-      doneUpdated: 'We updated "{name}" with the new sheet: the sections came from the PDF; your journal, notes and existing presets stayed.',
+      confirmNew: 'Importing a sheet creates a new character. Existing ones are not changed. Continue?',
       dismiss: 'Got it',
       nothingRead: 'Found nothing to import in this PDF, so no character was created.',
       atLimit: 'Maximum number of characters reached: {max}. Delete one before importing another sheet.',
