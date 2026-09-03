@@ -44,6 +44,8 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
 
 ### Alterado (HUD e cores, 02/09/2026)
 
+- **A rolagem o mais aleatória possível: a cena 3D também sorteia no gerador criptográfico** — pedido dele (03/09/2026): "deixar a rolagem de dados o mais aleatória possível". O modo rápido já sorteava com `crypto.getRandomValues` e rejeição de viés (`rollDie`); a cena 3D não sorteia número, o resultado é a física, e o acaso entra pelas condições iniciais do arremesso (posição, altura, orientação, força, torque), que eram `Math.random`. Agora saem do mesmo gerador criptográfico, com 53 bits por número (`randomUnit` em `dice3d/utils/random.ts`), e a física caótica da bandeja amplifica a diferença: cada arremesso é irrepetível e imprevisível. E a honestidade do resultado físico foi MEDIDA dado a dado, sozinho na bandeja vazia (`todosOsDados.statistical.test.ts`, 1.000 e depois 5.000 rolagens por tipo): nenhum dos sete mostra viés (qui-quadrado do d10 em 5.000: 4,9; do d20: 13,5; o d10 tinha dado 19,8 em 1.000, o que era flutuação). Na suíte o teste roda com 300 por dado; `ROLAGENS_ESTATISTICAS=5000 npx vitest run todosOsDados` mede de verdade.
+
 - **Cada barra tem a sua cor, e cada condição também** — pedido dele: "para cada atributo atribuir
   cor também; Caído, a pessoa decide a cor também". A barra deixa de trocar de cor com o estado
   (verde, oliva, bordô) e ganha a cor DELA: PV bordô, PE azul-marinho, Sanidade roxo, Sorte oliva,
