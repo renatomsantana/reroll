@@ -1,4 +1,4 @@
-import type { PdfField, PdfSheet } from '@shared/types/sheetImport'
+import type { PdfField, PdfSheet, PdfText } from '@shared/types/sheetImport'
 import { valorDeFicha } from './generic'
 
 /**
@@ -94,6 +94,34 @@ export function marcadasEm(sheet: PdfSheet, regiao: Regiao, prefixo?: RegExp, fo
 export function acesosEm(sheet: PdfSheet, regiao: Regiao, prefixo: RegExp, folga = 3): { marcadas: number; total: number } {
   const botoes = camposEm(sheet, regiao, folga).filter((campo) => prefixo.test(campo.name))
   return { marcadas: botoes.filter((campo) => !campo.oculto).length, total: botoes.length }
+}
+
+/**
+ * Os FRAGMENTOS DE TEXTO IMPRESSO cuja âncora (o começo da linha de base) cai na região, na ordem
+ * de leitura: de cima pra baixo, da esquerda pra direita.
+ *
+ * Existe pra ficha que é ARTE COM ANOTAÇÃO POR CIMA e sem formulário nenhum: a de Kids on Bikes
+ * que o usuário trouxe é uma imagem com o que o jogador digitou flutuando em cima, e o que diz o
+ * que cada anotação é não é rótulo (é pixel) nem nome de campo (não há campo), é o LUGAR. O
+ * mesmo mapa medido que serve pros campos serve pros textos.
+ */
+export function fragmentosEm(sheet: PdfSheet, regiao: Regiao, folga = 3): PdfText[] {
+  return sheet.texts
+    .filter(
+      (texto) =>
+        texto.page === regiao.page &&
+        texto.x >= regiao.x - folga &&
+        texto.x <= regiao.x + regiao.w + folga &&
+        texto.y >= regiao.y - folga &&
+        texto.y <= regiao.y + regiao.h + folga
+    )
+    .sort((a, b) => b.y - a.y || a.x - b.x)
+}
+
+/** O texto impresso da região numa linha só (fragmentos emendados com espaço), ou `null`. */
+export function textoImpressoEm(sheet: PdfSheet, regiao: Regiao, folga = 3): string | null {
+  const partes = fragmentosEm(sheet, regiao, folga).map((texto) => texto.text.trim()).filter(Boolean)
+  return partes.length > 0 ? partes.join(' ').replace(/\s+/g, ' ') : null
 }
 
 /**

@@ -12,6 +12,7 @@ import { breuReader } from './breu'
 import { tenebraReader } from './tenebra'
 import { infaernumReader } from './infaernum'
 import { shadowdarkReader } from './shadowdark'
+import { kidsOnBikesReader } from './kidsOnBikes'
 import type { SheetReader } from './types'
 
 /**
@@ -36,6 +37,7 @@ export const SHEET_READERS: SheetReader[] = [
   tenebraReader,
   infaernumReader,
   shadowdarkReader,
+  kidsOnBikesReader,
   genericReader
 ]
 
