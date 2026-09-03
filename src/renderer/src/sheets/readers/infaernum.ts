@@ -82,6 +82,8 @@ function extrair(sheet: PdfSheet): SheetImport {
     ...base,
     characterName: nome || base.characterName,
     system: 'Infaernum',
+    // O genérico não achou nome nem rolagem (não há rótulo que diga "nome"); este leitor achou.
+    warnings: base.warnings.filter((aviso) => !(nome && aviso === 'sem-nome-nem-rolagem')),
     fields: [...campos, ...restantes],
     // Sem rótulo impresso, o genérico mandava TUDO pro texto sem rótulo; aqui cada caixa tem lugar.
     rawText: undefined
