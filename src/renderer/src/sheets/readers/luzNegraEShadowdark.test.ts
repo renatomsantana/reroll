@@ -55,6 +55,8 @@ describe('Infaernum — a ficha editável oficial, pela posição', () => {
     expect(lido.readerId).toBe('infaernum')
     expect(lido.system).toBe('Infaernum')
     expect(lido.characterName).toBe('Irene Salgado')
+    // O genérico avisaria "sem nome nem rolagem" (não há rótulo "nome"); o leitor achou o nome, e o aviso cai.
+    expect(lido.warnings).not.toContain('sem-nome-nem-rolagem')
   })
 
   it('cada caixa cai no lugar dela, e as Desgraças marcadas viram barra', () => {
@@ -72,9 +74,13 @@ describe('Infaernum — a ficha editável oficial, pela posição', () => {
   })
 })
 
-describe('Tenebra — a ficha editável oficial, pela posição e pelas caixas ocultas', () => {
-  const gotas = (prefixo: string, inicio: number, xs: number[], y: number, marcadas: number): PdfField[] =>
-    xs.map((x, i) => caixa(`${prefixo}${inicio + i}`, x, y, i < marcadas, 1, true))
+describe('Tenebra — a ficha editável oficial, pela posição e pelos botões ocultos', () => {
+  /**
+   * Gota, fadiga, ferida e óleo são BOTÕES de imagem sem valor: aceso é o botão que NÃO está
+   * oculto (medido no PDF real com o pdf-lib, 03/09/2026: `fo0` é `PDFButton`, não caixa).
+   */
+  const gotas = (prefixo: string, inicio: number, xs: number[], y: number, acesas: number): PdfField[] =>
+    xs.map((x, i) => ({ name: `${prefixo}${inicio + i}`, type: 'btn', value: '', page: 1, rect: [x, y, x + 18, y + 24], ...(i < acesas ? {} : { oculto: true }) }))
   const sheet = ficha([
     texto('Campo de Texto0', 74, 710, 168, 60, 'Nadia Kess\n(a Fuinha)'),
     texto('Campo de Texto1', 80, 672, 71, 23, 'A Fuinha'),
@@ -84,8 +90,9 @@ describe('Tenebra — a ficha editável oficial, pela posição e pelas caixas o
     ...gotas('fo', 5, [130, 146, 162, 177, 193], 593, 2),
     ...gotas('fo', 10, [131, 147, 162, 178, 193], 560, 0),
     ...gotas('fo', 15, [132, 148, 163, 179, 195], 526, 5),
-    caixa('fad0', 217, 625, true, 1, true),
-    caixa('fad1', 218, 589, false, 1, true),
+    // A nuvem de Fadiga é o mesmo botão de imagem: acesa no Fôlego, oculta no Equilíbrio.
+    { name: 'fad0', type: 'btn', value: '', page: 1, rect: [217, 625, 251, 660] },
+    { name: 'fad1', type: 'btn', value: '', page: 1, rect: [218, 589, 252, 624], oculto: true },
     // A Barra de Feridas tem duas camadas no mesmo lugar: `fr` (marcada) e `tr` (a de trauma, vazia).
     ...gotas('fr', 0, [105, 135, 167, 197, 228, 258], 460, 2),
     ...gotas('tr', 0, [106, 136, 167, 197, 228, 258], 460, 0),
@@ -114,6 +121,7 @@ describe('Tenebra — a ficha editável oficial, pela posição e pelas caixas o
     expect(tenebraReader.detect(sheet)).toBeGreaterThanOrEqual(0.9)
     expect(lido.readerId).toBe('tenebra')
     expect(lido.characterName).toBe('Nadia Kess')
+    expect(lido.warnings).not.toContain('sem-nome-nem-rolagem')
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Estirpe', value: 'Sucateira', group: 'Identificação' }))
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Nível de vivência', value: '2' }))
   })

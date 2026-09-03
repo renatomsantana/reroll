@@ -1,6 +1,6 @@
 import type { PdfSheet, SheetImport, SheetImportField } from '@shared/types/sheetImport'
 import { extrairGenerico } from './generic'
-import { ancorasPresentes, camposEm, linhasDe, marcadasEm, r, textoEm, type Regiao } from './porPosicao'
+import { acesosEm, ancorasPresentes, camposEm, linhasDe, marcadasEm, r, textoEm, type Regiao } from './porPosicao'
 import type { SheetReader } from './types'
 
 /**
@@ -15,10 +15,12 @@ import type { SheetReader } from './types'
  * `Caixa de Seleção58`). Cada caixa foi medida na arte (ver `porPosicao.ts`). Duas coisas dela
  * decidem a forma deste leitor:
  *
- * 1. as GOTAS, a FADIGA, as FERIDAS, a PROTEÇÃO e o ÓLEO são caixas OCULTAS (`fo0`…`fo19`,
- *    `fad0`…`fad3`, `fr0`…`fr5`, `tr6`…`tr8`, `Oil0`…`Oil19`) que os botões desenhados na página
- *    ligam e desligam. O extrator as entrega no fim da lista, marcadas (`PdfField.oculto`), e é
- *    delas que sai o número: gotas marcadas de cinco, feridas marcadas de seis;
+ * 1. as GOTAS, a FADIGA, as FERIDAS, a PROTEÇÃO e o ÓLEO são BOTÕES de imagem que nascem
+ *    ocultos (`fo0`…`fo19`, `fad0`…`fad3`, `fr0`…`fr5`, `tr6`…`tr8`, `Oil0`…`Oil19`) e que os
+ *    botões visíveis da página MOSTRAM ou ESCONDEM por script: não há valor gravado, a gota está
+ *    acesa quando o botão dela não está oculto (ver `acesosEm`). O extrator entrega esses botões
+ *    no fim da lista, com a marca `PdfField.oculto`, e é a ausência da marca que conta: gotas
+ *    acesas de cinco, feridas acesas de seis;
  * 2. os Bolsos são UMA caixa de texto de várias linhas ao lado de dezesseis fileiras de cinco
  *    caixinhas de Estragos. A linha N do texto é o item da fileira N: é assim que a ficha se
  *    preenche, e é assim que os estragos de cada item são lidos.
@@ -120,8 +122,8 @@ function extrair(sheet: PdfSheet): SheetImport {
    */
   const fatigadas: string[] = []
   for (const disposicao of DISPOSICOES) {
-    const gotas = marcadasEm(sheet, disposicao.gotas, /^fo/i)
-    const fadiga = marcadasEm(sheet, disposicao.fadiga, /^fad/i)
+    const gotas = acesosEm(sheet, disposicao.gotas, /^fo/i)
+    const fadiga = acesosEm(sheet, disposicao.fadiga, /^fad/i)
     consumir(disposicao.gotas)
     consumir(disposicao.fadiga)
     if (fadiga.marcadas > 0) fatigadas.push(disposicao.nome)
@@ -130,16 +132,16 @@ function extrair(sheet: PdfSheet): SheetImport {
   }
   if (fatigadas.length > 0) push('Fadiga', fatigadas.join(', '), GRUPOS.disposicoes)
 
-  const feridas = marcadasEm(sheet, P1.feridas, /^fr/i)
+  const feridas = acesosEm(sheet, P1.feridas, /^fr/i)
   consumir(P1.feridas)
   if (feridas.total > 0 && temDono) push('Feridas', `${feridas.marcadas}/${feridas.total}`, GRUPOS.recursos)
-  const protecao = marcadasEm(sheet, P1.protecao, /^tr/i)
+  const protecao = acesosEm(sheet, P1.protecao, /^tr/i)
   consumir(P1.protecao)
   if (protecao.total > 0 && temDono) push('Proteção', `${protecao.marcadas}/${protecao.total}`, GRUPOS.recursos)
 
   IMPLANTES.forEach((implante, i) => {
     const texto = implante.linhas.map((linha) => pegar(linha)).filter(Boolean).join(' ')
-    const oleo = marcadasEm(sheet, implante.oleo, /^oil/i)
+    const oleo = acesosEm(sheet, implante.oleo, /^oil/i)
     consumir(implante.oleo)
     if (texto) push(texto, oleo.total > 0 ? `óleo ${oleo.marcadas}/${oleo.total}` : '', GRUPOS.biosucatas)
     else if (oleo.marcadas > 0) push(`Implante ${i + 1}`, `óleo ${oleo.marcadas}/${oleo.total}`, GRUPOS.biosucatas)
@@ -183,6 +185,8 @@ function extrair(sheet: PdfSheet): SheetImport {
     ...base,
     characterName: nome || base.characterName,
     system: 'Tenebra',
+    // O genérico não achou nome nem rolagem (não há rótulo que diga "nome"); este leitor achou.
+    warnings: base.warnings.filter((aviso) => !(nome && aviso === 'sem-nome-nem-rolagem')),
     fields: [...campos, ...restantes],
     rawText: undefined
   }

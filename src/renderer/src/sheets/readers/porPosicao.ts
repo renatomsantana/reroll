@@ -81,6 +81,22 @@ export function marcadasEm(sheet: PdfSheet, regiao: Regiao, prefixo?: RegExp, fo
 }
 
 /**
+ * As marcas que são BOTÕES MOSTRADOS OU ESCONDIDOS, e não caixas de marcar.
+ *
+ * É como a ficha editável de Tenebra guarda as Gotas de Suor, a Fadiga, a Barra de Feridas, a
+ * Proteção e o Óleo (medido em 02/09/2026): cada gota é um botão de imagem (`fo0`…`fo19`) que
+ * nasce OCULTO, e o botão visível ao lado ("Pressionar Botão3") roda um script que o mostra ou
+ * esconde. Não há valor gravado em lugar nenhum: a gota está acesa quando o botão dela não está
+ * oculto. O extrator traz esses botões marcados com `oculto` (ver `PdfField.oculto`), e é a
+ * ausência da marca que conta. `prefixo` separa as camadas que dividem o mesmo lugar (`fr` e `tr`
+ * na Barra de Feridas).
+ */
+export function acesosEm(sheet: PdfSheet, regiao: Regiao, prefixo: RegExp, folga = 3): { marcadas: number; total: number } {
+  const botoes = camposEm(sheet, regiao, folga).filter((campo) => prefixo.test(campo.name))
+  return { marcadas: botoes.filter((campo) => !campo.oculto).length, total: botoes.length }
+}
+
+/**
  * Quantas âncoras têm um campo no lugar: mesmo centro (com folga) e tamanho parecido. É a
  * assinatura de um modelo de ficha sem texto e sem nome de campo — ver o cabeçalho.
  */

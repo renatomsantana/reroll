@@ -108,8 +108,10 @@ function extrair(sheet: PdfSheet, idioma: Language): SheetImport {
   }
 
   for (const campo of IDENTIFICACAO) {
-    // A ficha oficial escreve `Race` onde o livro diz ancestralidade; as duas entram no mesmo rótulo.
+    // A ficha oficial escreve `Race` onde o livro diz ancestralidade; as duas entram no mesmo rótulo,
+    // uma vez só: o nome que a ficha não tem não vira lacuna ao lado do que ela tem.
     if (campo.name === 'race' && porNome.has('ancestry')) continue
+    if (campo.name === 'ancestry' && !porNome.has('ancestry') && porNome.has('race')) continue
     push(t(campo), pegar(campo.name), GRUPOS.identificacao, undefined, campo.sempre)
   }
   const xpAtual = pegar('xp current')
