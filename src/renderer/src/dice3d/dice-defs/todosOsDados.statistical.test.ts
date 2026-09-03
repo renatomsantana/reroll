@@ -35,7 +35,7 @@ import { AVAILABLE_DICE_TYPES, DICE_REGISTRY } from './registry'
  * com 1000 e depois 5000 por dado: nenhum viés (o d10 deu 19,8 em 1000 e 4,9 em 5000, ou seja,
  * flutuação; o d20, 15,3 e 13,5).
  */
-const ROLAGENS = Number(process.env.ROLAGENS_ESTATISTICAS ?? 300)
+const ROLAGENS = Number((globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.ROLAGENS_ESTATISTICAS ?? 300)
 const MAXIMO_DE_PASSOS = 8000
 
 /** Valor crítico do qui-quadrado, alfa 0,001, por graus de liberdade (faces − 1). */

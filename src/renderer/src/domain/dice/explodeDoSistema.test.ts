@@ -9,8 +9,14 @@ describe('botaoDeExplodeVisivel', () => {
     }
   })
 
+  it('aparece pra Kids on Bikes, onde explodir é a regra de todo atributo', () => {
+    for (const system of ['Kids on Bikes', 'kids on bikes', 'KidsOnBikes']) {
+      expect(botaoDeExplodeVisivel(system), `"${system}" deveria mostrar o botão`).toBe(true)
+    }
+  })
+
   it('some pros outros sistemas e pro perfil sem sistema', () => {
-    for (const system of ['', 'Ordem Paranormal', 'Oblivio', 'Pathfinder 2e', 'Call of Cthulhu', 'Kids on Bikes', 'Tormenta20']) {
+    for (const system of ['', 'Ordem Paranormal', 'Oblivio', 'Pathfinder 2e', 'Call of Cthulhu', 'Tormenta20']) {
       expect(botaoDeExplodeVisivel(system), `"${system}" não deveria mostrar o botão`).toBe(false)
     }
   })
