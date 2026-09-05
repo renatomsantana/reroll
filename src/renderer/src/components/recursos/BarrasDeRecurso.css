@@ -61,7 +61,8 @@
 
 .barra-preenchido {
   height: 100%;
-  background: var(--recurso-cor);
+  /* A cor de agora (estado); sem ela, a da barra. Ver `corDoPreenchimento`. */
+  background: var(--recurso-preenchido, var(--recurso-cor));
 }
 
 /* Os botões de passo: quadradinhos, o mesmo degrau seco dos outros botões. */

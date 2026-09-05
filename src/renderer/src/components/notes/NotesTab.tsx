@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type CSSProperties, type MouseEvent } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useDialogo } from '@renderer/components/common/Dialogo'
 import { useNotes } from '@renderer/hooks/useNotes'
@@ -10,7 +10,7 @@ import { FontSelect, type FontSelectValue } from '../chrome/FontSelect'
 import { ProfileBadge } from '../common/ProfileBadge'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
-import { linhasOcupadasNaTextarea, quebrasAteALinhaClicada } from './cliqueNaLinha'
+import { CampoDeCaderno } from './CampoDeCaderno'
 import './NotesTab.css'
 
 /**
@@ -91,36 +91,6 @@ export function NotesTab() {
   useEffect(() => {
     aberturaRef.current?.scrollIntoView({ block: 'nearest' })
   }, [notes.currentPage])
-
-  /**
-   * CLICAR NUMA PAUTA VAZIA leva o cursor pra ela (pedido dele: "clique em qualquer linha no
-   * anotações para começar a digitar, que não seja apenas no Enter"; ver `cliqueNaLinha.ts`). O
-   * clique abaixo do texto acrescenta as quebras que faltam até a pauta apontada, e o cursor vai
-   * pro fim do texto novo, que é exatamente aquela pauta. Clique em cima de texto que existe não
-   * mexe em nada: o navegador já pôs o cursor onde a pessoa apontou.
-   */
-  const cadernoRef = useRef<HTMLTextAreaElement>(null)
-  const cursorNoFimRef = useRef(false)
-  function handleCliqueNoCaderno(e: MouseEvent<HTMLTextAreaElement>): void {
-    const campo = e.currentTarget
-    const alturaDaLinha = parseFloat(getComputedStyle(campo).lineHeight) || 0
-    const topo = campo.getBoundingClientRect().top + campo.clientTop
-    const y = e.clientY - topo + campo.scrollTop
-    const faltam = quebrasAteALinhaClicada(y, alturaDaLinha, linhasOcupadasNaTextarea(campo, alturaDaLinha))
-    if (faltam === 0) return
-    const texto = textoDeAnotacaoLimitado(page.text + '\n'.repeat(faltam))
-    if (texto === page.text) return
-    cursorNoFimRef.current = true
-    updatePage({ text: texto })
-  }
-  useLayoutEffect(() => {
-    if (!cursorNoFimRef.current) return
-    cursorNoFimRef.current = false
-    const campo = cadernoRef.current
-    if (!campo) return
-    campo.focus()
-    campo.setSelectionRange(campo.value.length, campo.value.length)
-  }, [page.text])
 
   /** A formatação da barra vale pro diário inteiro. */
   const textStyle: CSSProperties = {
@@ -292,11 +262,10 @@ export function NotesTab() {
               ✕
             </Button>
           </div>
-          <textarea
-            ref={cadernoRef}
+          {/* Clicar numa pauta vazia leva o cursor pra ela: ver `CampoDeCaderno`. */}
+          <CampoDeCaderno
             className="notes-textarea"
             value={page.text}
-            onClick={handleCliqueNoCaderno}
             /*
              * O TETO da sessão (ver `TAMANHO_MAXIMO_DA_ANOTACAO`): o `maxLength` para a digitação
              * no limite, e o corte no `onChange` cobre o que entra por outro caminho (arrastar
@@ -304,7 +273,7 @@ export function NotesTab() {
              * só não cresce mais.
              */
             maxLength={TAMANHO_MAXIMO_DA_ANOTACAO}
-            onChange={(e) => updatePage({ text: textoDeAnotacaoLimitado(e.target.value) })}
+            onChangeText={(texto) => updatePage({ text: textoDeAnotacaoLimitado(texto) })}
             style={textStyle}
           />
           {/* O contador diz onde se está ANTES de o campo parar de aceitar — cheio, avisa em cor. */}

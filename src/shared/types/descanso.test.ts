@@ -108,3 +108,20 @@ describe('normalizarDescansos', () => {
     expect(normalizarDescansos(muitos, RECURSOS)).toHaveLength(MAXIMO_DE_DESCANSOS)
   })
 })
+
+describe('descansar numa barra que sobe', () => {
+  it('"recuperar tudo" ZERA o estresse em vez de enchê-lo', () => {
+    const torso: RecursoVital = { id: 'torso', nome: 'Torso', atual: 4, maximo: 5, sobe: true }
+    const { recursos, mudancas } = aplicarDescanso([PV, torso], {
+      id: 'd',
+      nome: 'Noite',
+      efeitos: [
+        { recursoId: 'pv', modo: 'maximo' },
+        { recursoId: 'torso', modo: 'maximo' }
+      ]
+    })
+    expect(recursos.find((r) => r.id === 'torso')?.atual).toBe(0)
+    expect(recursos.find((r) => r.id === 'pv')?.atual).toBe(45)
+    expect(mudancas).toContainEqual({ nome: 'Torso', de: 4, para: 0 })
+  })
+})

@@ -165,15 +165,19 @@ describe('as barras de recurso', () => {
     expect(gravacoes.filter((g) => pv(g).atual !== 30)).toHaveLength(0)
   })
 
-  it('cor de estado: abaixo da metade avisa, abaixo de um quarto é perigo; cor fixa fica fixa', async () => {
+  it('cor de estado: nos 40% avisa e o preenchimento amarela; cor fixa é a cor de cheia', async () => {
     await montar()
     const pvEl = screen.getByRole('progressbar', { name: 'PV' }).parentElement!
     expect(pvEl.className).toContain('barra-normal')
+    // PV 30 de 45 (67%): cheia o bastante, pintada com a cor dela (bordô pelo nome).
+    expect(pvEl.style.getPropertyValue('--recurso-preenchido')).toBe('#800000')
     const sanEl = screen.getByRole('progressbar', { name: 'Sanidade' }).parentElement!
-    // 10 de 40 = 25%, na linha: NÃO é perigo ainda; é aviso.
+    // 10 de 40 = 25%: abaixo dos 40% é aviso, acima dos 15% ainda não é perigo.
     expect(sanEl.className).toContain('barra-aviso')
     expect(sanEl.className).toContain('barra-cor-fixa')
     expect(sanEl.style.getPropertyValue('--recurso-cor')).toBe('#800080')
+    // A cor escolhida continua sendo a da barra; o preenchimento de agora é amarelo.
+    expect(sanEl.style.getPropertyValue('--recurso-preenchido')).toBe('#ffff00')
   })
 
   it('uma linha fina por barra, e nada na tela quando não há recurso', async () => {

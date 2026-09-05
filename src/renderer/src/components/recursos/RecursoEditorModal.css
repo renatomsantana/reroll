@@ -18,7 +18,7 @@
 .recurso-editor-cabecalho,
 .recurso-editor-linha {
   display: grid;
-  grid-template-columns: 1fr 72px 72px 64px 28px;
+  grid-template-columns: 1fr 72px 72px 40px 64px 28px;
   gap: 6px;
   align-items: center;
 }
@@ -93,4 +93,10 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* A caixa "Sobe" centrada na coluna dela. */
+.recurso-editor-sobe {
+  display: flex;
+  justify-content: center;
 }

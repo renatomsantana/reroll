@@ -1,4 +1,4 @@
-import { corPadraoDoRecurso, ehCorHex } from './cor'
+import { corDaEscalaDeEstresse, corPadraoDoRecurso, ehCorHex } from './cor'
 
 /**
  * RECURSO VITAL — o que o personagem gasta e recupera durante a sessão: PV, PE, Sanidade em Ordem
@@ -32,6 +32,25 @@ export interface RecursoVital {
    * agora no NÚMERO da barra (ver `BarrasDeRecurso.css`), pra cor da barra poder ser da barra.
    */
   cor?: string
+  /**
+   * A barra SOBE: começa vazia e o perigo é ENCHER. É o estresse de Oblívio (o dano por região,
+   * "Torso 0/5"), a corrupção, a fadiga, a carga. Pedido dele (02/09/2026): "oblívio deixa o
+   * estresse subindo, tipo 1 amarelo, 2 alaranjando, 3 alaranjado, 4 laranja avermelhado, 5
+   * vermelhasso, com vários níveis de cor". Ausente, a barra DESCE como PV: cheia é o normal, e
+   * ela amarela nos 40% e avermelha nos 15%. Quem decide é o nome (`recursoSobePorPadrao`), e a
+   * pessoa troca no editor.
+   */
+  sobe?: boolean
+}
+
+/**
+ * Barra que SOBE por padrão, pelo nome: estresse, dano, corrupção, fadiga, carga, e as regiões do
+ * corpo de Oblívio (que são onde o dano se acumula naquela ficha).
+ */
+const NOME_QUE_SOBE = /estresse|stress|\bdano\b|ferimento|corrup|trauma|exaust|fadiga|\bcarga\b|\btorso\b|bra[çc]o|perna|cabe[çc]a/i
+
+export function recursoSobePorPadrao(nome: string): boolean {
+  return NOME_QUE_SOBE.test(nome.trim())
 }
 
 /** A cor com que a barra aparece: a escolhida, ou a que o nome sugere. */
@@ -78,12 +97,15 @@ export function prenderAtual(atual: number, maximo: number): number {
 
 export function criarRecurso(nome: string, maximo: number, atual = maximo): RecursoVital {
   const maximoLimpo = inteiroLimitado(maximo, TETO_DO_VALOR_DE_RECURSO) ?? 0
-  return {
+  const nomeLimpo = nome.trim().slice(0, TAMANHO_MAXIMO_DO_NOME_DO_RECURSO)
+  const recurso: RecursoVital = {
     id: crypto.randomUUID(),
-    nome: nome.trim().slice(0, TAMANHO_MAXIMO_DO_NOME_DO_RECURSO),
+    nome: nomeLimpo,
     maximo: maximoLimpo,
     atual: prenderAtual(inteiroLimitado(atual, TETO_DO_VALOR_DE_RECURSO) ?? maximoLimpo, maximoLimpo)
   }
+  if (recursoSobePorPadrao(nomeLimpo)) recurso.sobe = true
+  return recurso
 }
 
 /**
@@ -96,6 +118,9 @@ export function criarRecurso(nome: string, maximo: number, atual = maximo): Recu
  * - `id` repetido ou ausente: ganha um novo. Dois recursos com o mesmo id fariam o clique no "−" de
  *   um mexer nos dois.
  * - `cor` fora do formato: ausente — a barra volta pra cor de estado, que é o padrão.
+ * - `sobe` que não é booleano: decidido pelo NOME (`recursoSobePorPadrao`). É o que faz um
+ *   `notes.json` de antes desta regra já mostrar "Torso 0/5" subindo, sem migração. Um `false`
+ *   gravado é respeitado: foi a pessoa desmarcando no editor.
  * - acima do teto de itens: os primeiros ficam. Ver `MAXIMO_DE_RECURSOS`.
  */
 export function normalizarRecursos(raw: unknown): RecursoVital[] {
@@ -114,6 +139,8 @@ export function normalizarRecursos(raw: unknown): RecursoVital[] {
     usados.add(id)
     const recurso: RecursoVital = { id, nome, atual, maximo }
     if (ehCorHex(entrada.cor)) recurso.cor = entrada.cor.toLowerCase()
+    if (typeof entrada.sobe === 'boolean') recurso.sobe = entrada.sobe
+    else if (recursoSobePorPadrao(nome)) recurso.sobe = true
     limpos.push(recurso)
   }
   return limpos
@@ -154,18 +181,45 @@ export function fundirRecursos(
 export type EstadoDoRecurso = 'normal' | 'aviso' | 'perigo'
 
 /**
- * A cor de relance: abaixo da METADE avisa, abaixo de UM QUARTO é perigo. As duas linhas são as da
- * spec, e casam com o que as mesas já fazem de cabeça ("tô com menos da metade").
+ * O estado de relance. Barra que DESCE (PV, PM): avisa nos 40% e é perigo nos 15% — as duas
+ * linhas que ele pediu (02/09/2026: "vai mudando de cor para amarela em 40% e vermelha em 15%"),
+ * no lugar da metade e do quarto da spec. Barra que SOBE (estresse): o espelho, 60% e 85%, porque
+ * ali o pior caso é cheia.
  *
  * Máximo zero é "normal" de propósito: não há proporção nenhuma a julgar, e pintar de perigo uma
  * barra que a pessoa ainda nem preencheu seria alarme falso.
  */
-export function estadoDoRecurso(recurso: Pick<RecursoVital, 'atual' | 'maximo'>): EstadoDoRecurso {
+export const FRACAO_DE_AVISO = 0.4
+export const FRACAO_DE_PERIGO = 0.15
+
+export function estadoDoRecurso(recurso: Pick<RecursoVital, 'atual' | 'maximo' | 'sobe'>): EstadoDoRecurso {
   if (recurso.maximo <= 0) return 'normal'
   const fracao = recurso.atual / recurso.maximo
-  if (fracao < 0.25) return 'perigo'
-  if (fracao < 0.5) return 'aviso'
+  // A distância do pior caso, nos dois sentidos: vazia pra quem desce, cheia pra quem sobe.
+  const gravidade = recurso.sobe ? fracao : 1 - fracao
+  const folga = 1e-9
+  if (gravidade >= 1 - FRACAO_DE_PERIGO - folga) return 'perigo'
+  if (gravidade >= 1 - FRACAO_DE_AVISO - folga) return 'aviso'
   return 'normal'
+}
+
+/**
+ * A cor com que o PREENCHIMENTO da barra é pintado agora, pelo estado. É o pedido dele
+ * (02/09/2026): "mantém o básico de vida cheia e depois vai descendo e também vai mudando de cor
+ * para amarela em 40% e vermelha em 15%". A cor da barra (escolhida, ou pelo nome) é a de "vida
+ * cheia"; no aviso o preenchimento fica AMARELO e no perigo VERMELHO, os dois da paleta de 16 do
+ * Windows. A barra que SOBE não tem cor de repouso: cada nível é um degrau do amarelo ao vermelho
+ * (`corDaEscalaDeEstresse`), do primeiro ponto ao último.
+ */
+export function corDoPreenchimento(recurso: Pick<RecursoVital, 'nome' | 'cor' | 'atual' | 'maximo' | 'sobe'>): string {
+  if (recurso.sobe) {
+    if (recurso.maximo <= 1 || recurso.atual <= 1) return corDaEscalaDeEstresse(recurso.atual >= recurso.maximo && recurso.maximo > 0 ? 1 : 0)
+    return corDaEscalaDeEstresse((recurso.atual - 1) / (recurso.maximo - 1))
+  }
+  const estado = estadoDoRecurso(recurso)
+  if (estado === 'perigo') return '#ff0000'
+  if (estado === 'aviso') return '#ffff00'
+  return corDoRecurso(recurso)
 }
 
 /**

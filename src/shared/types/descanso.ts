@@ -128,7 +128,9 @@ export function aplicarDescanso(
   const novos = recursos.map((recurso) => {
     const efeito = efeitoPara(descanso, recurso.id)
     let para = recurso.atual
-    if (efeito.modo === 'maximo') para = recurso.maximo
+    // "Recuperar tudo" numa barra que SOBE (estresse, dano por região) é voltar a ZERO: ali o
+    // máximo é o pior caso, e um descanso que enchesse o estresse seria o contrário de descansar.
+    if (efeito.modo === 'maximo') para = recurso.sobe ? 0 : recurso.maximo
     if (efeito.modo === 'somar') para = prenderAtual(recurso.atual + (efeito.quantidade ?? 0), recurso.maximo)
     if (para === recurso.atual) return recurso
     mudancas.push({ nome: recurso.nome, de: recurso.atual, para })

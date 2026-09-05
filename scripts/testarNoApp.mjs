@@ -32,7 +32,7 @@ const SAIDA = join(RAIZ, 'out', 'testar-no-app')
 mkdirSync(SAIDA, { recursive: true })
 const BLANK = join(SAIDA, 'blank.html')
 writeFileSync(BLANK, '<!DOCTYPE html><html><body></body></html>')
-const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'retrato', 'presets', 'pacote', 'perfis', 'hud', 'fichas', 'fabricados']
+const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'retrato', 'presets', 'pacote', 'perfis', 'hud', 'caderno', 'fichas', 'fabricados']
 
 /**
  * O DIÁRIO DO PROCESSO, em arquivo: o stdout do Electron se perde no `app.exit` (ver a memória do
@@ -1019,6 +1019,78 @@ async function faseHudArrasto() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase CADERNO: clicar com o mouse numa linha vazia leva o cursor pra ela.                    */
+/* ------------------------------------------------------------------------------------------ */
+async function cliqueDoMouse(x, y) {
+  win.webContents.sendInputEvent({ type: 'mouseMove', x, y })
+  await espera(60)
+  win.webContents.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 })
+  await espera(60)
+  win.webContents.sendInputEvent({ type: 'mouseUp', x, y, button: 'left', clickCount: 1 })
+  await espera(300)
+}
+
+/** O estado do campo de texto depois do gesto: o que tem escrito, onde está o cursor, se tem foco. */
+const lerCampo = (seletor) =>
+  js(`(() => { const t = document.querySelector(${JSON.stringify(seletor)}); return { valor: t.value, cursor: t.selectionStart, foco: document.activeElement === t } })()`)
+
+/**
+ * Clica com o MOUSE na pauta `linha` (contando do zero) do campo, a 40px da borda esquerda, e
+ * digita "x". Devolve o campo depois. A pauta é medida pelo `line-height` computado, e o clique
+ * cai no meio dela (não na borda).
+ */
+async function clicarNaPautaEDigitar(seletor, linha) {
+  const alvo = await js(`(() => {
+    const t = document.querySelector(${JSON.stringify(seletor)})
+    t.scrollIntoView({ block: 'center' })
+    const b = t.getBoundingClientRect()
+    const s = getComputedStyle(t)
+    const pauta = parseFloat(s.lineHeight)
+    return { x: Math.round(b.left + 40), y: Math.round(b.top + t.clientTop + parseFloat(s.paddingTop) + ${linha} * pauta + pauta / 2), pauta }
+  })()`)
+  await cliqueDoMouse(alvo.x, alvo.y)
+  win.webContents.sendInputEvent({ type: 'char', keyCode: 'x' })
+  await espera(250)
+  return { ...(await lerCampo(seletor)), pauta: alvo.pauta }
+}
+
+async function faseCaderno() {
+  console.log('\n=== CADERNO (clicar numa pauta vazia) ===')
+  estado.profiles = { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: null, createdAt: 1 }], activeId: 'p1' }
+  estado.notas.set('p1', {
+    ...NOTAS_VAZIAS(),
+    pages: [{ id: 'd1', title: 'Sessão 1', text: 'primeira linha\nsegunda linha', createdAt: 1 }],
+    backstory: 'Nasceu em Cascavel.',
+    inventory: ''
+  })
+  await abrirApp()
+
+  // ANOTAÇÕES: duas linhas escritas; clique na sexta pauta (índice 5) e a tecla "x" tem que cair lá.
+  await aba('Anotações')
+  await esperarAte(`!!document.querySelector('.notes-textarea')`)
+  const caderno = await clicarNaPautaEDigitar('.notes-textarea', 5)
+  checar(caderno.valor === 'primeira linha\nsegunda linha\n\n\n\nx', `Anotações: clicar na 6ª pauta e digitar "x" escreveu na 6ª linha (${JSON.stringify(caderno.valor)}, pauta ${caderno.pauta}px)`)
+  checar(caderno.foco && caderno.cursor === caderno.valor.length, `Anotações: o cursor ficou depois do "x" (cursor ${caderno.cursor}, foco ${caderno.foco})`)
+  await foto('caderno-anotacoes')
+
+  // FICHA: a história tem uma linha; clique na quinta pauta (índice 4). E uma caixa VAZIA (inventário).
+  await aba('Ficha')
+  await esperarAte(`document.querySelectorAll('.sheet-textarea').length >= 2`)
+  const seletorDaHistoria = `.sheet-group-wide .sheet-textarea`
+  const historia = await clicarNaPautaEDigitar(seletorDaHistoria, 4)
+  checar(historia.valor === 'Nasceu em Cascavel.\n\n\n\nx', `Ficha (história): clicar na 5ª pauta e digitar "x" escreveu na 5ª linha (${JSON.stringify(historia.valor)}, pauta ${historia.pauta}px)`)
+  checar(historia.foco && historia.cursor === historia.valor.length, `Ficha (história): o cursor ficou depois do "x" (cursor ${historia.cursor}, foco ${historia.foco})`)
+  const seletorDoInventario = `.sheet-textarea[aria-label="Inventário"]`
+  const inventario = await clicarNaPautaEDigitar(seletorDoInventario, 2)
+  checar(inventario.valor === '\n\nx', `Ficha (inventário vazio): clicar na 3ª pauta e digitar "x" escreveu na 3ª linha (${JSON.stringify(inventario.valor)})`)
+  await foto('caderno-ficha')
+
+  // Clicar EM CIMA de texto que existe não acrescenta nada: o cursor vai pra onde o navegador pôs.
+  const emCima = await clicarNaPautaEDigitar(seletorDaHistoria, 0)
+  checar(emCima.valor.split('\n')[0].includes('x') && emCima.valor.split('\n').length === historia.valor.split('\n').length, `Ficha: clicar em cima da 1ª linha escreve nela, sem quebra nova (${JSON.stringify(emCima.valor)})`)
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase FICHAS.                                                                                */
 /* ------------------------------------------------------------------------------------------ */
 async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(core|remaster ficha|player core|gm core)).*\.pdf$/i, esperaRetrato = {}) {
@@ -1109,6 +1181,7 @@ app.whenReady().then(async () => {
   if (FASES.includes('perfis')) await fasePerfis()
   if (FASES.includes('hud')) await faseHud()
   if (FASES.includes('arrasto')) await faseHudArrasto()
+  if (FASES.includes('caderno')) await faseCaderno()
   if (FASES.includes('fichas')) await faseFichas()
   // A décima leva fabricada (`ESCREVER_PDFS=1 npx vitest run corpusDePdfs` escreve em Fichas RPG/testes/).
   if (FASES.includes('fabricados')) await faseFichas(join(RAIZ, 'Fichas RPG', 'testes'), /^7[0-3]-.*\.pdf$/i, { '73-foto-no-campo.pdf': 'retrato', '70-hp-mp-em-ingles.pdf': null })

@@ -181,6 +181,9 @@ export interface TranslationDict {
     max: string
     color: string
     colorAuto: string
+    /** A barra que SOBE (estresse, dano por região): a coluna do editor e a dica dela. */
+    rises: string
+    risesHint: string
     remove: string
     save: string
     cancel: string
@@ -656,6 +659,8 @@ export const translations: Record<Language, TranslationDict> = {
       max: 'Máximo',
       color: 'Cor',
       colorAuto: 'Voltar à cor padrão do nome (PV bordô, PE azul, Sanidade roxo)',
+      rises: 'Sobe',
+      risesHint: 'Começa vazia e enche: estresse, dano por região, fadiga. Vai do amarelo ao vermelho conforme sobe.',
       remove: 'Remover barra {name}',
       save: 'Salvar',
       cancel: 'Cancelar',
@@ -1086,6 +1091,8 @@ export const translations: Record<Language, TranslationDict> = {
       max: 'Max',
       color: 'Color',
       colorAuto: 'Back to the default color for the name (HP maroon, PE blue, Sanity purple)',
+      rises: 'Rises',
+      risesHint: 'Starts empty and fills up: stress, damage per body part, fatigue. Goes from yellow to red as it rises.',
       remove: 'Remove bar {name}',
       save: 'Save',
       cancel: 'Cancel',
