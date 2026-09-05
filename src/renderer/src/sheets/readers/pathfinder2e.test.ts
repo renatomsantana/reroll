@@ -128,7 +128,8 @@ describe('a ficha do Rilver', () => {
     expect(lido.system).toBe('Pathfinder 2e')
     expect(valor(lido, 'Classe')).toBe('Monge')
     expect(valor(lido, 'Ancestralidade')).toBe('Humano')
-    expect(valor(lido, 'Idiomas')).toBe('comun Fey')
+    // O campo do PDF tem um idioma por linha, e a quebra vem junto (a Ficha a mostra como espaço).
+    expect(valor(lido, 'Idiomas')).toBe('comun\nFey')
     expect(lido.warnings).not.toContain('sem-nome-nem-rolagem')
   })
 

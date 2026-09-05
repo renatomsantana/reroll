@@ -244,17 +244,37 @@ describe.skipIf(!existsSync(KIDS))('ficha real de Kids on Bikes — arte com ano
   it('remonta o que foi escrito, propõe o nome e não finge saber o que é cada valor', async () => {
     const lido = readSheet(await abrirPdfNoNode(KIDS))
 
-    expect(lido.readerId).toBe('generico')
-    // O nome sai do primeiro texto da página, e não do arquivo ("Ficha Kids on Bikes - Preenchida").
+    // Desde 03/09/2026 a ficha tem leitor dedicado (`kidsOnBikes.ts`); o que segue é o que os dois
+    // caminhos têm que entregar igual: o nome escrito na arte e os parágrafos remontados inteiros.
+    expect(lido.readerId).toBe('kids-on-bikes')
+    // O nome sai do que está escrito na arte, e não do arquivo ("Ficha Kids on Bikes - Preenchida").
     expect(lido.characterName).toBe('rodrigo barreto')
-    expect(lido.warnings).toContain('arte-com-anotacao')
+    // Não é formulário, e o leitor dedicado não a trata mais como "arte com anotação" do genérico.
+    expect(lido.warnings).toContain('sem-formulario')
+    expect(lido.warnings).not.toContain('arte-com-anotacao')
+
+    const porRotulo = new Map(lido.fields.map((c) => [c.label, c.value]))
+
+    // O que antes era texto solto agora tem campo: identificação, personalidade, relacionamento.
+    expect(porRotulo.get('Idade')).toBe('11')
+    expect(porRotulo.get('Arquétipo')).toBe('Novo Aluno Misterioso')
+    expect(porRotulo.get('Fraquezas')).toBe('supersticioso')
+    expect(porRotulo.get('Relacionamento 1')).toBe('1 - Dinamite')
+
+    /**
+     * Cada atributo com o SEU dado. Eles ficam lado a lado na arte, em corpo 26, e a régua de
+     * "mesma linha" chegou a grudar dois atributos diferentes num "d8 d4" só.
+     */
+    expect(porRotulo.get('Luta')).toBe('d20+1')
+    expect(porRotulo.get('Fuga')).toBe('d12+1')
+    expect(porRotulo.get('Garra')).toBe('d8')
+    expect(porRotulo.get('Charme')).toBe('d4+1')
 
     /**
      * As vantagens que a pessoa nomeou ela mesma, com o parágrafo INTEIRO. O extrator devolve isto
      * picado em quatro fragmentos ("Heróico: Você não precisa da" / "permissão do Mestre para" / …),
      * e a primeira leitura importava só o primeiro pedaço.
      */
-    const porRotulo = new Map(lido.fields.map((c) => [c.label, c.value]))
     expect(porRotulo.get('Heróico')).toBe(
       'Você não precisa da permissão do Mestre para gastar Fichas de Adversidade para ignorar Medos.'
     )
@@ -268,20 +288,8 @@ describe.skipIf(!existsSync(KIDS))('ficha real de Kids on Bikes — arte com ano
     const luta = lido.fields.filter((c) => c.value === 'Você ganha +1 em testes de Luta.')
     expect(luta.map((c) => c.label)).toEqual(['bike preta intensa'])
 
-    // O texto que não tem rótulo nenhum não é jogado fora — vai inteiro pro bloco de história.
-    const solto = lido.rawText ?? ''
-    for (const escrito of ['11', 'Novo Aluno Misterioso', 'supersticioso', 'd20', 'd12', '1 - Dinamite']) {
-      expect(solto).toContain(escrito)
-    }
-    /**
-     * Cada dado numa linha própria. Eles ficam lado a lado na arte, em corpo 26, e a régua de
-     * "mesma linha" chegou a grudar dois atributos diferentes num "d8 d4" só.
-     */
-    expect(solto.split('\n')).toContain('d20')
-    expect(solto).not.toContain('d8 d4')
-
-    // O parágrafo da coluna da direita não foi intercalado com o da esquerda.
-    expect(solto).toContain('Pegs Apoio nas rodas Você pode levar um passageiro em pé.')
+    // O livro de notas da página 2 lido coluna a coluna: o parágrafo da direita não foi intercalado.
+    expect(porRotulo.get('Pensamentos e notas')).toContain('Pegs Apoio nas rodas Você pode levar um passageiro em pé.')
 
     // E nenhum preset chamado "d20": o app já tem esse botão, e o atributo dele é desenho.
     expect(lido.presets.map((p) => p.name)).not.toContain('d20')
