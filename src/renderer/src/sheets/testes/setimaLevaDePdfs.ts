@@ -240,8 +240,8 @@ export const SETIMA_LEVA: FichaDeTeste[] = [
   },
   {
     arquivo: '46-tormenta20-modelo-em-branco.pdf',
-    proposito: 'modelo em branco de sistema desconhecido: instruções de fábrica não são resposta, e o arquivo não vira nome de ninguém',
-    espera: { leitor: 'generico', nome: '', maximoDeCampos: 0, avisos: ['formulario-vazio'] },
+    proposito: 'modelo em branco de Tormenta20: o leitor dedicado o reconhece pelos nomes de campo, e ainda assim instruções de fábrica não são resposta nem o arquivo vira nome de ninguém',
+    espera: { leitor: 'tormenta20', nome: '', maximoDeCampos: 0, avisos: ['formulario-vazio'] },
     bytes: () => {
       const f = formulario([
         ['Nome', ''],

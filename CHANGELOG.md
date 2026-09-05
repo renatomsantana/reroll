@@ -6,6 +6,187 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e a
 Cada versão publicada tem o SHA-256 do instalador na página da release — confira antes de instalar
 (ver `CONTRIBUTING.md`).
 
+## [1.1.4] — 2026-09-05
+
+Em resumo, o que muda pra quem joga:
+
+- Novidade na área! HUD na mesa: um cartão sobre a cena dos dados com a foto do seu personagem e as barras que o
+  seu sistema usa, como PV, PE, PM, Estresse ou Loucura, pintadas com cores conforme a vida em que
+  você está. Clique uma vez e sobe ou desce 1; segure o botão e anda de 5 em 5.
+- Agora você pode clicar onde quer começar a digitar em Anotações.
+- Todos têm um limite de 3 personagens! Usem bem! No terceiro, o botão de criar fica apagado: se
+  quiser fazer um personagem novo, tem que apagar um!
+
+O detalhe de cada item está abaixo. O HUD (spec §3.6), as barras (§3.4), as cores e o Descansar
+(§3.8) saem nesta versão: é o `HUD_LIBERADO` em `src/shared/liberacoes.ts`, que o branch de
+lançamento deixa de virar pra `false`.
+
+### Alterado (importação sem janela, e o teto de 3 vira aviso)
+
+- **Importar ficha SEMPRE cria um personagem novo, depois de um "tem certeza?"** — regra dele (02/09/2026): "toda vez que uploadar uma ficha nova, que CRIE um personagem novo, para não perder o que já está lá; clicou em uploadar, tem certeza? aí cria um novo". Caíram as duas regras que gravavam por cima de alguém (preencher a ficha vazia do personagem aberto; atualizar o homônimo na reimportação): o clique abre o diálogo do app com a pergunta, depois o seletor de PDF, e o personagem nasce já aberto, com tudo dentro: as seções da ficha, os golpes como presets, as barras de PV/PE/PM que viram o HUD, a foto do PDF na frente e as páginas guardadas. No teto de personagens (3 nos testadores) o botão de importar fica APAGADO, e passar o mouse diz "Limite alcançado: apenas 3 personagens!"; o hook ainda recusa por conta própria se o clique escapar. O harness `fichas` clica no OK do diálogo.
+
+- **Anotações e Ficha: clicar em qualquer linha vazia já leva o cursor pra ela** — pedido dele duas vezes (02/09/2026: "deixar possível que clique em qualquer linha no anotações para começar a digitar, que não seja apenas no Enter"; 04/09: "clicar com o mouse onde quiser digitar, não precisar apenas com Enter"). O caderno desenha as pautas até o fim da área e as caixas da ficha têm altura mínima, mas o texto só existia até onde foi digitado, e o clique abaixo dele caía na última linha. Agora o clique numa linha vazia acrescenta as quebras que faltam até ela e põe o cursor lá, como a caneta no papel, nas Anotações e nas cinco caixas da Ficha (Atributos, Habilidades, Inventário, Aparência, História); clique em cima de texto que existe continua sendo do navegador. A primeira versão (02/09) só valia pras Anotações e NÃO funcionava no app de verdade: pra medir quantas linhas o texto ocupa ela zerava a altura do campo, e o `flex: 1` do caderno esticava o campo de volta, então o texto "ocupava" a área inteira e o clique nunca acrescentava nada. Foi a fase `caderno` do harness `testarNoApp.mjs` que pegou, clicando com o mouse de verdade na sexta pauta: o "x" digitado caía na segunda linha. A medida agora zera altura, mínimo e flex juntos; o componente é um só pras duas abas (`CampoDeCaderno`) e conta as linhas VISUAIS, então linha comprida que quebra na largura não ganha quebra a mais.
+
+- **Importar ficha é um gesto só: escolher o PDF** — pedido dele, em duas rodadas (30/08 e
+  02/09/2026): "não precisa mostrar a página inteira, apenas aperte o PDF e diga ok importaremos"
+  e depois "não precisa perguntar para a pessoa, apenas upload, scrap tudo, e deixa editável para
+  o user". A tela de conferência campo a campo saiu primeiro (virou um "ok, importaremos"
+  pequeno) e depois saiu a janela por inteiro: o app lê o PDF, decide sozinho e grava TUDO
+  (anotações, presets, barras, retrato, páginas e o texto sem rótulo). O que a janela ainda
+  perguntava virou regra (`escolherDestino`): se a ficha do personagem aberto está vazia, ela é
+  preenchida; se já existe um personagem com o mesmo nome que a ficha traz, ele é atualizado (a
+  reimportação depois de subir de nível, sem criar um segundo igual); senão nasce um novo. O nome
+  é o que o leitor achou, ou o do personagem atualizado, ou o do arquivo, nunca vazio. Logo
+  depois, a aba Ficha diz o que entrou ("Reconhecemos como ficha de Ordem Paranormal. 42 campos e
+  7 rolagens importados") e os avisos do leitor sobre o que NÃO foi lido, com um "Entendi"; tudo
+  continua editável e apagável ali, a qualquer momento. PDF sem nada legível (imagem digitalizada,
+  livro de 100+ páginas) não cria personagem: mostra o motivo no lugar.
+
+- **Personagens: o dono à vontade, os testadores em 3 com aviso** — a regra dele (30/08/2026): "EU
+  o DONO posso ter quantos personagens quiser, OS OUTROS usuários apenas 3, eles são bloqueados e
+  recebem um aviso: máximo de personagens atingido = 3". Nasceu a chave `PERSONAGENS_LIBERADOS`
+  (`liberacoes.ts`, a mesma mecânica do HUD): ligada na `main` (o cliente dele), o teto de criação
+  é o do disco (15); desligada no branch `lancamento`, o teto é 3, duro. E o bloqueio agora FALA:
+  o botão "Novo personagem" no teto responde com "Máximo de personagens atingido: {max}" no diálogo
+  do app (antes era só o botão cinza com tooltip), e a importação recusa criar um personagem além
+  do teto, com o mesmo aviso na Ficha.
+
+### Alterado (HUD e cores, 02/09/2026)
+
+- **A rolagem o mais aleatória possível: a cena 3D também sorteia no gerador criptográfico** — pedido dele (03/09/2026): "deixar a rolagem de dados o mais aleatória possível". O modo rápido já sorteava com `crypto.getRandomValues` e rejeição de viés (`rollDie`); a cena 3D não sorteia número, o resultado é a física, e o acaso entra pelas condições iniciais do arremesso (posição, altura, orientação, força, torque), que eram `Math.random`. Agora saem do mesmo gerador criptográfico, com 53 bits por número (`randomUnit` em `dice3d/utils/random.ts`), e a física caótica da bandeja amplifica a diferença: cada arremesso é irrepetível e imprevisível. E a honestidade do resultado físico foi MEDIDA dado a dado, sozinho na bandeja vazia (`todosOsDados.statistical.test.ts`, 1.000 e depois 5.000 rolagens por tipo): nenhum dos sete mostra viés (qui-quadrado do d10 em 5.000: 4,9; do d20: 13,5; o d10 tinha dado 19,8 em 1.000, o que era flutuação). Na suíte o teste roda com 300 por dado; `ROLAGENS_ESTATISTICAS=5000 npx vitest run todosOsDados` mede de verdade.
+
+- **A barra muda de cor com o estado, e a que SOBE vai do amarelo ao vermelho** — pedido dele (02/09/2026): "oblívio deixa o estresse subindo tipo 1 amarelo, 2 alaranjando, 3 alaranjado, 4 laranja avermelhado, 5 vermelhasso, com vários níveis de cor; se for outras fichas, PV ou PM mantém o básico de vida cheia e depois vai descendo e vai mudando de cor para amarela em 40% e vermelha em 15%". Nasceu a marca `sobe` na barra (`RecursoVital`): a barra que sobe começa vazia e o perigo é encher, e o preenchimento dela é um degrau por ponto do amarelo puro ao vermelho puro (`corDaEscalaDeEstresse`, só o verde do `#ff__00` muda, cor chapada por nível, sem degradê). Quem sobe por padrão é decidido pelo nome (as regiões do corpo de Oblívio, que é onde o dano se acumula naquela ficha: "Torso 0/5"; estresse, dano, carga, fadiga, corrupção), e o editor de barras ganhou a coluna "Sobe" pra pessoa desfazer ou marcar. Barra que desce (PV, PM, tudo o mais) fica com a cor dela enquanto está cheia o bastante, amarela nos 40% e vermelha nos 15% (as linhas eram a metade e o quarto); a cor escolhida no editor é a de "vida cheia". Na importação, uma barra que sobe com só o limite escrito começa em zero; descansar com "recuperar tudo" numa barra que sobe zera, em vez de encher.
+
+- **Cada barra tem a sua cor, e cada condição também** — pedido dele: "para cada atributo atribuir
+  cor também; Caído, a pessoa decide a cor também". A barra deixa de trocar de cor com o estado
+  (verde, oliva, bordô) e ganha a cor DELA: PV bordô, PE azul-marinho, Sanidade roxo, Sorte oliva,
+  Fôlego verde, e o que não tem convenção sai da paleta de 16 cores do Windows pelo nome, sempre a
+  mesma cor pro mesmo nome; o lápis do HUD troca (o "↺" volta à cor do nome). O estado continua à
+  vista, agora no NÚMERO: abaixo da metade ele fica oliva, abaixo de um quarto o número e o nome
+  ficam bordô. A condição ganhou um quadradinho de cor à esquerda do nome, que é o seletor: clicar
+  abre o de cor do sistema e a escolha grava na hora; ligada, o chip fica pintado com a cor dela
+  (Machucado bordô, Enlouquecendo roxo, Caído oliva por padrão), com o texto preto ou branco
+  conforme a cor.
+
+- **O crachá saiu de perto do ROLAR** — pedido dele: "tirar o nome e foto de perfil do lado do
+  rolar e deixar apenas no HUD". A foto e o nome na tela de rolagem eram a mesma informação duas
+  vezes; agora quem diz de quem são os dados é só o HUD sobre a cena. Nas Anotações o crachá
+  continua.
+
+### Segurança
+
+- **Os canais de IPC conferem quem chama** — todo `ipcMain.handle` passa por um embrulho único
+  (`travarCanaisDeIpc`, em `seguranca.ts`) que só atende o quadro principal da página do app (a
+  interface empacotada ou o servidor de desenvolvimento); qualquer outro `webContents` recebe
+  "pedido recusado" e nada roda. É o item "validate the sender of all IPC messages" da lista de
+  segurança do Electron: as travas de navegação já tornavam o caso improvável, esta o torna inútil.
+  O canal que alguém escrever no ano que vem já nasce conferido.
+
+- **A foto do personagem é aceita pelos BYTES, não pela extensão** — a mesma régua do `%PDF-` da
+  ficha: um `.png` que não começa com a assinatura de PNG, JPEG ou WebP é recusado com o motivo, e
+  o tipo gravado no perfil é o que os bytes dizem (um JPEG salvo como `.png` entra como JPEG, que é
+  o que o `<img>` consegue desenhar).
+
+### Corrigido (arquivo errado na importação)
+
+- **O texto de várias linhas do PDF chega à Ficha com as linhas** — reporte dele (05/09/2026): "sobre Tormenta20 ainda está bugando". Na ficha do Milo os campos de habilidades, poderes e magias vêm do PDF com uma habilidade por linha, e a Ficha mostrava tudo num bloco corrido só: a régua comum de limpeza de valor (`valorDeFicha`), feita pra colapsar o alinhamento visual de campo curto ("5         1" num PV), trocava a quebra de linha por espaço junto. Agora ela limpa os espaços de cada linha e mantém a quebra (linha vazia repetida vira uma), o campo de várias linhas entra no bloco da Ficha como "Rótulo:" e o texto embaixo, cada campo num parágrafo, e o gerador de presets em prosa, que já cortava por linha, passa a ver uma habilidade por vez. O campo de SEÇÃO (Idiomas "comun / Fey" do Rilver) continua em linha única, porque vive num campo de uma linha que engoliria a quebra. Vale pra todo leitor, não só Tormenta. Os dois testes de Kids on Bikes que ainda descreviam o caminho genérico (a ficha tem leitor próprio desde 03/09) foram reescritos pro contrato atual.
+
+- **Subir o arquivo errado mostra uma mensagem que diz o botão certo** — pedido dele: "se
+  uploadarem o arquivo errado, aparecer uma mensagem". Os dois botões da Ficha ficam lado a lado e
+  se cruzam: o personagem exportado pelo Reroll (`Nome - Reroll.html`, ou o JSON dele) no
+  "Importar ficha (PDF)" agora diz "é um personagem exportado pelo Reroll, use Importar personagem
+  Reroll"; qualquer outro arquivo que não seja PDF diz "não é um PDF"; e uma ficha em PDF no
+  "Importar personagem Reroll" diz "é uma ficha em PDF, use Importar ficha (PDF)". Antes os dois
+  primeiros caíam em "não consegui ler este PDF, pode estar protegido por senha ou danificado", que
+  não era o caso, e o terceiro em "não é um personagem exportado", sem dizer o que fazer. PDF que
+  não é ficha (livro, imagem digitalizada, modelo em branco) já virava aviso na conferência.
+
+### Alterado (o cliente dele)
+
+- **O HUD nasce em cima à esquerda** — pedido dele ("deixa o hud na esquerda superior"); nascia
+  embaixo à direita e ele tinha arrastado todos os personagens pro canto oposto. O canto continua
+  sendo do personagem: quem arrastar, fica onde soltou.
+
+### Adicionado
+
+- **Kids on Bikes reconhecido na importação, pela posição das anotações** — cobrança dele (03/09/2026): "você tem ficha de Kids on Bikes, você deveria saber". A ficha do Rodrigo Barreto estava na pasta desde agosto e caía no genérico como "texto sem rótulo": é ARTE com o que o jogador digitou flutuando por cima, sem campo e sem rótulo impresso. O leitor novo usa o mesmo mapa por posição das fichas da Luz Negra, agora sobre TEXTO (`fragmentosEm`/`textoImpressoEm`): Nome, Idade, Arquétipo; os seis atributos (Luta, Fuga, Mente, Músculo, Charme, Garra) com o dado e o bônus escrito ao lado ("d20+1"), cada um virando um preset que EXPLODE, que é a regra do jogo (e o botão de explodir passa a aparecer pra este sistema, como pra D&D); Fichas de Adversidade; Motivação, Medos, Fraquezas e Obrigações numa seção Personalidade; Talentos; Bicicleta; Descrição; as Forças marcadas com X na lista; na página 2, a Ficha de Consentimento, as Notas dos Relacionamentos e o livro de Pensamentos & Notas lido COLUNA A COLUNA (o emendador de linhas cortava "Heróico" ao meio porque a coluna da direita entrava no meio). Provado com a ficha real dela e com o teste que a reproduz fragmento a fragmento.
+
+- **Os quatro leitores novos provados contra as fichas oficiais PREENCHIDAS** (03/09/2026, "vamos continuar testando scraping"): `scripts/preencherFichasDeTeste.mjs` preenche os modelos em branco de Breu, Tenebra, Infaernum e Shadowdark com um personagem cada (pelo nome do campo, ou pela posição no Breu) usando o `pdf-lib`, e os quatro passaram inteiros pelo extrator e pelo harness do app compilado (barras, presets e seções certas). O que a ficha real ensinou: em Tenebra as gotas, a fadiga, as feridas, a proteção e o óleo NÃO são caixas de marcar, são BOTÕES de imagem que o script da página mostra ou esconde, e o leitor passou a contar o botão visível como aceso (`acesosEm`); Shadowdark não mostra mais "Ancestralidade" duas vezes (a lacuna de `ancestry` ao lado do `race` da ficha oficial); e Tenebra e Infaernum não avisam mais "sem nome nem rolagem" quando o leitor achou o nome pela posição.
+
+- **Breu, Tenebra, Infaernum e Shadowdark reconhecidos na importação** — pedido dele (02/09/2026): "adicionar também coisas de ficha de Shadowdark, Breu RPG, Infaernum, Tenebra prontas para scraping". As três da Luz Negra vieram das fichas editáveis oficiais (baixadas com a autorização dele e sondadas campo a campo): são ARTE com formulário por cima, sem texto impresso (Tenebra e Infaernum não têm um fragmento sequer) e com nome de campo de máquina (`Campo de Texto12`, `Text Field 4`, `Text1.0.1.0.1…`). Nasceu a leitura POR POSIÇÃO (`porPosicao.ts`): cada leitor carrega um mapa de retângulos medido no PDF em branco, o campo é o que está naquele lugar, e meia dúzia de retângulos-âncora identifica o modelo. Tenebra: Assinatura, Título, Estirpe, Nível de Vivência; as quatro Disposições (Fôlego, Equilíbrio, Raciocínio, Lucidez) como barras de Gotas de Suor, com a Fadiga; Barra de Feridas e Proteção como barras; biosucatas com o óleo; os Bolsos linha a linha com os Estragos de cada fileira; trecos, tralhas, contatos, armas com a Sina, habilidades e traços. Pra isso o extrator passou a ENTREGAR os campos ocultos do PDF, marcados (`PdfField.oculto`, no fim da lista): as gotas e as feridas de Tenebra moram em caixas ocultas que os botões da página ligam, e o modificador de perícia de Tormenta20 também; o leitor genérico continua sem vê-los. Infaernum: Quem é você (de onde sai o nome), Sorte, Azar, Bênção, Maldição, Tormentos, Tralhas, e as seis Desgraças como barra. Breu (modelo Geral e Não Conjuradores, mesma frente): identificação e antecedente, os seis atributos com valor e modificador, Testes de Resistência proficientes, Bônus de Proficiência, as quatro proteções de CA, PV como barra, Dados de Vida, Debilidades com a gravidade, Benefícios de Classe, ataques corpo a corpo e à distância como presets, equipamento com carga em pontos, prata, e a magia da página 2 (paradigma, forma de conjuração, teste e potência mágica, círculos, magias conhecidas, notas). Shadowdark: a ficha oficial da Arcane Library, pelo nome dos campos e traduzida pro idioma de quem joga, como a de D&D: identificação com Título e XP, atributos pelo valor, PV como barra, CA, ataques em prosa como presets, talentos e magias, equipamento e moedas.
+
+- **A ficha editável de Tormenta20 da comunidade lida campo a campo** — um testador importou a dele (a do Milo, 02/09/2026) e "ficou horrível": 104 campos numa seção "Outros" (`ModFor`, `SeleAtribAcro`, `Base CA`), a grade de perícias em células numeradas caindo como "2 0 4 6 5 8 10 3" no bloco de história, e "Pontos de Vida m#C3#A1ximos" como rótulo. O leitor de Tormenta agora reconhece esse modelo pelos nomes de campo e o lê pela estrutura: atributos como modificador (rolam d20), PV/PM atual e máximo como barras, Defesa com a armadura e o escudo por extenso (e os componentes consumidos), as 30 perícias com o total REFEITO (metade do nível + atributo escolhido + treino + outros, mais o tamanho na Furtividade; o `ModAtrib` do PDF é campo oculto e não chega), marcadas "(treinada)", os cinco ataques como linha e presets de teste e dano, os dezessete itens com espaços, Tibares e carga, magias com o atributo-chave, e os textos de habilidades, descrição e anotações nos blocos certos. Ofício sem nome escolhido fica como lacuna. E os escapes `#XX` dos nomes de campo do PDF passam a ser decodificados pra toda ficha (`nomeDeCampoDecodificado`).
+
+- **Ficha de Tormenta20 reconhecida (leitor `tormenta20`)** — pedido dele (02/09/2026): "deixa o
+  scraping pronto para fichas de T20 também". Sem ficha real na mão, o leitor casa o VOCABULÁRIO do
+  sistema em vez de nomes exatos de campo (com ou sem acento, em caixa alta ou não, como nome de
+  formulário ou rótulo impresso), então serve pra editável da Jambô, pra caseira do Google Docs e
+  pra de comunidade: Identificação (Raça, Classe, Origem, Divindade), os seis atributos, PV e PM
+  como barras (com atual e máximo, ou "7/12" num campo só), Defesa e Deslocamento, as 29
+  perícias rolando d20 + o número, a grade de ataques (Arma/Teste/Dano/Crítico, em colunas ou
+  numa célula só) virando uma linha por arma e os presets de teste e dano, Poderes, Magias,
+  Equipamento, Tibar e História nos blocos certos. A edição decide a rolagem do atributo: valor
+  (Força 18 → 1d20+4, livro de 2019) ou modificador (Força +4, Jogo do Ano), olhando os seis
+  juntos. Ficha com dono traz o esqueleto de lacunas; modelo em branco não traz nada. Ficha de D&D
+  traduzida, de Ordem e de Pathfinder continuam com os leitores delas: os atributos em português
+  não bastam sem uma marca que só Tormenta tem (PM, Tibar, Misticismo, Jogatina, Nobreza, Guerra,
+  Cavalgar ou o título). Os dois PDFs de teste de Tormenta que caíam no genérico agora caem aqui.
+
+- **Barras de recurso (§3.4)** — PV, PE, Sanidade (ou o que o sistema tiver) sempre à vista na tela
+  de rolagem, no HUD sobre a cena (ver §3.6), com "−" e "+" ao lado de cada uma: clique tira ou soma 1,
+  Shift+clique ou segurar o botão anda de 5 em 5, e clicar no número abre um campo que aceita
+  conta (`-7`), valor exato (`12`) ou o par inteiro (`12/40`). A cor muda de bloco com o estado:
+  verde, oliva abaixo da metade, bordô abaixo de um quarto — as três da paleta do Windows — ou uma
+  cor fixa escolhida por barra. Cada clique GRAVA na hora no `notes.json` do personagem, então
+  trocar de ficha e voltar, ou fechar o app no meio do combate, não perde o PV.
+
+- **As barras no modo compacto também**: uma linha fina por barra entre o dado e os presets, e a
+  janelinha CRESCE 19px por barra (medido numa janela oculta com zero, uma e três barras — o painel
+  do dado fica com os mesmos 101px em todos os casos; `scripts/medirBarrasCompactas.mjs`).
+
+- **Editor de barras** (o lápis no cabeçalho do HUD): nome, atual, máximo, cor, acrescentar e
+  remover — até doze por personagem. Subir de nível é mexer no máximo ali, sem reimportar. Sem
+  nenhuma barra, o HUD mostra a dica e o lápis é o caminho pra criar a primeira.
+
+- **A importação de ficha PROPÕE as barras**: os pares "PV atual / PV máximo" que os leitores já
+  traziam como campos soltos (Ordem, D&D, Pathfinder), o "12/40" num campo só (Oblívio, a Carga de
+  Ordem) e o "Current HP / Max HP" em inglês viram barras na tela de conferência, cada uma com a
+  própria caixa. Ficha com só o máximo preenchido (a do Matias) vira barra CHEIA, marcada como
+  "atual em branco". Reimportar funde pelo nome: o PV com máximo novo é a MESMA barra, com a cor
+  que a pessoa escolheu; barra criada à mão fica.
+
+- **Descansar (§3.8)** — um botão na legenda das barras. Cada personagem tem os seus TIPOS de
+  descanso (D&D: longo devolve tudo, curto vem vazio pra pessoa preencher; Ordem: descanso
+  devolve tudo, intervalo só o PE; sistema desconhecido: um descanso que devolve tudo — a ficha
+  importada já nasce com eles), e cada tipo diz, barra por barra: volta ao máximo, soma N, ou
+  nada. O clique NUNCA é silencioso: abre a confirmação com o delta ("PV 12 → 45, PE 4 → 12"),
+  com o tipo escolhível quando há mais de um, e um "Editar tipos…" ali mesmo. Confirmado, as
+  barras mudam, gravam, e o histórico da sessão ganha a linha "— Descanso longo — PV 12→45" —
+  o histórico passou a aceitar EVENTOS além de rolagens (`ItemDoHistorico`), em vez de fingir
+  que um descanso é uma rolagem de total zero. Sem tipo configurado, o botão oferece um
+  descanso completo sem gravar nada. Nada de timer, nada automático.
+
+- **HUD do personagem sobre a cena (§3.6)** — um cartão de jogo flutuando num canto da cena 3D:
+  retrato, nome, as MESMAS barras de recurso (com os mesmos "−"/"+"), as condições como chips
+  que ligam e desligam com um clique ("Machucado", "Enlouquecendo" — sugeridas na importação de
+  Ordem; qualquer outra pelo "+"), e o Descansar. Arrasta-se pelo cabeçalho e ENCAIXA no canto
+  mais perto ao soltar; encolhe pra "mini" (retrato e barras finas, sem rótulo); esconde num
+  clique e volta pelo retrato miúdo que fica no canto. Canto, mini e escondido são do personagem
+  e gravam na hora. É DOM por cima do canvas — texto nítido, custo zero por quadro, o relevo do
+  98 — e não existe no modo compacto, que já tem as barras finas.
+
+### Corrigido
+
+- **O HUD só explica o lápis, e nenhum texto do app usa travessão** — pedido dele: "ajeita esse
+  HUD do rolador, apenas explique o que é o lápis, não usa nenhum travessão digitando no app". O
+  HUD sem barras dizia "Nenhuma barra ainda — o lápis aí em cima cria PV, PE, Sanidade... (ou
+  importe uma ficha)"; agora diz só o que o lápis faz ("O lápis ali em cima cria as barras de PV,
+  PE, Sanidade e o que mais o seu sistema usar"), e o próprio lápis explica no `title`. E os 75
+  textos da interface que usavam "—" pra emendar frase e explicação (avisos, dicas, mensagens de
+  erro, a linha do descanso no histórico, que virou "[ Descanso ]") trocaram por dois pontos, ponto
+  ou vírgula; as mensagens de erro do processo principal também. `traducoes.test.ts` passa a
+  recusar travessão em qualquer texto dos dois idiomas.
+
 ## [1.1.3] — 2026-08-28
 
 A importação de ficha, de novo: o que o leitor de Oblívio já fazia passa a valer pra todas as

@@ -90,9 +90,10 @@ export class ProfilesRepository {
     const limpo = normalizeProfiles(next)
     const atual = this.state?.profiles.length ?? 0
     /**
-     * O teto do DISCO (`TETO_DE_PERSONAGENS_NO_DISCO`, quinze), e não o de criação (`MAX_PROFILES`,
-     * três neste beta): quem testou o beta.2 pode ter mais de três, e a lista dele precisa continuar
-     * gravável: renomear, trocar de ativo, apagar. O três é cobrado onde personagem NASCE
+     * O teto do DISCO (`TETO_DE_PERSONAGENS_NO_DISCO`, quinze). Hoje o teto de criação
+     * (`MAX_PROFILES`) é o mesmo número — o limite de três do beta caiu em 30/08/2026 e virou só
+     * aviso (`AVISO_DE_PERSONAGENS`) —, mas os dois continuam separados: este é a rede de segurança
+     * do arquivo, o outro é regra de criação, cobrada onde personagem NASCE
      * (`ProfilesContext.create` e o canal de importação).
      */
     if (limpo.profiles.length > TETO_DE_PERSONAGENS_NO_DISCO && limpo.profiles.length > atual) {

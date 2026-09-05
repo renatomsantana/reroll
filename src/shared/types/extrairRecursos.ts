@@ -1,4 +1,4 @@
-import { MAXIMO_DE_RECURSOS, TAMANHO_MAXIMO_DO_NOME_DO_RECURSO, TETO_DO_VALOR_DE_RECURSO, prenderAtual } from './recursoVital'
+import { MAXIMO_DE_RECURSOS, TAMANHO_MAXIMO_DO_NOME_DO_RECURSO, TETO_DO_VALOR_DE_RECURSO, prenderAtual, recursoSobePorPadrao } from './recursoVital'
 import type { SheetImportField } from './sheetImport'
 
 /**
@@ -131,10 +131,14 @@ export function extrairRecursos(campos: SheetImportField[]): RecursoExtraido[] {
     if (par.atual === null && par.maximo === null) continue
     const maximo = par.maximo ?? par.atual ?? 0
     const atualEmBranco = par.atual === null
+    const nome = par.nome.slice(0, TAMANHO_MAXIMO_DO_NOME_DO_RECURSO)
+    // A barra que SOBE (estresse, dano) começa VAZIA quando a ficha só diz o limite: "Limite de
+    // Estresse: 6" é um teto, não um saldo. Cheia seria o personagem chegando morto.
+    const emBranco = recursoSobePorPadrao(nome) ? 0 : maximo
     recursos.push({
-      nome: par.nome.slice(0, TAMANHO_MAXIMO_DO_NOME_DO_RECURSO),
+      nome,
       maximo,
-      atual: prenderAtual(par.atual ?? maximo, maximo),
+      atual: prenderAtual(par.atual ?? emBranco, maximo),
       atualEmBranco
     })
   }

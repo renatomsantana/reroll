@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import {
+  corDoPreenchimento,
+  corDoRecurso,
   estadoDoRecurso,
   lerEntradaDeRecurso,
   prenderAtual,
@@ -119,7 +121,12 @@ function BarraDeRecurso({ recurso, onChange }: BarraDeRecursoProps) {
   return (
     <div
       className={`barra-recurso barra-${estado} barra-compacta ${recurso.cor ? 'barra-cor-fixa' : ''}`}
-      style={recurso.cor ? ({ '--recurso-cor': recurso.cor } as React.CSSProperties) : undefined}
+      /*
+        `--recurso-cor` é a cor DA BARRA (escolhida ou pelo nome): o que o seletor mostra e a cor
+        de "vida cheia". `--recurso-preenchido` é a cor de AGORA: amarela nos 40%, vermelha nos
+        15%, ou o degrau do amarelo ao vermelho numa barra que sobe — ver `corDoPreenchimento`.
+      */
+      style={{ '--recurso-cor': corDoRecurso(recurso), '--recurso-preenchido': corDoPreenchimento(recurso) } as React.CSSProperties}
     >
       <span className="barra-nome" title={recurso.nome}>
         {recurso.nome}

@@ -180,7 +180,10 @@ describe('o personagem inteiro num arquivo', () => {
     expect((await presets.getAll()).map((p) => p.name)).toEqual(['Faca', 'Ritual'])
   })
 
-  it('no teto: nome novo é recusado sem tocar em nada; nome que existe ainda atualiza', async () => {
+  // Timeout próprio: encher até o teto são QUINZE importações de verdade no disco (o teto de
+  // criação virou o do disco quando o limite de três do beta caiu, 30/08/2026), e os 5s padrão
+  // já não davam nem com a máquina folgada.
+  it('no teto: nome novo é recusado sem tocar em nada; nome que existe ainda atualiza', { timeout: 30_000 }, async () => {
     const importar = handlers.get(IpcChannels.pacoteImportar)!
     // Enche até o teto, com nomes diferentes.
     let n = 0
@@ -206,6 +209,11 @@ describe('o personagem inteiro num arquivo', () => {
     const qualquer = join(userData, 'qualquer.html')
     await fs.writeFile(qualquer, '<html><body>uma página qualquer</body></html>', 'utf-8')
     await expect(lerPacoteDoArquivo(qualquer)).rejects.toThrow(/não é um personagem exportado/)
+
+    // A ficha em PDF no botão errado: a mensagem diz qual é o botão certo (pedido dele).
+    const pdf = join(userData, 'ficha.pdf')
+    await fs.writeFile(pdf, '%PDF-1.4\n1 0 obj << >> endobj', 'latin1')
+    await expect(lerPacoteDoArquivo(pdf)).rejects.toThrow(/Importar ficha \(PDF\)/)
 
     const gordo = join(userData, 'gordo.html')
     await fs.writeFile(gordo, '')

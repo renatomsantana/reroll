@@ -121,6 +121,22 @@ function ehRotulo(texto: PdfText): boolean {
 }
 
 /**
+ * O nome do campo com os escapes de nome de PDF DECODIFICADOS: `Pontos de Vida m#C3#A1ximos` é
+ * "Pontos de Vida máximos". O formato PDF escreve byte não-ASCII de um nome como `#XX`, e o pdf.js
+ * entrega esse nome cru; medido na ficha editável de Tormenta20 (a do Milo), onde "máximos" e
+ * "crítico" chegavam assim e viravam rótulo ilegível na Ficha. Nome sem escape passa intacto, e um
+ * escape torto (sequência que não é UTF-8) também: melhor o nome cru que perder o campo.
+ */
+export function nomeDeCampoDecodificado(name: string): string {
+  if (!/#[0-9A-Fa-f]{2}/.test(name)) return name
+  try {
+    return decodeURIComponent(name.replace(/%/g, '%25').replace(/#([0-9A-Fa-f]{2})/g, '%$1'))
+  } catch {
+    return name
+  }
+}
+
+/**
  * Rótulo apresentável a partir do NOME do campo, pra quando não houver texto impresso por perto.
  *
  * Devolve `null` pro nome que não significa nada — `19`, `1_2`, `undefined` —, porque um campo
@@ -128,7 +144,7 @@ function ehRotulo(texto: PdfText): boolean {
  * usuário desconfiar do resto da leitura.
  */
 export function labelFromFieldName(name: string): string | null {
-  const limpo = name.trim()
+  const limpo = nomeDeCampoDecodificado(name).trim()
   if (!limpo) return null
   if (limpo === 'undefined') return null
   // Só dígitos, ou dígitos com sufixo de repetição do exportador (`1_2`, `17_3`).

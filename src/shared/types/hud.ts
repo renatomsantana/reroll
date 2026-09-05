@@ -1,3 +1,5 @@
+import { corPadraoDaCondicao, ehCorHex } from './cor'
+
 /**
  * O HUD DO PERSONAGEM (spec §3.6): o cartão flutuante sobre a cena 3D — retrato, nome, as barras
  * de recurso e as condições —, arrastável entre os quatro cantos.
@@ -15,8 +17,12 @@ export interface EstadoDoHud {
   mini: boolean
 }
 
-/** Embaixo à direita, longe do seletor de câmera (que fica em cima) e do popup do total. */
-export const HUD_PADRAO: EstadoDoHud = { canto: 'se', visivel: true, mini: false }
+/**
+ * Em cima à ESQUERDA — pedido dele ("deixa o hud na esquerda superior"): nasceu embaixo à direita,
+ * longe do seletor de câmera e do popup do total, e ele arrastou todos os personagens pro canto
+ * oposto. O canto continua sendo do personagem: quem arrastar, fica onde soltou.
+ */
+export const HUD_PADRAO: EstadoDoHud = { canto: 'nw', visivel: true, mini: false }
 
 const CANTOS: Canto[] = ['nw', 'ne', 'sw', 'se']
 
@@ -39,13 +45,26 @@ export interface Condicao {
   id: string
   nome: string
   ativa: boolean
+  /**
+   * A cor do chip, `#rrggbb`, escolhida pela pessoa — pedido dele (02/09/2026): "Caído, a pessoa
+   * decide a cor também". AUSENTE é o normal, e aí a cor sai do NOME (`corPadraoDaCondicao`):
+   * Machucado bordô, Enlouquecendo roxo, Caído oliva. Ver `corDaCondicao`.
+   */
+  cor?: string
 }
 
 export const MAXIMO_DE_CONDICOES = 20
 export const TAMANHO_MAXIMO_DO_NOME_DA_CONDICAO = 30
 
-export function criarCondicao(nome: string, ativa = false): Condicao {
-  return { id: crypto.randomUUID(), nome: nome.trim().slice(0, TAMANHO_MAXIMO_DO_NOME_DA_CONDICAO), ativa }
+export function criarCondicao(nome: string, ativa = false, cor?: string): Condicao {
+  const condicao: Condicao = { id: crypto.randomUUID(), nome: nome.trim().slice(0, TAMANHO_MAXIMO_DO_NOME_DA_CONDICAO), ativa }
+  if (ehCorHex(cor)) condicao.cor = cor.toLowerCase()
+  return condicao
+}
+
+/** A cor com que o chip aparece: a escolhida, ou a que o nome sugere. */
+export function corDaCondicao(condicao: Pick<Condicao, 'nome' | 'cor'>): string {
+  return condicao.cor ?? corPadraoDaCondicao(condicao.nome)
 }
 
 export function normalizarCondicoes(raw: unknown): Condicao[] {
@@ -60,7 +79,10 @@ export function normalizarCondicoes(raw: unknown): Condicao[] {
     if (!nome) continue
     const id = typeof entrada.id === 'string' && entrada.id.trim() && !usados.has(entrada.id) ? entrada.id : crypto.randomUUID()
     usados.add(id)
-    limpas.push({ id, nome, ativa: entrada.ativa === true })
+    const condicao: Condicao = { id, nome, ativa: entrada.ativa === true }
+    // Cor fora do formato: ausente — o chip volta pra cor do nome, que é o padrão.
+    if (ehCorHex(entrada.cor)) condicao.cor = entrada.cor.toLowerCase()
+    limpas.push(condicao)
   }
   return limpas
 }

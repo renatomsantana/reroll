@@ -256,3 +256,22 @@ export function normalizeNotes(raw: unknown): NotesData {
   const historico = normalizarHistorico(data.historico)
   return { ...data, characterName, pages, currentPage, sections, recursos, critico, descansos, hud, condicoes, historico }
 }
+
+/**
+ * A ficha está VAZIA — nenhuma seção importada e nenhuma letra em bloco nenhum. É o estado do
+ * personagem recém-criado: a aba Ficha mostra o convite de importar em vez dos blocos, e a
+ * importação sem janela preenche ESTE personagem em vez de criar outro (ver `escolherDestino`).
+ * O diário, as barras e o histórico não contam: são o que aconteceu, não o que o personagem é.
+ */
+export function fichaEstaVazia(
+  notes: Pick<NotesData, 'sections' | 'attributes' | 'abilities' | 'inventory' | 'appearance' | 'backstory'>
+): boolean {
+  return (
+    notes.sections.length === 0 &&
+    !notes.attributes.trim() &&
+    !notes.abilities.trim() &&
+    !notes.inventory.trim() &&
+    !notes.appearance.trim() &&
+    !notes.backstory.trim()
+  )
+}

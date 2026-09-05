@@ -10,6 +10,7 @@ import { FontSelect, type FontSelectValue } from '../chrome/FontSelect'
 import { ProfileBadge } from '../common/ProfileBadge'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
+import { CampoDeCaderno } from './CampoDeCaderno'
 import './NotesTab.css'
 
 /**
@@ -261,7 +262,8 @@ export function NotesTab() {
               ✕
             </Button>
           </div>
-          <textarea
+          {/* Clicar numa pauta vazia leva o cursor pra ela: ver `CampoDeCaderno`. */}
+          <CampoDeCaderno
             className="notes-textarea"
             value={page.text}
             /*
@@ -271,7 +273,7 @@ export function NotesTab() {
              * só não cresce mais.
              */
             maxLength={TAMANHO_MAXIMO_DA_ANOTACAO}
-            onChange={(e) => updatePage({ text: textoDeAnotacaoLimitado(e.target.value) })}
+            onChangeText={(texto) => updatePage({ text: textoDeAnotacaoLimitado(texto) })}
             style={textStyle}
           />
           {/* O contador diz onde se está ANTES de o campo parar de aceitar — cheio, avisa em cor. */}

@@ -75,12 +75,21 @@ const INSTRUCAO = /^(escolha|selecione|digite|preencha|insira|choose|select|ente
  * enquanto o genérico, que passava por aqui, descartava o mesmo valor. Duas réguas para a mesma
  * pergunta é como um importador começa a se contradizer na própria tela.
  *
- * Os espaços internos são colapsados: campo de PDF guarda alinhamento visual junto do conteúdo, e a
- * ficha real devolveu "5         1" num campo de PV.
+ * Os espaços internos de cada LINHA são colapsados: campo de PDF guarda alinhamento visual junto do
+ * conteúdo, e a ficha real devolveu "5         1" num campo de PV. A QUEBRA DE LINHA fica: a ficha
+ * de Tormenta20 do Milo traz as habilidades uma por linha ("Arremessador: …\nSorte Salvadora: …")
+ * e a primeira versão, que trocava todo espaço em branco por um espaço só, entregava o bloco
+ * inteiro numa linha corrida, ilegível na Ficha. Linha vazia repetida vira uma só.
  */
 export function valorDeFicha(bruto: string | undefined, tipo?: string): string | null {
   if (!bruto) return null
-  const valor = bruto.trim().replace(/\s+/g, ' ')
+  const valor = bruto
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((linha) => linha.replace(/[^\S\n]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
   if (VAZIO.has(valor.toLowerCase())) return null
   if (INSTRUCAO.test(valor)) return null
   /**
@@ -110,11 +119,15 @@ export const genericReader: SheetReader = {
  * que é exatamente a parte que não muda de sistema pra sistema.
  */
 export function extrairGenerico(
-  sheet: PdfSheet,
+  original: PdfSheet,
   readerId: string,
   readerLabel: string,
   confidence: number
 ): SheetImport {
+  /** Campo OCULTO não é ficha de ninguém pra este leitor (ver `PdfField.oculto`). */
+  const sheet: PdfSheet = original.fields.some((campo) => campo.oculto)
+    ? { ...original, fields: original.fields.filter((campo) => !campo.oculto) }
+    : original
   const warnings: SheetWarningId[] = []
   const fields: SheetImportField[] = []
   const presets: SheetImportPreset[] = []

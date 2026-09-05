@@ -1,4 +1,4 @@
-import { randomInRange } from '../utils/random'
+import { randomInRange, randomUnit } from '../utils/random'
 
 /**
  * Fração do espaçamento entre slots que cada dado pode ser deslocado aleatoriamente do centro
@@ -42,7 +42,7 @@ export function computeSpawnSlots(count: number, safeHalfExtent: number): { x: n
     const angle = randomInRange([0, Math.PI * 2])
     // `sqrt` da fração sorteada = distribuição uniforme por ÁREA do disco; sem ele os alvos se
     // concentrariam perto do centro, que é justamente o vício que este espalhamento evita.
-    const distance = radius * Math.sqrt(Math.random())
+    const distance = radius * Math.sqrt(randomUnit())
     return [{ x: Math.cos(angle) * distance, z: Math.sin(angle) * distance }]
   }
 

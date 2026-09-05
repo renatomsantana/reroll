@@ -140,6 +140,8 @@ export interface TranslationDict {
     conditionRemove: string
     conditionAdd: string
     conditionPlaceholder: string
+    /** O quadradinho de cor do chip, que abre o seletor: `{name}` é a condição. */
+    conditionColor: string
   }
   /** O DESCANSO (spec §3.8): o botão, a confirmação com o delta, e o editor dos tipos. */
   rest: {
@@ -179,6 +181,9 @@ export interface TranslationDict {
     max: string
     color: string
     colorAuto: string
+    /** A barra que SOBE (estresse, dano por região): a coluna do editor e a dica dela. */
+    rises: string
+    risesHint: string
     remove: string
     save: string
     cancel: string
@@ -398,9 +403,11 @@ export interface TranslationDict {
     profileNew: string
     /** Explica por que "Novo personagem" está travado — ver `MAX_PROFILES`. */
     profileLimit: string
-    /** Botão e estado de espera da importação de ficha em PDF (`SheetImportModal`). */
+    /** Botão e estado de espera da importação de ficha em PDF. */
     sheetImport: string
     sheetImportReading: string
+    /** A dica do botão de importar APAGADO no teto de personagens (pedido dele). */
+    sheetImportLimit: string
     /** A regra de CRÍTICO do personagem (spec §3.7): qual dado e em que direção. `{die}` é "d20". */
     critRule: string
     critRuleHigh: string
@@ -442,64 +449,43 @@ export interface TranslationDict {
     loadError: string
   }
   /**
-   * A IMPORTAÇÃO DE FICHA — a janela de conferência, os erros do caminho e os avisos dos leitores.
+   * A IMPORTAÇÃO DE FICHA — a janela de confirmação, os erros do caminho e os avisos dos leitores.
    *
-   * Estava tudo escrito em português dentro dos componentes e dos leitores, o que deixava metade do
-   * app sem tradução: quem usa a interface em inglês abria a janela de conferência e encontrava um
-   * parágrafo em português explicando o que não deu pra ler — justamente a mensagem que mais precisa
-   * ser entendida.
+   * A janela deixou de ser conferência campo a campo (pedido do usuário, 30/08/2026: "apenas aperte
+   * o PDF e diga ok importaremos"): agora ela resume o que foi lido, importa tudo, e a revisão é na
+   * aba Ficha, onde tudo é editável.
    *
    * `warnings` é `Record<SheetWarningId, string>` de propósito: um aviso novo sem tradução não
    * compila. Ver `shared/types/sheetWarning.ts`.
    */
   sheetImport: {
-    title: string
     /**
-     * O aviso de que a importação de ficha está EM TESTE — ela volta no 1.1.0 marcada como beta.
-     * Fica na tela de conferência porque é ali que a pessoa decide confiar no que foi lido.
+     * O que a Ficha diz LOGO DEPOIS de importar (sem janela desde 02/09/2026): o sistema
+     * reconhecido, ou não; quanto entrou; e que está tudo editável ali.
      */
-    betaNotice: string
     recognized: string
     unrecognized: string
-    character: string
-    system: string
-    systemPlaceholder: string
-    fieldsTitle: string
-    fieldsEmpty: string
-    presetsTitle: string
-    presetsEmpty: string
-    /** As BARRAS que a ficha propõe (ver `extrairRecursos.ts`), com o aviso de "atual em branco". */
-    resourcesTitle: string
-    resourcesEmpty: string
-    resourceBlankCurrent: string
-    /** O RETRATO tirado do PDF (spec §3.6): manter, trocar por um arquivo, ou tirar. */
-    portraitEmpty: string
-    portraitChoose: string
-    portraitReplace: string
-    portraitRemove: string
-    portraitFromPdf: string
-    /** A página do PDF ao lado dos campos (spec da importação §9). */
-    pageTitle: string
-    pageOf: string
-    pagePrev: string
-    pageNext: string
-    /** "(3 de 12)" — quantos itens seguem marcados. */
-    count: string
-    rawTextTitle: string
-    rawTextHint: string
-    cancel: string
-    confirm: string
-    confirming: string
-    /** O corte por seção (`MAXIMO_DE_CAMPOS_POR_SECAO`), dito na conferência. */
+    /** `{fields}` campos e `{presets}` rolagens, e a lembrança de que tudo é editável. */
+    done: string
+    /** O "tem certeza?" antes de escolher o PDF: importar sempre cria um personagem novo. */
+    confirmNew: string
+    dismiss: string
+    /** PDF sem nada que dê pra importar: nenhum personagem nasce. */
+    nothingRead: string
+    /** No teto (`MAX_PROFILES`: três nos testadores), a importação que criaria um novo é recusada. */
+    atLimit: string
+    /** O corte por seção (`MAXIMO_DE_CAMPOS_POR_SECAO`), dito depois de importar. */
     sectionTrimmed: string
-    /** Onde a ficha lida vai parar: um personagem novo ou o que já está aberto. */
-    destinationLabel: string
-    destinationNew: string
-    destinationUpdate: string
-    destinationUpdateHint: string
-    update: string
-    kinds: { test: string; damage: string; other: string }
-    errors: { picker: string; tooLarge: string; unreadable: string; parse: string; save: string }
+    errors: {
+      picker: string
+      tooLarge: string
+      unreadable: string
+      parse: string
+      save: string
+      /** O arquivo escolhido não é PDF, e o caso mais comum: é o personagem exportado pelo Reroll. */
+      notPdf: string
+      rerollPackage: string
+    }
     warnings: Record<SheetWarningId, string>
   }
   errorBoundary: { title: string; message: string; reload: string }
@@ -632,7 +618,8 @@ export const translations: Record<Language, TranslationDict> = {
       conditionOff: '{name}: desligada; clique pra ligar',
       conditionRemove: 'Remover a condição {name}',
       conditionAdd: 'Adicionar condição',
-      conditionPlaceholder: 'Machucado, Caído...'
+      conditionPlaceholder: 'Machucado, Caído...',
+      conditionColor: 'Cor da condição {name}'
     },
     rest: {
       button: 'Descansar',
@@ -671,7 +658,9 @@ export const translations: Record<Language, TranslationDict> = {
       current: 'Atual',
       max: 'Máximo',
       color: 'Cor',
-      colorAuto: 'Cor automática (muda com o estado)',
+      colorAuto: 'Voltar à cor padrão do nome (PV bordô, PE azul, Sanidade roxo)',
+      rises: 'Sobe',
+      risesHint: 'Começa vazia e enche: estresse, dano por região, fadiga. Vai do amarelo ao vermelho conforme sobe.',
       remove: 'Remover barra {name}',
       save: 'Salvar',
       cancel: 'Cancelar',
@@ -848,9 +837,10 @@ export const translations: Record<Language, TranslationDict> = {
       profilePhotoError: 'Não deu pra usar essa imagem. Tente outra, menor que 12 MB.',
       profileNew: 'Novo personagem',
       profileLimit:
-        'Você chegou no limite de {max} personagens. Apague um que não usa mais para criar outro: a ficha dele vai pra pasta de backup.',
+        'Máximo de personagens atingido: {max}. Apague um que não usa mais para criar outro: a ficha dele vai pra pasta de backup.',
       sheetImport: 'Importar ficha (PDF)',
       sheetImportReading: 'Lendo PDF...',
+      sheetImportLimit: 'Limite alcançado: apenas {max} personagens!',
       critRule: 'Crítico',
       critRuleHigh: '{die}: máximo é crítico, 1 é falha',
       critRuleLow: '{die}: 1 é crítico, máximo é falha',
@@ -890,44 +880,14 @@ export const translations: Record<Language, TranslationDict> = {
       loadError: 'Não consegui ler a ficha deste personagem. Ela está bloqueada pra edição até a leitura funcionar: assim nada é gravado por cima do que está no arquivo.'
     },
     sheetImport: {
-      title: 'Conferir ficha importada',
       recognized: 'Reconhecemos como ficha de',
-      betaNotice:
-        'A importação de ficha está em teste. Ela lê bem as fichas dos sistemas que conhece e pode errar nas outras: confira os campos abaixo antes de confirmar.',
-      unrecognized: 'Sistema não reconhecido',
-      character: 'Personagem',
-      system: 'Sistema',
-      systemPlaceholder: 'Ordem Paranormal, D&D 5e, Oblivio...',
-      fieldsTitle: 'Anotações',
-      fieldsEmpty: 'Nenhum campo preenchido foi encontrado.',
-      presetsTitle: 'Presets',
-      presetsEmpty: 'Nenhuma rolagem foi encontrada nesta ficha.',
-      resourcesTitle: 'Barras de recurso',
-      resourcesEmpty: 'Nenhum par atual/máximo preenchido: dá pra criar as barras depois, na tela de rolagem.',
-      resourceBlankCurrent: 'atual em branco na ficha: a barra começa cheia',
-      portraitEmpty: 'sem retrato',
-      portraitChoose: 'Escolher foto…',
-      portraitReplace: 'Trocar…',
-      portraitRemove: 'Tirar',
-      portraitFromPdf: 'retrato tirado do PDF',
-      pageTitle: 'Página do PDF',
-      pageOf: 'Página {n} de {total}',
-      pagePrev: 'Página anterior',
-      pageNext: 'Próxima página',
-      count: '({selected} de {total})',
-      rawTextTitle: 'Texto da ficha',
-      rawTextHint: '(vai para o bloco Backstory)',
-      cancel: 'Cancelar',
-      confirm: 'Criar personagem',
-      confirming: 'Importando...',
-      sectionTrimmed: 'Só os primeiros {max} campos de cada seção entram na ficha: {n} ficaram de fora.',
-      destinationLabel: 'Importar para',
-      destinationNew: 'Um personagem novo',
-      destinationUpdate: 'Atualizar "{name}"',
-      destinationUpdateHint:
-        'As seções da ficha são substituídas pelas do PDF. O diário, as anotações e os presets que você já tinha ficam.',
-      update: 'Atualizar personagem',
-      kinds: { test: 'teste', damage: 'dano', other: 'rolagem' },
+      unrecognized: 'Sistema não reconhecido: importamos o que deu pra ler.',
+      done: '{fields} campos e {presets} rolagens importados. Tudo fica editável aqui embaixo, a qualquer momento.',
+      confirmNew: 'Importar uma ficha cria um personagem novo. Os que já existem não mudam. Continuar?',
+      dismiss: 'Entendi',
+      nothingRead: 'Não achei nada pra importar neste PDF, então nenhum personagem foi criado.',
+      atLimit: 'Máximo de personagens atingido: {max}. Apague um antes de importar outra ficha.',
+      sectionTrimmed: 'Só os primeiros {max} campos de cada seção entraram na ficha: {n} ficaram de fora.',
       errors: {
         picker: 'Não consegui abrir o seletor de arquivos.',
         tooLarge:
@@ -935,23 +895,25 @@ export const translations: Record<Language, TranslationDict> = {
         unreadable:
           'Não consegui abrir esse arquivo. Confira se ele ainda está no lugar e se você tem permissão para lê-lo.',
         parse: 'Não consegui ler este PDF. Ele pode estar protegido por senha ou danificado.',
+        notPdf: 'Este arquivo não é um PDF. Aqui entra a ficha de personagem em PDF; pra trazer um personagem exportado pelo Reroll, use "Importar personagem Reroll".',
+        rerollPackage: 'Este arquivo é um personagem exportado pelo Reroll, não uma ficha em PDF. Use o botão "Importar personagem Reroll" pra trazer ele.',
         save: 'Li a ficha, mas não consegui gravar o personagem.'
       },
       warnings: {
         'pdf-sem-texto':
-          'Este PDF não tem texto que dê pra ler: ele parece ser uma imagem digitalizada ou uma arte exportada sem texto. Não dá pra importar nada dele automaticamente; uma ficha em PDF com campos preenchíveis, ou pelo menos com texto de verdade, funciona.',
+          'Este PDF não tem texto que dê pra ler: parece uma imagem digitalizada ou uma arte exportada sem texto. Uma ficha em PDF com campos preenchíveis, ou pelo menos com texto de verdade, funciona.',
         'sem-formulario':
-          'Esta ficha não tem campos preenchíveis: é um PDF de texto. O que dá pra ler são as linhas no formato "Rótulo: valor" e os valores que estão na mesma linha de um rótulo, então a leitura é um palpite baseado na diagramação: confira item por item antes de importar.',
+          'Esta ficha não tem campos preenchíveis: é um PDF de texto. Lemos as linhas no formato "Rótulo: valor" e os valores na mesma linha de um rótulo, então a leitura é um palpite pela diagramação: confira item por item aqui na Ficha.',
         'formulario-vazio':
-          'A ficha tem campos preenchíveis, mas todos estão em branco: parece ser o modelo vazio.',
+          'A ficha tem campos preenchíveis, mas todos estão em branco: parece ser o modelo vazio. Os campos entraram vazios, prontos pra preencher aqui.',
         'sem-nome-nem-rolagem':
-          'Não achei nome de personagem nem nenhuma rolagem nesta ficha. Os valores que aparecem abaixo podem ser só o preenchimento de fábrica do modelo em branco: confira antes de importar.',
+          'Não achei nome de personagem nem nenhuma rolagem nesta ficha. Os valores importados podem ser só o preenchimento de fábrica do modelo em branco: confira aqui na Ficha.',
         'arte-com-anotacao':
-          'Esta ficha é uma IMAGEM com o texto escrito por cima: os nomes dos campos fazem parte do desenho, então o app não tem como saber o que é cada valor. Trouxe tudo o que você escreveu, na ordem em que está na página, pra você organizar na ficha do personagem.',
+          'Esta ficha é uma IMAGEM com o texto escrito por cima: os nomes dos campos fazem parte do desenho, então o app não tem como saber o que é cada valor. Trouxemos tudo o que você escreveu, na ordem da página, pra você organizar aqui na Ficha.',
         'ordem-maior-dado':
           'Nos testes desta ficha vale o MAIOR dado, e não a soma: é a regra de Ordem Paranormal, e os presets de teste já foram criados assim. Se algum ataque seu usa um atributo ZERO, que rola dois e fica com o PIOR, troque para "menor" no editor do preset.',
         'dnd5e-modelo-em-branco':
-          'Não achei nome de personagem nem nenhum ataque nesta ficha: ela parece ser o modelo em branco. Confira o que veio abaixo antes de importar.',
+          'Não achei nome de personagem nem nenhum ataque nesta ficha: ela parece ser o modelo em branco. Confira o que veio aqui na Ficha.',
         'paginas-demais':
           'Este PDF tem mais de 100 páginas: é um livro, não uma ficha de personagem. Nada foi lido dele.'
       }
@@ -1088,7 +1050,8 @@ export const translations: Record<Language, TranslationDict> = {
       conditionOff: '{name}: off; click to turn on',
       conditionRemove: 'Remove the {name} condition',
       conditionAdd: 'Add condition',
-      conditionPlaceholder: 'Wounded, Prone...'
+      conditionPlaceholder: 'Wounded, Prone...',
+      conditionColor: 'Color of the {name} condition'
     },
     rest: {
       button: 'Rest',
@@ -1127,7 +1090,9 @@ export const translations: Record<Language, TranslationDict> = {
       current: 'Current',
       max: 'Max',
       color: 'Color',
-      colorAuto: 'Automatic color (changes with state)',
+      colorAuto: 'Back to the default color for the name (HP maroon, PE blue, Sanity purple)',
+      rises: 'Rises',
+      risesHint: 'Starts empty and fills up: stress, damage per body part, fatigue. Goes from yellow to red as it rises.',
       remove: 'Remove bar {name}',
       save: 'Save',
       cancel: 'Cancel',
@@ -1304,9 +1269,10 @@ export const translations: Record<Language, TranslationDict> = {
       profilePhotoError: 'That image could not be used. Try another one, under 12 MB.',
       profileNew: 'New character',
       profileLimit:
-        'You have reached the limit of {max} characters. Delete one you no longer use to create another: its sheet goes to the backup folder.',
+        'Maximum number of characters reached: {max}. Delete one you no longer use to create another: its sheet goes to the backup folder.',
       sheetImport: 'Import sheet (PDF)',
       sheetImportReading: 'Reading PDF...',
+      sheetImportLimit: 'Limit reached: only {max} characters!',
       critRule: 'Critical',
       critRuleHigh: '{die}: max is a critical, 1 is a fumble',
       critRuleLow: '{die}: 1 is a critical, max is a fumble',
@@ -1346,44 +1312,14 @@ export const translations: Record<Language, TranslationDict> = {
       loadError: 'Could not read this character sheet. Editing is locked until the read succeeds, so nothing overwrites what is in the file.'
     },
     sheetImport: {
-      title: 'Review imported sheet',
       recognized: 'Recognized as a sheet for',
-      betaNotice:
-        'Sheet import is in testing. It reads the systems it knows well and may get others wrong: check the fields below before confirming.',
-      unrecognized: 'System not recognized',
-      character: 'Character',
-      system: 'System',
-      systemPlaceholder: 'D&D 5e, Ordem Paranormal, Oblivio...',
-      fieldsTitle: 'Notes',
-      fieldsEmpty: 'No filled-in field was found.',
-      presetsTitle: 'Presets',
-      presetsEmpty: 'No roll was found in this sheet.',
-      resourcesTitle: 'Resource bars',
-      resourcesEmpty: 'No filled current/max pair: you can create the bars later, on the roll screen.',
-      resourceBlankCurrent: 'current value blank on the sheet: the bar starts full',
-      portraitEmpty: 'no portrait',
-      portraitChoose: 'Choose photo…',
-      portraitReplace: 'Replace…',
-      portraitRemove: 'Remove',
-      portraitFromPdf: 'portrait taken from the PDF',
-      pageTitle: 'PDF page',
-      pageOf: 'Page {n} of {total}',
-      pagePrev: 'Previous page',
-      pageNext: 'Next page',
-      count: '({selected} of {total})',
-      rawTextTitle: 'Sheet text',
-      rawTextHint: '(goes to the Backstory block)',
-      cancel: 'Cancel',
-      confirm: 'Create character',
-      confirming: 'Importing...',
-      sectionTrimmed: 'Only the first {max} fields of each section go into the sheet: {n} were left out.',
-      destinationLabel: 'Import into',
-      destinationNew: 'A new character',
-      destinationUpdate: 'Update "{name}"',
-      destinationUpdateHint:
-        'The sheet sections are replaced by the ones in the PDF. Your journal, notes and existing presets stay.',
-      update: 'Update character',
-      kinds: { test: 'check', damage: 'damage', other: 'roll' },
+      unrecognized: 'System not recognized: we imported what could be read.',
+      done: '{fields} fields and {presets} rolls imported. Everything stays editable down here, anytime.',
+      confirmNew: 'Importing a sheet creates a new character. Existing ones are not changed. Continue?',
+      dismiss: 'Got it',
+      nothingRead: 'Found nothing to import in this PDF, so no character was created.',
+      atLimit: 'Maximum number of characters reached: {max}. Delete one before importing another sheet.',
+      sectionTrimmed: 'Only the first {max} fields of each section went into the sheet: {n} were left out.',
       errors: {
         picker: 'Could not open the file picker.',
         tooLarge:
@@ -1391,23 +1327,25 @@ export const translations: Record<Language, TranslationDict> = {
         unreadable:
           'Could not open that file. Check that it is still there and that you have permission to read it.',
         parse: 'Could not read this PDF. It may be password protected or damaged.',
+        notPdf: 'This file is not a PDF. This button takes the character sheet as a PDF; to bring in a character exported by Reroll, use "Import Reroll character".',
+        rerollPackage: 'This file is a character exported by Reroll, not a PDF sheet. Use the "Import Reroll character" button to bring it in.',
         save: 'I read the sheet, but could not save the character.'
       },
       warnings: {
         'pdf-sem-texto':
-          'This PDF has no readable text: it looks like a scan, or artwork exported without text. Nothing can be imported from it automatically; a PDF sheet with fillable fields, or at least with real text, works.',
+          'This PDF has no readable text: it looks like a scanned image or artwork exported without text. A PDF sheet with fillable fields, or at least real text, works.',
         'sem-formulario':
-          'This sheet has no fillable fields: it is a text PDF. What can be read are lines shaped like "Label: value" and values sitting on the same line as a label, so the reading is a guess based on the layout: check item by item before importing.',
+          'This sheet has no fillable fields: it is a text PDF. We read lines in the "Label: value" format and values on the same line as a label, so the reading is a guess based on the layout: check it item by item here on the Sheet.',
         'formulario-vazio':
-          'The sheet has fillable fields, but they are all empty: it looks like the blank template.',
+          'The sheet has fillable fields, but they are all blank: it looks like the empty template. The fields came in empty, ready to fill in here.',
         'sem-nome-nem-rolagem':
-          'I found no character name and no roll in this sheet. The values below may be just the blank template defaults: check them before importing.',
+          'Found no character name and no rolls in this sheet. The imported values may just be the factory defaults of the blank template: check them here on the Sheet.',
         'arte-com-anotacao':
-          'This sheet is an IMAGE with the text typed over it: the field names are part of the drawing, so the app cannot tell what each value is. I brought everything you wrote, in the order it appears on the page, for you to organize in the character sheet.',
+          'This sheet is an IMAGE with text written over it: the field names are part of the drawing, so the app cannot tell what each value is. We brought in everything you wrote, in page order, for you to organize here on the Sheet.',
         'ordem-maior-dado':
-          'Checks on this sheet use the HIGHEST die, not the sum: that is the Ordem Paranormal rule, and the check presets were created that way. If one of your attacks uses a ZERO attribute, which rolls two and keeps the WORST, switch it to "lowest" in the preset editor.',
+          'Tests on this sheet keep the HIGHEST die instead of adding them: that is the Ordem Paranormal rule, and the test presets were created that way. If one of your attacks uses a ZERO attribute, which rolls two and keeps the WORST, switch it to "lowest" in the preset editor.',
         'dnd5e-modelo-em-branco':
-          'I found no character name and no attack in this sheet: it looks like the blank template. Check what came through before importing.',
+          'Found no character name and no attacks in this sheet: it looks like the blank template. Check what came in here on the Sheet.',
         'paginas-demais':
           'This PDF has more than 100 pages: it is a book, not a character sheet. Nothing was read from it.'
       }

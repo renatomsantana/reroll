@@ -7,6 +7,12 @@ import { oblivioReader } from './oblivio'
 import { dnd5eReader } from './dnd5e'
 import { pathfinder2eReader } from './pathfinder2e'
 import { assimilacaoReader } from './assimilacao'
+import { tormenta20Reader } from './tormenta20'
+import { breuReader } from './breu'
+import { tenebraReader } from './tenebra'
+import { infaernumReader } from './infaernum'
+import { shadowdarkReader } from './shadowdark'
+import { kidsOnBikesReader } from './kidsOnBikes'
 import type { SheetReader } from './types'
 
 /**
@@ -26,6 +32,12 @@ export const SHEET_READERS: SheetReader[] = [
   dnd5eReader,
   pathfinder2eReader,
   assimilacaoReader,
+  tormenta20Reader,
+  breuReader,
+  tenebraReader,
+  infaernumReader,
+  shadowdarkReader,
+  kidsOnBikesReader,
   genericReader
 ]
 

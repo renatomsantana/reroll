@@ -109,8 +109,10 @@ describe('a ponte web roda os handlers do main sobre o fs virtual', () => {
     // O nome ganha um contador na frente (dois arquivos de mesmo nome não podem se sobrescrever).
     expect(escolhido).toMatchObject({ ok: true, fileName: expect.stringMatching(/ficha\.pdf$/) })
 
+    // O motivo é o do main desde "arquivo errado diz o botão certo": sem a assinatura %PDF-, o
+    // arquivo é recusado como 'nao-e-pdf' (antes era 'ilegivel', e este teste ficou pra trás).
     proximoArquivo = { nome: 'video.pdf', bytes: new TextEncoder().encode('nada de pdf aqui') }
-    expect(await api.sheets.pickPdf()).toMatchObject({ ok: false, motivo: 'ilegivel' })
+    expect(await api.sheets.pickPdf()).toMatchObject({ ok: false, motivo: 'nao-e-pdf' })
 
     proximoArquivo = null
     expect(await api.sheets.pickPdf()).toEqual({ ok: false, motivo: 'cancelado' })

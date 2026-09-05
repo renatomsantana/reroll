@@ -17,7 +17,11 @@
  * qualquer caixa. Outro sistema que use explosão como regra central (Kids on Bikes, Savage Worlds)
  * entra aqui no dia em que for pedido: é acrescentar ao padrão, com o teste junto.
  */
-const SISTEMAS_COM_BOTAO = /d\s*&\s*d|dnd|dungeons/i
+/**
+ * Kids on Bikes entrou em 03/09/2026, quando a ficha dele ganhou leitor dedicado: ali a explosão
+ * não é opção, é a regra central (todo atributo é um dado que, no máximo, rola de novo e soma).
+ */
+const SISTEMAS_COM_BOTAO = /d\s*&\s*d|dnd|dungeons|kids\s*on\s*bikes/i
 
 export function botaoDeExplodeVisivel(system: string): boolean {
   return SISTEMAS_COM_BOTAO.test(system)

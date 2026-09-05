@@ -18,12 +18,12 @@
  * - `hud`: cheio, mini e escondido em cada canto, com nome longo, doze barras e vinte condições,
  *   na janela padrão e na mínima — o cartão tem que ficar DENTRO da cena; e o arrasto de verdade
  *   (`sendInputEvent`) de um canto ao oposto, gravado nas anotações.
- * - `fichas`: cada PDF de `Fichas RPG/` (fora os livros de regras) importado pela tela de
- *   conferência — leitor reconhecido, campos, presets, barras propostas, retrato — e confirmado;
+ * - `fichas`: cada PDF de `Fichas RPG/` (fora os livros de regras) importado SEM JANELA (desde
+ *   02/09/2026: escolher o PDF é o gesto inteiro) — a Ficha diz o leitor reconhecido e quanto leu;
  *   o que o `sheets:apply` recebeu é resumido, e a Ficha resultante é capturada.
  */
 import { app, BrowserWindow, ipcMain } from 'electron'
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import { randomUUID } from 'crypto'
 
@@ -32,7 +32,21 @@ const SAIDA = join(RAIZ, 'out', 'testar-no-app')
 mkdirSync(SAIDA, { recursive: true })
 const BLANK = join(SAIDA, 'blank.html')
 writeFileSync(BLANK, '<!DOCTYPE html><html><body></body></html>')
-const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'retrato', 'presets', 'pacote', 'perfis', 'hud', 'fichas', 'fabricados']
+const FASES = process.argv.slice(2).length ? process.argv.slice(2) : ['dados', 'dados3d', 'sons', 'foto', 'retrato', 'presets', 'pacote', 'perfis', 'hud', 'caderno', 'fichas', 'fabricados']
+
+/**
+ * O DIÁRIO DO PROCESSO, em arquivo: o stdout do Electron se perde no `app.exit` (ver a memória do
+ * harness), então uma exceção fora da cadeia das fases, um renderer que morreu ou uma saída sem
+ * resumo ficavam sem pista nenhuma. Tudo o que decide o código de saída passa por aqui.
+ */
+const DIARIO = join(SAIDA, 'processo.log')
+writeFileSync(DIARIO, `inicio ${new Date().toISOString()} fases=${FASES.join(',')}\n`)
+const anotar = (linha) => appendFileSync(DIARIO, `${new Date().toISOString()} ${linha}\n`)
+process.on('uncaughtException', (erro) => anotar(`uncaughtException: ${erro?.stack || erro}`))
+process.on('unhandledRejection', (erro) => anotar(`unhandledRejection: ${erro?.stack || erro}`))
+process.on('exit', (codigo) => anotar(`exit ${codigo} falhas=${falhas}`))
+app.on('render-process-gone', (_e, _wc, detalhes) => anotar(`render-process-gone: ${JSON.stringify(detalhes)}`))
+app.on('child-process-gone', (_e, detalhes) => anotar(`child-process-gone: ${JSON.stringify(detalhes)}`))
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms))
 let falhas = 0
@@ -147,7 +161,7 @@ const HANDLERS = {
   },
   'pacote:importar': () => {
     // O teto do main, quando a fase pede (o "Kieran" do pacote canónico não estaria na lista).
-    if (estado.recusarImportacao) throw new Error('Limite de 3 personagens atingido: o arquivo é de "Outro", que não está na lista. Apague um personagem antes de importar.')
+    if (estado.recusarImportacao) throw new Error('Limite de 15 personagens atingido: o arquivo é de "Outro", que não está na lista. Apague um personagem antes de importar.')
     // Mesmo nome = ATUALIZA o que existe (mantendo o id), como o main faz; senão cria.
     const existente = estado.profiles.profiles.find((p) => p.name.trim().toLowerCase() === 'kieran vance')
     const perfil = existente
@@ -426,6 +440,17 @@ async function criarPreset(nome) {
   await js(`Array.from(document.querySelectorAll('.modal-overlay button')).find((b) => b.textContent.trim() === 'Salvar')?.click()`)
   return esperarAte(`!document.querySelector('.modal-overlay') && Array.from(document.querySelectorAll('.preset-card-name')).some((n) => n.textContent === ${JSON.stringify(nome)})`, 4000)
 }
+/**
+ * O "tem certeza?" da importação de ficha (desde 02/09/2026 importar SEMPRE cria um personagem
+ * novo, e este diálogo é a única pergunta): clica em OK. Sem o diálogo em 3s, segue; o teste da
+ * frente diz se a importação aconteceu.
+ */
+async function confirmarImportacaoDeFicha() {
+  const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
+  if (!dialogo) return false
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  return esperarAte(`!document.querySelector('[role=alertdialog]')`, 3000)
+}
 async function apagarPreset(nome) {
   await js(`(() => { const card = Array.from(document.querySelectorAll('.preset-card')).find((c) => c.querySelector('.preset-card-name')?.textContent === ${JSON.stringify(nome)}); card?.querySelector('.preset-card-action-delete')?.click() })()`)
   const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
@@ -459,9 +484,9 @@ async function fasePresets() {
   await abrirApp({ displayMode: 'quick' })
   await aba('Ficha')
   await clicar('Importar ficha (PDF)')
-  await esperarAte(`!!document.querySelector('.sheet-import')`, 40000, 250)
-  await clicar('Criar personagem')
-  await esperarAte(`!document.querySelector('.sheet-import')`, 15000)
+  await confirmarImportacaoDeFicha()
+  // Sem janela nenhuma: o PDF é lido e gravado direto, e a Ficha diz o que importou.
+  await esperarAte(`!!document.querySelector('.sheet-import-feito')`, 60000, 250)
   await espera(500)
   await aba('Rolagem')
   const primeiro = await js(`document.querySelector('.preset-card-name')?.textContent`)
@@ -613,12 +638,23 @@ async function fasePerfis() {
   checar(seletor?.includes('Jr.'), `renomear na Ficha muda o seletor ("${seletor}")`)
   checar(estado.profiles.profiles.find((p) => p.id === 'p1')?.name === 'Matias Oliveira Jr.', 'e gravou na lista de perfis')
 
-  // 9. No teto: "Novo personagem" fica cinza; importar um nome NOVO é recusado com o aviso do limite.
-  const novoDesabilitado = await js(`Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Novo personagem')?.disabled`)
-  checar(novoDesabilitado === true, 'com 3 personagens, "Novo personagem" fica desabilitado')
+  // 9. A regra do dono (30/08/2026): na main `PERSONAGENS_LIBERADOS` está ligada, então com 3
+  // personagens o "Novo personagem" NÃO trava — cria o quarto. (O teto de 3 dos testadores só
+  // existe no branch `lancamento`, com a flag desligada; aqui se testa o lado liberado.)
+  await clicar('Novo personagem')
+  await espera(500)
+  checar(estado.profiles.profiles.length === 4, 'com a flag liberada, o quarto personagem é criado sem trava')
+  // Apaga o quarto (recém-criado e ativo) pra fase seguir com os três de sempre.
+  await js(`document.querySelector('[aria-label="Apagar personagem"]')?.click()`)
+  await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  await esperarAte(`!document.querySelector('[role=alertdialog]')`, 3000)
+  await espera(400)
+  checar(estado.profiles.profiles.length === 3, 'apagar o quarto devolve a lista aos 3')
+  // A recusa do CANAL (o teto do main) continua aparecendo no diálogo do app, seja qual for o teto.
   estado.recusarImportacao = true
   await clicar('Importar personagem Reroll')
-  const recusou = await esperarAte(`!!document.querySelector('[role=alertdialog]') && document.querySelector('[role=alertdialog]').textContent.includes('Limite de 3')`, 4000)
+  const recusou = await esperarAte(`!!document.querySelector('[role=alertdialog]') && document.querySelector('[role=alertdialog]').textContent.includes('Limite de')`, 4000)
   checar(recusou, 'importar um personagem novo no teto avisa o limite, no diálogo do app')
   await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
   estado.recusarImportacao = false
@@ -951,10 +987,15 @@ async function faseHudArrasto() {
   checar(canto === 'nw', `arrastar do SE pro NW gravou canto "${canto}" (eventos: ${eventos})`)
   await foto('hud-depois-do-arrasto')
   // Condição liga com clique e grava; o "−" do PV grava.
-  await clicar('Machucado — desligada; clique pra ligar').catch(() => {})
-  await js(`Array.from(document.querySelectorAll('.hud-condicao')).find((b) => b.textContent.includes('Caído'))?.click()`)
-  await espera(200)
-  const caido = estado.notas.get('p1').condicoes.find((c) => c.nome === 'Caído')
+  await js(`Array.from(document.querySelectorAll('.hud-condicao-nome')).find((b) => b.textContent.includes('Caído'))?.click()`)
+  // A gravação do ARRASTO (o canto novo) pode ainda estar no ar quando o clique acontece, e o
+  // `useNotes` grava uma de cada vez: espera a desta chegar em vez de olhar num instante fixo.
+  let caido
+  for (let tentativa = 0; tentativa < 15; tentativa++) {
+    caido = estado.notas.get('p1').condicoes.find((c) => c.nome === 'Caído')
+    if (caido?.ativa) break
+    await espera(200)
+  }
   checar(caido?.ativa === true, `clicar na condição "Caído" ligou e gravou (${caido?.ativa})`)
   // O PE (índice 1) começa em 7; o PV começa em 0 e não teria de onde tirar.
   await clicar('Tirar de PE')
@@ -978,10 +1019,82 @@ async function faseHudArrasto() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase CADERNO: clicar com o mouse numa linha vazia leva o cursor pra ela.                    */
+/* ------------------------------------------------------------------------------------------ */
+async function cliqueDoMouse(x, y) {
+  win.webContents.sendInputEvent({ type: 'mouseMove', x, y })
+  await espera(60)
+  win.webContents.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 })
+  await espera(60)
+  win.webContents.sendInputEvent({ type: 'mouseUp', x, y, button: 'left', clickCount: 1 })
+  await espera(300)
+}
+
+/** O estado do campo de texto depois do gesto: o que tem escrito, onde está o cursor, se tem foco. */
+const lerCampo = (seletor) =>
+  js(`(() => { const t = document.querySelector(${JSON.stringify(seletor)}); return { valor: t.value, cursor: t.selectionStart, foco: document.activeElement === t } })()`)
+
+/**
+ * Clica com o MOUSE na pauta `linha` (contando do zero) do campo, a 40px da borda esquerda, e
+ * digita "x". Devolve o campo depois. A pauta é medida pelo `line-height` computado, e o clique
+ * cai no meio dela (não na borda).
+ */
+async function clicarNaPautaEDigitar(seletor, linha) {
+  const alvo = await js(`(() => {
+    const t = document.querySelector(${JSON.stringify(seletor)})
+    t.scrollIntoView({ block: 'center' })
+    const b = t.getBoundingClientRect()
+    const s = getComputedStyle(t)
+    const pauta = parseFloat(s.lineHeight)
+    return { x: Math.round(b.left + 40), y: Math.round(b.top + t.clientTop + parseFloat(s.paddingTop) + ${linha} * pauta + pauta / 2), pauta }
+  })()`)
+  await cliqueDoMouse(alvo.x, alvo.y)
+  win.webContents.sendInputEvent({ type: 'char', keyCode: 'x' })
+  await espera(250)
+  return { ...(await lerCampo(seletor)), pauta: alvo.pauta }
+}
+
+async function faseCaderno() {
+  console.log('\n=== CADERNO (clicar numa pauta vazia) ===')
+  estado.profiles = { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: null, createdAt: 1 }], activeId: 'p1' }
+  estado.notas.set('p1', {
+    ...NOTAS_VAZIAS(),
+    pages: [{ id: 'd1', title: 'Sessão 1', text: 'primeira linha\nsegunda linha', createdAt: 1 }],
+    backstory: 'Nasceu em Cascavel.',
+    inventory: ''
+  })
+  await abrirApp()
+
+  // ANOTAÇÕES: duas linhas escritas; clique na sexta pauta (índice 5) e a tecla "x" tem que cair lá.
+  await aba('Anotações')
+  await esperarAte(`!!document.querySelector('.notes-textarea')`)
+  const caderno = await clicarNaPautaEDigitar('.notes-textarea', 5)
+  checar(caderno.valor === 'primeira linha\nsegunda linha\n\n\n\nx', `Anotações: clicar na 6ª pauta e digitar "x" escreveu na 6ª linha (${JSON.stringify(caderno.valor)}, pauta ${caderno.pauta}px)`)
+  checar(caderno.foco && caderno.cursor === caderno.valor.length, `Anotações: o cursor ficou depois do "x" (cursor ${caderno.cursor}, foco ${caderno.foco})`)
+  await foto('caderno-anotacoes')
+
+  // FICHA: a história tem uma linha; clique na quinta pauta (índice 4). E uma caixa VAZIA (inventário).
+  await aba('Ficha')
+  await esperarAte(`document.querySelectorAll('.sheet-textarea').length >= 2`)
+  const seletorDaHistoria = `.sheet-group-wide .sheet-textarea`
+  const historia = await clicarNaPautaEDigitar(seletorDaHistoria, 4)
+  checar(historia.valor === 'Nasceu em Cascavel.\n\n\n\nx', `Ficha (história): clicar na 5ª pauta e digitar "x" escreveu na 5ª linha (${JSON.stringify(historia.valor)}, pauta ${historia.pauta}px)`)
+  checar(historia.foco && historia.cursor === historia.valor.length, `Ficha (história): o cursor ficou depois do "x" (cursor ${historia.cursor}, foco ${historia.foco})`)
+  const seletorDoInventario = `.sheet-textarea[aria-label="Inventário"]`
+  const inventario = await clicarNaPautaEDigitar(seletorDoInventario, 2)
+  checar(inventario.valor === '\n\nx', `Ficha (inventário vazio): clicar na 3ª pauta e digitar "x" escreveu na 3ª linha (${JSON.stringify(inventario.valor)})`)
+  await foto('caderno-ficha')
+
+  // Clicar EM CIMA de texto que existe não acrescenta nada: o cursor vai pra onde o navegador pôs.
+  const emCima = await clicarNaPautaEDigitar(seletorDaHistoria, 0)
+  checar(emCima.valor.split('\n')[0].includes('x') && emCima.valor.split('\n').length === historia.valor.split('\n').length, `Ficha: clicar em cima da 1ª linha escreve nela, sem quebra nova (${JSON.stringify(emCima.valor)})`)
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase FICHAS.                                                                                */
 /* ------------------------------------------------------------------------------------------ */
 async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(core|remaster ficha|player core|gm core)).*\.pdf$/i, esperaRetrato = {}) {
-  console.log(`\n=== FICHAS (importação pela tela de conferência): ${pasta} ===`)
+  console.log(`\n=== FICHAS (importação sem janela): ${pasta} ===`)
   if (!existsSync(pasta)) {
     console.log(`sem a pasta ${pasta} — pulando`)
     return
@@ -996,41 +1109,34 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     await abrirApp({})
     await aba('Ficha')
     await clicar('Importar ficha (PDF)')
-    const abriu = await esperarAte(`!!document.querySelector('.sheet-import')`, 40000, 250)
-    if (!abriu) {
-      checar(false, `${nome}: a conferência não abriu em 40s`)
-      await foto(`ficha-${nome.replace(/[^a-z0-9]+/gi, '-')}-falhou`)
-      continue
-    }
+    await confirmarImportacaoDeFicha()
+    // Sem janela: lê, cria o personagem e grava sozinho; a Ficha mostra o aviso do que importou.
+    const importou = await esperarAte(`!!document.querySelector('.sheet-import-feito') || !!document.querySelector('.sheet-save-error')`, 60000, 250)
     const conf = await js(`(() => {
-      const leitor = (document.querySelector('.sheet-import-reader') || {}).textContent || ''
-      const titulos = Array.from(document.querySelectorAll('.sheet-import-section h3')).map((h) => h.textContent.replace(/\\s+/g, ' ').trim())
-      const barras = Array.from(document.querySelectorAll('.sheet-import-resources-list li')).map((li) => li.textContent.replace(/\\s+/g, ' ').trim())
-      const retrato = !!document.querySelector('img.sheet-import-portrait-img')
-      const avisos = document.querySelectorAll('.sheet-import-warnings li').length
-      const nome = (document.querySelector('.sheet-import-identity input') || {}).value || ''
-      const pagina = document.querySelector('.sheet-import-pagina-folha img')
-      const paginaOk = !!pagina && pagina.complete && pagina.naturalWidth >= 900 && pagina.getBoundingClientRect().width > 200
-      const contador = (document.querySelector('.sheet-import-pagina-nav span') || {}).textContent || ''
-      return { leitor: leitor.trim(), titulos, barras, retrato, avisos, nome, paginaOk, contador }
+      const feito = document.querySelector('.sheet-import-feito')
+      const leitor = ((feito && feito.querySelector('.sheet-import-feito-titulo')) || {}).textContent || ''
+      const resumo = ((feito && feito.querySelector('.sheet-import-feito-resumo')) || {}).textContent || ''
+      const avisos = feito ? feito.querySelectorAll('li').length : 0
+      const erro = (document.querySelector('.sheet-save-error') || {}).textContent || ''
+      return { leitor: leitor.trim(), resumo: resumo.trim(), avisos, erro: erro.trim() }
     })()`)
     const slug = nome.replace(/[^a-z0-9]+/gi, '-').replace(/-+$/, '')
-    await foto(`ficha-${slug}-conferencia`)
-    // A página do PDF ao lado dos campos (spec §9): desenhada, legível, com o contador certo.
-    checar(conf.paginaOk && /Página 1 de \d+/.test(conf.contador), `      ${nome}: a página do PDF aparece ao lado dos campos (${conf.contador || 'sem página'})`)
-    // Modelo em branco não traz nome, e sem nome o "Criar" fica desabilitado de propósito: a pessoa
-    // digita um. Aqui, o harness digita — e assim o caminho do modelo em branco também é testado.
-    if (!conf.nome.trim()) {
-      await js(`(() => { const i = document.querySelector('.sheet-import-identity input'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'Teste em branco'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
-      await espera(100)
-    }
-    await clicar('Criar personagem')
-    const fechou = await esperarAte(`!document.querySelector('.sheet-import')`, 15000, 200)
     const apply = estado.ultimoApply
-    const resumo = apply
-      ? `${apply.notes.sections.length} seções, ${apply.presets.length} presets, barras [${(apply.recursos ?? []).map((r) => `${r.nome} ${r.atual}/${r.maximo}`).join(', ')}], retrato ${apply.photo ? `${Math.round(apply.photo.length / 1024)} KB` : 'não'}`
-      : 'sem apply'
-    checar(fechou && !!apply && apply.characterName.trim() !== '', `${nome}\n      ${conf.leitor || 'sem leitor'} · nome "${conf.nome}" · ${conf.titulos.join(' · ')} · barras propostas ${conf.barras.length} · ${conf.avisos} avisos\n      gravou: ${resumo}`)
+    if (!importou || !apply) {
+      // PDF sem nada legível (o modelo em branco que é só imagem) NÃO cria personagem, de propósito:
+      // a Ficha explica o motivo no lugar. É o desfecho certo, e o harness o cobra como tal.
+      const recusouDePropósito = !apply && /não tem texto|mais de 100 páginas|nada pra importar/.test(conf.erro)
+      checar(recusouDePropósito, recusouDePropósito ? `${nome}: recusado com o motivo na tela, sem criar personagem ("${conf.erro.slice(0, 50)}...")` : `${nome}: não importou em 60s (${conf.erro || 'sem erro na tela'})`)
+      await foto(`ficha-${slug}-${recusouDePropósito ? 'recusada' : 'falhou'}`)
+      continue
+    }
+    await espera(400)
+    await foto(`ficha-${slug}-importada`)
+    // A Ficha diz quanto leu, no lugar da janela que existia.
+    checar(/\d+ campos e \d+ rolagens/.test(conf.resumo), `      ${nome}: a Ficha diz o que importou ("${conf.resumo.slice(0, 60)}...")`)
+    const resumo = `${apply.notes.sections.length} seções, ${apply.presets.length} presets, barras [${(apply.recursos ?? []).map((r) => `${r.nome} ${r.atual}/${r.maximo}`).join(', ')}], retrato ${apply.photo ? `${Math.round(apply.photo.length / 1024)} KB` : 'não'}`
+    // Modelo em branco não traz nome: o nome do arquivo entra no lugar (nunca um personagem sem nome).
+    checar(apply.characterName.trim() !== '', `${nome}\n      ${conf.leitor || 'sem leitor'} · nome "${apply.characterName}" · ${conf.avisos} avisos\n      gravou: ${resumo}`)
     /**
      * O RETRATO esperado deste arquivo: `null` = nenhum; `'retrato'` = a foto (proporção 3:4 no
      * arquivo fabricado — o logo é quadrado). Decodificado na página, porque é lá que há canvas.
@@ -1075,6 +1181,7 @@ app.whenReady().then(async () => {
   if (FASES.includes('perfis')) await fasePerfis()
   if (FASES.includes('hud')) await faseHud()
   if (FASES.includes('arrasto')) await faseHudArrasto()
+  if (FASES.includes('caderno')) await faseCaderno()
   if (FASES.includes('fichas')) await faseFichas()
   // A décima leva fabricada (`ESCREVER_PDFS=1 npx vitest run corpusDePdfs` escreve em Fichas RPG/testes/).
   if (FASES.includes('fabricados')) await faseFichas(join(RAIZ, 'Fichas RPG', 'testes'), /^7[0-3]-.*\.pdf$/i, { '73-foto-no-campo.pdf': 'retrato', '70-hp-mp-em-ingles.pdf': null })

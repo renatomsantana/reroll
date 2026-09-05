@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ehPermitido, podeNavegarPara } from './seguranca'
+import { ehPaginaDoApp, ehPermitido, podeNavegarPara, remetenteConfiavel } from './seguranca'
 
 /**
  * A lista branca de rede é a promessa mais forte que o app faz a quem instala: ele não fala com
@@ -114,5 +114,38 @@ describe('exceção do servidor de desenvolvimento', () => {
     vi.stubEnv('ELECTRON_RENDERER_URL', undefined)
     expect(ehPermitido('http://localhost:5173/')).toBe(false)
     expect(podeNavegarPara('http://localhost:5173/')).toBe(false)
+  })
+})
+
+/**
+ * QUEM PODE FALAR COM OS CANAIS DE IPC: só o quadro principal da página do app. Um handler que
+ * atende qualquer `webContents` é um handler que atende uma página que tomou o lugar da interface;
+ * a conferência do remetente é o que faz as travas de navegação valerem também do lado de dentro.
+ */
+describe('quem pode falar com os canais de IPC', () => {
+  it('a interface empacotada e o servidor de desenvolvimento, e mais ninguém', () => {
+    expect(ehPaginaDoApp('file:///D:/Reroll/resources/app.asar/out/renderer/index.html')).toBe(true)
+    expect(ehPaginaDoApp('file:///C:/Users/x/AppData/Local/Programs/Reroll/resources/app.asar/out/renderer/index.html')).toBe(true)
+    expect(ehPaginaDoApp('file:///C:/qualquer/pagina.html')).toBe(false)
+    expect(ehPaginaDoApp('file:///C:/qualquer/out/renderer/index.html.evil/x.html')).toBe(false)
+    expect(ehPaginaDoApp('https://github.com/renatomsantana/reroll')).toBe(false)
+    expect(ehPaginaDoApp('nao é url')).toBe(false)
+    vi.stubEnv('ELECTRON_RENDERER_URL', 'http://localhost:5173')
+    expect(ehPaginaDoApp('http://localhost:5173/')).toBe(true)
+    expect(ehPaginaDoApp('http://localhost:5173.dominio-de-alguem.net/')).toBe(false)
+    vi.unstubAllEnvs()
+  })
+
+  it('o evento precisa vir do quadro PRINCIPAL da página do app; quadro morto ou filho não', () => {
+    const principal = { url: 'file:///D:/Reroll/resources/app.asar/out/renderer/index.html' }
+    const sender = { mainFrame: principal }
+    const evento = (senderFrame: unknown) => ({ senderFrame, sender }) as unknown as Parameters<typeof remetenteConfiavel>[0]
+    expect(remetenteConfiavel(evento(principal))).toBe(true)
+    // Quadro já destruído: o Electron entrega `null`.
+    expect(remetenteConfiavel(evento(null))).toBe(false)
+    // Mesma URL, OUTRO quadro (um filho): não é o principal.
+    expect(remetenteConfiavel(evento({ url: principal.url }))).toBe(false)
+    const outra = { url: 'https://github.com/x' }
+    expect(remetenteConfiavel({ senderFrame: outra, sender: { mainFrame: outra } } as unknown as Parameters<typeof remetenteConfiavel>[0])).toBe(false)
   })
 })

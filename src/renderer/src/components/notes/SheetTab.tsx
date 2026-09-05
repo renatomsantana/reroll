@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DiceExpression } from '@shared/types/dice'
-import type { SheetSection, SheetSectionField } from '@shared/types/notes'
+import { fichaEstaVazia, type SheetSection, type SheetSectionField } from '@shared/types/notes'
 import { blockForGroup, secaoCobreAtributos, type SheetBlockKey } from '@shared/types/sheetBlocks'
 import { rolagemDoCampo } from '@shared/types/sheetRoll'
 import { LADOS_DE_CRITICO, codigoDaRegra, regraDoCodigo } from '@shared/dice/critico'
@@ -10,7 +10,7 @@ import { useProfiles } from '@renderer/settings/ProfilesContext'
 import { ProfileSelect } from './ProfileSelect'
 import { MAX_PROFILES } from '@shared/types/profile'
 import { IMPORTACAO_DE_FICHA_LIGADA } from '@shared/recursos'
-import { SheetImportModal } from './SheetImportModal'
+import { MAXIMO_DE_CAMPOS_POR_SECAO } from '@shared/types/sheetImport'
 import { RecorteDeFotoModal } from '../foto/RecorteDeFotoModal'
 import { useDialogo } from '../common/Dialogo'
 import { useSheetImport } from '../../sheets/useSheetImport'
@@ -19,6 +19,7 @@ import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import './SheetTab.css'
 import { IconeReroll } from '../common/IconeReroll'
+import { CampoDeCaderno } from './CampoDeCaderno'
 
 /**
  * A FICHA do personagem, em aba própria — separada das Anotações a pedido do usuário: "vamos botar
@@ -110,7 +111,9 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
     return () => {
       atual = false
     }
-  }, [loadedFor])
+    // E de novo quando uma IMPORTAÇÃO termina: se ela caiu por cima do personagem aberto (a ficha
+    // vazia, a reimportação), o `loadedFor` não muda e as páginas novas não seriam relidas.
+  }, [loadedFor, importacao.feito])
   /**
    * Ficha vinda de PDF. É o que decide a forma da página: com seções, ela mostra a ficha DAQUELE
    * sistema; sem, mostra os blocos livres.
@@ -123,13 +126,7 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
    * A ficha está VAZIA — nenhuma seção importada e nenhuma letra em bloco nenhum. É o estado do
    * personagem recém-criado, e é quando a aba mostra o convite de importar em vez dos blocos.
    */
-  const fichaVazia =
-    !temSecoes &&
-    !notes.attributes.trim() &&
-    !notes.abilities.trim() &&
-    !notes.inventory.trim() &&
-    !notes.appearance.trim() &&
-    !notes.backstory.trim()
+  const fichaVazia = fichaEstaVazia(notes)
   /**
    * "Preencher à mão" escolhido nesta ficha vazia. Só na memória e só deste personagem: trocar de
    * personagem volta ao convite — cada ficha vazia faz a pergunta de novo.
@@ -222,6 +219,21 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedFor, notes.characterName, profiles.active.name, profiles.activeId])
 
+  /**
+   * O TETO DE PERSONAGENS respondido com AVISO, não com botão mudo — a regra do dono (30/08/2026):
+   * no cliente dele o teto é o do disco, nos testadores é três, "eles são bloqueados e recebem um
+   * aviso: máximo de personagens atingido". O botão continua clicável no teto de propósito: cinza
+   * com tooltip era fácil de não ver, e o tester ficava sem saber por que não criava. Quem trava de
+   * verdade continua sendo `ProfilesContext.create` (e o canal de importação, no processo main).
+   */
+  function handleCreateProfile(): void {
+    if (!profiles.podeCriar) {
+      void dialogo.avisar(t.notesTab.profileLimit.replace('{max}', String(MAX_PROFILES)))
+      return
+    }
+    profiles.create()
+  }
+
   function handleRemoveProfile(): void {
     const index = profiles.profiles.findIndex((p) => p.id === profiles.activeId)
     if (profiles.profiles.length <= 1) return
@@ -306,11 +318,13 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
     return (
       <fieldset className={`sheet-group ${className}`}>
         <legend>{label}</legend>
-        <textarea
+        {/* Clicar numa linha vazia da caixa leva o cursor pra ela: ver `CampoDeCaderno`. */}
+        <CampoDeCaderno
           className="sheet-textarea"
           value={notes[field]}
+          aria-label={label}
           placeholder={t.notesTab.blockHints[field]}
-          onChange={(e) => updateField(field, e.target.value)}
+          onChangeText={(texto) => updateField(field, texto)}
         />
       </fieldset>
     )
@@ -403,14 +417,13 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                   emptyPhotoLabel={t.notesTab.profilePhotoEmpty}
                 />
                 {/*
-                  Desabilitado no teto, com o motivo no `title`. Um botão que aceita o clique e não
-                  faz nada é a pior das três opções: pior que o botão cinza, e muito pior que o botão
-                  cinza que explica.
+                  No teto, o botão continua ACEITANDO o clique — e responde com o aviso de limite
+                  pelo diálogo do app (ver `handleCreateProfile`). O `title` fica como segunda via
+                  pra quem passa o mouse antes de clicar.
                 */}
                 <Button
                   variant="secondary"
-                  onClick={profiles.create}
-                  disabled={!profiles.podeCriar}
+                  onClick={handleCreateProfile}
                   title={
                     profiles.podeCriar
                       ? undefined
@@ -427,14 +440,25 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                   inteiro em vez de aparecer cinza — botão que nunca liga só faz a pessoa procurar o
                   que está faltando. Ligada desde o 1.1.0, que é o beta do scraping.
                 */}
+                {/*
+                  Importar SEMPRE cria um personagem novo (regra dele, 02/09/2026), então no teto o
+                  botão fica APAGADO, e a dica ao passar o mouse diz o limite. O `span` em volta
+                  existe porque botão desabilitado não recebe eventos de mouse, e é nele que a dica
+                  precisa aparecer.
+                */}
                 {IMPORTACAO_DE_FICHA_LIGADA && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => void importacao.escolherArquivo()}
-                    disabled={importacao.lendo}
+                  <span
+                    className="sheet-import-wrap"
+                    title={profiles.podeCriar ? undefined : t.notesTab.sheetImportLimit.replace('{max}', String(MAX_PROFILES))}
                   >
-                    {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
-                  </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void importacao.escolherArquivo()}
+                      disabled={importacao.lendo || !profiles.podeCriar}
+                    >
+                      {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
+                    </Button>
+                  </span>
                 )}
                 <Button
                   variant="ghost"
@@ -558,15 +582,61 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
           (que é o que está em teste), com o "preencher à mão" como segundo caminho. Basta uma
           seção importada, ou uma palavra digitada, e a ficha volta a ser a ficha de sempre.
         */}
+        {/*
+          O QUE FOI IMPORTADO, dito aqui na Ficha logo depois de importar sem janela (02/09/2026):
+          o sistema reconhecido, quanto entrou, e os avisos do leitor sobre o que NÃO foi lido.
+          Some no "Entendi" e ao trocar de personagem.
+        */}
+        {IMPORTACAO_DE_FICHA_LIGADA && importacao.feito && importacao.feito.profileId === profiles.activeId && (
+          <div className="sheet-import-feito" role="status">
+            <p className="sheet-import-feito-titulo">
+              {importacao.feito.reconhecido ? (
+                <>
+                  {t.sheetImport.recognized} <strong>{importacao.feito.readerLabel}</strong>.
+                </>
+              ) : (
+                t.sheetImport.unrecognized
+              )}
+            </p>
+            <p className="sheet-import-feito-resumo">
+              {t.sheetImport.done
+                .replace('{fields}', String(importacao.feito.campos))
+                .replace('{presets}', String(importacao.feito.rolagens))}
+            </p>
+            {importacao.feito.cortados > 0 && (
+              <p>
+                {t.sheetImport.sectionTrimmed
+                  .replace('{max}', String(MAXIMO_DE_CAMPOS_POR_SECAO))
+                  .replace('{n}', String(importacao.feito.cortados))}
+              </p>
+            )}
+            {importacao.feito.warnings.length > 0 && (
+              <ul>
+                {importacao.feito.warnings.map((aviso) => (
+                  <li key={aviso}>{t.sheetImport.warnings[aviso]}</li>
+                ))}
+              </ul>
+            )}
+            <Button variant="ghost" onClick={importacao.dispensar}>
+              {t.sheetImport.dismiss}
+            </Button>
+          </div>
+        )}
+
         {fichaVazia && !preencherAMao ? (
           <div className="sheet-empty">
             <p className="sheet-empty-title">{t.notesTab.sheetEmptyTitle}</p>
             <p className="sheet-empty-hint">{t.notesTab.sheetEmptyHint}</p>
             <div className="sheet-empty-actions">
               {IMPORTACAO_DE_FICHA_LIGADA && (
-                <Button variant="primary" onClick={() => void importacao.escolherArquivo()} disabled={importacao.lendo}>
-                  {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
-                </Button>
+                <span
+                  className="sheet-import-wrap"
+                  title={profiles.podeCriar ? undefined : t.notesTab.sheetImportLimit.replace('{max}', String(MAX_PROFILES))}
+                >
+                  <Button variant="primary" onClick={() => void importacao.escolherArquivo()} disabled={importacao.lendo || !profiles.podeCriar}>
+                    {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
+                  </Button>
+                </span>
               )}
               <Button variant="ghost" onClick={() => setPreencherAMao(true)}>
                 {t.notesTab.sheetEmptyManual}
@@ -610,25 +680,6 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
           <p className="sheet-save-error">{importacao.erro}</p>
         )}
       </div>
-
-      {IMPORTACAO_DE_FICHA_LIGADA && importacao.lido && (
-        <SheetImportModal
-          sheet={importacao.lido}
-          saving={importacao.gravando}
-          /*
-            Personagem SEM NOME não é oferecido pra atualizar: ele é o que o botão "Novo personagem"
-            acabou de criar, e ali "atualizar" e "criar" dão exatamente no mesmo — com a diferença de
-            que uma das duas frases não faz sentido nenhum na tela.
-          */
-          perfilAtual={
-            profiles.active.name.trim()
-              ? { id: profiles.activeId, name: profiles.active.name }
-              : null
-          }
-          onCancel={importacao.cancelar}
-          onConfirm={(escolha) => void importacao.confirmar(escolha)}
-        />
-      )}
 
       {recortando && (
         <RecorteDeFotoModal

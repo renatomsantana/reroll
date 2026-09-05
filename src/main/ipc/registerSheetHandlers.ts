@@ -30,6 +30,7 @@ import type { NotesRepository } from '../storage/NotesRepository'
 import type { PresetsRepository } from '../storage/PresetsRepository'
 import type { PaginasRepository } from '../storage/PaginasRepository'
 import { paginasValidas } from '@shared/types/paginasDaFicha'
+import { ID_DO_BLOCO_JSON } from '@shared/pacote/pacoteDePersonagem'
 
 /**
  * Escolher o PDF e APLICAR o que foi lido dele.
@@ -70,7 +71,17 @@ export async function lerPdfEscolhido(caminho: string): Promise<PdfEscolhido> {
      * chegarem ao renderer; aqui a recusa é antes, com o motivo certo na tela ("ilegível") em vez
      * de um erro de análise.
      */
-    if (!ehPdf(buffer)) return { ok: false, motivo: 'ilegivel', detalhe: 'não é um PDF (assinatura %PDF- ausente)' }
+    /**
+     * ARQUIVO ERRADO — pedido dele: "se uploadarem o arquivo errado, aparecer uma mensagem". O erro
+     * mais provável é o cruzamento dos dois botões da Ficha: o `.html` exportado pelo Reroll aqui,
+     * a ficha em PDF lá. Cada um ganha o próprio motivo, e a mensagem diz qual botão usar; o resto
+     * (um .docx, uma imagem) é só "não é PDF". Antes tudo isso era "ilegível", e a tela dizia
+     * "protegido por senha ou danificado", que não era o caso.
+     */
+    if (!ehPdf(buffer)) {
+      if (parecePacoteDoReroll(buffer)) return { ok: false, motivo: 'pacote-do-reroll' }
+      return { ok: false, motivo: 'nao-e-pdf' }
+    }
     /**
      * Bytes puros, sem base64: o IPC do Electron serializa `Uint8Array` por conta própria, e uma
      * ficha de RPG passa fácil dos 4 MB: base64 inflaria isso em um terço à toa.
@@ -89,6 +100,17 @@ export async function lerPdfEscolhido(caminho: string): Promise<PdfEscolhido> {
 export function ehPdf(bytes: Uint8Array): boolean {
   const cabecalho = Buffer.from(bytes.subarray(0, 1024)).toString('latin1')
   return cabecalho.includes('%PDF-')
+}
+
+/**
+ * O arquivo é o personagem exportado pelo Reroll (`Nome - Reroll.html`, ou o JSON cru dele)? Olha
+ * a marca do bloco embutido, ou o `"formato"` de um JSON que começa na primeira linha. Só decide
+ * QUAL mensagem mostrar; quem valida o pacote de verdade é `lerPacote`.
+ */
+export function parecePacoteDoReroll(bytes: Uint8Array): boolean {
+  const texto = Buffer.from(bytes.subarray(0, 64 * 1024)).toString('utf8')
+  if (texto.includes(`id="${ID_DO_BLOCO_JSON}"`)) return true
+  return texto.trimStart().startsWith('{') && texto.includes('"formato"')
 }
 
 /**
