@@ -184,11 +184,11 @@ export const OITAVA_LEVA: FichaDeTeste[] = [
   },
   {
     arquivo: '61-valor-com-tab-e-crlf.pdf',
-    proposito: 'valor com CRLF e tab dentro: o espaço interno colapsa e o texto chega numa linha limpa',
+    proposito: 'valor com CRLF e tab dentro: o tab colapsa em espaço e a quebra de linha FICA (as habilidades de Tormenta20 vêm uma por linha)',
     espera: {
       leitor: 'generico',
       nome: 'Firmino',
-      campos: [{ label: 'NOTAS', value: 'primeira linha segunda linha fim' }]
+      campos: [{ label: 'NOTAS', value: 'primeira linha\nsegunda linha fim' }]
     },
     bytes: () =>
       pdfDeUmaPagina({

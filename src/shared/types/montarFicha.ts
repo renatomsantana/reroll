@@ -51,20 +51,26 @@ export function montarFicha(campos: SheetImportField[], textoSolto?: string): Fi
     const bloco = blockForGroup(grupo)
     if (bloco) {
       // No bloco, cada campo vira uma linha "Rótulo: valor" — é texto livre, não tem outra forma.
+      // Valor de VÁRIAS linhas (as habilidades de Tormenta20, uma por linha) fica embaixo do rótulo,
+      // e o rótulo abre parágrafo, pra ele não parecer a primeira habilidade da lista.
       const linhas = porBloco.get(bloco) ?? []
-      linhas.push(`${campo.label}: ${campo.value}`)
+      linhas.push(campo.value.includes('\n') ? `${campo.label}:\n${campo.value}` : `${campo.label}: ${campo.value}`)
       porBloco.set(bloco, linhas)
       continue
     }
     // "Ficha" é honesto e não inventa um sistema que ninguém reconheceu.
     const titulo = grupo || SEM_GRUPO
     const lista = porTitulo.get(titulo) ?? []
-    lista.push({ label: campo.label, value: campo.value, roll: campo.roll })
+    // O campo de seção vive num `<input>` de uma linha, que engole quebra de linha: "comun\nFey"
+    // (os idiomas do Rilver, um por linha no PDF) vira "comun Fey" aqui, senão sairia "comunFey".
+    lista.push({ label: campo.label, value: campo.value.replace(/\s*\n\s*/g, ' '), roll: campo.roll })
     porTitulo.set(titulo, lista)
   }
 
   const blocks: Partial<Record<SheetBlockKey, string>> = {}
-  for (const [chave, linhas] of porBloco) blocks[chave] = linhas.join('\n')
+  // Com algum campo de várias linhas no bloco, cada campo vira um parágrafo; senão, uma linha cada.
+  for (const [chave, linhas] of porBloco)
+    blocks[chave] = linhas.join(linhas.some((linha) => linha.includes('\n')) ? '\n\n' : '\n')
 
   /**
    * O texto SEM RÓTULO vai pro bloco de HISTÓRIA — o único da ficha que é texto livre de verdade.

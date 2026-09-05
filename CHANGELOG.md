@@ -89,6 +89,8 @@ lançamento deixa de virar pra `false`.
 
 ### Corrigido (arquivo errado na importação)
 
+- **O texto de várias linhas do PDF chega à Ficha com as linhas** — reporte dele (05/09/2026): "sobre Tormenta20 ainda está bugando". Na ficha do Milo os campos de habilidades, poderes e magias vêm do PDF com uma habilidade por linha, e a Ficha mostrava tudo num bloco corrido só: a régua comum de limpeza de valor (`valorDeFicha`), feita pra colapsar o alinhamento visual de campo curto ("5         1" num PV), trocava a quebra de linha por espaço junto. Agora ela limpa os espaços de cada linha e mantém a quebra (linha vazia repetida vira uma), o campo de várias linhas entra no bloco da Ficha como "Rótulo:" e o texto embaixo, cada campo num parágrafo, e o gerador de presets em prosa, que já cortava por linha, passa a ver uma habilidade por vez. O campo de SEÇÃO (Idiomas "comun / Fey" do Rilver) continua em linha única, porque vive num campo de uma linha que engoliria a quebra. Vale pra todo leitor, não só Tormenta. Os dois testes de Kids on Bikes que ainda descreviam o caminho genérico (a ficha tem leitor próprio desde 03/09) foram reescritos pro contrato atual.
+
 - **Subir o arquivo errado mostra uma mensagem que diz o botão certo** — pedido dele: "se
   uploadarem o arquivo errado, aparecer uma mensagem". Os dois botões da Ficha ficam lado a lado e
   se cruzam: o personagem exportado pelo Reroll (`Nome - Reroll.html`, ou o JSON dele) no

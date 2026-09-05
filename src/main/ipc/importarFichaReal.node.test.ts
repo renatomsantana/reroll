@@ -114,15 +114,29 @@ describe.skipIf(!existsSync(ORDEM) || !existsSync(KIDS))('importar ficha de verd
     expect(rotulos.some((r) => /^Pericias\.|^Atq|^DEZ$/.test(r))).toBe(false)
   }, 60_000)
 
-  it('Kids on Bikes: o texto sem rótulo fica gravado inteiro na história', async () => {
+  it('Kids on Bikes: tudo o que foi escrito na arte chega à ficha gravada, cada coisa no seu lugar', async () => {
     const { criado } = await importar(KIDS)
     expect(criado.name).toBe('rodrigo barreto')
 
     const ficha = await notes.get()
-    // Tudo o que a pessoa escreveu na arte tem que estar em algum lugar da ficha gravada.
+    /**
+     * Tudo o que a pessoa escreveu na arte tem que estar em algum lugar da ficha gravada. Desde que a
+     * ficha tem leitor dedicado (03/09/2026) isso é em CAMPO — Idade, Arquétipo, Fraquezas,
+     * Relacionamento — e não mais no bloco de história como texto solto.
+     */
+    const tudo = [
+      ...Object.values(ficha).filter((v): v is string => typeof v === 'string'),
+      ...ficha.sections.flatMap((s) => s.fields.map((c) => `${c.label}: ${c.value}`))
+    ].join('\n')
     for (const escrito of ['11', 'Novo Aluno Misterioso', 'supersticioso', 'd20', '1 - Dinamite']) {
-      expect(ficha.backstory).toContain(escrito)
+      expect(tudo).toContain(escrito)
     }
+    const campo = (rotulo: string): string | undefined =>
+      ficha.sections.flatMap((s) => s.fields).find((c) => c.label === rotulo)?.value
+    expect(campo('Idade')).toBe('11')
+    expect(campo('Luta')).toBe('d20+1')
+    expect(campo('Fraquezas')).toBe('supersticioso')
+
     /**
      * As vantagens que ela mesma nomeou vão pro bloco de HABILIDADES, com o parágrafo inteiro — e não
      * pra uma seção chamada "Ficha", que era o que aparecia na tela e não dizia nada.
@@ -131,14 +145,9 @@ describe.skipIf(!existsSync(ORDEM) || !existsSync(KIDS))('importar ficha de verd
     expect(ficha.abilities).toContain('ignorar Medos')
     expect(ficha.sections.some((s) => s.title === 'Ficha')).toBe(false)
 
-    /**
-     * E o texto solto vem DIVIDIDO por região da página: o que estava numa coluna continua junto, em
-     * vez de intercalado com a coluna do lado. Os seis dados dos atributos ficam em bloco.
-     */
-    const regioes = ficha.backstory.split('\n\n')
-    expect(regioes.length).toBeGreaterThan(1)
-    expect(regioes.some((r) => r.includes('d20') && r.includes('d4'))).toBe(true)
-    expect(regioes.some((r) => r.includes('rodrigo barreto') && r.includes('supersticioso'))).toBe(true)
+    // O livro de notas da página 2 vai pra história, lido coluna a coluna (a da direita não se
+    // intercala com a da esquerda).
+    expect(ficha.backstory).toContain('Pegs Apoio nas rodas Você pode levar um passageiro em pé.')
   }, 60_000)
 
   it('voltar pro primeiro personagem devolve a ficha dele intacta', async () => {
