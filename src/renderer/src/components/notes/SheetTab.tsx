@@ -19,6 +19,7 @@ import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import './SheetTab.css'
 import { IconeReroll } from '../common/IconeReroll'
+import { CampoDeCaderno } from './CampoDeCaderno'
 
 /**
  * A FICHA do personagem, em aba própria — separada das Anotações a pedido do usuário: "vamos botar
@@ -317,11 +318,13 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
     return (
       <fieldset className={`sheet-group ${className}`}>
         <legend>{label}</legend>
-        <textarea
+        {/* Clicar numa linha vazia da caixa leva o cursor pra ela: ver `CampoDeCaderno`. */}
+        <CampoDeCaderno
           className="sheet-textarea"
           value={notes[field]}
+          aria-label={label}
           placeholder={t.notesTab.blockHints[field]}
-          onChange={(e) => updateField(field, e.target.value)}
+          onChangeText={(texto) => updateField(field, texto)}
         />
       </fieldset>
     )

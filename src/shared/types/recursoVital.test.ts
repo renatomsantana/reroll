@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAXIMO_DE_RECURSOS,
+  corDoPreenchimento,
   criarRecurso,
   estadoDoRecurso,
+  recursoSobePorPadrao,
   fundirRecursos,
   lerEntradaDeRecurso,
   normalizarRecursos,
@@ -112,13 +114,65 @@ describe('fundirRecursos — reimportar a ficha', () => {
 })
 
 describe('estadoDoRecurso', () => {
-  it('abaixo da metade avisa, abaixo de um quarto é perigo, máximo zero é normal', () => {
+  it('barra que desce: nos 40% avisa, nos 15% é perigo, máximo zero é normal', () => {
     expect(estadoDoRecurso({ atual: 45, maximo: 45 })).toBe('normal')
-    expect(estadoDoRecurso({ atual: 23, maximo: 45 })).toBe('normal')
-    expect(estadoDoRecurso({ atual: 22, maximo: 45 })).toBe('aviso')
-    expect(estadoDoRecurso({ atual: 11, maximo: 45 })).toBe('perigo')
+    expect(estadoDoRecurso({ atual: 41, maximo: 100 })).toBe('normal')
+    expect(estadoDoRecurso({ atual: 40, maximo: 100 })).toBe('aviso')
+    expect(estadoDoRecurso({ atual: 16, maximo: 100 })).toBe('aviso')
+    expect(estadoDoRecurso({ atual: 15, maximo: 100 })).toBe('perigo')
     expect(estadoDoRecurso({ atual: 0, maximo: 45 })).toBe('perigo')
     expect(estadoDoRecurso({ atual: 0, maximo: 0 })).toBe('normal')
+  })
+
+  it('barra que SOBE: o espelho, aviso nos 60% e perigo nos 85%, vazia é o normal', () => {
+    expect(estadoDoRecurso({ atual: 0, maximo: 5, sobe: true })).toBe('normal')
+    expect(estadoDoRecurso({ atual: 2, maximo: 5, sobe: true })).toBe('normal')
+    expect(estadoDoRecurso({ atual: 3, maximo: 5, sobe: true })).toBe('aviso')
+    expect(estadoDoRecurso({ atual: 5, maximo: 5, sobe: true })).toBe('perigo')
+  })
+})
+
+describe('a barra que sobe (estresse, dano por região)', () => {
+  it('é decidida pelo nome: as regiões de Oblívio, estresse, dano, carga; PV e PE não', () => {
+    for (const nome of ['Torso', 'Braço Direito', 'Perna Esquerda', 'Estresse', 'Stress', 'Dano', 'Carga', 'Fadiga', 'Corrupção']) {
+      expect(recursoSobePorPadrao(nome), nome).toBe(true)
+    }
+    for (const nome of ['PV', 'PE', 'Sanidade', 'Mana', 'HP', 'Determinação']) {
+      expect(recursoSobePorPadrao(nome), nome).toBe(false)
+    }
+    expect(criarRecurso('Torso', 5, 0).sobe).toBe(true)
+    expect(criarRecurso('PV', 45).sobe).toBeUndefined()
+  })
+
+  it('do disco: sem o campo decide o nome; um `false` gravado é a pessoa desmarcando, e fica', () => {
+    const lidos = normalizarRecursos([
+      { id: 'a', nome: 'Torso', atual: 2, maximo: 5 },
+      { id: 'b', nome: 'Torso', atual: 2, maximo: 5, sobe: false },
+      { id: 'c', nome: 'PV', atual: 2, maximo: 5, sobe: true }
+    ])
+    expect(lidos.map((r) => r.sobe)).toEqual([true, false, true])
+  })
+
+  it('o preenchimento sobe do amarelo ao vermelho, um degrau por ponto: 1 amarelo, 3 laranja, 5 vermelho', () => {
+    const torso = (atual: number) => corDoPreenchimento({ nome: 'Torso', atual, maximo: 5, sobe: true })
+    expect(torso(1)).toBe('#ffff00')
+    expect(torso(2)).toBe('#ffbf00')
+    expect(torso(3)).toBe('#ff8000')
+    expect(torso(4)).toBe('#ff4000')
+    expect(torso(5)).toBe('#ff0000')
+    // Vazia ainda é amarela (não aparece: largura zero), e mais níveis dão mais degraus.
+    expect(torso(0)).toBe('#ffff00')
+    expect(corDoPreenchimento({ nome: 'Estresse', atual: 15, maximo: 30, sobe: true })).toBe('#ff8400')
+  })
+
+  it('a barra que desce mantém a cor dela cheia, amarela nos 40% e vermelha nos 15%', () => {
+    expect(corDoPreenchimento({ nome: 'PV', atual: 45, maximo: 45 })).toBe('#800000')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 41, maximo: 100 })).toBe('#800000')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 40, maximo: 100 })).toBe('#ffff00')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 15, maximo: 100 })).toBe('#ff0000')
+    // A cor escolhida é a de cheia; o estado continua mandando embaixo dos 40%.
+    expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 90, maximo: 100 })).toBe('#0000ff')
+    expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 10, maximo: 100 })).toBe('#ff0000')
   })
 })
 

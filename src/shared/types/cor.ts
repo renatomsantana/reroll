@@ -68,6 +68,20 @@ export function corPadraoDaCondicao(nome: string): string {
 }
 
 /**
+ * A ESCALA DO ESTRESSE: a cor de uma barra que SOBE, pelo quanto já subiu. Pedido dele
+ * (02/09/2026), sobre o dano por região de Oblívio ("Torso 0/5"): "1 amarelo, 2 alaranjando, 3
+ * alaranjado, 4 laranja avermelhado, 5 vermelhasso, com vários níveis de cor". O grau vai de 0
+ * (o primeiro ponto, amarelo puro) a 1 (o último, vermelho puro), e o que muda é só o VERDE do
+ * `#ff____00`: é o caminho mais curto entre os dois na roda de cores, e dá quantos degraus a barra
+ * tiver. Uma cor CHAPADA por nível, e não um degradê dentro da barra: continua Windows 98.
+ */
+export function corDaEscalaDeEstresse(grau: number): string {
+  const preso = Number.isFinite(grau) ? Math.min(1, Math.max(0, grau)) : 0
+  const verde = Math.round(255 * (1 - preso))
+  return `#ff${verde.toString(16).padStart(2, '0')}00`
+}
+
+/**
  * Preto ou branco por cima desta cor, pelo brilho percebido (a fórmula da WCAG, sem a
  * linearização: pra escolher entre dois extremos a aproximação basta). É o que deixa o nome da
  * condição legível tanto em oliva quanto em marinho.

@@ -8,6 +8,7 @@ import {
   type RecursoVital
 } from '@shared/types/recursoVital'
 import { corPadraoDoRecurso } from '@shared/types/cor'
+import { recursoSobePorPadrao } from '@shared/types/recursoVital'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
 import { Button } from '../common/Button'
@@ -37,6 +38,8 @@ interface LinhaEmEdicao {
   atual: string
   maximo: string
   cor?: string
+  /** A barra sobe (estresse, dano por região): começa vazia e o perigo é encher. */
+  sobe: boolean
 }
 
 export function RecursoEditorModal({ recursos, onSave, onCancel }: RecursoEditorModalProps) {
@@ -49,7 +52,8 @@ export function RecursoEditorModal({ recursos, onSave, onCancel }: RecursoEditor
       nome: recurso.nome,
       atual: String(recurso.atual),
       maximo: String(recurso.maximo),
-      cor: recurso.cor
+      cor: recurso.cor,
+      sobe: recurso.sobe ?? recursoSobePorPadrao(recurso.nome)
     }))
   )
 
@@ -68,7 +72,7 @@ export function RecursoEditorModal({ recursos, onSave, onCancel }: RecursoEditor
   function acrescentar(): void {
     if (linhas.length >= MAXIMO_DE_RECURSOS) return
     const novo = criarRecurso('', 10)
-    setLinhas((atuais) => [...atuais, { id: novo.id, nome: '', atual: '10', maximo: '10' }])
+    setLinhas((atuais) => [...atuais, { id: novo.id, nome: '', atual: '10', maximo: '10', sobe: false }])
   }
 
   function remover(id: string): void {
@@ -87,7 +91,8 @@ export function RecursoEditorModal({ recursos, onSave, onCancel }: RecursoEditor
           nome: linha.nome,
           atual: Number(linha.atual),
           maximo: Number(linha.maximo),
-          cor: linha.cor
+          cor: linha.cor,
+          sobe: linha.sobe
         }))
       )
     )
@@ -102,6 +107,7 @@ export function RecursoEditorModal({ recursos, onSave, onCancel }: RecursoEditor
           <span>{t.resources.name}</span>
           <span>{t.resources.current}</span>
           <span>{t.resources.max}</span>
+          <span title={t.resources.risesHint}>{t.resources.rises}</span>
           <span>{t.resources.color}</span>
           <span />
         </div>
@@ -132,6 +138,15 @@ export function RecursoEditorModal({ recursos, onSave, onCancel }: RecursoEditor
                 aria-label={t.resources.max}
                 onChange={(e) => mudar(linha.id, { maximo: e.target.value })}
               />
+              {/* A barra que SOBE: estresse, dano por região. Marcada sozinha pelo nome; a pessoa desfaz aqui. */}
+              <label className="recurso-editor-sobe" title={t.resources.risesHint}>
+                <input
+                  type="checkbox"
+                  checked={linha.sobe}
+                  aria-label={t.resources.rises}
+                  onChange={(e) => mudar(linha.id, { sobe: e.target.checked })}
+                />
+              </label>
               <span className="recurso-editor-cor">
                 {/* Sem cor escolhida, o seletor já mostra a cor que o NOME dá (PV bordô, PE marinho...). */}
                 <input

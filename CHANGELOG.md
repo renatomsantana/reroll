@@ -8,15 +8,24 @@ Cada versão publicada tem o SHA-256 do instalador na página da release — con
 
 ## [Não lançado]
 
-O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) e o Descansar
-(§3.8): pronto na `main`, instalado na máquina dele, guardado pra uma liberação própria — é o
-`HUD_LIBERADO` em `src/shared/liberacoes.ts`, que o branch de lançamento vira pra `false`.
+Em resumo, o que muda pra quem joga:
+
+- Novidade na área! HUD na mesa: um cartão sobre a cena dos dados com a foto do seu personagem e as barras que o
+  seu sistema usa, como PV, PE, PM, Estresse ou Loucura, pintadas com cores conforme a vida em que
+  você está. Clique uma vez e sobe ou desce 1; segure o botão e anda de 5 em 5.
+- Agora você pode clicar onde quer começar a digitar em Anotações.
+- Todos têm um limite de 3 personagens! Usem bem! No terceiro, o botão de criar fica apagado: se
+  quiser fazer um personagem novo, tem que apagar um!
+
+O detalhe de cada item está abaixo. O HUD (spec §3.6), as barras (§3.4), as cores e o Descansar
+(§3.8) saem nesta versão: é o `HUD_LIBERADO` em `src/shared/liberacoes.ts`, que o branch de
+lançamento deixa de virar pra `false`.
 
 ### Alterado (importação sem janela, e o teto de 3 vira aviso)
 
 - **Importar ficha SEMPRE cria um personagem novo, depois de um "tem certeza?"** — regra dele (02/09/2026): "toda vez que uploadar uma ficha nova, que CRIE um personagem novo, para não perder o que já está lá; clicou em uploadar, tem certeza? aí cria um novo". Caíram as duas regras que gravavam por cima de alguém (preencher a ficha vazia do personagem aberto; atualizar o homônimo na reimportação): o clique abre o diálogo do app com a pergunta, depois o seletor de PDF, e o personagem nasce já aberto, com tudo dentro: as seções da ficha, os golpes como presets, as barras de PV/PE/PM que viram o HUD, a foto do PDF na frente e as páginas guardadas. No teto de personagens (3 nos testadores) o botão de importar fica APAGADO, e passar o mouse diz "Limite alcançado: apenas 3 personagens!"; o hook ainda recusa por conta própria se o clique escapar. O harness `fichas` clica no OK do diálogo.
 
-- **Anotações: clicar em qualquer pauta do caderno já leva o cursor pra ela** — pedido dele (02/09/2026): "deixar possível que clique em qualquer linha no anotações para começar a digitar, que não seja apenas no Enter". O caderno desenha as pautas até o fim da área, mas o texto só existia até onde foi digitado, e o clique abaixo dele caía no fim do texto. Agora o clique numa pauta vazia acrescenta as quebras de linha que faltam até ela e põe o cursor lá, como a caneta no papel; clique em cima de texto que existe continua sendo do navegador. A conta é pura (`cliqueNaLinha.ts`) e conta as linhas VISUAIS, então linha comprida que quebra na largura não ganha quebra a mais.
+- **Anotações e Ficha: clicar em qualquer linha vazia já leva o cursor pra ela** — pedido dele duas vezes (02/09/2026: "deixar possível que clique em qualquer linha no anotações para começar a digitar, que não seja apenas no Enter"; 04/09: "clicar com o mouse onde quiser digitar, não precisar apenas com Enter"). O caderno desenha as pautas até o fim da área e as caixas da ficha têm altura mínima, mas o texto só existia até onde foi digitado, e o clique abaixo dele caía na última linha. Agora o clique numa linha vazia acrescenta as quebras que faltam até ela e põe o cursor lá, como a caneta no papel, nas Anotações e nas cinco caixas da Ficha (Atributos, Habilidades, Inventário, Aparência, História); clique em cima de texto que existe continua sendo do navegador. A primeira versão (02/09) só valia pras Anotações e NÃO funcionava no app de verdade: pra medir quantas linhas o texto ocupa ela zerava a altura do campo, e o `flex: 1` do caderno esticava o campo de volta, então o texto "ocupava" a área inteira e o clique nunca acrescentava nada. Foi a fase `caderno` do harness `testarNoApp.mjs` que pegou, clicando com o mouse de verdade na sexta pauta: o "x" digitado caía na segunda linha. A medida agora zera altura, mínimo e flex juntos; o componente é um só pras duas abas (`CampoDeCaderno`) e conta as linhas VISUAIS, então linha comprida que quebra na largura não ganha quebra a mais.
 
 - **Importar ficha é um gesto só: escolher o PDF** — pedido dele, em duas rodadas (30/08 e
   02/09/2026): "não precisa mostrar a página inteira, apenas aperte o PDF e diga ok importaremos"
@@ -45,6 +54,8 @@ O HUD do personagem sobre a cena (spec §3.6), com as barras de recurso (§3.4) 
 ### Alterado (HUD e cores, 02/09/2026)
 
 - **A rolagem o mais aleatória possível: a cena 3D também sorteia no gerador criptográfico** — pedido dele (03/09/2026): "deixar a rolagem de dados o mais aleatória possível". O modo rápido já sorteava com `crypto.getRandomValues` e rejeição de viés (`rollDie`); a cena 3D não sorteia número, o resultado é a física, e o acaso entra pelas condições iniciais do arremesso (posição, altura, orientação, força, torque), que eram `Math.random`. Agora saem do mesmo gerador criptográfico, com 53 bits por número (`randomUnit` em `dice3d/utils/random.ts`), e a física caótica da bandeja amplifica a diferença: cada arremesso é irrepetível e imprevisível. E a honestidade do resultado físico foi MEDIDA dado a dado, sozinho na bandeja vazia (`todosOsDados.statistical.test.ts`, 1.000 e depois 5.000 rolagens por tipo): nenhum dos sete mostra viés (qui-quadrado do d10 em 5.000: 4,9; do d20: 13,5; o d10 tinha dado 19,8 em 1.000, o que era flutuação). Na suíte o teste roda com 300 por dado; `ROLAGENS_ESTATISTICAS=5000 npx vitest run todosOsDados` mede de verdade.
+
+- **A barra muda de cor com o estado, e a que SOBE vai do amarelo ao vermelho** — pedido dele (02/09/2026): "oblívio deixa o estresse subindo tipo 1 amarelo, 2 alaranjando, 3 alaranjado, 4 laranja avermelhado, 5 vermelhasso, com vários níveis de cor; se for outras fichas, PV ou PM mantém o básico de vida cheia e depois vai descendo e vai mudando de cor para amarela em 40% e vermelha em 15%". Nasceu a marca `sobe` na barra (`RecursoVital`): a barra que sobe começa vazia e o perigo é encher, e o preenchimento dela é um degrau por ponto do amarelo puro ao vermelho puro (`corDaEscalaDeEstresse`, só o verde do `#ff__00` muda, cor chapada por nível, sem degradê). Quem sobe por padrão é decidido pelo nome (as regiões do corpo de Oblívio, que é onde o dano se acumula naquela ficha: "Torso 0/5"; estresse, dano, carga, fadiga, corrupção), e o editor de barras ganhou a coluna "Sobe" pra pessoa desfazer ou marcar. Barra que desce (PV, PM, tudo o mais) fica com a cor dela enquanto está cheia o bastante, amarela nos 40% e vermelha nos 15% (as linhas eram a metade e o quarto); a cor escolhida no editor é a de "vida cheia". Na importação, uma barra que sobe com só o limite escrito começa em zero; descansar com "recuperar tudo" numa barra que sobe zera, em vez de encher.
 
 - **Cada barra tem a sua cor, e cada condição também** — pedido dele: "para cada atributo atribuir
   cor também; Caído, a pessoa decide a cor também". A barra deixa de trocar de cor com o estado

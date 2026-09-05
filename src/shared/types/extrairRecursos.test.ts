@@ -104,3 +104,16 @@ describe('extrairRecursos', () => {
     expect(recursos).toEqual([{ nome: 'PV', atual: 19, maximo: 45, atualEmBranco: false }])
   })
 })
+
+describe('a barra que sobe, na importação', () => {
+  it('só o limite escrito ("Limite de Estresse máximo 6"): começa VAZIA, não cheia', () => {
+    const recursos = extrairRecursos([{ label: 'Estresse máximo', value: '6' }])
+    expect(recursos).toEqual([{ nome: 'Estresse', atual: 0, maximo: 6, atualEmBranco: true }])
+  })
+
+  it('o par escrito vale como está: "Torso 2/5" é 2 de 5', () => {
+    expect(extrairRecursos([{ label: 'Torso', value: '2/5', group: 'Corpo' }])).toEqual([
+      { nome: 'Torso', atual: 2, maximo: 5, atualEmBranco: false }
+    ])
+  })
+})

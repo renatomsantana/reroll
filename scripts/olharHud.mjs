@@ -17,9 +17,10 @@ const ASSETS = join(RAIZ, 'out', 'renderer', 'assets')
 const css = readdirSync(ASSETS).find((n) => n.startsWith('index-') && n.endsWith('.css'))
 if (!css) throw new Error('Rode `npx electron-vite build` antes.')
 
-const barra = (nome, atual, maximo, estado, cor) =>
-  `<div class="barra-recurso barra-${estado} barra-compacta" style="--recurso-cor:${cor}"><span class="barra-nome">${nome}</span><div class="barra-trilho"><div class="barra-preenchido" style="width:${(atual / maximo) * 100}%"></div></div><button class="barra-passo">−</button><button class="barra-valor">${atual}<span class="barra-valor-max">/${maximo}</span></button><button class="barra-passo">+</button></div>`
-const barras = `<div class="barras-compactas">${barra('PV', 12, 45, 'aviso', '#800000')}${barra('PE', 2, 12, 'perigo', '#000080')}${barra('Sanidade', 38, 40, 'normal', '#800080')}</div>`
+// `preenchido` é a cor de AGORA (ver `corDoPreenchimento`): amarela nos 40%, vermelha nos 15%, ou o degrau da barra que sobe.
+const barra = (nome, atual, maximo, estado, cor, preenchido = cor) =>
+  `<div class="barra-recurso barra-${estado} barra-compacta" style="--recurso-cor:${cor};--recurso-preenchido:${preenchido}"><span class="barra-nome">${nome}</span><div class="barra-trilho"><div class="barra-preenchido" style="width:${(atual / maximo) * 100}%"></div></div><button class="barra-passo">−</button><button class="barra-valor">${atual}<span class="barra-valor-max">/${maximo}</span></button><button class="barra-passo">+</button></div>`
+const barras = `<div class="barras-compactas">${barra('PV', 45, 45, 'normal', '#800000')}${barra('PV', 40, 100, 'aviso', '#800000', '#ffff00')}${barra('PE', 2, 12, 'perigo', '#000080', '#ff0000')}${barra('Torso', 1, 5, 'normal', '#808080', '#ffff00')}${barra('Torso', 2, 5, 'normal', '#808080', '#ffbf00')}${barra('Torso', 3, 5, 'aviso', '#808080', '#ff8000')}${barra('Torso', 4, 5, 'aviso', '#808080', '#ff4000')}${barra('Torso', 5, 5, 'perigo', '#808080', '#ff0000')}</div>`
 const cabecalho = (mini) =>
   `<div class="hud-cabecalho"><span class="hud-retrato hud-retrato-vazio">M</span>${mini ? '' : '<span class="hud-nome">Matias Oliveira</span>'}<span class="hud-botoes"><button class="hud-botao">${mini ? '▢' : '▁'}</button><button class="hud-botao">✕</button></span></div>`
 const chip = (nome, cor, texto, ativa) => `<span class="hud-condicao ${ativa ? 'hud-condicao-ativa' : ''}" style="--condicao-cor:${cor};--condicao-texto:${texto}"><label class="hud-condicao-cor"></label><button class="hud-condicao-nome">${nome}</button><button class="hud-condicao-remover">×</button></span>`
