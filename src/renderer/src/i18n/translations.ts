@@ -211,25 +211,20 @@ export interface TranslationDict {
     soundOn: string
     soundOff: string
     volume: string
-    volumeHint: string
     compactMode: string
-    compactModeHint: string
     /** Botão de compactar na barra de título — é a única saída do modo, então precisa de rótulo. */
     compactEnter: string
     compactExit: string
     resultPopup: string
     /** Como o resultado aparece: bandeja 3D ou número na hora (ver `DisplayMode`). */
     displayMode: string
-    displayModeHint: string
     displayMode3d: string
     displayModeQuick: string
-    resultPopupHint: string
     /** A linha copiada pro chat (spec §3.5): negrito Markdown, e copiar toda rolagem sozinho. */
     copyMarkdown: string
     autoCopy: string
     /** Os efeitos de crítico/falha (spec §3.7), clarão e som separados. */
     critVisual: string
-    critVisualHint: string
     critSound: string
     history: string
     historyOpen: string
@@ -682,21 +677,16 @@ export const translations: Record<Language, TranslationDict> = {
       soundOn: 'Ativado',
       soundOff: 'Desativado',
       volume: 'Volume',
-      volumeHint: 'Vale pra todos os sons: dados, crítico e abertura. Soltar a barrinha toca um dado.',
       compactMode: 'Modo compacto',
-      compactModeHint: 'Janela pequena com seus presets, sempre por cima das outras.',
       compactEnter: 'Modo compacto',
       compactExit: 'Sair do modo compacto',
       displayMode: 'Como o resultado aparece',
-      displayModeHint: 'A bandeja 3D, ou só o número: mais rápido em computador mais fraco.',
       displayMode3d: 'Bandeja 3D',
       displayModeQuick: 'Resultado rápido',
       resultPopup: 'Popup de resultado',
-      resultPopupHint: 'Mostra o total somado num popup por cima da bandeja ao assentar os dados.',
       copyMarkdown: 'Copiar com negrito (Markdown)',
       autoCopy: 'Copiar toda rolagem',
       critVisual: 'Clarão de crítico e falha',
-      critVisualHint: 'Um segundo de festa (ou de luto) sobre a cena no 20 natural e no 1 natural. Qual dado conta é escolha por personagem, na Ficha.',
       critSound: 'Som de crítico e falha',
       history: 'Histórico de rolagens',
       historyOpen: 'Abrir',
@@ -1111,21 +1101,16 @@ export const translations: Record<Language, TranslationDict> = {
       soundOn: 'On',
       soundOff: 'Off',
       volume: 'Volume',
-      volumeHint: 'Applies to every sound: dice, crits and the intro. Releasing the slider plays a die.',
       compactMode: 'Compact mode',
-      compactModeHint: 'Small window with your presets, always on top.',
       compactEnter: 'Compact mode',
       compactExit: 'Leave compact mode',
       displayMode: 'How the result shows up',
-      displayModeHint: 'The 3D tray, or just the number: faster on a weaker computer.',
       displayMode3d: '3D tray',
       displayModeQuick: 'Quick result',
       resultPopup: 'Result popup',
-      resultPopupHint: 'Shows the summed total in a popup over the tray once the dice settle.',
       copyMarkdown: 'Copy with bold (Markdown)',
       autoCopy: 'Copy every roll',
       critVisual: 'Critical and fumble flash',
-      critVisualHint: 'One second of celebration (or mourning) over the scene on a natural 20 and a natural 1. Which die counts is a per-character choice, on the Sheet.',
       critSound: 'Critical and fumble sound',
       history: 'Roll history',
       historyOpen: 'Open',
