@@ -1233,6 +1233,14 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           <span className="dice-roller-3d-quick-label">{t.roller.total}</span>
           <span className="dice-roller-3d-quick-total">{lastResult ? lastResult.total : <>&nbsp;</>}</span>
           {lastResult && <span className="dice-roller-3d-quick-expr">{lastResult.label}</span>}
+          {/*
+            O HUD também aqui (06/09/2026). Ele só era sobreposto à cena 3D, e o modo rápido ficava
+            sem nome, sem foto, sem barras, sem condições, sem Descansar e sem o lápis de criar
+            barras: o HUD é a ÚNICA casa disso tudo na Rolagem desde que o crachá saiu (02/09), e
+            quem roda sem WebGL cai no modo rápido à força. A caixa é `position: relative` pra ele
+            se pendurar nos mesmos cantos.
+          */}
+          {overlay}
         </div>
       ) : (
       <div className="dice-roller-3d-canvas">

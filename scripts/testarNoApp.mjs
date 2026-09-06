@@ -474,10 +474,20 @@ async function criarPreset(nome) {
 async function escolherNoSeletorDoDialogo(sistema) {
   return js(`(() => { const s = document.querySelector('[role=alertdialog] select'); if (!s) return false; const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, ${JSON.stringify(sistema)}); s.dispatchEvent(new Event('change', { bubbles: true })); return s.value === ${JSON.stringify(sistema)} })()`)
 }
-async function confirmarImportacaoDeFicha(sistema, nomeDaFoto) {
+/**
+ * Percorre o caminho da importação: "tem certeza?" (só quando a ficha vai CRIAR um personagem; o
+ * personagem aberto EM BRANCO recebe a ficha sem pergunta, ver `personagemEmBranco`), depois a
+ * lista de sistemas. Devolve `false` se algum diálogo não veio.
+ */
+async function confirmarImportacaoDeFicha(sistema, nomeDaFoto, { semTemCerteza = false } = {}) {
   const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
   if (!dialogo) return false
-  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  const veioALista = await js(`!!document.querySelector('[role=alertdialog] select')`)
+  if (semTemCerteza !== veioALista) {
+    console.log(`  (esperava ${semTemCerteza ? 'a lista de sistemas direto' : 'o "tem certeza?" antes da lista'}, veio ${veioALista ? 'a lista' : 'o "tem certeza?"'})`)
+    return false
+  }
+  if (!veioALista) await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
   const lista = await esperarAte(`!!document.querySelector('[role=alertdialog] select')`, 3000)
   if (!lista) return false
   if (sistema) await escolherNoSeletorDoDialogo(sistema)
@@ -521,7 +531,7 @@ async function fasePresets() {
   await abrirApp({ displayMode: 'quick' })
   await aba('Ficha')
   await clicar('Importar ficha (PDF)')
-  await confirmarImportacaoDeFicha()
+  checar(await confirmarImportacaoDeFicha(undefined, undefined, { semTemCerteza: true }), 'personagem em branco: a lista de sistemas vem direto, sem "tem certeza?"')
   // Sem janela nenhuma: o PDF é lido e gravado direto, e a Ficha diz o que importou.
   await esperarAte(`!!document.querySelector('.sheet-import-feito')`, 60000, 250)
   await espera(500)
@@ -602,8 +612,10 @@ async function fasePerfis() {
   checar(presets.join() === 'Espada longa', `os presets são os do Kieran (${presets})`)
   checar((await preferencia('diceBodyColor')) === '#222222', `a cor do dado é a do Kieran (${await preferencia('diceBodyColor')})`)
   checar((await preferencia('trayShape')) === 'circle', `a bandeja é a do Kieran (${await preferencia('trayShape')})`)
-  const nomeNoCabecalho = await js(`document.querySelector('.profile-badge, [data-testid=profile-badge]')?.textContent`)
-  checar(nomeNoCabecalho?.includes('Kieran'), `o crachá da rolagem mostra o Kieran ("${nomeNoCabecalho}")`)
+  // O crachá saiu de perto do ROLAR (02/09/2026): na Rolagem, quem diz o nome é o HUD.
+  const nomeNoHud = await js(`document.querySelector('.hud-nome')?.textContent`)
+  checar(nomeNoHud?.includes('Kieran'), `o HUD da rolagem mostra o Kieran ("${nomeNoHud}")`)
+  await foto('perfis-hud-no-modo-rapido')
 
   // 3. Digitar na ficha do Kieran, ir pro Zé, voltar: o texto ficou, e o Zé não ganhou nada.
   await aba('Ficha')
@@ -1146,8 +1158,9 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     await abrirApp({})
     await aba('Ficha')
     await clicar('Importar ficha (PDF)')
-    await confirmarImportacaoDeFicha()
-    // Sem janela: lê, cria o personagem e grava sozinho; a Ficha mostra o aviso do que importou.
+    // O p1 está EM BRANCO (o que "Novo personagem" cria): a ficha entra nele, sem "tem certeza?".
+    await confirmarImportacaoDeFicha(undefined, undefined, { semTemCerteza: true })
+    // Sem janela: lê, grava no personagem em branco e a Ficha mostra o aviso do que importou.
     const importou = await esperarAte(`!!document.querySelector('.sheet-import-feito') || !!document.querySelector('.sheet-save-error')`, 60000, 250)
     const conf = await js(`(() => {
       const feito = document.querySelector('.sheet-import-feito')
@@ -1169,6 +1182,9 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     }
     await espera(400)
     await foto(`ficha-${slug}-importada`)
+    // O personagem em branco RECEBEU a ficha: a lista continua com um, e é o p1 (o defeito de
+    // 06/09/2026: "Novo personagem" + importar deixava um sem nome pra trás e gastava dois lugares).
+    checar(apply.targetProfileId === 'p1' && estado.profiles.profiles.length === 1 && estado.profiles.activeId === 'p1', `      ${nome}: entrou no personagem em branco, sem criar outro (${estado.profiles.profiles.length} na lista)`)
     // A Ficha diz quanto leu, no lugar da janela que existia.
     checar(/\d+ campos e \d+ rolagens/.test(conf.resumo), `      ${nome}: a Ficha diz o que importou ("${conf.resumo.slice(0, 60)}...")`)
     const resumo = `${apply.notes.sections.length} seções, ${apply.presets.length} presets, barras [${(apply.recursos ?? []).map((r) => `${r.nome} ${r.atual}/${r.maximo}`).join(', ')}], retrato ${apply.photo ? `${Math.round(apply.photo.length / 1024)} KB` : 'não'}`
@@ -1213,7 +1229,8 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
    */
   const milo = pdfs.find((n) => /milo/i.test(n))
   if (milo) {
-    estado.profiles = { profiles: [{ id: 'p1', name: '', system: '', photo: null, createdAt: 1 }], activeId: 'p1' }
+    // Com um personagem COM NOME aberto: aqui a ficha CRIA outro, e é o caminho com "tem certeza?".
+    estado.profiles = { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: null, createdAt: 1 }], activeId: 'p1' }
     estado.notas = new Map([['p1', NOTAS_VAZIAS()]])
     estado.presets = new Map([['p1', []]])
     estado.pdfParaAbrir = { nome: milo, bytes: new Uint8Array(readFileSync(join(pasta, milo))) }
@@ -1232,6 +1249,7 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     await esperarAte(`!!document.querySelector('.sheet-import-feito')`, 60000, 250)
     const outro = await js(`(document.querySelector('.sheet-import-feito-outro') || {}).textContent || ''`)
     checar(/D&D 5e/.test(outro) && /Tormenta20/.test(outro) && estado.ultimoApply?.notes.sections.length > 3, `      escolhendo D&D 5e na ficha do Milo: "${outro}" e a ficha veio inteira (${estado.ultimoApply?.notes.sections.length} seções)`)
+    checar(!estado.ultimoApply?.targetProfileId && estado.profiles.profiles.length === 2 && estado.profiles.activeId !== 'p1', `      com o Matias aberto, a ficha do Milo virou OUTRO personagem (${estado.profiles.profiles.length} na lista) e o Matias ficou como estava`)
     await foto('ficha-milo-sistema-errado')
   }
 }
