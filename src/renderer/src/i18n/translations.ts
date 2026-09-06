@@ -210,6 +210,8 @@ export interface TranslationDict {
     sound: string
     soundOn: string
     soundOff: string
+    volume: string
+    volumeHint: string
     compactMode: string
     compactModeHint: string
     /** Botão de compactar na barra de título — é a única saída do modo, então precisa de rótulo. */
@@ -683,6 +685,8 @@ export const translations: Record<Language, TranslationDict> = {
       sound: 'Som',
       soundOn: 'Ativado',
       soundOff: 'Desativado',
+      volume: 'Volume',
+      volumeHint: 'Vale pra todos os sons: dados, crítico e abertura. Soltar a barrinha toca um dado.',
       compactMode: 'Modo compacto',
       compactModeHint: 'Janela pequena com seus presets, sempre por cima das outras.',
       compactEnter: 'Modo compacto',
@@ -1115,6 +1119,8 @@ export const translations: Record<Language, TranslationDict> = {
       sound: 'Sound',
       soundOn: 'On',
       soundOff: 'Off',
+      volume: 'Volume',
+      volumeHint: 'Applies to every sound: dice, crits and the intro. Releasing the slider plays a die.',
       compactMode: 'Compact mode',
       compactModeHint: 'Small window with your presets, always on top.',
       compactEnter: 'Compact mode',

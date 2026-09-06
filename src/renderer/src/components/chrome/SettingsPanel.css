@@ -123,6 +123,25 @@
   font-size: 13px;
 }
 
+/** A barrinha de volume com o número ao lado, na largura toda. O `range` é o do 98, de `global.css`. */
+.settings-panel-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.settings-panel-volume input[type='range'] {
+  flex: 1;
+}
+
+.settings-panel-volume-valor {
+  min-width: 4ch;
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
 /** Botões da linha de versão: quebram de linha porque o segundo ("Reiniciar agora") só existe às vezes. */
 .settings-panel-update-actions {
   display: flex;

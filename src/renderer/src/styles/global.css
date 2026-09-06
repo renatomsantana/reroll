@@ -221,6 +221,47 @@ button:active:not(:disabled) {
 }
 
 /*
+ * O controle deslizante no vocabulário do 98: trilho AFUNDADO e um botão quadrado em relevo, como o
+ * controle de volume da época. O `range` nativo do Chromium é azul e arredondado — leu como moderno
+ * na captura, e a regra da casa é sem isso. Nasceu no zoom do recorte de foto e virou regra geral
+ * quando a barrinha de volume das Preferências precisou do mesmo desenho.
+ */
+input[type='range'] {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--win-input-bg);
+  border: 2px inset var(--win-highlight);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 20px;
+  margin-top: -9px;
+  background: var(--win-face);
+  border: 2px outset var(--win-highlight);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+input[type='range']:disabled::-webkit-slider-thumb {
+  cursor: default;
+}
+
+input[type='range']:focus-visible {
+  outline: 1px dotted var(--win-text);
+  outline-offset: 2px;
+}
+
+/*
  * Retângulo pontilhado de foco, por DENTRO do degrau (`outline-offset` negativo) — é o desenho
  * clássico do foco de teclado no 98. Só em `:focus-visible`, pra não piscar a cada clique.
  */

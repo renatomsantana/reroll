@@ -10,6 +10,19 @@ Cada versão publicada tem o SHA-256 do instalador na página da release — con
 
 Em resumo, o que muda pra quem joga:
 
+- Uma barrinha de volume nas Preferências, embaixo do interruptor de som. Soltar a barrinha toca
+  um dado, pra você medir.
+- Todos têm um limite de 3 personagens! Usem bem! No terceiro, o botão de criar fica apagado: se
+  quiser fazer um personagem novo, tem que apagar um!
+
+### Adicionado
+
+- **Barrinha de volume** (pedido dele, 05/09/2026: "uma barrinha para medir o som do jogo e a pessoa diminuir ou aumentar"). Um volume geral de 0 a 100 nas preferências (`volume`, padrão 100, que é o de sempre), que vale pra TODOS os sons: a rolagem (`rollSound.ts` lê o ganho a cada toque), a fanfarra e o "womp" do crítico (`efeitosDeCritico.ts` multiplica o ganho de cada nota, e em zero nem cria o contexto de áudio) e a abertura (`SplashScreen.tsx`, que lê do contexto porque o efeito dela roda antes do efeito do provedor). O valor mora fora do React, em `audio/volume.ts`, porque o som de rolagem dispara de um `setTimeout` no meio da física. A barrinha é um `range` no desenho do 98 (trilho afundado, botão quadrado em relevo), que saiu do zoom do recorte de foto e virou regra geral em `global.css`; mostra o número ao lado, fica apagada com o som desligado, e SOLTAR o botão toca o som de um dado no volume novo, que é como a pessoa mede sem sair das Preferências. A higiene das preferências (`sanearPreferencias`) descarta volume que não é número de 0 a 100, porque o `volume` do elemento de áudio lança fora dessa faixa, dentro de um `setTimeout` onde ninguém pegaria o erro. A fase `sons` do harness abre o app com volume 30, confere que a rolagem toca a 0,3, e arrasta a barrinha pra 70 nas Preferências.
+
+## [1.1.4] — 2026-09-05
+
+Em resumo, o que muda pra quem joga:
+
 - Novidade na área! HUD na mesa: um cartão sobre a cena dos dados com a foto do seu personagem e as barras que o
   seu sistema usa, como PV, PE, PM, Estresse ou Loucura, pintadas com cores conforme a vida em que
   você está. Clique uma vez e sobe ou desce 1; segure o botão e anda de 5 em 5.

@@ -52,6 +52,7 @@ const IGUAIS_DE_PROPOSITO = new Map<string, string>([
   ['styleTab.hex', '"Hex", do código de cor — igual nos dois'],
   ['history.restEvent', 'só colchetes em volta do nome do descanso — não há palavra pra traduzir'],
   ['photoCrop.zoom', '"Zoom" se escreve igual nos dois'],
+  ['settings.volume', '"Volume" se escreve igual nos dois'],
   ['dialog.ok', '"OK" é OK nos dois'],
   [
     'notesTab.backstoryBlock',

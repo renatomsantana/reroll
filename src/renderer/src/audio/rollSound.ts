@@ -1,10 +1,13 @@
 import rollSingleUrl from '../assets/sounds/roll-single.mp3'
 import rollManyUrl from '../assets/sounds/roll-many.mp3'
+import { ganhoDoVolume } from './volume'
 
 let singleAudio: HTMLAudioElement | null = null
 let manyAudio: HTMLAudioElement | null = null
 
 function play(audio: HTMLAudioElement): void {
+  // Lido a cada toque, e não na criação do elemento: a barrinha de volume muda no meio da sessão.
+  audio.volume = ganhoDoVolume()
   audio.currentTime = 0
   void audio.play().catch(() => {
     // Autoplay bloqueado ou arquivo ausente: ignora silenciosamente.

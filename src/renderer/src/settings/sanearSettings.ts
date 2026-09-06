@@ -1,4 +1,5 @@
 import { TRAY_SHAPES } from '@renderer/dice3d/geometry/trayShape'
+import { volumeValido } from '@renderer/audio/volume'
 
 /**
  * Higiene do que veio do `localStorage`.
@@ -47,6 +48,12 @@ export function sanearPreferencias<T extends Record<string, unknown>>(bruto: T):
       delete limpo[campo]
     }
   }
+  /**
+   * O volume é NÚMERO de faixa fechada, e errar nele é fatal do mesmo jeito que a bandeja: o
+   * `HTMLMediaElement.volume` lança `IndexSizeError` fora de 0..1, e o som de rolagem dispara de
+   * dentro de um `setTimeout`, onde ninguém pega o erro.
+   */
+  if ('volume' in limpo && volumeValido(limpo.volume) === null) delete limpo.volume
   return limpo as Partial<T>
 }
 

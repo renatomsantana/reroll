@@ -8,6 +8,8 @@ import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import { FontSelect } from './FontSelect'
 import { UpdateSection } from './UpdateSection'
+import { playRollSound } from '@renderer/audio/rollSound'
+import { VOLUME_MAXIMO, VOLUME_MINIMO } from '@renderer/audio/volume'
 import './SettingsPanel.css'
 
 interface SettingsPanelProps {
@@ -40,6 +42,8 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
     themeSource,
     fontId,
     soundEnabled,
+    volume,
+    setVolume,
     compactMode,
     debugMode,
     appIconId,
@@ -116,6 +120,37 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
             />
             {soundEnabled ? t.settings.soundOn : t.settings.soundOff}
           </label>
+        </label>
+
+        {/*
+          A barrinha de volume (pedido dele: "uma barrinha para medir o som do jogo e a pessoa
+          diminuir ou aumentar"). Soltar o botão toca o som de um dado no volume novo, que é como a
+          pessoa MEDE: sem isso ela teria que fechar as Preferências e rolar pra ouvir. Apagada com
+          o som desligado, em vez de sumir, pra ela saber que existe.
+        */}
+        <label className="settings-panel-field settings-panel-field-column">
+          <span>
+            {t.settings.volume}
+            <br />
+            <small className="settings-panel-hint">{t.settings.volumeHint}</small>
+          </span>
+          <span className="settings-panel-volume">
+            <input
+              type="range"
+              min={VOLUME_MINIMO}
+              max={VOLUME_MAXIMO}
+              step={1}
+              value={volume}
+              disabled={!soundEnabled}
+              aria-label={t.settings.volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              onPointerUp={() => playRollSound(1)}
+              onKeyUp={(e) => {
+                if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') playRollSound(1)
+              }}
+            />
+            <span className="settings-panel-volume-valor">{volume}%</span>
+          </span>
         </label>
 
         <label className="settings-panel-field settings-panel-field-row">

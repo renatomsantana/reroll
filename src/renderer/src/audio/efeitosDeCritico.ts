@@ -9,6 +9,8 @@
  * O `AudioContext` nasce no primeiro uso, e não na importação do módulo: criado antes de um gesto
  * da pessoa ele nasce suspenso, e o `resume()` no clique é o que o destrava.
  */
+import { ganhoDoVolume } from './volume'
+
 let contexto: AudioContext | null = null
 
 function obterContexto(): AudioContext | null {
@@ -33,16 +35,26 @@ function nota(ctx: AudioContext, frequencia: number, inicio: number, duracao: nu
   oscilador.stop(inicio + duracao + 0.02)
 }
 
+/**
+ * O volume geral (a barrinha das configurações) multiplica o de cada nota. Em zero nem cria o
+ * contexto: o envelope exponencial não sabe partir de zero, e som mudo não precisa de oscilador.
+ */
 export function tocarCritico(): void {
+  const ganhoGeral = ganhoDoVolume()
+  if (ganhoGeral <= 0) return
   const ctx = obterContexto()
   if (!ctx) return
   const agora = ctx.currentTime
   // Dó5, Mi5, Sol5 e Dó6 — o arpejo de "conseguiu" dos jogos de plataforma.
   const arpejo = [523.25, 659.25, 783.99, 1046.5]
-  arpejo.forEach((frequencia, i) => nota(ctx, frequencia, agora + i * 0.09, i === arpejo.length - 1 ? 0.35 : 0.1, 0.12))
+  arpejo.forEach((frequencia, i) =>
+    nota(ctx, frequencia, agora + i * 0.09, i === arpejo.length - 1 ? 0.35 : 0.1, 0.12 * ganhoGeral)
+  )
 }
 
 export function tocarFalha(): void {
+  const ganhoGeral = ganhoDoVolume()
+  if (ganhoGeral <= 0) return
   const ctx = obterContexto()
   if (!ctx) return
   const agora = ctx.currentTime
@@ -55,7 +67,7 @@ export function tocarFalha(): void {
   filtro.type = 'lowpass'
   filtro.frequency.setValueAtTime(1200, agora)
   filtro.frequency.exponentialRampToValueAtTime(120, agora + 0.5)
-  ganho.gain.setValueAtTime(0.16, agora)
+  ganho.gain.setValueAtTime(0.16 * ganhoGeral, agora)
   ganho.gain.exponentialRampToValueAtTime(0.001, agora + 0.55)
   oscilador.connect(filtro)
   filtro.connect(ganho)
