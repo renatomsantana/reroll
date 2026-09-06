@@ -10,6 +10,12 @@ import { FontSelect } from './FontSelect'
 import { UpdateSection } from './UpdateSection'
 import { playRollSound } from '@renderer/audio/rollSound'
 import { VOLUME_MAXIMO, VOLUME_MINIMO } from '@renderer/audio/volume'
+import {
+  COPIAR_COM_NEGRITO_NAS_PREFERENCIAS,
+  CRITICO_NAS_PREFERENCIAS,
+  INTERRUPTOR_DE_SOM_NAS_PREFERENCIAS,
+  SELETOR_DE_RESULTADO_NAS_PREFERENCIAS
+} from '@shared/liberacoes'
 import './SettingsPanel.css'
 
 interface SettingsPanelProps {
@@ -110,23 +116,30 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           <FontSelect value={fontId} onChange={(value) => value && setFontId(value)} />
         </div>
 
-        <label className="settings-panel-field settings-panel-field-row">
-          <span>{t.settings.sound}</span>
-          <label className="settings-panel-checkbox">
-            <input
-              type="checkbox"
-              checked={soundEnabled}
-              onChange={(e) => setSoundEnabled(e.target.checked)}
-            />
-            {soundEnabled ? t.settings.soundOn : t.settings.soundOff}
+        {/*
+          O interruptor Ativado/Desativado está GUARDADO (ver `liberacoes.ts`): a barrinha de volume
+          é o controle de som, e zero é mudo. Sem o interruptor na tela, mexer na barrinha RELIGA o
+          som de quem o tinha desligado numa versão anterior, senão ficaria mudo sem botão pra sair.
+        */}
+        {INTERRUPTOR_DE_SOM_NAS_PREFERENCIAS && (
+          <label className="settings-panel-field settings-panel-field-row">
+            <span>{t.settings.sound}</span>
+            <label className="settings-panel-checkbox">
+              <input
+                type="checkbox"
+                checked={soundEnabled}
+                onChange={(e) => setSoundEnabled(e.target.checked)}
+              />
+              {soundEnabled ? t.settings.soundOn : t.settings.soundOff}
+            </label>
           </label>
-        </label>
+        )}
 
         {/*
           A barrinha de volume (pedido dele: "uma barrinha para medir o som do jogo e a pessoa
           diminuir ou aumentar"). Soltar o botão toca o som de um dado no volume novo, que é como a
-          pessoa MEDE: sem isso ela teria que fechar as Preferências e rolar pra ouvir. Apagada com
-          o som desligado, em vez de sumir, pra ela saber que existe.
+          pessoa MEDE: sem isso ela teria que fechar as Preferências e rolar pra ouvir. Com o
+          interruptor na tela e desligado, fica apagada em vez de sumir, pra ela saber que existe.
         */}
         <label className="settings-panel-field settings-panel-field-column">
           <span>
@@ -139,9 +152,12 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
               max={VOLUME_MAXIMO}
               step={1}
               value={volume}
-              disabled={!soundEnabled}
+              disabled={INTERRUPTOR_DE_SOM_NAS_PREFERENCIAS && !soundEnabled}
               aria-label={t.settings.volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
+              onChange={(e) => {
+                setVolume(Number(e.target.value))
+                if (!INTERRUPTOR_DE_SOM_NAS_PREFERENCIAS && !soundEnabled) setSoundEnabled(true)
+              }}
               onPointerUp={() => playRollSound(1)}
               onKeyUp={(e) => {
                 if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') playRollSound(1)
@@ -175,18 +191,18 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           fonte larga, que foi o "fontes bugaram quando trocando" do usuário. Uma linha inteira pra
           dica e o seletor embaixo cabe em qualquer fonte.
         */}
-        <label className="settings-panel-field settings-panel-field-column">
-          <span>
-            {t.settings.displayMode}
-          </span>
-          <select
-            value={displayMode}
-            onChange={(e) => setDisplayMode(e.target.value as typeof displayMode)}
-          >
-            <option value="3d">{t.settings.displayMode3d}</option>
-            <option value="quick">{t.settings.displayModeQuick}</option>
-          </select>
-        </label>
+        {SELETOR_DE_RESULTADO_NAS_PREFERENCIAS && (
+          <label className="settings-panel-field settings-panel-field-column">
+            <span>{t.settings.displayMode}</span>
+            <select
+              value={displayMode}
+              onChange={(e) => setDisplayMode(e.target.value as typeof displayMode)}
+            >
+              <option value="3d">{t.settings.displayMode3d}</option>
+              <option value="quick">{t.settings.displayModeQuick}</option>
+            </select>
+          </label>
+        )}
 
         <label className="settings-panel-field settings-panel-field-row">
           <span>
@@ -201,15 +217,15 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           </label>
         </label>
 
-        {/* A linha copiada pro chat (spec §3.5) — negrito Markdown e o copiar automático. */}
-        <label className="settings-panel-field settings-panel-field-row">
-          <span>
-            {t.settings.copyMarkdown}
-          </span>
-          <label className="settings-panel-checkbox">
-            <input type="checkbox" checked={copyMarkdown} onChange={(e) => setCopyMarkdown(e.target.checked)} />
+        {/* A linha copiada pro chat (spec §3.5) — negrito Markdown (guardado, ver `liberacoes.ts`) e o copiar automático. */}
+        {COPIAR_COM_NEGRITO_NAS_PREFERENCIAS && (
+          <label className="settings-panel-field settings-panel-field-row">
+            <span>{t.settings.copyMarkdown}</span>
+            <label className="settings-panel-checkbox">
+              <input type="checkbox" checked={copyMarkdown} onChange={(e) => setCopyMarkdown(e.target.checked)} />
+            </label>
           </label>
-        </label>
+        )}
 
         <label className="settings-panel-field settings-panel-field-row">
           <span>
@@ -220,24 +236,28 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           </label>
         </label>
 
-        {/* Crítico e falha (spec §3.7): o clarão e o som, separados — a regra de QUAL dado é por personagem, na Ficha. */}
-        <label className="settings-panel-field settings-panel-field-row">
-          <span>
-            {t.settings.critVisual}
-          </span>
-          <label className="settings-panel-checkbox">
-            <input type="checkbox" checked={critVisualEnabled} onChange={(e) => setCritVisualEnabled(e.target.checked)} />
-          </label>
-        </label>
+        {/*
+          Crítico e falha (spec §3.7): o clarão e o som, separados — a regra de QUAL dado é por
+          personagem, na Ficha. As duas linhas estão GUARDADAS (ver `liberacoes.ts`): os efeitos
+          continuam ligados, só não têm mais interruptor no painel.
+        */}
+        {CRITICO_NAS_PREFERENCIAS && (
+          <>
+            <label className="settings-panel-field settings-panel-field-row">
+              <span>{t.settings.critVisual}</span>
+              <label className="settings-panel-checkbox">
+                <input type="checkbox" checked={critVisualEnabled} onChange={(e) => setCritVisualEnabled(e.target.checked)} />
+              </label>
+            </label>
 
-        <label className="settings-panel-field settings-panel-field-row">
-          <span>
-            {t.settings.critSound}
-          </span>
-          <label className="settings-panel-checkbox">
-            <input type="checkbox" checked={critSoundEnabled} onChange={(e) => setCritSoundEnabled(e.target.checked)} />
-          </label>
-        </label>
+            <label className="settings-panel-field settings-panel-field-row">
+              <span>{t.settings.critSound}</span>
+              <label className="settings-panel-checkbox">
+                <input type="checkbox" checked={critSoundEnabled} onChange={(e) => setCritSoundEnabled(e.target.checked)} />
+              </label>
+            </label>
+          </>
+        )}
 
         {/*
           O histórico saiu da coluna fixa da janela e passou a morar aqui atrás de um botão —

@@ -18,6 +18,27 @@
 export const HUD_LIBERADO = true
 
 /**
+ * Duas linhas das Preferências GUARDADAS a pedido dele (05/09/2026: "tira o como resultado aparece,
+ * deixa aí se nós quiser outro dia mas tira por agora"; "e tira o copiar com negrito markdown"):
+ * o seletor "Como o resultado aparece" (bandeja 3D ou número na hora) e o "Copiar com negrito
+ * (Markdown)". As preferências continuam existindo e valendo com o valor que têm (`displayMode`
+ * padrão `3d`, `copyMarkdown` padrão ligado; o modo rápido continua sendo a rede de quem não tem
+ * WebGL, ver `webglDisponivel.ts`) — só a linha no painel some. Virar pra `true` traz de volta.
+ */
+export const SELETOR_DE_RESULTADO_NAS_PREFERENCIAS = false
+export const COPIAR_COM_NEGRITO_NAS_PREFERENCIAS = false
+
+/**
+ * Mais três guardadas na mesma hora ("tira o clarão de crítico e falha e som de crítico e falha,
+ * também tira o som ativado ou desativado"): os interruptores do clarão e do som de crítico (os
+ * efeitos seguem LIGADOS, só sem botão) e o Ativado/Desativado do som. Sem este último, a
+ * barrinha de volume é o controle de som (zero é mudo), e mexer nela religa o som de quem o
+ * tinha desligado antes, pra ninguém ficar mudo sem botão pra sair.
+ */
+export const CRITICO_NAS_PREFERENCIAS = false
+export const INTERRUPTOR_DE_SOM_NAS_PREFERENCIAS = false
+
+/**
  * PERSONAGENS À VONTADE — a regra do dono, dita em 30/08/2026: "EU o DONO posso ter quantos
  * personagens quiser, OS OUTROS usuários apenas 3, eles são bloqueados e recebem um aviso: máximo
  * de personagens atingido = 3".
