@@ -131,8 +131,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <label className="settings-panel-field settings-panel-field-column">
           <span>
             {t.settings.volume}
-            <br />
-            <small className="settings-panel-hint">{t.settings.volumeHint}</small>
           </span>
           <span className="settings-panel-volume">
             <input
@@ -156,8 +154,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.compactMode}
-            <br />
-            <small className="settings-panel-hint">{t.settings.compactModeHint}</small>
           </span>
           <label className="settings-panel-checkbox">
             <input
@@ -182,8 +178,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <label className="settings-panel-field settings-panel-field-column">
           <span>
             {t.settings.displayMode}
-            <br />
-            <small className="settings-panel-hint">{t.settings.displayModeHint}</small>
           </span>
           <select
             value={displayMode}
@@ -197,8 +191,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.resultPopup}
-            <br />
-            <small className="settings-panel-hint">{t.settings.resultPopupHint}</small>
           </span>
           <label className="settings-panel-checkbox">
             <input
@@ -232,8 +224,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.critVisual}
-            <br />
-            <small className="settings-panel-hint">{t.settings.critVisualHint}</small>
           </span>
           <label className="settings-panel-checkbox">
             <input type="checkbox" checked={critVisualEnabled} onChange={(e) => setCritVisualEnabled(e.target.checked)} />
