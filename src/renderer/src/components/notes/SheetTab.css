@@ -520,4 +520,11 @@
 /** O embrulho do botão de importar: a dica do teto mora nele, porque botão apagado não recebe o mouse. */
 .sheet-import-wrap {
   display: inline-flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+/* O seletor de sistema, à esquerda do botão de importar: o nome escolhido, a lista no clique. */
+.sheet-import-sistema {
+  min-width: 170px;
 }

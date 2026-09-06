@@ -460,14 +460,15 @@ export interface TranslationDict {
     unrecognized: string
     /** `{fields}` campos e `{presets}` rolagens, e a lembrança de que tudo é editável. */
     done: string
+    /** O "tem certeza?" antes de escolher o PDF: importar sempre cria um personagem novo. */
+    confirmNew: string
     /**
-     * A lista de sistemas DEPOIS de abrir o PDF (pedido dele, 06/09/2026): o texto do diálogo, a
-     * linha com o sistema que o app reconheceu (`{system}`), o rótulo do genérico na lista, e o
-     * aviso na Ficha quando a escolha não bateu com a ficha (`{chosen}`, `{read}`). É também o
-     * "tem certeza?" da importação: Cancelar não cria personagem.
+     * O SELETOR DE SISTEMA ao lado do botão de importar (pedido dele, 06/09/2026): o rótulo do
+     * seletor, a opção de deixar o app descobrir, o rótulo do genérico na lista, e o aviso na Ficha
+     * quando a escolha não bateu com a ficha (`{chosen}`, `{read}`).
      */
-    chooseSystem: string
-    chooseSystemDetected: string
+    systemLabel: string
+    systemAuto: string
     otherSystem: string
     readAsOther: string
     dismiss: string
@@ -876,8 +877,9 @@ export const translations: Record<Language, TranslationDict> = {
       recognized: 'Reconhecemos como ficha de',
       unrecognized: 'Sistema não reconhecido: importamos o que deu pra ler.',
       done: '{fields} campos e {presets} rolagens importados. Tudo fica editável aqui embaixo, a qualquer momento.',
-      chooseSystem: 'Qual é o sistema desta ficha? O personagem nasce novo, com tudo o que a ficha tiver. Os que já existem não mudam.',
-      chooseSystemDetected: 'O app reconheceu {system}. Se estiver errado, escolha na lista.',
+      confirmNew: 'Importar uma ficha cria um personagem novo. Os que já existem não mudam. Continuar?',
+      systemLabel: 'Sistema da ficha',
+      systemAuto: 'Deixar o app descobrir',
       otherSystem: 'Outro sistema',
       readAsOther: 'A ficha não parecia ser de {chosen}, então lemos como {read}.',
       dismiss: 'Entendi',
@@ -1303,8 +1305,9 @@ export const translations: Record<Language, TranslationDict> = {
       recognized: 'Recognized as a sheet for',
       unrecognized: 'System not recognized: we imported what could be read.',
       done: '{fields} fields and {presets} rolls imported. Everything stays editable down here, anytime.',
-      chooseSystem: 'Which system is this sheet for? The character is created new, with everything the sheet has. Existing ones are not changed.',
-      chooseSystemDetected: 'The app recognized {system}. If that is wrong, pick from the list.',
+      confirmNew: 'Importing a sheet creates a new character. Existing ones are not changed. Continue?',
+      systemLabel: 'Sheet system',
+      systemAuto: 'Let the app find out',
       otherSystem: 'Other system',
       readAsOther: 'The sheet did not look like {chosen}, so we read it as {read}.',
       dismiss: 'Got it',

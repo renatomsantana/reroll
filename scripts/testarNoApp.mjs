@@ -465,17 +465,16 @@ async function criarPreset(nome) {
  * novo, e este diálogo é a única pergunta): clica em OK. Sem o diálogo em 3s, segue; o teste da
  * frente diz se a importação aconteceu.
  */
-/**
- * A lista de sistemas aparece DEPOIS de abrir o PDF (06/09/2026), com o sistema reconhecido já
- * marcado: o harness espera a leitura do PDF (que pode levar segundos) e confirma o marcado pelo
- * botão principal. `sistema` força outra opção da lista, pelo `id` do leitor.
- */
-async function confirmarImportacaoDeFicha(sistema) {
-  const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog] [role=listbox]')`, 60000, 250)
+/** O "tem certeza?" antes do seletor de arquivo: clica no OK do diálogo do app. */
+async function confirmarImportacaoDeFicha() {
+  const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
   if (!dialogo) return false
-  if (sistema) await js(`document.querySelector('[role=alertdialog] [data-opcao=${JSON.stringify(sistema)}]')?.click(); 'ok'`)
-  await js(`document.querySelector('[role=alertdialog] .btn-primary')?.click(); 'ok'`)
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
   return esperarAte(`!document.querySelector('[role=alertdialog]')`, 3000)
+}
+/** Escolhe um sistema no seletor ao lado do botão de importar (06/09/2026), pelo `id` do leitor. */
+async function escolherSistemaDaFicha(sistema) {
+  return js(`(() => { const s = document.querySelector('.sheet-import-sistema'); if (!s) return false; const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, ${JSON.stringify(sistema)}); s.dispatchEvent(new Event('change', { bubbles: true })); return s.value === ${JSON.stringify(sistema)} })()`)
 }
 async function apagarPreset(nome) {
   await js(`(() => { const card = Array.from(document.querySelectorAll('.preset-card')).find((c) => c.querySelector('.preset-card-name')?.textContent === ${JSON.stringify(nome)}); card?.querySelector('.preset-card-action-delete')?.click() })()`)
@@ -1195,9 +1194,10 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
   }
 
   /**
-   * A LISTA DE SISTEMAS com a escolha ERRADA: a ficha do Milo (Tormenta20) importada marcando D&D
-   * 5e na lista. O leitor de D&D não reconhece nada ali, então a detecção manda, a Ficha avisa que
-   * leu como Tormenta20 e o personagem nasce inteiro do mesmo jeito. Só quando a ficha existe.
+   * O SELETOR DE SISTEMA com a escolha ERRADA: a ficha do Milo (Tormenta20) importada com D&D 5e
+   * escolhido no seletor, antes do arquivo. O leitor de D&D não reconhece nada ali, então a
+   * detecção manda, a Ficha avisa que leu como Tormenta20 e o personagem nasce inteiro do mesmo
+   * jeito. Só quando a ficha existe.
    */
   const milo = pdfs.find((n) => /milo/i.test(n))
   if (milo) {
@@ -1208,12 +1208,14 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     estado.ultimoApply = null
     await abrirApp({})
     await aba('Ficha')
+    const padrao = await js(`(document.querySelector('.sheet-import-sistema') || {}).value`)
+    checar(padrao === 'auto', `      o seletor de sistema existe ao lado do botão e começa em "Deixar o app descobrir" (${padrao})`)
+    const escolheu = await escolherSistemaDaFicha('dnd5e')
+    checar(escolheu, `      o seletor aceita D&D 5e antes do arquivo`)
+    await espera(200)
+    await foto('ficha-seletor-de-sistema')
     await clicar('Importar ficha (PDF)')
-    const marcado = await esperarAte(`(document.querySelector('[role=alertdialog] [aria-selected=true]') || {}).textContent === 'Tormenta20'`, 60000, 250)
-    checar(marcado, `      a lista de sistemas abre depois do PDF, com Tormenta20 já marcado`)
-    await espera(300)
-    await foto('ficha-lista-de-sistemas')
-    await confirmarImportacaoDeFicha('dnd5e')
+    await confirmarImportacaoDeFicha()
     await esperarAte(`!!document.querySelector('.sheet-import-feito')`, 60000, 250)
     const outro = await js(`(document.querySelector('.sheet-import-feito-outro') || {}).textContent || ''`)
     checar(/D&D 5e/.test(outro) && /Tormenta20/.test(outro) && estado.ultimoApply?.notes.sections.length > 3, `      escolhendo D&D 5e na ficha do Milo: "${outro}" e a ficha veio inteira (${estado.ultimoApply?.notes.sections.length} seções)`)
