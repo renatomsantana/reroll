@@ -13,17 +13,17 @@ import { extractPdfSheet } from './extractPdfSheet'
 import { SHEET_READERS, readSheet } from './readers'
 import { escolherDestino } from './destinoDaImportacao'
 
-/** O valor da lista de sistemas que significa "deixar o app descobrir": a detecção de sempre. */
-export const SISTEMA_AUTOMATICO = 'auto'
 /** O que vem marcado na lista: Oblívio, a mesa dele ("deixa sempre Oblívio", 06/09/2026). */
 export const SISTEMA_PADRAO = 'oblivio'
 
-/** As opções da lista de sistemas: o automático, os leitores dedicados, e o genérico por último. */
-function opcoesDeSistema(rotuloAutomatico: string, rotuloDoGenerico: string): { id: string; label: string }[] {
-  return [
-    { id: SISTEMA_AUTOMATICO, label: rotuloAutomatico },
-    ...SHEET_READERS.map((leitor) => ({ id: leitor.id, label: rotuloDoSistema(leitor.id, rotuloDoGenerico) }))
-  ]
+/**
+ * As opções da lista de sistemas: os leitores dedicados e, por último, o genérico como "Não
+ * encontrei o meu" (pedido dele, 06/09/2026: "não bota o deixa o app descobrir, coloca o 'não
+ * encontrei o meu' e aí o app faz o scraping cru"). Não há opção de detecção automática: quem não
+ * acha o seu sistema vai direto pro leitor genérico, que é o scraping cru.
+ */
+function opcoesDeSistema(rotuloDoGenerico: string): { id: string; label: string }[] {
+  return SHEET_READERS.map((leitor) => ({ id: leitor.id, label: rotuloDoSistema(leitor.id, rotuloDoGenerico) }))
 }
 
 function rotuloDoSistema(id: string, rotuloDoGenerico: string): string {
@@ -109,15 +109,15 @@ export function useSheetImport() {
     /**
      * A LISTA DE SISTEMAS, entre o "tem certeza?" e o seletor de arquivo. É o caminho que ele
      * fechou (06/09/2026): "clicar no importar, avisar que vai criar um novo, aí lista dos
-     * sistemas, aí arquivo no PC da pessoa e cria". Começa em "Deixar o app descobrir", que é a
-     * detecção de sempre; a escolha manda quando o leitor escolhido reconhece a ficha (ver
-     * `readSheet`), senão o app lê como reconheceu e a Ficha avisa qual era o pedido. Vem com
-     * OBLÍVIO marcado ("deixa sempre Oblívio", 06/09/2026): é a mesa dele; a ficha de outro
-     * sistema importada sem trocar cai na detecção do mesmo jeito, com o aviso.
+     * sistemas, aí arquivo no PC da pessoa e cria". A escolha manda quando o leitor escolhido
+     * reconhece a ficha (ver `readSheet`), senão o app lê como reconheceu e a Ficha avisa qual era
+     * o pedido. Vem com OBLÍVIO marcado ("deixa sempre Oblívio"): é a mesa dele; a ficha de outro
+     * sistema importada sem trocar cai na detecção do mesmo jeito, com o aviso. "Não encontrei o
+     * meu", no fim, é o leitor genérico: o scraping cru, sem detecção.
      */
     const sistema = await dialogo.escolher(
       t.sheetImport.chooseSystem,
-      opcoesDeSistema(t.sheetImport.systemAuto, t.sheetImport.otherSystem),
+      opcoesDeSistema(t.sheetImport.otherSystem),
       SISTEMA_PADRAO,
       t.dialog.import
     )
@@ -172,10 +172,9 @@ export function useSheetImport() {
       let sistemaPedido: string | undefined
       try {
         const sheet = await extractPdfSheet(escolhido.fileName, escolhido.bytes)
-        const pedido = sistema === SISTEMA_AUTOMATICO ? undefined : sistema
         // O retrato atravessa o leitor sem passar por ele: nenhum leitor sabe de imagem, e não precisa.
-        lido = readSheet(sheet, language, pedido)
-        if (pedido && lido.readerId !== pedido) sistemaPedido = rotuloDoSistema(pedido, t.sheetImport.otherSystem)
+        lido = readSheet(sheet, language, sistema)
+        if (lido.readerId !== sistema) sistemaPedido = rotuloDoSistema(sistema, t.sheetImport.otherSystem)
         retrato = sheet.retrato
         paginas = sheet.paginas
       } catch (causa) {
