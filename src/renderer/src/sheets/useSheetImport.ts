@@ -10,7 +10,23 @@ import { useSettings } from '../settings/SettingsContext'
 import { useTranslation } from '../i18n/useTranslation'
 import { useDialogo } from '../components/common/Dialogo'
 import { extractPdfSheet } from './extractPdfSheet'
-import { SHEET_READERS, detectarLeitor, readSheet } from './readers'
+import { SHEET_READERS, readSheet } from './readers'
+
+/** O valor do seletor de sistema que significa "deixar o app descobrir": a detecção de sempre. */
+export const SISTEMA_AUTOMATICO = 'auto'
+
+/** As opções do seletor de sistema: o automático, os leitores dedicados, e o genérico por último. */
+export function opcoesDeSistema(rotuloAutomatico: string, rotuloDoGenerico: string): { id: string; label: string }[] {
+  return [
+    { id: SISTEMA_AUTOMATICO, label: rotuloAutomatico },
+    ...SHEET_READERS.map((leitor) => ({ id: leitor.id, label: rotuloDoSistema(leitor.id, rotuloDoGenerico) }))
+  ]
+}
+
+function rotuloDoSistema(id: string, rotuloDoGenerico: string): string {
+  const leitor = SHEET_READERS.find((candidato) => candidato.id === id)
+  return leitor?.id === 'generico' ? rotuloDoGenerico : (leitor?.label ?? id)
+}
 import { escolherDestino } from './destinoDaImportacao'
 
 /**
@@ -63,6 +79,8 @@ export function useSheetImport() {
    * identificador aqui só acrescentaria um salto de indireção entre a falha e a frase.
    */
   const [erro, setErro] = useState<string | null>(null)
+  /** O sistema escolhido no seletor ao lado do botão (ver `SISTEMA_AUTOMATICO`); vale pra sessão. */
+  const [sistema, setSistema] = useState(SISTEMA_AUTOMATICO)
   const t = useTranslation()
   const dialogo = useDialogo()
   const { language } = useSettings()
@@ -83,8 +101,8 @@ export function useSheetImport() {
       return
     }
 
-    // O "tem certeza?" é a lista de sistemas, DEPOIS de abrir o PDF (ver mais abaixo): Cancelar lá
-    // não cria personagem nenhum.
+    // O único "tem certeza?": a ficha vira um personagem NOVO, e os de antes ficam como estão.
+    if (!(await dialogo.confirmar(t.sheetImport.confirmNew))) return
 
     /**
      * A ESCOLHA do arquivo também dentro de `try`.
@@ -136,26 +154,16 @@ export function useSheetImport() {
       try {
         const sheet = await extractPdfSheet(escolhido.fileName, escolhido.bytes)
         /**
-         * A LISTA DE SISTEMAS, depois de abrir o PDF (pedido dele, 06/09/2026: "um seletor para a
-         * pessoa dizer qual é o sistema", "vamos colocar a lista pós importar"). Vem já com o que
-         * o app reconheceu marcado, pra pessoa só confirmar ou corrigir; o genérico aparece como
-         * "Outro sistema". A escolha manda quando o leitor escolhido reconhece a ficha (ver
-         * `readSheet`); senão o app lê como reconheceu e a Ficha avisa.
+         * O SISTEMA ESCOLHIDO no seletor ao lado do botão, ANTES do arquivo (pedido dele,
+         * 06/09/2026: "quero que seja antes, pro app já se preparar antes do arquivo vir; coloca
+         * tipo um nome, aí se você clicar aparece a lista"). `SISTEMA_AUTOMATICO` é a detecção de
+         * sempre. A escolha manda quando o leitor escolhido reconhece a ficha (ver `readSheet`);
+         * senão o app lê como reconheceu e a Ficha avisa qual era o pedido.
          */
-        const detectado = detectarLeitor(sheet)
-        const opcoes = SHEET_READERS.map((leitor) => ({
-          id: leitor.id,
-          label: leitor.id === 'generico' ? t.sheetImport.otherSystem : leitor.label
-        }))
-        const texto =
-          detectado.id === 'generico'
-            ? t.sheetImport.chooseSystem
-            : `${t.sheetImport.chooseSystem}\n${t.sheetImport.chooseSystemDetected.replace('{system}', detectado.label)}`
-        const sistema = await dialogo.escolher(texto, opcoes, detectado.id, t.dialog.import)
-        if (sistema === null) return
+        const pedido = sistema === SISTEMA_AUTOMATICO ? undefined : sistema
         // O retrato atravessa o leitor sem passar por ele: nenhum leitor sabe de imagem, e não precisa.
-        lido = readSheet(sheet, language, sistema)
-        if (lido.readerId !== sistema) sistemaPedido = opcoes.find((opcao) => opcao.id === sistema)?.label
+        lido = readSheet(sheet, language, pedido)
+        if (pedido && lido.readerId !== pedido) sistemaPedido = rotuloDoSistema(pedido, t.sheetImport.otherSystem)
         retrato = sheet.retrato
         paginas = sheet.paginas
       } catch (causa) {
@@ -236,7 +244,7 @@ export function useSheetImport() {
     } finally {
       setLendo(false)
     }
-  }, [t, dialogo, language, profiles, reload, recarregarAnotacoes])
+  }, [t, dialogo, language, profiles, reload, recarregarAnotacoes, sistema])
 
   /** Fecha o aviso do que foi importado. Trocar de personagem também o esconde (ver `profileId`). */
   const dispensar = useCallback(() => {
@@ -244,5 +252,5 @@ export function useSheetImport() {
     setErro(null)
   }, [])
 
-  return { lendo, feito, erro, escolherArquivo, dispensar }
+  return { lendo, feito, erro, escolherArquivo, dispensar, sistema, setSistema }
 }
