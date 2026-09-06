@@ -12,8 +12,16 @@ Em resumo, o que muda pra quem joga:
 
 - Uma barrinha de volume nas Preferências, embaixo do interruptor de som. Soltar a barrinha toca
   um dado, pra você medir.
+- Criou um personagem novo e importou a ficha nele? A ficha entra nesse personagem, sem criar
+  outro e sem gastar mais um dos 3.
 - Todos têm um limite de 3 personagens! Usem bem! No terceiro, o botão de criar fica apagado: se
   quiser fazer um personagem novo, tem que apagar um!
+
+### Corrigido
+
+- **O HUD aparece também no modo rápido** (06/09/2026). Ele era sobreposto só à cena 3D; com "Modo rápido" nas Preferências (ou sem WebGL, que força o modo rápido), a Rolagem ficava sem nome, sem foto, sem barras, sem condições, sem Descansar e sem o lápis de criar barras, e nada disso tem outra casa na tela desde que o crachá saiu de perto do ROLAR (02/09). Agora a caixa do número (`.dice-roller-3d-quick`) é `position: relative` e recebe o mesmo `overlay`; o HUD se pendura nos mesmos cantos. Foi o harness `perfis` (que roda no modo rápido) que apontou: a checagem do nome no crachá, parada desde 02/09, virou a do nome no HUD e falhou.
+
+- **O personagem em branco recebe a ficha importada, em vez de sobrar sem nome** (06/09/2026). Desde que importar passou a criar sempre um personagem novo (02/09), o caminho mais natural do app estava armado: "Novo personagem" cria um em branco cuja Ficha convida a importar; importar ali criava um SEGUNDO personagem, e o em branco ficava pra trás, sem nome, gastando um lugar do teto. Os dados dele tinham dois assim, cada um nascido segundos antes de uma ficha importada; nos testadores, com teto de 3, era um personagem de verdade e dois lugares perdidos por importação. Agora, se o personagem aberto está em branco (sem nome e sem uma letra na ficha, `personagemEmBranco` em `destinoDaImportacao.ts`), a ficha entra NELE (`targetProfileId`), sem o "tem certeza?" (não há personagem novo pra avisar) e sem contar no teto; a regra de crítico vem do sistema da ficha, como no personagem novo. Personagem com nome ou com qualquer coisa na ficha continua intocado: a importação cria outro, com o "tem certeza?" de sempre. O harness `fichas` cobra as duas pontas (a ficha entra no p1 em branco; com o Matias aberto, a do Milo vira outro personagem).
 
 ### Alterado
 

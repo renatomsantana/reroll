@@ -22,6 +22,7 @@ import {
   fundirRecursos
 } from '@shared/types/recursoVital'
 import { regraDeCriticoDoSistema } from '@shared/dice/critico'
+import { fichaEstaVazia } from '@shared/types/notes'
 import { descansosPadrao } from '@shared/types/descanso'
 import { isValidPresetInput } from './registerPresetsHandlers'
 import { escolherArquivo } from './dialogos'
@@ -370,6 +371,7 @@ export function registerSheetHandlers(
       const recursosImportados = payload.recursos ?? []
       if (payload.notes.sections.length > 0 || Object.keys(blocos).length > 0 || recursosImportados.length > 0) {
         const atuais = await notes.get()
+        const emBranco = !!existente && !existente.name.trim() && fichaEstaVazia(atuais)
         /**
          * As seções vão pra FICHA do personagem, e nada vai pro diário: o diário é por sessão de
          * jogo (ver `NotesPage`) e a ficha é o que o personagem É, não o que aconteceu num dia.
@@ -415,9 +417,11 @@ ${novoTexto}` : novoTexto
           recursos: recursosFundidos,
           /**
            * A regra de crítico vem do SISTEMA da ficha só no personagem NOVO (Cthulhu nasce d100
-           * rola-abaixo). Num personagem atualizado a regra que a pessoa escolheu fica.
+           * rola-abaixo). Num personagem atualizado a regra que a pessoa escolheu fica. O EM
+           * BRANCO (sem nome e sem ficha, o recém-criado que recebe a importação, ver
+           * `personagemEmBranco` no renderer) conta como novo: ninguém escolheu nada nele.
            */
-          critico: existente ? atuais.critico : regraDeCriticoDoSistema(payload.system),
+          critico: existente && !emBranco ? atuais.critico : regraDeCriticoDoSistema(payload.system),
           /**
            * Os tipos de DESCANSO (spec §3.8) vêm do sistema quando o personagem ainda não tem
            * nenhum: no novo, sempre; no atualizado, só se a pessoa nunca configurou. Um que já

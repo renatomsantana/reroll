@@ -11,7 +11,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import { useDialogo } from '../components/common/Dialogo'
 import { extractPdfSheet } from './extractPdfSheet'
 import { SHEET_READERS, readSheet } from './readers'
-import { escolherDestino } from './destinoDaImportacao'
+import { escolherDestino, personagemEmBranco } from './destinoDaImportacao'
 
 /** O que vem marcado na lista: Oblívio, a mesa dele ("deixa sempre Oblívio", 06/09/2026). */
 export const SISTEMA_PADRAO = 'oblivio'
@@ -86,25 +86,35 @@ export function useSheetImport() {
   const t = useTranslation()
   const dialogo = useDialogo()
   const { language } = useSettings()
-  const { profiles, reload } = useProfiles()
-  const { recarregar: recarregarAnotacoes } = useNotes()
+  const { profiles, active, activeId, reload } = useProfiles()
+  const { notes, loadedFor, recarregar: recarregarAnotacoes } = useNotes()
 
   const escolherArquivo = useCallback(async () => {
     setErro(null)
     setFeito(null)
 
     /**
-     * O TETO de personagens (`MAX_PROFILES`: três nos testadores, o do disco no cliente do dono),
-     * antes de qualquer pergunta: importar sempre cria um personagem, então no teto não há o que
-     * importar. O botão já vem apagado com a dica do limite; isto é a segunda tranca.
+     * O personagem aberto EM BRANCO (o que "Novo personagem" acaba de criar) RECEBE a ficha em vez
+     * de nascer outro (ver `personagemEmBranco`): não há o que perder nele, e criar um segundo
+     * deixava o em branco pra trás gastando um lugar do teto. Só vale com a ficha dele já lida do
+     * disco (`loadedFor`): antes disso a ficha na tela pode ser a do personagem anterior.
      */
-    if (profiles.length >= MAX_PROFILES) {
+    const emBranco = loadedFor === activeId && personagemEmBranco(active, notes)
+
+    /**
+     * O TETO de personagens (`MAX_PROFILES`: três nos testadores, o do disco no cliente do dono),
+     * antes de qualquer pergunta: importar cria um personagem, então no teto não há o que
+     * importar. O botão já vem apagado com a dica do limite; isto é a segunda tranca. O em branco
+     * não conta: a ficha entra nele e a lista não cresce.
+     */
+    if (!emBranco && profiles.length >= MAX_PROFILES) {
       setErro(t.sheetImport.atLimit.replace('{max}', String(MAX_PROFILES)))
       return
     }
 
     // O único "tem certeza?": a ficha vira um personagem NOVO, e os de antes ficam como estão.
-    if (!(await dialogo.confirmar(t.sheetImport.confirmNew))) return
+    // No em branco não há personagem novo pra avisar, e a pergunta seria mentira.
+    if (!emBranco && !(await dialogo.confirmar(t.sheetImport.confirmNew))) return
 
     /**
      * A LISTA DE SISTEMAS, entre o "tem certeza?" e o seletor de arquivo. É o caminho que ele
@@ -205,11 +215,17 @@ export function useSheetImport() {
       /** As barras (spec §3.4), de TODOS os campos lidos: gravadas mesmo com o HUD ainda fechado. */
       const recursos = extrairRecursos(lido.fields)
 
-      const destino = escolherDestino({ nomeLido: lido.characterName, fileName: escolhido.fileName })
+      const destino = escolherDestino({
+        nomeLido: lido.characterName,
+        fileName: escolhido.fileName,
+        aberto: { id: activeId, emBranco }
+      })
 
       try {
-        // Sem `targetProfileId`: o processo principal CRIA o personagem e o deixa aberto.
+        // Sem `targetProfileId`: o processo principal CRIA o personagem e o deixa aberto. Com ele
+        // (o em branco), grava a ficha nesse personagem e a lista não cresce.
         const perfil = await window.api.sheets.apply({
+          targetProfileId: destino.targetProfileId,
           characterName: destino.characterName,
           system: lido.system,
           notes: paraAFicha,
@@ -255,7 +271,7 @@ export function useSheetImport() {
     } finally {
       setLendo(false)
     }
-  }, [t, dialogo, language, profiles, reload, recarregarAnotacoes])
+  }, [t, dialogo, language, profiles, active, activeId, notes, loadedFor, reload, recarregarAnotacoes])
 
   /** Fecha o aviso do que foi importado. Trocar de personagem também o esconde (ver `profileId`). */
   const dispensar = useCallback(() => {

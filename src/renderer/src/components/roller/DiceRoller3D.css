@@ -480,6 +480,8 @@
 .dice-roller-3d-quick {
   flex: 1;
   min-height: 420px;
+  /* O HUD se pendura nos cantos desta caixa, como na cena 3D (ver `HudDoPersonagem.css`). */
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
