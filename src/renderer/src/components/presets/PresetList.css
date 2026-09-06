@@ -27,9 +27,15 @@
  * `PresetCard.css`). Ele chegou a ser 130 quando era uma coluna alta e estreita; nessa largura, a
  * versão deitada corta o nome quase sempre. Como é `auto-fill`, cartões mais largos e MUITO mais
  * baixos ainda cabem em maior número na mesma lista.
+ *
+ * 165 → 200 em 05/09/2026 ("diminuir a fonte dos presets pra poder ler o nome inteiro"): medido
+ * num render fora da tela, em 165 o nome ficava com 73px e, mesmo em 11px e duas linhas, "Adaga
+ * Oposta (ataque)" e "Imagem Espelhada (teste)" ainda cortavam. Em 200 o nome tem ~114px, e os
+ * nomes da ficha do Milo cabem inteiros em duas linhas. Numa janela de 1270px são seis por linha
+ * em vez de sete.
  */
 .preset-list-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 6px;
 }
