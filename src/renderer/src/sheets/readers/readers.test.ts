@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PdfField, PdfSheet, PdfText } from '@shared/types/sheetImport'
-import { readSheet, SHEET_READERS } from './index'
+import { detectarLeitor, readSheet, SHEET_READERS } from './index'
 import { ordemParanormalReader } from './ordemParanormal'
 import { genericReader } from './generic'
 import { oblivioReader } from './oblivio'
@@ -58,6 +58,34 @@ describe('escolha do leitor', () => {
     // O genérico é o piso do registro: nunca ganha de um leitor dedicado, nunca perde pra nada.
     expect(genericReader.detect(ficha([]))).toBeLessThan(ordemParanormalReader.detect(ficha([...ATRIBUTOS])))
     expect(SHEET_READERS[SHEET_READERS.length - 1]).toBe(genericReader)
+  })
+})
+
+describe('o sistema escolhido na lista (`readerId`)', () => {
+  const fichaDeOrdem = ficha([campo('Personagem', 'Ana'), campo('AGI', '2'), campo('FOR', '1'), campo('INT', '3'), campo('PRE', '2'), campo('VIG', '1')])
+
+  it('a escolha manda quando o leitor escolhido reconhece a ficha', () => {
+    expect(readSheet(fichaDeOrdem, 'pt-BR', ordemParanormalReader.id).readerId).toBe(ordemParanormalReader.id)
+  })
+
+  it('o genérico lê qualquer ficha: "Outro sistema" nunca é recusado', () => {
+    expect(readSheet(fichaDeOrdem, 'pt-BR', genericReader.id).readerId).toBe(genericReader.id)
+  })
+
+  it('escolha que não bate (D&D numa ficha de Ordem) cai na detecção, e a resposta diz qual foi', () => {
+    // Forçar D&D devolveria uma ficha vazia com cara de certa; a detecção lê Ordem e a Ficha avisa.
+    const lido = readSheet(fichaDeOrdem, 'pt-BR', 'dnd5e')
+    expect(lido.readerId).toBe(ordemParanormalReader.id)
+    expect(lido.fields.map((c) => c.label)).toContain('Agilidade')
+  })
+
+  it('leitor que não existe é ignorado: a detecção de sempre', () => {
+    expect(readSheet(fichaDeOrdem, 'pt-BR', 'sistema-inventado').readerId).toBe(ordemParanormalReader.id)
+  })
+
+  it('detectarLeitor é a mesma escolha que readSheet faz sem `readerId`', () => {
+    expect(detectarLeitor(fichaDeOrdem).id).toBe(readSheet(fichaDeOrdem).readerId)
+    expect(detectarLeitor(ficha([])).id).toBe(genericReader.id)
   })
 })
 

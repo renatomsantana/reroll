@@ -48,7 +48,8 @@ export const SHEET_READERS: SheetReader[] = [
  * "nenhum leitor serviu", que na tela viraria uma janela vazia sem explicação. O pior resultado
  * possível é uma importação genérica com aviso dizendo o que não deu pra ler.
  */
-export function readSheet(sheet: PdfSheet, idioma: Language = 'pt-BR'): SheetImport {
+/** O leitor com mais confiança na ficha — a detecção de sempre, exposta pra lista de sistemas. */
+export function detectarLeitor(sheet: PdfSheet): SheetReader {
   let escolhido = SHEET_READERS[0]
   let melhor = -1
   for (const leitor of SHEET_READERS) {
@@ -58,6 +59,20 @@ export function readSheet(sheet: PdfSheet, idioma: Language = 'pt-BR'): SheetImp
       escolhido = leitor
     }
   }
+  return escolhido
+}
+
+/**
+ * `readerId` é o sistema que a PESSOA escolheu na lista depois de abrir o PDF (pedido dele,
+ * 06/09/2026: "um seletor para a pessoa dizer qual é o sistema"). A escolha manda quando o leitor
+ * escolhido reconhece alguma coisa na ficha (`detect` acima de zero) ou é o genérico, que lê
+ * qualquer uma. Se o leitor escolhido não vê nada ali (D&D marcado numa ficha de Ordem), forçá-lo
+ * devolveria uma ficha vazia com cara de certa; aí vale a detecção, e o `readerId` da resposta diz
+ * qual foi, pra Ficha avisar que leu como outro sistema.
+ */
+export function readSheet(sheet: PdfSheet, idioma: Language = 'pt-BR', readerId?: string): SheetImport {
+  const pedido = readerId ? SHEET_READERS.find((leitor) => leitor.id === readerId) : undefined
+  const escolhido = pedido && (pedido.id === genericReader.id || pedido.detect(sheet) > 0) ? pedido : detectarLeitor(sheet)
   const lido = escolhido.extract(sheet, idioma)
   /**
    * O que vale pra TODA ficha, depois do leitor: golpe escrito em prosa ("Corte Cruel: Teste de

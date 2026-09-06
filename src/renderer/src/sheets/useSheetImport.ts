@@ -10,7 +10,7 @@ import { useSettings } from '../settings/SettingsContext'
 import { useTranslation } from '../i18n/useTranslation'
 import { useDialogo } from '../components/common/Dialogo'
 import { extractPdfSheet } from './extractPdfSheet'
-import { readSheet } from './readers'
+import { SHEET_READERS, detectarLeitor, readSheet } from './readers'
 import { escolherDestino } from './destinoDaImportacao'
 
 /**
@@ -48,6 +48,8 @@ export interface ImportacaoFeita {
   /** Campos que ficaram de fora pelo teto por seção (`MAXIMO_DE_CAMPOS_POR_SECAO`). */
   cortados: number
   warnings: SheetWarningId[]
+  /** O sistema escolhido na lista quando a ficha acabou lida como OUTRO (a Ficha avisa). */
+  sistemaPedido?: string
 }
 
 export function useSheetImport() {
@@ -81,8 +83,8 @@ export function useSheetImport() {
       return
     }
 
-    // O único "tem certeza?": a ficha vira um personagem NOVO, e os de antes ficam como estão.
-    if (!(await dialogo.confirmar(t.sheetImport.confirmNew))) return
+    // O "tem certeza?" é a lista de sistemas, DEPOIS de abrir o PDF (ver mais abaixo): Cancelar lá
+    // não cria personagem nenhum.
 
     /**
      * A ESCOLHA do arquivo também dentro de `try`.
@@ -129,10 +131,31 @@ export function useSheetImport() {
       let lido: ReturnType<typeof readSheet>
       let retrato: string | undefined
       let paginas: string[] | undefined
+      /** O sistema que a pessoa escolheu na lista, quando não foi o que acabou lendo. */
+      let sistemaPedido: string | undefined
       try {
         const sheet = await extractPdfSheet(escolhido.fileName, escolhido.bytes)
+        /**
+         * A LISTA DE SISTEMAS, depois de abrir o PDF (pedido dele, 06/09/2026: "um seletor para a
+         * pessoa dizer qual é o sistema", "vamos colocar a lista pós importar"). Vem já com o que
+         * o app reconheceu marcado, pra pessoa só confirmar ou corrigir; o genérico aparece como
+         * "Outro sistema". A escolha manda quando o leitor escolhido reconhece a ficha (ver
+         * `readSheet`); senão o app lê como reconheceu e a Ficha avisa.
+         */
+        const detectado = detectarLeitor(sheet)
+        const opcoes = SHEET_READERS.map((leitor) => ({
+          id: leitor.id,
+          label: leitor.id === 'generico' ? t.sheetImport.otherSystem : leitor.label
+        }))
+        const texto =
+          detectado.id === 'generico'
+            ? t.sheetImport.chooseSystem
+            : `${t.sheetImport.chooseSystem}\n${t.sheetImport.chooseSystemDetected.replace('{system}', detectado.label)}`
+        const sistema = await dialogo.escolher(texto, opcoes, detectado.id, t.dialog.import)
+        if (sistema === null) return
         // O retrato atravessa o leitor sem passar por ele: nenhum leitor sabe de imagem, e não precisa.
-        lido = readSheet(sheet, language)
+        lido = readSheet(sheet, language, sistema)
+        if (lido.readerId !== sistema) sistemaPedido = opcoes.find((opcao) => opcao.id === sistema)?.label
         retrato = sheet.retrato
         paginas = sheet.paginas
       } catch (causa) {
@@ -203,7 +226,8 @@ export function useSheetImport() {
           campos: lido.fields.length,
           rolagens: lido.presets.length,
           cortados: paraAFicha.cortados ?? 0,
-          warnings: lido.warnings
+          warnings: lido.warnings,
+          sistemaPedido
         })
       } catch (causa) {
         console.error('Falha ao criar o personagem a partir da ficha:', causa)

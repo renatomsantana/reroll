@@ -114,7 +114,7 @@ export interface TranslationDict {
    */
   history: { title: string; empty: string; clear: string; restEvent: string }
   /** Os botões do diálogo do app ("tem certeza?" / "não deu") — ver `Dialogo.tsx`. */
-  dialog: { ok: string; cancel: string }
+  dialog: { ok: string; cancel: string; import: string }
   /** O RECORTE da foto — zoom no rosto (ver `recorteDeFoto.ts`). */
   photoCrop: {
     title: string
@@ -460,8 +460,16 @@ export interface TranslationDict {
     unrecognized: string
     /** `{fields}` campos e `{presets}` rolagens, e a lembrança de que tudo é editável. */
     done: string
-    /** O "tem certeza?" antes de escolher o PDF: importar sempre cria um personagem novo. */
-    confirmNew: string
+    /**
+     * A lista de sistemas DEPOIS de abrir o PDF (pedido dele, 06/09/2026): o texto do diálogo, a
+     * linha com o sistema que o app reconheceu (`{system}`), o rótulo do genérico na lista, e o
+     * aviso na Ficha quando a escolha não bateu com a ficha (`{chosen}`, `{read}`). É também o
+     * "tem certeza?" da importação: Cancelar não cria personagem.
+     */
+    chooseSystem: string
+    chooseSystemDetected: string
+    otherSystem: string
+    readAsOther: string
     dismiss: string
     /** PDF sem nada que dê pra importar: nenhum personagem nasce. */
     nothingRead: string
@@ -583,7 +591,7 @@ export const translations: Record<Language, TranslationDict> = {
     statusBar: {
       shortcutsHint: 'Enter/Espaço : ROLL! · WASD move a câmera · Esc fecha · Ctrl+N novo preset'
     },
-    dialog: { ok: 'OK', cancel: 'Cancelar' },
+    dialog: { ok: 'OK', cancel: 'Cancelar', import: 'Importar' },
     history: {
       title: 'Histórico',
       empty: 'Nenhuma rolagem ainda nesta sessão.',
@@ -868,7 +876,10 @@ export const translations: Record<Language, TranslationDict> = {
       recognized: 'Reconhecemos como ficha de',
       unrecognized: 'Sistema não reconhecido: importamos o que deu pra ler.',
       done: '{fields} campos e {presets} rolagens importados. Tudo fica editável aqui embaixo, a qualquer momento.',
-      confirmNew: 'Importar uma ficha cria um personagem novo. Os que já existem não mudam. Continuar?',
+      chooseSystem: 'Qual é o sistema desta ficha? O personagem nasce novo, com tudo o que a ficha tiver. Os que já existem não mudam.',
+      chooseSystemDetected: 'O app reconheceu {system}. Se estiver errado, escolha na lista.',
+      otherSystem: 'Outro sistema',
+      readAsOther: 'A ficha não parecia ser de {chosen}, então lemos como {read}.',
       dismiss: 'Entendi',
       nothingRead: 'Não achei nada pra importar neste PDF, então nenhum personagem foi criado.',
       atLimit: 'Máximo de personagens atingido: {max}. Apague um antes de importar outra ficha.',
@@ -1007,7 +1018,7 @@ export const translations: Record<Language, TranslationDict> = {
     statusBar: {
       shortcutsHint: 'Enter/Space : ROLL! · WASD moves the camera · Esc closes · Ctrl+N new preset'
     },
-    dialog: { ok: 'OK', cancel: 'Cancel' },
+    dialog: { ok: 'OK', cancel: 'Cancel', import: 'Import' },
     history: {
       title: 'History',
       empty: 'No rolls yet this session.',
@@ -1292,7 +1303,10 @@ export const translations: Record<Language, TranslationDict> = {
       recognized: 'Recognized as a sheet for',
       unrecognized: 'System not recognized: we imported what could be read.',
       done: '{fields} fields and {presets} rolls imported. Everything stays editable down here, anytime.',
-      confirmNew: 'Importing a sheet creates a new character. Existing ones are not changed. Continue?',
+      chooseSystem: 'Which system is this sheet for? The character is created new, with everything the sheet has. Existing ones are not changed.',
+      chooseSystemDetected: 'The app recognized {system}. If that is wrong, pick from the list.',
+      otherSystem: 'Other system',
+      readAsOther: 'The sheet did not look like {chosen}, so we read it as {read}.',
       dismiss: 'Got it',
       nothingRead: 'Found nothing to import in this PDF, so no character was created.',
       atLimit: 'Maximum number of characters reached: {max}. Delete one before importing another sheet.',
