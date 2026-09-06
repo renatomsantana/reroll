@@ -1202,7 +1202,8 @@ app.whenReady().then(async () => {
   if (FASES.includes('hud')) await faseHud()
   if (FASES.includes('arrasto')) await faseHudArrasto()
   if (FASES.includes('caderno')) await faseCaderno()
-  if (FASES.includes('fichas')) await faseFichas()
+  // `FICHA=milo npx electron scripts/testarNoApp.mjs fichas` importa só as fichas cujo nome casa (pra olhar uma).
+  if (FASES.includes('fichas')) await faseFichas(undefined, process.env.FICHA ? new RegExp(process.env.FICHA, 'i') : undefined)
   // A décima leva fabricada (`ESCREVER_PDFS=1 npx vitest run corpusDePdfs` escreve em Fichas RPG/testes/).
   if (FASES.includes('fabricados')) await faseFichas(join(RAIZ, 'Fichas RPG', 'testes'), /^7[0-3]-.*\.pdf$/i, { '73-foto-no-campo.pdf': 'retrato', '70-hp-mp-em-ingles.pdf': null })
   console.log(falhas === 0 ? '\nTudo passou no app compilado.' : `\n${falhas} checagem(ns) falharam.`)
