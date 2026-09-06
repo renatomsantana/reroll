@@ -15,6 +15,8 @@ import { escolherDestino } from './destinoDaImportacao'
 
 /** O valor da lista de sistemas que significa "deixar o app descobrir": a detecção de sempre. */
 export const SISTEMA_AUTOMATICO = 'auto'
+/** O que vem marcado na lista: Oblívio, a mesa dele ("deixa sempre Oblívio", 06/09/2026). */
+export const SISTEMA_PADRAO = 'oblivio'
 
 /** As opções da lista de sistemas: o automático, os leitores dedicados, e o genérico por último. */
 function opcoesDeSistema(rotuloAutomatico: string, rotuloDoGenerico: string): { id: string; label: string }[] {
@@ -109,12 +111,14 @@ export function useSheetImport() {
      * fechou (06/09/2026): "clicar no importar, avisar que vai criar um novo, aí lista dos
      * sistemas, aí arquivo no PC da pessoa e cria". Começa em "Deixar o app descobrir", que é a
      * detecção de sempre; a escolha manda quando o leitor escolhido reconhece a ficha (ver
-     * `readSheet`), senão o app lê como reconheceu e a Ficha avisa qual era o pedido.
+     * `readSheet`), senão o app lê como reconheceu e a Ficha avisa qual era o pedido. Vem com
+     * OBLÍVIO marcado ("deixa sempre Oblívio", 06/09/2026): é a mesa dele; a ficha de outro
+     * sistema importada sem trocar cai na detecção do mesmo jeito, com o aviso.
      */
     const sistema = await dialogo.escolher(
       t.sheetImport.chooseSystem,
       opcoesDeSistema(t.sheetImport.systemAuto, t.sheetImport.otherSystem),
-      SISTEMA_AUTOMATICO,
+      SISTEMA_PADRAO,
       t.dialog.import
     )
     if (sistema === null) return

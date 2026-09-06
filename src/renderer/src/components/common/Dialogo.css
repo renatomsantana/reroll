@@ -27,27 +27,7 @@
   gap: 8px;
 }
 
-/*
- * A LISTA do `escolher`: caixa afundada branca com a linha marcada em azul-marinho e texto branco,
- * que é o listbox do 98. Sem borda arredondada, sem sombra, sem realce de cor nova.
- */
-.dialogo-lista {
-  background: var(--win-input-bg);
-  border: 2px inset var(--win-highlight);
-  padding: 2px;
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.dialogo-opcao {
-  padding: 3px 6px;
-  font-size: 13px;
-  line-height: 1.3;
-  cursor: default;
-  user-select: none;
-}
-
-.dialogo-opcao-marcada {
-  background: #000080;
-  color: #ffffff;
+/* O seletor do `escolher`, na largura do diálogo: um nome fechado, a lista no clique. */
+.dialogo-select {
+  width: 100%;
 }
