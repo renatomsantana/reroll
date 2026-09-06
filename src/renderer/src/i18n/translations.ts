@@ -463,11 +463,11 @@ export interface TranslationDict {
     /** O "tem certeza?" antes de escolher o PDF: importar sempre cria um personagem novo. */
     confirmNew: string
     /**
-     * O SELETOR DE SISTEMA ao lado do botão de importar (pedido dele, 06/09/2026): o rótulo do
-     * seletor, a opção de deixar o app descobrir, o rótulo do genérico na lista, e o aviso na Ficha
-     * quando a escolha não bateu com a ficha (`{chosen}`, `{read}`).
+     * A LISTA DE SISTEMAS entre o "tem certeza?" e o seletor de arquivo (caminho dele, 06/09/2026):
+     * o texto do diálogo, a opção de deixar o app descobrir, o rótulo do genérico na lista, e o
+     * aviso na Ficha quando a escolha não bateu com a ficha (`{chosen}`, `{read}`).
      */
-    systemLabel: string
+    chooseSystem: string
     systemAuto: string
     otherSystem: string
     readAsOther: string
@@ -878,7 +878,7 @@ export const translations: Record<Language, TranslationDict> = {
       unrecognized: 'Sistema não reconhecido: importamos o que deu pra ler.',
       done: '{fields} campos e {presets} rolagens importados. Tudo fica editável aqui embaixo, a qualquer momento.',
       confirmNew: 'Importar uma ficha cria um personagem novo. Os que já existem não mudam. Continuar?',
-      systemLabel: 'Sistema da ficha',
+      chooseSystem: 'Qual é o sistema da ficha? Em seguida você escolhe o PDF no seu computador.',
       systemAuto: 'Deixar o app descobrir',
       otherSystem: 'Outro sistema',
       readAsOther: 'A ficha não parecia ser de {chosen}, então lemos como {read}.',
@@ -1306,7 +1306,7 @@ export const translations: Record<Language, TranslationDict> = {
       unrecognized: 'System not recognized: we imported what could be read.',
       done: '{fields} fields and {presets} rolls imported. Everything stays editable down here, anytime.',
       confirmNew: 'Importing a sheet creates a new character. Existing ones are not changed. Continue?',
-      systemLabel: 'Sheet system',
+      chooseSystem: 'Which system is the sheet for? Next you pick the PDF on your computer.',
       systemAuto: 'Let the app find out',
       otherSystem: 'Other system',
       readAsOther: 'The sheet did not look like {chosen}, so we read it as {read}.',
