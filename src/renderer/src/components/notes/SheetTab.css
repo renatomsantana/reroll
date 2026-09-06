@@ -279,26 +279,39 @@
  * iguais: pedido do usuário ("campos poderiam ser maiores para caber as palavras"). Uma linha ocupa
  * no mínimo 240px e o que o valor precisar além disso; a que não cabe ao lado desce.
  */
+/*
+ * A GRADE ÚNICA de toda seção — pedido dele (06/09/2026): "fica muito feio um maior que outro,
+ * vamos deixar padrão todos na mesma fileira, alinhados, que toda ficha scrapada fique assim".
+ *
+ * Colunas iguais de 150px de piso (`auto-fill`), as mesmas em toda seção, porque toda seção tem a
+ * mesma largura: as caixas da Identificação ficam na vertical das caixas do Combate e das Perícias.
+ * Cada campo é uma célula (rótulo em cima, caixa embaixo ocupando a célula); o valor comprido ocupa
+ * duas ou três (`.sheet-celula-2/3`, decidido pelo tamanho do texto em `larguraDaCelula`).
+ *
+ * Isto substitui a fileira de linhas "rótulo: caixa" que abraçavam o conteúdo (`field-sizing:
+ * content`): aquela regra deixava cada caixa do tamanho do valor e a fileira dançava.
+ */
 .sheet-section-fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px 8px;
+}
+
+.sheet-celula-2 {
+  grid-column: span 2;
+}
+
+.sheet-celula-3 {
+  grid-column: span 3;
 }
 
 .sheet-section-field {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
   font-size: 12px;
-  /*
-   * A linha ABRAÇA o conteúdo (`flex: 0 1 auto`) em vez de repartir a sobra da fileira — pedido do
-   * usuário: "se for coisas pequenas, apenas um número, não precisa ser um campo grande". Com o
-   * `flex: 1` de antes, um campo valendo "3" esticava até encher a fileira; a linha de ataque
-   * comprida continua inteira porque quem mede o campo é o conteúdo (`field-sizing`), não o flex.
-   */
-  flex: 0 1 auto;
   min-width: 0;
-  max-width: 100%;
 }
 
 /*
@@ -314,7 +327,7 @@
  */
 .sheet-section-field > span:not(.sheet-field-value) {
   flex: 0 0 auto;
-  max-width: 260px;
+  font-size: 10px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -328,10 +341,8 @@
  * todo número da ficha. 8ch cabe um "12/15" e dá alvo de clique num campo vazio.
  */
 .sheet-section-field input {
-  flex: 0 1 auto;
-  field-sizing: content;
-  min-width: 8ch;
-  max-width: 100%;
+  width: 100%;
+  min-width: 0;
 }
 
 /*
@@ -343,7 +354,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
 }
 
@@ -354,10 +365,8 @@
  * cortada mesmo depois de a fileira crescer. Medido na ficha dele.
  */
 .sheet-field-value input {
-  flex: 0 1 auto;
-  field-sizing: content;
-  min-width: 8ch;
-  max-width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 /*
@@ -416,22 +425,10 @@
  * ser maiores para caber as palavras". Era uma grade de colunas iguais de 96px que cortava o rótulo
  * com reticências; agora as caixas fluem, com 96px de piso e o conteúdo como medida.
  */
-.sheet-section-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.sheet-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-  width: max-content;
-  min-width: 96px;
-  max-width: 100%;
-}
-
+/*
+ * O quadro de valores é a MESMA grade das outras seções (ver `.sheet-section-fields`); o que ele
+ * acrescenta é o desenho do número: rótulo centralizado, número grande e monoespaçado.
+ */
 .sheet-stat span {
   font-size: 10px;
   color: var(--win-text-muted);
@@ -445,8 +442,7 @@
  */
 .sheet-stat input {
   width: 100%;
-  field-sizing: content;
-  min-width: 5ch;
+  min-width: 0;
   text-align: center;
   font-size: 16px;
   font-family: 'Courier New', Courier, monospace;

@@ -284,6 +284,17 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }
 
   /**
+   * Quantas células da grade o campo ocupa: 1, 2 ou 3. Medido no que cabe numa célula de ~150px
+   * em 12px: uns 20 caracteres. "Armadura de Couro (Defesa +2)" (29) pede duas; a linha de ataque
+   * do Rilver ("+7 · 1d8 P — 10 arrows. 60 ft. Deadly d10.", 45) pede três. Acima disso o campo
+   * continua em três e rola dentro da caixa, que é editável.
+   */
+  function larguraDaCelula(valor: string): 1 | 2 | 3 {
+    const tamanho = valor.trim().length
+    return tamanho > 44 ? 3 : tamanho > 20 ? 2 : 1
+  }
+
+  /**
    * O botão de dado de um campo, ou nada.
    *
    * Ele só existe onde há rolagem de verdade — o `null` de `rolagemDoCampo` é o que impede um dado
@@ -548,11 +559,21 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                     ✕
                   </button>
                 </legend>
-                <div className={secaoDeValores(secao) ? 'sheet-section-stats' : 'sheet-section-fields'}>
+                {/*
+                  TODA seção na MESMA GRADE de colunas iguais — pedido dele (06/09/2026): "fica
+                  muito feio um maior que outro, vamos deixar padrão todos na mesma fileira,
+                  alinhados". Antes a Identificação, o Combate e as Perícias fluíam em linha, cada
+                  caixa do tamanho do valor, e só Atributos e Recursos tinham caixas iguais. Agora
+                  cada campo é uma célula (rótulo em cima, caixa embaixo na largura da célula); o
+                  quadro de valores só muda a fonte do número. Valor comprido ocupa duas ou três
+                  células (`larguraDaCelula`), pra "Armadura de Couro (Defesa +2)" não virar
+                  reticências.
+                */}
+                <div className={`sheet-section-fields${secaoDeValores(secao) ? ' sheet-section-stats' : ''}`}>
                   {secao.fields.map((campo) => (
                     <label
                       key={campo.id}
-                      className={secaoDeValores(secao) ? 'sheet-stat' : 'sheet-section-field'}
+                      className={`sheet-section-field${secaoDeValores(secao) ? ' sheet-stat' : ''} sheet-celula-${larguraDaCelula(campo.value)}`}
                     >
                       <span title={campo.label}>{campo.label}</span>
                       {/*
