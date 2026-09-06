@@ -226,16 +226,12 @@ export interface TranslationDict {
     resultPopupHint: string
     /** A linha copiada pro chat (spec §3.5): negrito Markdown, e copiar toda rolagem sozinho. */
     copyMarkdown: string
-    copyMarkdownHint: string
     autoCopy: string
-    autoCopyHint: string
     /** Os efeitos de crítico/falha (spec §3.7), clarão e som separados. */
     critVisual: string
     critVisualHint: string
     critSound: string
-    critSoundHint: string
     history: string
-    historyHint: string
     historyOpen: string
     appIcon: string
     debugMode: string
@@ -698,16 +694,11 @@ export const translations: Record<Language, TranslationDict> = {
       resultPopup: 'Popup de resultado',
       resultPopupHint: 'Mostra o total somado num popup por cima da bandeja ao assentar os dados.',
       copyMarkdown: 'Copiar com negrito (Markdown)',
-      copyMarkdownHint:
-        'A linha copiada pro chat vai com o total entre asteriscos (**17**), que o Discord e o WhatsApp mostram em negrito. Desligue pra chat que mostra os asteriscos.',
       autoCopy: 'Copiar toda rolagem',
-      autoCopyHint: 'Cada rolagem já vai pra área de transferência sozinha, pronta pra colar no chat da mesa.',
       critVisual: 'Clarão de crítico e falha',
       critVisualHint: 'Um segundo de festa (ou de luto) sobre a cena no 20 natural e no 1 natural. Qual dado conta é escolha por personagem, na Ficha.',
       critSound: 'Som de crítico e falha',
-      critSoundHint: 'Uma fanfarra curta no crítico e um "womp" na falha. Segue o interruptor geral de som.',
       history: 'Histórico de rolagens',
-      historyHint: 'Hora, nome do golpe e os dados de cada rolagem desta sessão.',
       historyOpen: 'Abrir',
       appIcon: 'Ícone do app',
       version: 'Versão',
@@ -1132,16 +1123,11 @@ export const translations: Record<Language, TranslationDict> = {
       resultPopup: 'Result popup',
       resultPopupHint: 'Shows the summed total in a popup over the tray once the dice settle.',
       copyMarkdown: 'Copy with bold (Markdown)',
-      copyMarkdownHint:
-        'The line copied for chat has the total between asterisks (**17**), which Discord and WhatsApp render bold. Turn off for chats that show the asterisks.',
       autoCopy: 'Copy every roll',
-      autoCopyHint: 'Each roll goes to the clipboard by itself, ready to paste into the table chat.',
       critVisual: 'Critical and fumble flash',
       critVisualHint: 'One second of celebration (or mourning) over the scene on a natural 20 and a natural 1. Which die counts is a per-character choice, on the Sheet.',
       critSound: 'Critical and fumble sound',
-      critSoundHint: 'A short fanfare on a critical and a "womp" on a fumble. Follows the general sound switch.',
       history: 'Roll history',
-      historyHint: 'Time, move name and the dice of every roll in this session.',
       historyOpen: 'Open',
       appIcon: 'App icon',
       version: 'Version',
