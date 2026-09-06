@@ -213,8 +213,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.copyMarkdown}
-            <br />
-            <small className="settings-panel-hint">{t.settings.copyMarkdownHint}</small>
           </span>
           <label className="settings-panel-checkbox">
             <input type="checkbox" checked={copyMarkdown} onChange={(e) => setCopyMarkdown(e.target.checked)} />
@@ -224,8 +222,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.autoCopy}
-            <br />
-            <small className="settings-panel-hint">{t.settings.autoCopyHint}</small>
           </span>
           <label className="settings-panel-checkbox">
             <input type="checkbox" checked={autoCopyRolls} onChange={(e) => setAutoCopyRolls(e.target.checked)} />
@@ -247,8 +243,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.critSound}
-            <br />
-            <small className="settings-panel-hint">{t.settings.critSoundHint}</small>
           </span>
           <label className="settings-panel-checkbox">
             <input type="checkbox" checked={critSoundEnabled} onChange={(e) => setCritSoundEnabled(e.target.checked)} />
@@ -264,8 +258,6 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
         <div className="settings-panel-field">
           <span>
             {t.settings.history}
-            <br />
-            <small className="settings-panel-hint">{t.settings.historyHint}</small>
           </span>
           <Button variant="secondary" onClick={onOpenHistory}>
             {t.settings.historyOpen}
