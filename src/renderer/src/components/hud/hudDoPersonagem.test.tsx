@@ -81,7 +81,9 @@ describe('o HUD do personagem', () => {
     fireEvent.keyDown(campo, { key: 'Enter' })
     const ultima = acoes.onChangeCondicoes.mock.calls.at(-1)![0] as Condicao[]
     expect(ultima.map((c) => c.nome)).toEqual(['Machucado', 'Caído'])
-    expect(ultima[1].ativa).toBe(false)
+    // Digitada à mão, nasce LIGADA e bordô (06/09/2026: "já fique vermelha do momento que der Enter").
+    expect(ultima[1].ativa).toBe(true)
+    expect(ultima[1].cor).toBe('#800000')
   })
 
   it('soltar o arrasto encaixa no canto mais perto do centro do cartão; um clique curto não muda nada', () => {

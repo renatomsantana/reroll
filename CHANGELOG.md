@@ -17,6 +17,8 @@ Em resumo, o que muda pra quem joga:
 
 ### Alterado
 
+- **A condição digitada à mão nasce ligada e vermelha** (pedido dele, 06/09/2026: "a condição já fique vermelha do momento que der Enter no nome dela"). No HUD, o "+" abre o campo, Enter cria o chip: ele nascia apagado e pedia um segundo clique pra ligar. Quem digita "Atordoado" no meio do combate está dizendo que o personagem ESTÁ atordoado; agora o chip nasce ligado, pintado de bordô, e o quadradinho de cor troca. As condições que a importação sugere (Machucado, Enlouquecendo) continuam desligadas, como sugestão.
+
 - **A Ficha importada numa grade só, com as caixas alinhadas** (pedido dele, 06/09/2026: "olha o scraping da identificação, combate e perícias, fica muito feio um maior que outro; vamos deixar padrão todos na mesma fileira, alinhados, que toda ficha scrapada fique assim, organizada"). Antes só Atributos e Recursos tinham caixas iguais; Identificação, Combate e Perícias fluíam em linha com cada caixa do tamanho do valor (`field-sizing: content`), e a fileira dançava. Agora TODA seção é a mesma grade de colunas iguais (piso de 150px, `auto-fill`), cada campo uma célula com o rótulo em cima e a caixa embaixo ocupando a célula; como toda seção tem a mesma largura, as colunas se alinham de uma seção pra outra. O quadro de valores só muda a fonte do número. Valor comprido ocupa duas células (mais de 20 caracteres, "Armadura de Couro (Defesa +2)") ou três (mais de 44, a linha de ataque do Rilver), decidido em `larguraDaCelula`. O harness `fichas` aceita `FICHA=<trecho>` pra importar e fotografar uma ficha só.
 
 ### Adicionado
