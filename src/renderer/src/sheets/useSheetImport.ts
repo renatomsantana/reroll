@@ -11,12 +11,13 @@ import { useTranslation } from '../i18n/useTranslation'
 import { useDialogo } from '../components/common/Dialogo'
 import { extractPdfSheet } from './extractPdfSheet'
 import { SHEET_READERS, readSheet } from './readers'
+import { escolherDestino } from './destinoDaImportacao'
 
-/** O valor do seletor de sistema que significa "deixar o app descobrir": a detecção de sempre. */
+/** O valor da lista de sistemas que significa "deixar o app descobrir": a detecção de sempre. */
 export const SISTEMA_AUTOMATICO = 'auto'
 
-/** As opções do seletor de sistema: o automático, os leitores dedicados, e o genérico por último. */
-export function opcoesDeSistema(rotuloAutomatico: string, rotuloDoGenerico: string): { id: string; label: string }[] {
+/** As opções da lista de sistemas: o automático, os leitores dedicados, e o genérico por último. */
+function opcoesDeSistema(rotuloAutomatico: string, rotuloDoGenerico: string): { id: string; label: string }[] {
   return [
     { id: SISTEMA_AUTOMATICO, label: rotuloAutomatico },
     ...SHEET_READERS.map((leitor) => ({ id: leitor.id, label: rotuloDoSistema(leitor.id, rotuloDoGenerico) }))
@@ -27,7 +28,6 @@ function rotuloDoSistema(id: string, rotuloDoGenerico: string): string {
   const leitor = SHEET_READERS.find((candidato) => candidato.id === id)
   return leitor?.id === 'generico' ? rotuloDoGenerico : (leitor?.label ?? id)
 }
-import { escolherDestino } from './destinoDaImportacao'
 
 /**
  * O fluxo da importação de ficha, do clique até o personagem gravado, SEM JANELA NO MEIO.
@@ -43,9 +43,11 @@ import { escolherDestino } from './destinoDaImportacao'
  * 4. o app decide o nome por regra (`escolherDestino`) e o processo principal CRIA o personagem
  *    e grava tudo nele: anotações, presets, barras (o HUD), retrato, páginas e o texto sem rótulo.
  *
- * Antes da etapa 1 há UM "tem certeza?" (o diálogo do app), e é a única pergunta. Regra dele
- * (02/09/2026): "toda vez que uploadar uma ficha nova, que CRIE um personagem novo, para não perder
- * o que já está lá; clicou em uploadar, tem certeza? aí cria um novo". Importar nunca grava por
+ * Antes da etapa 1 há o "tem certeza?" (o diálogo do app) e a LISTA DE SISTEMAS, e nada mais. A
+ * regra dele (02/09/2026): "toda vez que uploadar uma ficha nova, que CRIE um personagem novo, para
+ * não perder o que já está lá; clicou em uploadar, tem certeza? aí cria um novo"; e o caminho que
+ * ele fechou em 06/09/2026: "clicar no importar, avisar que vai criar um novo, aí lista dos
+ * sistemas, aí arquivo no PC da pessoa e cria". Importar nunca grava por
  * cima de ninguém: é por isso que um importador que adivinha e grava sem conferência é aceitável.
  * No teto de personagens o botão fica apagado com a dica do limite (ver `SheetTab`), e este hook
  * ainda recusa por conta própria, pro caso de o clique escapar. Tudo o que entrou é editável e
@@ -79,8 +81,6 @@ export function useSheetImport() {
    * identificador aqui só acrescentaria um salto de indireção entre a falha e a frase.
    */
   const [erro, setErro] = useState<string | null>(null)
-  /** O sistema escolhido no seletor ao lado do botão (ver `SISTEMA_AUTOMATICO`); vale pra sessão. */
-  const [sistema, setSistema] = useState(SISTEMA_AUTOMATICO)
   const t = useTranslation()
   const dialogo = useDialogo()
   const { language } = useSettings()
@@ -103,6 +103,21 @@ export function useSheetImport() {
 
     // O único "tem certeza?": a ficha vira um personagem NOVO, e os de antes ficam como estão.
     if (!(await dialogo.confirmar(t.sheetImport.confirmNew))) return
+
+    /**
+     * A LISTA DE SISTEMAS, entre o "tem certeza?" e o seletor de arquivo. É o caminho que ele
+     * fechou (06/09/2026): "clicar no importar, avisar que vai criar um novo, aí lista dos
+     * sistemas, aí arquivo no PC da pessoa e cria". Começa em "Deixar o app descobrir", que é a
+     * detecção de sempre; a escolha manda quando o leitor escolhido reconhece a ficha (ver
+     * `readSheet`), senão o app lê como reconheceu e a Ficha avisa qual era o pedido.
+     */
+    const sistema = await dialogo.escolher(
+      t.sheetImport.chooseSystem,
+      opcoesDeSistema(t.sheetImport.systemAuto, t.sheetImport.otherSystem),
+      SISTEMA_AUTOMATICO,
+      t.dialog.import
+    )
+    if (sistema === null) return
 
     /**
      * A ESCOLHA do arquivo também dentro de `try`.
@@ -153,13 +168,6 @@ export function useSheetImport() {
       let sistemaPedido: string | undefined
       try {
         const sheet = await extractPdfSheet(escolhido.fileName, escolhido.bytes)
-        /**
-         * O SISTEMA ESCOLHIDO no seletor ao lado do botão, ANTES do arquivo (pedido dele,
-         * 06/09/2026: "quero que seja antes, pro app já se preparar antes do arquivo vir; coloca
-         * tipo um nome, aí se você clicar aparece a lista"). `SISTEMA_AUTOMATICO` é a detecção de
-         * sempre. A escolha manda quando o leitor escolhido reconhece a ficha (ver `readSheet`);
-         * senão o app lê como reconheceu e a Ficha avisa qual era o pedido.
-         */
         const pedido = sistema === SISTEMA_AUTOMATICO ? undefined : sistema
         // O retrato atravessa o leitor sem passar por ele: nenhum leitor sabe de imagem, e não precisa.
         lido = readSheet(sheet, language, pedido)
@@ -244,7 +252,7 @@ export function useSheetImport() {
     } finally {
       setLendo(false)
     }
-  }, [t, dialogo, language, profiles, reload, recarregarAnotacoes, sistema])
+  }, [t, dialogo, language, profiles, reload, recarregarAnotacoes])
 
   /** Fecha o aviso do que foi importado. Trocar de personagem também o esconde (ver `profileId`). */
   const dispensar = useCallback(() => {
@@ -252,5 +260,5 @@ export function useSheetImport() {
     setErro(null)
   }, [])
 
-  return { lendo, feito, erro, escolherArquivo, dispensar, sistema, setSistema }
+  return { lendo, feito, erro, escolherArquivo, dispensar }
 }

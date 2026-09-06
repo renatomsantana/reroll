@@ -465,16 +465,24 @@ async function criarPreset(nome) {
  * novo, e este diálogo é a única pergunta): clica em OK. Sem o diálogo em 3s, segue; o teste da
  * frente diz se a importação aconteceu.
  */
-/** O "tem certeza?" antes do seletor de arquivo: clica no OK do diálogo do app. */
-async function confirmarImportacaoDeFicha() {
+/**
+ * O caminho da importação (06/09/2026): o "tem certeza?" (OK), depois a LISTA DE SISTEMAS
+ * ("Deixar o app descobrir" marcada; `sistema` escolhe outra pelo `id` do leitor), e só então o
+ * seletor de arquivo. `foto` tira a foto da lista aberta.
+ */
+async function confirmarImportacaoDeFicha(sistema, nomeDaFoto) {
   const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
   if (!dialogo) return false
   await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  const lista = await esperarAte(`!!document.querySelector('[role=alertdialog] [role=listbox]')`, 3000)
+  if (!lista) return false
+  if (sistema) await js(`document.querySelector('[role=alertdialog] [data-opcao=${JSON.stringify(sistema)}]')?.click(); 'ok'`)
+  if (nomeDaFoto) {
+    await espera(300)
+    await foto(nomeDaFoto)
+  }
+  await js(`document.querySelector('[role=alertdialog] .btn-primary')?.click(); 'ok'`)
   return esperarAte(`!document.querySelector('[role=alertdialog]')`, 3000)
-}
-/** Escolhe um sistema no seletor ao lado do botão de importar (06/09/2026), pelo `id` do leitor. */
-async function escolherSistemaDaFicha(sistema) {
-  return js(`(() => { const s = document.querySelector('.sheet-import-sistema'); if (!s) return false; const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, ${JSON.stringify(sistema)}); s.dispatchEvent(new Event('change', { bubbles: true })); return s.value === ${JSON.stringify(sistema)} })()`)
 }
 async function apagarPreset(nome) {
   await js(`(() => { const card = Array.from(document.querySelectorAll('.preset-card')).find((c) => c.querySelector('.preset-card-name')?.textContent === ${JSON.stringify(nome)}); card?.querySelector('.preset-card-action-delete')?.click() })()`)
@@ -1208,14 +1216,15 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     estado.ultimoApply = null
     await abrirApp({})
     await aba('Ficha')
-    const padrao = await js(`(document.querySelector('.sheet-import-sistema') || {}).value`)
-    checar(padrao === 'auto', `      o seletor de sistema existe ao lado do botão e começa em "Deixar o app descobrir" (${padrao})`)
-    const escolheu = await escolherSistemaDaFicha('dnd5e')
-    checar(escolheu, `      o seletor aceita D&D 5e antes do arquivo`)
-    await espera(200)
-    await foto('ficha-seletor-de-sistema')
     await clicar('Importar ficha (PDF)')
-    await confirmarImportacaoDeFicha()
+    await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
+    await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+    const marcado = await esperarAte(`(document.querySelector('[role=alertdialog] [aria-selected=true]') || {}).textContent === 'Deixar o app descobrir'`, 3000)
+    checar(marcado, `      depois do "tem certeza?" vem a lista de sistemas, com "Deixar o app descobrir" marcada`)
+    await js(`document.querySelector('[role=alertdialog] [data-opcao="dnd5e"]')?.click(); 'ok'`)
+    await espera(300)
+    await foto('ficha-lista-de-sistemas')
+    await js(`document.querySelector('[role=alertdialog] .btn-primary')?.click(); 'ok'`)
     await esperarAte(`!!document.querySelector('.sheet-import-feito')`, 60000, 250)
     const outro = await js(`(document.querySelector('.sheet-import-feito-outro') || {}).textContent || ''`)
     checar(/D&D 5e/.test(outro) && /Tormenta20/.test(outro) && estado.ultimoApply?.notes.sections.length > 3, `      escolhendo D&D 5e na ficha do Milo: "${outro}" e a ficha veio inteira (${estado.ultimoApply?.notes.sections.length} seções)`)

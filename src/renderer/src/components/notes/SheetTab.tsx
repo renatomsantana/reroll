@@ -13,7 +13,7 @@ import { IMPORTACAO_DE_FICHA_LIGADA } from '@shared/recursos'
 import { MAXIMO_DE_CAMPOS_POR_SECAO } from '@shared/types/sheetImport'
 import { RecorteDeFotoModal } from '../foto/RecorteDeFotoModal'
 import { useDialogo } from '../common/Dialogo'
-import { opcoesDeSistema, useSheetImport } from '../../sheets/useSheetImport'
+import { useSheetImport } from '../../sheets/useSheetImport'
 import { usePacoteDePersonagem } from '../../sheets/usePacoteDePersonagem'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
@@ -83,29 +83,6 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   const profiles = useProfiles()
   const dialogo = useDialogo()
   const importacao = useSheetImport()
-  /**
-   * O SELETOR DE SISTEMA ao lado do botão de importar (pedido dele, 06/09/2026: "quero que seja
-   * antes, pro app já se preparar antes do arquivo vir; coloca tipo um nome, aí se você clicar
-   * aparece a lista"). Mostra o nome escolhido e abre a lista no clique; "Deixar o app descobrir"
-   * é o de sempre. Um `<select>` nativo, como o do Crítico: só texto e poucas opções. Aparece nos
-   * dois lugares que têm o botão (o grupo Personagem e a ficha vazia), por isso é um só.
-   */
-  const seletorDeSistema = (
-    <select
-      className="sheet-import-sistema"
-      value={importacao.sistema}
-      onChange={(e) => importacao.setSistema(e.target.value)}
-      disabled={importacao.lendo}
-      aria-label={t.sheetImport.systemLabel}
-      title={t.sheetImport.systemLabel}
-    >
-      {opcoesDeSistema(t.sheetImport.systemAuto, t.sheetImport.otherSystem).map((opcao) => (
-        <option key={opcao.id} value={opcao.id}>
-          {opcao.label}
-        </option>
-      ))}
-    </select>
-  )
   const pacote = usePacoteDePersonagem()
   /**
    * As páginas do PDF do personagem aberto (ver `PaginasRepository`). Relidas quando a ficha
@@ -485,7 +462,6 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                     className="sheet-import-wrap"
                     title={profiles.podeCriar ? undefined : t.notesTab.sheetImportLimit.replace('{max}', String(MAX_PROFILES))}
                   >
-                    {seletorDeSistema}
                     <Button
                       variant="secondary"
                       onClick={() => void importacao.escolherArquivo()}
@@ -685,7 +661,6 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                   className="sheet-import-wrap"
                   title={profiles.podeCriar ? undefined : t.notesTab.sheetImportLimit.replace('{max}', String(MAX_PROFILES))}
                 >
-                  {seletorDeSistema}
                   <Button variant="primary" onClick={() => void importacao.escolherArquivo()} disabled={importacao.lendo || !profiles.podeCriar}>
                     {importacao.lendo ? t.notesTab.sheetImportReading : t.notesTab.sheetImport}
                   </Button>
