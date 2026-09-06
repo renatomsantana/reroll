@@ -15,7 +15,7 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onFinish }: SplashScreenProps) {
   const t = useTranslation()
-  const { soundEnabled, appIconId } = useSettings()
+  const { soundEnabled, volume, appIconId } = useSettings()
   const [progress, setProgress] = useState(0)
   const [version, setVersion] = useState('')
   const trackRef = useRef<HTMLDivElement>(null)
@@ -91,7 +91,10 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
     let audio: HTMLAudioElement | undefined
     if (soundEnabled) {
       audio = new Audio(introUrl)
-      audio.volume = 0.6
+      // 0,6 é o volume de sempre da abertura; a barrinha geral das preferências multiplica ele.
+      // Lido do contexto, e não de `ganhoDoVolume()`: este efeito roda ANTES do efeito do provedor
+      // que grava o volume no módulo de áudio (efeito de filho corre antes do de pai).
+      audio.volume = 0.6 * (volume / 100)
       audio.addEventListener('loadedmetadata', () => {
         if (Number.isFinite(audio!.duration) && audio!.duration > 0) {
           durationMs = audio!.duration * 1000

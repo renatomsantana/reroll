@@ -76,6 +76,14 @@ describe('sanearPreferencias', () => {
     expect(sanearPreferencias(preferencias)).toEqual(preferencias)
   })
 
+  it('VOLUME é número de 0 a 100; texto, NaN ou fora da faixa sai (o `volume` do áudio lançaria)', () => {
+    expect(sanearPreferencias({ volume: 35 })).toEqual({ volume: 35 })
+    expect(sanearPreferencias({ volume: 0 })).toEqual({ volume: 0 })
+    for (const torto of ['80', 150, -5, Number.NaN, null]) {
+      expect('volume' in sanearPreferencias({ volume: torto, soundEnabled: true })).toBe(false)
+    }
+  })
+
   it('campo AUSENTE continua ausente — não inventa valor', () => {
     /**
      * Importa porque quem chama mescla isto por cima do padrão (ou do estado atual). Se a higiene

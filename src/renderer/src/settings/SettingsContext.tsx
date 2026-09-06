@@ -3,6 +3,7 @@ import { useProfiles } from './ProfilesContext'
 import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
 import type { TrayShape } from '@renderer/dice3d/geometry/trayShape'
 import { migrarPreferencias, sanearPreferencias } from './sanearSettings'
+import { VOLUME_PADRAO, definirVolume, volumeValido } from '@renderer/audio/volume'
 import { DEFAULT_APP_ICON_ID, isValidAppIconId } from '@shared/appIcons'
 import type { Language } from '@shared/types/idioma'
 import { CHAVES_DA_APARENCIA, type AparenciaDoPersonagem } from '@shared/types/aparencia'
@@ -273,6 +274,12 @@ interface Settings {
   fontId: FontId
   language: Language
   soundEnabled: boolean
+  /**
+   * O volume geral, 0 a 100 — a barrinha embaixo do interruptor de som (pedido dele, 05/09/2026:
+   * "uma barrinha para medir o som do jogo e a pessoa diminuir ou aumentar"). Vale pra todos os
+   * sons; quem toca lê do módulo `audio/volume.ts`, que o provedor mantém em dia.
+   */
+  volume: number
   compactMode: boolean
   diceBodyColor: string
   diceNumberColor: string
@@ -359,6 +366,7 @@ const DEFAULT_SETTINGS: Settings = {
   fontId: 'tahoma',
   language: 'pt-BR',
   soundEnabled: true,
+  volume: VOLUME_PADRAO,
   compactMode: false,
   diceBodyColor: '#f2ead6',
   diceNumberColor: '#1a1a1a',
@@ -461,6 +469,7 @@ interface SettingsContextValue extends Settings {
   setFontId: (fontId: FontId) => void
   setLanguage: (language: Language) => void
   setSoundEnabled: (value: boolean) => void
+  setVolume: (value: number) => void
   setCompactMode: (value: boolean) => void
   setDiceBodyColor: (value: string) => void
   setDiceNumberColor: (value: string) => void
@@ -620,6 +629,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.setProperty('--font-family', font.family)
   }, [theme, settings.fontId])
 
+  // O volume vai pro módulo de áudio, que é de onde os sons leem (eles tocam fora do React).
+  useEffect(() => {
+    definirVolume(settings.volume)
+  }, [settings.volume])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
@@ -661,6 +675,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setFontId: (fontId) => setSettings((prev) => ({ ...prev, fontId })),
       setLanguage: (language) => setSettings((prev) => ({ ...prev, language })),
       setSoundEnabled: (soundEnabled) => setSettings((prev) => ({ ...prev, soundEnabled })),
+      // A barrinha entrega 0 a 100; o que vier torto (NaN de um input vazio) não grava.
+      setVolume: (volume) => {
+        const valido = volumeValido(volume)
+        if (valido !== null) setSettings((prev) => ({ ...prev, volume: valido }))
+      },
       setCompactMode: (compactMode) => setSettings((prev) => ({ ...prev, compactMode })),
       setDiceBodyColor: (diceBodyColor) => setSettings((prev) => ({ ...prev, diceBodyColor })),
       setDiceNumberColor: (diceNumberColor) =>

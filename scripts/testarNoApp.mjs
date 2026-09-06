@@ -380,8 +380,8 @@ async function faseDados3d() {
 /* Fase SONS: `play()` do <audio> e os osciladores do Web Audio, instrumentados na página.     */
 /* ------------------------------------------------------------------------------------------ */
 const INSTRUMENTAR_SONS = `(() => {
-  window.__sons = { play: 0, osciladores: 0 }
-  HTMLMediaElement.prototype.play = function () { window.__sons.play++; return Promise.resolve() }
+  window.__sons = { play: 0, osciladores: 0, volumes: [] }
+  HTMLMediaElement.prototype.play = function () { window.__sons.play++; window.__sons.volumes.push(this.volume); return Promise.resolve() }
   const Real = window.AudioContext
   window.AudioContext = class extends Real {
     createOscillator() { window.__sons.osciladores++; return super.createOscillator() }
@@ -423,6 +423,26 @@ async function faseSons() {
   for (let i = 0; i < 120; i++) await rolarRapido()
   sons = await js('window.__sons')
   checar(sons.play >= 120 && sons.osciladores === 0, `só o som de crítico desligado: rolagem toca (${sons.play}), crítico não (${sons.osciladores})`)
+
+  // A barrinha de volume: gravada em 30, o som de rolagem toca a 0,3 (o `volume` do elemento).
+  await abrirApp({ displayMode: 'quick', soundEnabled: true, volume: 30 })
+  await js(INSTRUMENTAR_SONS)
+  await limparGrupos()
+  await clicar('d20')
+  await rolarRapido()
+  sons = await js('window.__sons')
+  checar(sons.play === 1 && Math.abs(sons.volumes[0] - 0.3) < 0.001, `volume 30 nas preferências: a rolagem toca a 0,3 (volume=${sons.volumes[0]})`)
+  // E a barrinha existe nas Preferências, mostra o valor, e soltar o botão toca um dado.
+  await js(`document.querySelector('.toolbar-settings-btn')?.click(); 'ok'`)
+  const barrinha = await esperarAte(`!!document.querySelector('.settings-panel-volume input[type=range]')`, 4000)
+  const mostra = await js(`(document.querySelector('.settings-panel-volume-valor') || {}).textContent || ''`)
+  checar(barrinha && mostra === '30%', `a barrinha está nas Preferências e mostra "${mostra}"`)
+  await js(`(() => { const i = document.querySelector('.settings-panel-volume input[type=range]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, '70'); i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); return 'ok' })()`)
+  await espera(150)
+  sons = await js('window.__sons')
+  const mostraDepois = await js(`(document.querySelector('.settings-panel-volume-valor') || {}).textContent || ''`)
+  checar(mostraDepois === '70%' && sons.play === 2 && Math.abs(sons.volumes[1] - 0.7) < 0.001, `arrastar pra 70 e soltar: mostra "${mostraDepois}" e toca um dado a 0,7 (volume=${sons.volumes[1]})`)
+  await foto('preferencias-volume')
 }
 
 /* ------------------------------------------------------------------------------------------ */
