@@ -619,6 +619,13 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
                 t.sheetImport.unrecognized
               )}
             </p>
+            {importacao.feito.sistemaPedido && (
+              <p className="sheet-import-feito-outro">
+                {t.sheetImport.readAsOther
+                  .replace('{chosen}', importacao.feito.sistemaPedido)
+                  .replace('{read}', importacao.feito.readerLabel)}
+              </p>
+            )}
             <p className="sheet-import-feito-resumo">
               {t.sheetImport.done
                 .replace('{fields}', String(importacao.feito.campos))

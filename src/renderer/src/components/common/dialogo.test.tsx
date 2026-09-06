@@ -27,6 +27,15 @@ function Sonda() {
     <div>
       <button onClick={() => void dialogo.confirmar('Apagar o preset "Espada"?').then((ok) => respostas.push(`confirmar:${ok}`))}>perguntar</button>
       <button onClick={() => void dialogo.avisar('Não deu.').then(() => respostas.push('avisar:fechou'))}>avisar</button>
+      <button
+        onClick={() =>
+          void dialogo
+            .escolher('Qual é o sistema?', [{ id: 'ordem', label: 'Ordem Paranormal' }, { id: 'dnd', label: 'D&D 5e' }, { id: 'generico', label: 'Outro sistema' }], 'dnd', 'Importar')
+            .then((id) => respostas.push(`escolher:${id}`))
+        }
+      >
+        escolher
+      </button>
     </div>
   )
 }
@@ -73,6 +82,39 @@ describe('o diálogo do app', () => {
     expect(screen.queryByRole('button', { name: 'Cancelar' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'OK' }))
     await waitFor(() => expect(respostas).toEqual(['avisar:fechou']))
+  })
+
+  it('escolher: a lista abre com o marcado, o clique troca, o botão principal resolve com o id', async () => {
+    montar()
+    fireEvent.click(screen.getByText('escolher'))
+    expect(screen.getByRole('option', { name: 'D&D 5e' }).getAttribute('aria-selected')).toBe('true')
+    fireEvent.click(screen.getByRole('option', { name: 'Ordem Paranormal' }))
+    expect(screen.getByRole('option', { name: 'Ordem Paranormal' }).getAttribute('aria-selected')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Importar' }))
+    await waitFor(() => expect(respostas).toEqual(['escolher:ordem']))
+  })
+
+  it('escolher: as setas andam na lista, Enter confirma, Esc e Cancelar resolvem null', async () => {
+    montar()
+    fireEvent.click(screen.getByText('escolher'))
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(screen.getByRole('option', { name: 'Outro sistema' }).getAttribute('aria-selected')).toBe('true')
+    fireEvent.keyDown(window, { key: 'Enter' })
+    await waitFor(() => expect(respostas).toEqual(['escolher:generico']))
+
+    fireEvent.click(screen.getByText('escolher'))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(respostas).toEqual(['escolher:generico', 'escolher:null']))
+
+    fireEvent.click(screen.getByText('escolher'))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(respostas).toEqual(['escolher:generico', 'escolher:null', 'escolher:null']))
+  })
+
+  it('escolher fora do provedor devolve o que já estava marcado', async () => {
+    montar(false)
+    fireEvent.click(screen.getByText('escolher'))
+    await waitFor(() => expect(respostas).toEqual(['escolher:dnd']))
   })
 
   it('fora do provedor cai no confirm() nativo', async () => {

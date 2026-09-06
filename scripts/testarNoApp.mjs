@@ -465,10 +465,16 @@ async function criarPreset(nome) {
  * novo, e este diálogo é a única pergunta): clica em OK. Sem o diálogo em 3s, segue; o teste da
  * frente diz se a importação aconteceu.
  */
-async function confirmarImportacaoDeFicha() {
-  const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
+/**
+ * A lista de sistemas aparece DEPOIS de abrir o PDF (06/09/2026), com o sistema reconhecido já
+ * marcado: o harness espera a leitura do PDF (que pode levar segundos) e confirma o marcado pelo
+ * botão principal. `sistema` força outra opção da lista, pelo `id` do leitor.
+ */
+async function confirmarImportacaoDeFicha(sistema) {
+  const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog] [role=listbox]')`, 60000, 250)
   if (!dialogo) return false
-  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
+  if (sistema) await js(`document.querySelector('[role=alertdialog] [data-opcao=${JSON.stringify(sistema)}]')?.click(); 'ok'`)
+  await js(`document.querySelector('[role=alertdialog] .btn-primary')?.click(); 'ok'`)
   return esperarAte(`!document.querySelector('[role=alertdialog]')`, 3000)
 }
 async function apagarPreset(nome) {
@@ -1186,6 +1192,32 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     await aba('Rolagem')
     await espera(300)
     await foto(`ficha-${slug}-rolagem`)
+  }
+
+  /**
+   * A LISTA DE SISTEMAS com a escolha ERRADA: a ficha do Milo (Tormenta20) importada marcando D&D
+   * 5e na lista. O leitor de D&D não reconhece nada ali, então a detecção manda, a Ficha avisa que
+   * leu como Tormenta20 e o personagem nasce inteiro do mesmo jeito. Só quando a ficha existe.
+   */
+  const milo = pdfs.find((n) => /milo/i.test(n))
+  if (milo) {
+    estado.profiles = { profiles: [{ id: 'p1', name: '', system: '', photo: null, createdAt: 1 }], activeId: 'p1' }
+    estado.notas = new Map([['p1', NOTAS_VAZIAS()]])
+    estado.presets = new Map([['p1', []]])
+    estado.pdfParaAbrir = { nome: milo, bytes: new Uint8Array(readFileSync(join(pasta, milo))) }
+    estado.ultimoApply = null
+    await abrirApp({})
+    await aba('Ficha')
+    await clicar('Importar ficha (PDF)')
+    const marcado = await esperarAte(`(document.querySelector('[role=alertdialog] [aria-selected=true]') || {}).textContent === 'Tormenta20'`, 60000, 250)
+    checar(marcado, `      a lista de sistemas abre depois do PDF, com Tormenta20 já marcado`)
+    await espera(300)
+    await foto('ficha-lista-de-sistemas')
+    await confirmarImportacaoDeFicha('dnd5e')
+    await esperarAte(`!!document.querySelector('.sheet-import-feito')`, 60000, 250)
+    const outro = await js(`(document.querySelector('.sheet-import-feito-outro') || {}).textContent || ''`)
+    checar(/D&D 5e/.test(outro) && /Tormenta20/.test(outro) && estado.ultimoApply?.notes.sections.length > 3, `      escolhendo D&D 5e na ficha do Milo: "${outro}" e a ficha veio inteira (${estado.ultimoApply?.notes.sections.length} seções)`)
+    await foto('ficha-milo-sistema-errado')
   }
 }
 
