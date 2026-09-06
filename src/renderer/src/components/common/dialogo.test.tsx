@@ -84,31 +84,30 @@ describe('o diálogo do app', () => {
     await waitFor(() => expect(respostas).toEqual(['avisar:fechou']))
   })
 
-  it('escolher: a lista abre com o marcado, o clique troca, o botão principal resolve com o id', async () => {
+  it('escolher: o seletor vem com o marcado, trocar muda, o botão principal resolve com o id', async () => {
     montar()
     fireEvent.click(screen.getByText('escolher'))
-    expect(screen.getByRole('option', { name: 'D&D 5e' }).getAttribute('aria-selected')).toBe('true')
-    fireEvent.click(screen.getByRole('option', { name: 'Ordem Paranormal' }))
-    expect(screen.getByRole('option', { name: 'Ordem Paranormal' }).getAttribute('aria-selected')).toBe('true')
+    const seletor: HTMLSelectElement = screen.getByRole('combobox')
+    expect(seletor.value).toBe('dnd')
+    fireEvent.change(seletor, { target: { value: 'ordem' } })
+    expect(seletor.value).toBe('ordem')
     fireEvent.click(screen.getByRole('button', { name: 'Importar' }))
     await waitFor(() => expect(respostas).toEqual(['escolher:ordem']))
   })
 
-  it('escolher: as setas andam na lista, Enter confirma, Esc e Cancelar resolvem null', async () => {
+  it('escolher: Enter confirma o marcado, Esc e Cancelar resolvem null', async () => {
     montar()
     fireEvent.click(screen.getByText('escolher'))
-    fireEvent.keyDown(window, { key: 'ArrowDown' })
-    expect(screen.getByRole('option', { name: 'Outro sistema' }).getAttribute('aria-selected')).toBe('true')
     fireEvent.keyDown(window, { key: 'Enter' })
-    await waitFor(() => expect(respostas).toEqual(['escolher:generico']))
+    await waitFor(() => expect(respostas).toEqual(['escolher:dnd']))
 
     fireEvent.click(screen.getByText('escolher'))
     fireEvent.keyDown(window, { key: 'Escape' })
-    await waitFor(() => expect(respostas).toEqual(['escolher:generico', 'escolher:null']))
+    await waitFor(() => expect(respostas).toEqual(['escolher:dnd', 'escolher:null']))
 
     fireEvent.click(screen.getByText('escolher'))
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-    await waitFor(() => expect(respostas).toEqual(['escolher:generico', 'escolher:null', 'escolher:null']))
+    await waitFor(() => expect(respostas).toEqual(['escolher:dnd', 'escolher:null', 'escolher:null']))
   })
 
   it('escolher fora do provedor devolve o que já estava marcado', async () => {

@@ -467,16 +467,20 @@ async function criarPreset(nome) {
  */
 /**
  * O caminho da importação (06/09/2026): o "tem certeza?" (OK), depois a LISTA DE SISTEMAS
- * ("Deixar o app descobrir" marcada; `sistema` escolhe outra pelo `id` do leitor), e só então o
+ * (um seletor fechado com Oblívio marcado; `sistema` escolhe outro pelo `id` do leitor), e só então o
  * seletor de arquivo. `foto` tira a foto da lista aberta.
  */
+/** Troca o sistema no `<select>` do diálogo pelo `id` do leitor, disparando o `change` do React. */
+async function escolherNoSeletorDoDialogo(sistema) {
+  return js(`(() => { const s = document.querySelector('[role=alertdialog] select'); if (!s) return false; const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, ${JSON.stringify(sistema)}); s.dispatchEvent(new Event('change', { bubbles: true })); return s.value === ${JSON.stringify(sistema)} })()`)
+}
 async function confirmarImportacaoDeFicha(sistema, nomeDaFoto) {
   const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
   if (!dialogo) return false
   await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
-  const lista = await esperarAte(`!!document.querySelector('[role=alertdialog] [role=listbox]')`, 3000)
+  const lista = await esperarAte(`!!document.querySelector('[role=alertdialog] select')`, 3000)
   if (!lista) return false
-  if (sistema) await js(`document.querySelector('[role=alertdialog] [data-opcao=${JSON.stringify(sistema)}]')?.click(); 'ok'`)
+  if (sistema) await escolherNoSeletorDoDialogo(sistema)
   if (nomeDaFoto) {
     await espera(300)
     await foto(nomeDaFoto)
@@ -1219,9 +1223,9 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     await clicar('Importar ficha (PDF)')
     await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
     await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => b.textContent.trim() === 'OK')?.click()`)
-    const marcado = await esperarAte(`(document.querySelector('[role=alertdialog] [aria-selected=true]') || {}).textContent === 'Deixar o app descobrir'`, 3000)
-    checar(marcado, `      depois do "tem certeza?" vem a lista de sistemas, com "Deixar o app descobrir" marcada`)
-    await js(`document.querySelector('[role=alertdialog] [data-opcao="dnd5e"]')?.click(); 'ok'`)
+    const marcado = await esperarAte(`(document.querySelector('[role=alertdialog] select') || {}).value === 'oblivio'`, 3000)
+    checar(marcado, `      depois do "tem certeza?" vem o seletor de sistema, fechado, com Oblívio marcado`)
+    await escolherNoSeletorDoDialogo('dnd5e')
     await espera(300)
     await foto('ficha-lista-de-sistemas')
     await js(`document.querySelector('[role=alertdialog] .btn-primary')?.click(); 'ok'`)

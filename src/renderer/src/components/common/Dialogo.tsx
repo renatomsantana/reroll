@@ -30,9 +30,9 @@ interface DialogoContextValue {
   confirmar: (texto: string) => Promise<boolean>
   avisar: (texto: string) => Promise<void>
   /**
-   * Uma LISTA pra escolher — a lista de sistemas depois de abrir o PDF (pedido dele, 06/09/2026):
-   * o texto em cima, as opções numa caixa afundada do 98 com `marcado` já selecionado, e o botão
-   * principal com o rótulo dado. Resolve com o `id` escolhido, ou `null` no Cancelar/Esc.
+   * UMA ESCOLHA numa lista — a lista de sistemas da importação (pedido dele, 06/09/2026): o texto
+   * em cima, um seletor fechado mostrando `marcado` (a lista abre no clique), e o botão principal
+   * com o rótulo dado. Resolve com o `id` escolhido, ou `null` no Cancelar/Esc.
    */
   escolher: (texto: string, opcoes: OpcaoDoDialogo[], marcado: string, botao: string) => Promise<string | null>
 }
@@ -105,7 +105,7 @@ function Dialogo({ pedido, onFechar }: { pedido: Pedido; onFechar: (resultado: b
   const t = useTranslation()
   const cardRef = useRef<HTMLDivElement>(null)
   useModalFocusTrap(cardRef)
-  const opcoes = useMemo(() => pedido.opcoes ?? [], [pedido.opcoes])
+  const opcoes = pedido.opcoes ?? []
   const [selecionado, setSelecionado] = useState(pedido.marcado ?? opcoes[0]?.id ?? '')
   const ehLista = pedido.tipo === 'escolher'
 
@@ -121,40 +121,29 @@ function Dialogo({ pedido, onFechar }: { pedido: Pedido; onFechar: (resultado: b
       } else if (e.key === 'Enter') {
         e.preventDefault()
         onFechar(ehLista ? selecionado : true)
-      } else if (ehLista && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-        // A lista anda com as setas, como um listbox do 98; a seleção fica visível ao rolar.
-        e.preventDefault()
-        const atual = opcoes.findIndex((opcao) => opcao.id === selecionado)
-        const proximo = Math.min(opcoes.length - 1, Math.max(0, atual + (e.key === 'ArrowDown' ? 1 : -1)))
-        setSelecionado(opcoes[proximo].id)
-        // `?.()` porque o jsdom dos testes não tem `scrollIntoView`.
-        cardRef.current?.querySelector(`[data-opcao="${opcoes[proximo].id}"]`)?.scrollIntoView?.({ block: 'nearest' })
       }
     }
     window.addEventListener('keydown', aoTeclar)
     return () => window.removeEventListener('keydown', aoTeclar)
-  }, [onFechar, ehLista, opcoes, selecionado])
+  }, [onFechar, ehLista, selecionado])
 
   return (
     <div className="modal-overlay dialogo-overlay" onClick={() => onFechar(ehLista ? null : false)}>
       <Card ref={cardRef} className="dialogo" role="alertdialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <p className="dialogo-texto">{pedido.texto}</p>
+        {/*
+          UM nome fechado, e a lista só no clique (pedido dele, 06/09/2026: "ainda quero apenas UM
+          nome, aí clica e sobe a lista para escolher UM nome"). Foi uma caixa aberta com todos os
+          nomes; um `<select>` nativo é exatamente o gesto que ele descreveu, e já é o do 98.
+        */}
         {ehLista && (
-          <div className="dialogo-lista" role="listbox" aria-label={pedido.texto}>
+          <select className="dialogo-select" value={selecionado} onChange={(e) => setSelecionado(e.target.value)} aria-label={pedido.texto}>
             {opcoes.map((opcao) => (
-              <div
-                key={opcao.id}
-                data-opcao={opcao.id}
-                role="option"
-                aria-selected={opcao.id === selecionado}
-                className={`dialogo-opcao${opcao.id === selecionado ? ' dialogo-opcao-marcada' : ''}`}
-                onClick={() => setSelecionado(opcao.id)}
-                onDoubleClick={() => onFechar(opcao.id)}
-              >
+              <option key={opcao.id} value={opcao.id}>
                 {opcao.label}
-              </div>
+              </option>
             ))}
-          </div>
+          </select>
         )}
         <div className="dialogo-acoes">
           {pedido.tipo !== 'avisar' && (
