@@ -1,11 +1,15 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
 import type { Profile } from '@shared/types/profile'
 import type { RecursoVital } from '@shared/types/recursoVital'
-import { MAXIMO_DE_CONDICOES, criarCondicao, type Canto, type Condicao, type EstadoDoHud } from '@shared/types/hud'
+import { MAXIMO_DE_CONDICOES, corDaCondicao, criarCondicao, type Canto, type Condicao, type EstadoDoHud } from '@shared/types/hud'
+import { textoSobre } from '@shared/types/cor'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { BarrasDeRecurso } from '../recursos/BarrasDeRecurso'
 import { IconeLapis } from '../common/IconeLapis'
 import './HudDoPersonagem.css'
+
+/** O bordô da paleta do 98: a cor com que a condição digitada à mão nasce (ver `confirmarNovaCondicao`). */
+const COR_DA_CONDICAO_NOVA = '#800000'
 
 /**
  * O HUD DO PERSONAGEM (spec §3.6): o cartão de jogo sobre a cena 3D — retrato, nome, as barras de
@@ -128,11 +132,23 @@ export function HudDoPersonagem({
     onChangeCondicoes(condicoes.filter((condicao) => condicao.id !== id))
   }
 
+  /** O quadradinho de cor: a escolha grava na hora, e vira a cor DELA (a do nome deixa de valer). */
+  function mudarCorDaCondicao(id: string, cor: string): void {
+    onChangeCondicoes(condicoes.map((condicao) => (condicao.id === id ? { ...condicao, cor: cor.toLowerCase() } : condicao)))
+  }
+
   function confirmarNovaCondicao(): void {
     const nomeNovo = (novaCondicao ?? '').trim()
     setNovaCondicao(null)
     if (!nomeNovo || condicoes.length >= MAXIMO_DE_CONDICOES) return
-    onChangeCondicoes([...condicoes, criarCondicao(nomeNovo)])
+    /**
+     * A condição digitada à mão nasce LIGADA e VERMELHA (pedido dele, 06/09/2026: "a condição já
+     * fique vermelha do momento que der Enter no nome dela"). Quem digita "Atordoado" no meio do
+     * combate está dizendo que o personagem ESTÁ atordoado, não cadastrando uma opção pra depois;
+     * antes o chip nascia apagado e pedia um segundo clique. O bordô é a cor padrão do chip ligado;
+     * o quadradinho de cor troca. As condições que a importação sugere continuam desligadas.
+     */
+    onChangeCondicoes([...condicoes, criarCondicao(nomeNovo, true, COR_DA_CONDICAO_NOVA)])
   }
 
   function aoTeclarNaCondicao(e: KeyboardEvent<HTMLInputElement>): void {
@@ -203,31 +219,52 @@ export function HudDoPersonagem({
       {!hud.mini && (
         <>
           <div className="hud-condicoes">
-            {condicoes.map((condicao) => (
-              <button
-                key={condicao.id}
-                type="button"
-                className={`hud-condicao ${condicao.ativa ? 'hud-condicao-ativa' : ''}`}
-                onClick={() => alternarCondicao(condicao.id)}
-                aria-pressed={condicao.ativa}
-                aria-label={condicao.ativa ? t.hud.conditionOn.replace('{name}', condicao.nome) : t.hud.conditionOff.replace('{name}', condicao.nome)}
-                title={condicao.ativa ? t.hud.conditionOn.replace('{name}', condicao.nome) : t.hud.conditionOff.replace('{name}', condicao.nome)}
-              >
-                {condicao.nome}
+            {/*
+              O chip em TRÊS peças (o CSS e o harness já esperavam isto desde 02/09/2026, mas o
+              componente ficou com o botão único de antes): o quadradinho de cor à esquerda, que é
+              o seletor (`<input type="color">` invisível por cima, grava na hora); o NOME, que é o
+              botão de ligar/desligar; e o × de remover. A cor vai pro chip pelas variáveis
+              `--condicao-cor` e `--condicao-texto` (preto ou branco conforme a cor).
+            */}
+            {condicoes.map((condicao) => {
+              const cor = corDaCondicao(condicao)
+              const rotulo = condicao.ativa ? t.hud.conditionOn.replace('{name}', condicao.nome) : t.hud.conditionOff.replace('{name}', condicao.nome)
+              return (
                 <span
-                  className="hud-condicao-remover"
-                  role="button"
-                  aria-label={t.hud.conditionRemove.replace('{name}', condicao.nome)}
-                  title={t.hud.conditionRemove.replace('{name}', condicao.nome)}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    removerCondicao(condicao.id)
-                  }}
+                  key={condicao.id}
+                  className={`hud-condicao ${condicao.ativa ? 'hud-condicao-ativa' : ''}`}
+                  style={{ '--condicao-cor': cor, '--condicao-texto': textoSobre(cor) } as CSSProperties}
                 >
-                  ×
+                  <label className="hud-condicao-cor" title={t.hud.conditionColor.replace('{name}', condicao.nome)}>
+                    <input
+                      type="color"
+                      value={cor}
+                      aria-label={t.hud.conditionColor.replace('{name}', condicao.nome)}
+                      onChange={(e) => mudarCorDaCondicao(condicao.id, e.target.value)}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="hud-condicao-nome"
+                    onClick={() => alternarCondicao(condicao.id)}
+                    aria-pressed={condicao.ativa}
+                    aria-label={rotulo}
+                    title={rotulo}
+                  >
+                    {condicao.nome}
+                  </button>
+                  <button
+                    type="button"
+                    className="hud-condicao-remover"
+                    aria-label={t.hud.conditionRemove.replace('{name}', condicao.nome)}
+                    title={t.hud.conditionRemove.replace('{name}', condicao.nome)}
+                    onClick={() => removerCondicao(condicao.id)}
+                  >
+                    ×
+                  </button>
                 </span>
-              </button>
-            ))}
+              )
+            })}
             {novaCondicao === null ? (
               condicoes.length < MAXIMO_DE_CONDICOES && (
                 <button type="button" className="hud-condicao hud-condicao-nova" onClick={() => setNovaCondicao('')} title={t.hud.conditionAdd}>
