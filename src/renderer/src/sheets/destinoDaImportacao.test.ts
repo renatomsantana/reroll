@@ -2,13 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_NOTES } from '@shared/types/notes'
 import { escolherDestino, personagemEmBranco } from './destinoDaImportacao'
 
-/**
- * A importação sem janela (02/09/2026) decide sozinha o nome. O destino quase não é decisão: toda
- * ficha importada vira um personagem NOVO (pedido dele: "para não perder o que já está lá"). A
- * única exceção (06/09/2026) é o personagem aberto EM BRANCO, o que "Novo personagem" acabou de
- * criar: ele recebe a ficha, porque não há nada nele a perder, e criar outro deixava um sem nome
- * pra trás gastando um lugar do teto.
- */
+// Importar cria personagem novo; a exceção é o aberto em branco, que recebe a ficha.
 describe('o personagem que nasce da ficha importada', () => {
   it('leva o nome que o PDF trouxe, sem os espaços das pontas', () => {
     expect(escolherDestino({ nomeLido: '  Aurora ', fileName: 'ficha.pdf' })).toEqual({ characterName: 'Aurora' })

@@ -474,11 +474,7 @@ async function criarPreset(nome) {
 async function escolherNoSeletorDoDialogo(sistema) {
   return js(`(() => { const s = document.querySelector('[role=alertdialog] select'); if (!s) return false; const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, ${JSON.stringify(sistema)}); s.dispatchEvent(new Event('change', { bubbles: true })); return s.value === ${JSON.stringify(sistema)} })()`)
 }
-/**
- * Percorre o caminho da importação: "tem certeza?" (só quando a ficha vai CRIAR um personagem; o
- * personagem aberto EM BRANCO recebe a ficha sem pergunta, ver `personagemEmBranco`), depois a
- * lista de sistemas. Devolve `false` se algum diálogo não veio.
- */
+/** "Tem certeza?" (só quando vai criar personagem) e depois a lista de sistemas. */
 async function confirmarImportacaoDeFicha(sistema, nomeDaFoto, { semTemCerteza = false } = {}) {
   const dialogo = await esperarAte(`!!document.querySelector('[role=alertdialog]')`, 3000)
   if (!dialogo) return false
@@ -612,7 +608,7 @@ async function fasePerfis() {
   checar(presets.join() === 'Espada longa', `os presets são os do Kieran (${presets})`)
   checar((await preferencia('diceBodyColor')) === '#222222', `a cor do dado é a do Kieran (${await preferencia('diceBodyColor')})`)
   checar((await preferencia('trayShape')) === 'circle', `a bandeja é a do Kieran (${await preferencia('trayShape')})`)
-  // O crachá saiu de perto do ROLAR (02/09/2026): na Rolagem, quem diz o nome é o HUD.
+  // Na Rolagem quem mostra o nome é o HUD (o crachá saiu em 02/09).
   const nomeNoHud = await js(`document.querySelector('.hud-nome')?.textContent`)
   checar(nomeNoHud?.includes('Kieran'), `o HUD da rolagem mostra o Kieran ("${nomeNoHud}")`)
   await foto('perfis-hud-no-modo-rapido')
@@ -1158,8 +1154,8 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     await abrirApp({})
     await aba('Ficha')
     await clicar('Importar ficha (PDF)')
-    // O p1 está EM BRANCO (o que "Novo personagem" cria): a ficha entra nele, sem "tem certeza?".
-    await confirmarImportacaoDeFicha(undefined, undefined, { semTemCerteza: true })
+    // p1 em branco: a ficha entra nele, sem "tem certeza?".
+    checar(await confirmarImportacaoDeFicha(undefined, undefined, { semTemCerteza: true }), `${nome}: a lista de sistemas veio direto, sem "tem certeza?"`)
     // Sem janela: lê, grava no personagem em branco e a Ficha mostra o aviso do que importou.
     const importou = await esperarAte(`!!document.querySelector('.sheet-import-feito') || !!document.querySelector('.sheet-save-error')`, 60000, 250)
     const conf = await js(`(() => {
@@ -1182,8 +1178,7 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     }
     await espera(400)
     await foto(`ficha-${slug}-importada`)
-    // O personagem em branco RECEBEU a ficha: a lista continua com um, e é o p1 (o defeito de
-    // 06/09/2026: "Novo personagem" + importar deixava um sem nome pra trás e gastava dois lugares).
+    // Entrou no p1, sem criar outro (06/09: "Novo personagem" + importar gastava dois lugares).
     checar(apply.targetProfileId === 'p1' && estado.profiles.profiles.length === 1 && estado.profiles.activeId === 'p1', `      ${nome}: entrou no personagem em branco, sem criar outro (${estado.profiles.profiles.length} na lista)`)
     // A Ficha diz quanto leu, no lugar da janela que existia.
     checar(/\d+ campos e \d+ rolagens/.test(conf.resumo), `      ${nome}: a Ficha diz o que importou ("${conf.resumo.slice(0, 60)}...")`)
@@ -1229,7 +1224,7 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
    */
   const milo = pdfs.find((n) => /milo/i.test(n))
   if (milo) {
-    // Com um personagem COM NOME aberto: aqui a ficha CRIA outro, e é o caminho com "tem certeza?".
+    // Personagem com nome aberto: a ficha cria outro, com "tem certeza?".
     estado.profiles = { profiles: [{ id: 'p1', name: 'Matias Oliveira', system: 'Ordem Paranormal', photo: null, createdAt: 1 }], activeId: 'p1' }
     estado.notas = new Map([['p1', NOTAS_VAZIAS()]])
     estado.presets = new Map([['p1', []]])

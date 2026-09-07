@@ -93,27 +93,17 @@ export function useSheetImport() {
     setErro(null)
     setFeito(null)
 
-    /**
-     * O personagem aberto EM BRANCO (o que "Novo personagem" acaba de criar) RECEBE a ficha em vez
-     * de nascer outro (ver `personagemEmBranco`): não há o que perder nele, e criar um segundo
-     * deixava o em branco pra trás gastando um lugar do teto. Só vale com a ficha dele já lida do
-     * disco (`loadedFor`): antes disso a ficha na tela pode ser a do personagem anterior.
-     */
+    // Personagem aberto em branco recebe a ficha em vez de criar outro. `loadedFor` garante que
+    // `notes` já é dele, e não do personagem anterior.
     const emBranco = loadedFor === activeId && personagemEmBranco(active, notes)
 
-    /**
-     * O TETO de personagens (`MAX_PROFILES`: três nos testadores, o do disco no cliente do dono),
-     * antes de qualquer pergunta: importar cria um personagem, então no teto não há o que
-     * importar. O botão já vem apagado com a dica do limite; isto é a segunda tranca. O em branco
-     * não conta: a ficha entra nele e a lista não cresce.
-     */
+    // Teto (`MAX_PROFILES`) só quando vai criar; o botão já vem apagado, isto é a segunda tranca.
     if (!emBranco && profiles.length >= MAX_PROFILES) {
       setErro(t.sheetImport.atLimit.replace('{max}', String(MAX_PROFILES)))
       return
     }
 
-    // O único "tem certeza?": a ficha vira um personagem NOVO, e os de antes ficam como estão.
-    // No em branco não há personagem novo pra avisar, e a pergunta seria mentira.
+    // "Tem certeza?" avisa que nasce um personagem novo; no em branco não nasce, então não pergunta.
     if (!emBranco && !(await dialogo.confirmar(t.sheetImport.confirmNew))) return
 
     /**
@@ -222,8 +212,7 @@ export function useSheetImport() {
       })
 
       try {
-        // Sem `targetProfileId`: o processo principal CRIA o personagem e o deixa aberto. Com ele
-        // (o em branco), grava a ficha nesse personagem e a lista não cresce.
+        // Sem `targetProfileId` o main cria o personagem e o deixa aberto; com ele, grava no em branco.
         const perfil = await window.api.sheets.apply({
           targetProfileId: destino.targetProfileId,
           characterName: destino.characterName,
