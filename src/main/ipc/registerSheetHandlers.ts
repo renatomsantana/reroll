@@ -371,6 +371,7 @@ export function registerSheetHandlers(
       const recursosImportados = payload.recursos ?? []
       if (payload.notes.sections.length > 0 || Object.keys(blocos).length > 0 || recursosImportados.length > 0) {
         const atuais = await notes.get()
+        // Em branco = o recém-criado que recebeu a importação; pra crítico conta como novo.
         const emBranco = !!existente && !existente.name.trim() && fichaEstaVazia(atuais)
         /**
          * As seções vão pra FICHA do personagem, e nada vai pro diário: o diário é por sessão de
@@ -417,9 +418,7 @@ ${novoTexto}` : novoTexto
           recursos: recursosFundidos,
           /**
            * A regra de crítico vem do SISTEMA da ficha só no personagem NOVO (Cthulhu nasce d100
-           * rola-abaixo). Num personagem atualizado a regra que a pessoa escolheu fica. O EM
-           * BRANCO (sem nome e sem ficha, o recém-criado que recebe a importação, ver
-           * `personagemEmBranco` no renderer) conta como novo: ninguém escolheu nada nele.
+           * rola-abaixo). Num personagem atualizado a regra que a pessoa escolheu fica.
            */
           critico: existente && !emBranco ? atuais.critico : regraDeCriticoDoSistema(payload.system),
           /**
