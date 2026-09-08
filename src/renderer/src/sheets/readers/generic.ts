@@ -21,16 +21,12 @@ import type { SheetReader } from './types'
 
 /**
  * O leitor que NÃO conhece sistema nenhum, e o mais importante dos três, porque é o que atende a
- * ficha que ninguém previu. Ele se apoia em duas coisas que valem pra qualquer ficha:
+ * ficha que ninguém previu. Apoia-se em duas coisas que valem pra qualquer ficha: campo preenchido
+ * tem um RÓTULO IMPRESSO do lado (ver `labelForField`), e rolagem se escreve igual no mundo inteiro,
+ * então varrer atrás de notação de dado produz presets sem saber nada do sistema.
  *
- * 1. campo preenchido tem um RÓTULO IMPRESSO do lado (ver `labelForField`), e rótulo + valor já é
- *    uma anotação de personagem útil;
- * 2. rolagem se escreve igual no mundo inteiro, então varrer tudo atrás de notação de dado
- *    (`parseDiceExpression`) produz presets sem saber nada do sistema.
- *
- * O que ele NÃO tenta fazer, de propósito: adivinhar quais campos são atributos, quais são perícias
- * e o que é ataque. Isso é conhecimento de sistema, é o que um leitor dedicado traz, e chutar aqui
- * produziria agrupamento errado com cara de certo.
+ * O que ele NÃO tenta, de propósito: adivinhar quais campos são atributos, quais são perícias e o que
+ * é ataque. Isso é conhecimento de sistema, e chutar aqui produz agrupamento errado com cara de certo.
  */
 
 /**
@@ -48,33 +44,27 @@ const NOME_DO_PERSONAGEM = /^(nome|nombre|personagem|personaje|character|name|ch
 const VAZIO = new Set(['', 'off', 'undefined', 'null'])
 
 /**
- * Texto de INSTRUÇÃO que a ficha já traz dentro do campo ("Escolha uma Classe", "Choose a
- * background"): não é o que o jogador escreveu, é o modelo falando com ele. A lista nunca vai estar
- * completa, e vale mesmo assim — cada um que passa vira uma linha errada na conferência e, pior, faz
- * o app achar que a ficha está preenchida.
+ * Texto de INSTRUÇÃO que a ficha traz dentro do campo ("Escolha uma Classe", "Choose a background"):
+ * não é o que o jogador escreveu, é o modelo falando com ele. A lista nunca vai estar completa, e
+ * vale mesmo assim — cada um que passa faz o app achar que a ficha está preenchida.
  */
 /**
  * Tipos de campo que são CAIXA: o valor deles é um estado, não um texto (ver `valorDeFicha`). A
- * decisão sai do TIPO, e nunca do valor — a primeira versão tratava "1" como marcado, e a ficha do
- * Matais, que tem Agilidade 1, importou "Agilidade = sim". Numa ficha de RPG quase todo número
- * pequeno é um atributo, e nenhum deles é uma caixa.
+ * decisão sai do TIPO, nunca do valor — a primeira versão tratava "1" como marcado, e a ficha do
+ * Matais, que tem Agilidade 1, importou "Agilidade = sim".
  */
 const TIPOS_DE_CAIXA = new Set(['checkbox', 'radiobutton', 'btn'])
 
 const INSTRUCAO = /^(escolha|selecione|digite|preencha|insira|choose|select|enter|type)\b/i
 
 /**
- * O valor APROVEITÁVEL de um campo, ou `null` se não houver.
+ * O valor APROVEITÁVEL de um campo, ou `null` se não houver. Exportado porque os leitores dedicados
+ * leem campos direto pelo nome e precisam da MESMA régua: sem isto, o de Ordem Paranormal importava
+ * "Classe = Escolha uma Classe" da ficha em branco enquanto o genérico descartava o mesmo valor.
  *
- * Exportado porque os leitores dedicados leem campos direto pelo nome e precisam da MESMA régua: sem
- * isto, o de Ordem Paranormal importava "Classe = Escolha uma Classe" da ficha em branco enquanto o
- * genérico descartava o mesmo valor, e duas réguas pra mesma pergunta é como um importador começa a
- * se contradizer na própria tela.
- *
- * Os espaços internos de cada LINHA são colapsados (campo de PDF guarda alinhamento visual junto do
+ * Os espaços internos de cada LINHA são colapsados (campo de PDF guarda alinhamento junto do
  * conteúdo, e a ficha real devolveu "5         1" num campo de PV), mas a QUEBRA DE LINHA fica: a
- * ficha de Tormenta20 do Milo traz as habilidades uma por linha, e trocar todo espaço em branco por
- * um só entregava o bloco inteiro corrido, ilegível na Ficha.
+ * ficha de Tormenta20 do Milo traz as habilidades uma por linha.
  */
 export function valorDeFicha(bruto: string | undefined, tipo?: string): string | null {
   if (!bruto) return null
@@ -140,14 +130,12 @@ export function extrairGenerico(
   }
 
   /**
-   * A ficha que é ARTE COM ANOTAÇÃO por cima é um caminho à parte, e não uma variação do de texto.
-   * Ela chegava aqui pela porta errada: com 41 fragmentos passava do corte de "PDF é imagem" e caía
-   * no caminho de documento de texto, que procura "Rótulo:" impresso — e como ali é tudo desenho, o
-   * resultado eram três pedaços de frase soltos, sem nome de personagem, com um aviso falso de "é um
-   * PDF de texto", e tudo o mais que a pessoa escreveu se perdia.
+   * A ficha que é ARTE COM ANOTAÇÃO por cima é um caminho à parte. Ela chegava pela porta errada:
+   * com 41 fragmentos passava do corte de "PDF é imagem" e caía no caminho de documento de texto, que
+   * procura "Rótulo:" impresso — e como ali é tudo desenho, saíam três pedaços de frase soltos, sem
+   * nome, com um aviso falso de "é um PDF de texto".
    *
-   * Só vale pro leitor GENÉRICO: se um dedicado reconheceu a ficha, então existe estrutura, e tratar
-   * o arquivo como imagem sem rótulo jogaria fora justamente o que ele sabe.
+   * Só vale pro GENÉRICO: se um dedicado reconheceu a ficha, então existe estrutura.
    */
   if (readerId === 'generico' && pareceAnotacaoSobreImagem(sheet)) {
     return anotacaoSobreImagem(sheet, readerId, readerLabel, confidence)
@@ -210,11 +198,10 @@ export function extrairGenerico(
    * Ficha sem formulário: sobra o texto impresso. Rolagem escrita no papel ainda é rolagem, mas só a
    * que está numa CÉLULA, não a que está no meio de uma frase.
    *
-   * O corte por comprimento existe porque a primeira versão, sem ele, encheu a tela de lixo na ficha
-   * de Oblivio de verdade, que traz as REGRAS impressas junto: saíam presets chamados "permanentemente
-   * reduzido em 1D4 pontos (". 28 caracteres é o mesmo teto que `ehRotulo` usa. Não acerta sempre —
-   * "RESULTADO 1D6" passa —, mas o que passa se desmarca numa caixa, enquanto prosa virando preset é
-   * o que faz a lista inteira parecer inútil.
+   * O corte por comprimento existe porque sem ele a ficha de Oblivio de verdade, que traz as REGRAS
+   * impressas junto, encheu a tela de presets como "permanentemente reduzido em 1D4 pontos (". 28
+   * caracteres é o mesmo teto de `ehRotulo`. Não acerta sempre, mas o que passa se desmarca numa
+   * caixa, enquanto prosa virando preset faz a lista inteira parecer inútil.
    */
   if (sheet.fields.length === 0) {
     // Rótulo e valor tirados do TEXTO impresso (ver `camposDoTexto`) — é o que faz uma ficha sem
@@ -249,15 +236,13 @@ export function extrairGenerico(
   const nome = acharNome(sheet, fields, readerId, leuAlgumaCoisa(sheet, semRuido, presetsFinais))
 
   /**
-   * "Parece o modelo em branco" tem que ser dito mesmo com campos preenchidos, porque uma ficha em
-   * branco não vem vazia: a de Ordem Paranormal traz 76 campos com valor de fábrica (0 nos atributos,
-   * "Escolha uma Classe", "10" de defesa). Sem o aviso, a pessoa abriria a conferência com dezenas de
-   * zeros e nenhuma pista de que o problema é o arquivo, não o app.
+   * "Parece o modelo em branco" tem que ser dito mesmo com campos preenchidos, porque ficha em branco
+   * não vem vazia: a de Ordem Paranormal traz 76 campos com valor de fábrica. Sem o aviso, a pessoa
+   * abriria a conferência com dezenas de zeros e nenhuma pista de que o problema é o arquivo.
    *
    * O sinal são as duas coisas que só existem em ficha usada: um nome escrito NA ficha (e não
-   * deduzido do arquivo) e alguma rolagem. Juntos, erram só na ficha preenchida sem nome nem ataque.
-   * O corte é `semRuido`, o que sobrou de verdade pra importar, e não o que veio do PDF — o modelo em
-   * branco de Oblivio devolve os dez atributos zerados sem nome nenhum, e passava calado.
+   * deduzido do arquivo) e alguma rolagem. O corte é `semRuido`, o que sobrou de verdade pra
+   * importar, e não o que veio do PDF — o modelo em branco de Oblivio passava calado.
    */
   const nomeVeioDaFicha = fields.some((campo) => NOME_DO_PERSONAGEM.test(campo.label) && campo.value)
   if (semRuido.length > 0 && !nomeVeioDaFicha && presetsFinais.length === 0) {
@@ -279,14 +264,12 @@ export function extrairGenerico(
 
 /**
  * A leitura de uma ficha que é IMAGEM COM ANOTAÇÃO por cima. O que dá pra entregar é o texto
- * remontado em parágrafos, na ordem da página; os parágrafos que a própria pessoa nomeou ("Durão:
- * …") como campos; e um palpite de nome. O que não dá é dizer o que cada coisa é — os nomes dos
- * campos são pixel. Ver `anotacoesSobreImagem.ts`.
+ * remontado em parágrafos, os parágrafos que a própria pessoa nomeou ("Durão: …") como campos, e um
+ * palpite de nome. O que não dá é dizer o que cada coisa é — os nomes dos campos são pixel.
  *
- * Os presets saem da mesma varredura de texto do outro caminho: "Adaga 1d4" escrito à mão numa arte
- * continua sendo uma rolagem do personagem. O que ela não pega, de propósito, é o "d20" solto que
- * esta ficha tem seis vezes, um por atributo: preset chamado "d20" é um botão que o app já tem, e
- * nomeá-lo direito exigiria saber de qual atributo ele é.
+ * Os presets saem da mesma varredura do outro caminho: "Adaga 1d4" escrito à mão numa arte continua
+ * sendo rolagem. O que ela não pega, de propósito, é o "d20" solto que esta ficha tem seis vezes, um
+ * por atributo: preset chamado "d20" é um botão que o app já tem.
  */
 function anotacaoSobreImagem(
   sheet: PdfSheet,
@@ -298,12 +281,10 @@ function anotacaoSobreImagem(
   const paragrafos = regioes.flat()
   const { fields, consumidos } = camposDeAnotacao(paragrafos)
   /**
-   * O nome vem primeiro do CAMPO, e só depois do palpite pela posição. `palpiteDeNome` chuta o
-   * primeiro parágrafo da página, que é a resposta certa quando o nome está sozinho no alto; numa
-   * ficha datilografada o primeiro parágrafo costuma ser o TÍTULO ("FICHA DE INVESTIGADOR — Chamado
-   * de Cthulhu"), que o palpite descarta por ser longo e devolve vazio, caindo no nome do ARQUIVO.
-   * Medido numa ficha assim: o app propunha "cthulhu" tendo lido "Nome: Elias Ramos" duas linhas
-   * antes.
+   * O nome vem primeiro do CAMPO, e só depois do palpite pela posição: `palpiteDeNome` chuta o
+   * primeiro parágrafo, que numa ficha datilografada costuma ser o TÍTULO ("FICHA DE INVESTIGADOR —
+   * Chamado de Cthulhu") e é descartado por longo, caindo no nome do ARQUIVO. Medido numa ficha
+   * assim: o app propunha "cthulhu" tendo lido "Nome: Elias Ramos" duas linhas antes.
    */
   const nome = palpiteDoCampoDeNome(fields) || palpiteDeNome(paragrafos)
 
@@ -354,14 +335,10 @@ function presetsDoTexto(sheet: PdfSheet): SheetImportPreset[] {
 }
 
 /**
- * A FORMA de uma linha de arma: um NOME antes do dado, e no máximo UMA palavra depois dele, como em
- * "Espada longa 1d8 cortante".
- *
- * Esta régua já foi só de TAMANHO, e os livros de regras de Pathfinder 2e mostraram o que passava por
- * ela: "You take 5d6 damage of the", "every 1d20 minutes (1 day)", "2d6 bludgeoning" — frase com o
- * dado no meio, ou célula de dano sem nome nenhum antes. A forma de arma é o que toda ficha
- * datilografada escreve, e é o que a frase corrida não tem. Quarenta e oito caracteres continua
- * sendo o teto: mais que isso é parágrafo.
+ * A FORMA de uma linha de arma: um NOME antes do dado, e no máximo UMA palavra depois, como em
+ * "Espada longa 1d8 cortante". Já foi só de TAMANHO, e os livros de Pathfinder 2e mostraram o que
+ * passava: "You take 5d6 damage of the", "every 1d20 minutes (1 day)", "2d6 bludgeoning" — frase com
+ * o dado no meio, ou célula de dano sem nome antes. Quarenta e oito caracteres continua sendo o teto.
  */
 const LINHA_DE_ARMA = /^(?:.*?\p{L}.*?)\s+\d*[dD]\d+(?:\s*[+-]\s*\d+)?(?:\s+[\p{L}()]+)?\s*$/u
 
@@ -371,13 +348,10 @@ function cabeComoNomeDeRolagem(texto: string): boolean {
 }
 
 /**
- * O texto tem NOME de rolagem, além da notação de dado? Num preset o nome é o que a pessoa vai ler na
- * lista de rolagens: "1D4" não nomeia nada, e "1D4 PE. /" é pedaço de frase, vindo da página de
- * equipamento da ficha de Oblivio, que escreve as regras em corrido. Os dois entraram na importação
- * do arquivo real.
- *
- * Duas perguntas, então: sobra alguma PALAVRA depois de tirar a notação, e o que sobra é nome ou
- * frase. "Espada Longa 1d8" passa nas duas; "1D4" morre na primeira, "1D4 PE. /" na segunda.
+ * O texto tem NOME de rolagem, além da notação de dado? Num preset o nome é o que a pessoa lê na
+ * lista: "1D4" não nomeia nada, e "1D4 PE. /" é pedaço de frase da página de equipamento de Oblivio.
+ * Duas perguntas: sobra alguma PALAVRA depois de tirar a notação, e o que sobra é nome ou frase.
+ * "Espada Longa 1d8" passa nas duas; "1D4" morre na primeira, "1D4 PE. /" na segunda.
  */
 function ehNomeDeRolagem(texto: string): boolean {
   const semDados = texto.replace(/\d*\s*[dD]\s*\d+/g, ' ')
@@ -391,14 +365,11 @@ function ehNomeDeRolagem(texto: string): boolean {
 }
 
 /**
- * Palavras que são CABEÇALHO DE TABELA, não nome de rolagem. A ficha de Oblivio traz as regras
- * impressas junto, e uma delas é a "TABELA DE FARDOS", cuja primeira coluna se chama "RESULTADO 1D6":
- * passava por todos os filtros (curto, com notação de dado, com palavra, sem pontuação de frase) e
- * virava o único preset que a ficha produzia.
+ * Palavras que são CABEÇALHO DE TABELA, não nome de rolagem. A "TABELA DE FARDOS" de Oblivio tem uma
+ * coluna chamada "RESULTADO 1D6": passava por todos os filtros (curta, com notação, com palavra, sem
+ * pontuação de frase) e virava o único preset que a ficha produzia.
  *
- * O que essas palavras têm em comum é DESCREVEREM O DADO em vez de nomearem a rolagem: "Adaga 1d4"
- * diz o que se está rolando, "Resultado 1d6" diz que ali vai o resultado de um 1d6. Nos dois idiomas,
- * porque ficha em inglês é comum e a régua é a mesma.
+ * O que elas têm em comum é DESCREVEREM O DADO em vez de nomearem a rolagem. Nos dois idiomas.
  */
 const PALAVRAS_DE_TABELA = new Set([
   'resultado',
@@ -484,26 +455,22 @@ function acharNome(sheet: PdfSheet, fields: SheetImportField[], readerId: string
 /**
  * O nome do ARQUIVO como último recurso, e não sempre.
  *
- * Quando um leitor DEDICADO reconheceu o sistema e mesmo assim não achou nome nenhum escrito, o
- * arquivo é quase certamente a ficha em branco baixada do site do sistema, e o nome dele é o título
- * dela. Medido nas duas que estavam sem teste: o app propunha criar um personagem chamado "Ordem
- * Paranormal - Ficha de Personagem Editável". Vazio é melhor que isso — a conferência não deixa
- * confirmar sem nome, então a pessoa digita o dela em vez de apagar o título de uma ficha.
+ * Quando um leitor DEDICADO reconheceu o sistema e mesmo assim não achou nome escrito, o arquivo é
+ * quase certamente a ficha em branco baixada do site, e o nome dele é o título dela: o app propunha
+ * criar um personagem chamado "Ordem Paranormal - Ficha de Personagem Editável". Vazio é melhor —
+ * a conferência não deixa confirmar sem nome, então a pessoa digita o dela.
  *
- * No leitor GENÉRICO o palpite continua: ali ninguém reconheceu nada, e "Elias - ficha.pdf" é o único
- * indício de nome que existe. Errar custa uma edição; não oferecer custa digitação em toda importação
- * de ficha sem campo de nome.
+ * No GENÉRICO o palpite continua: ali ninguém reconheceu nada, e "Elias - ficha.pdf" é o único
+ * indício que existe.
  */
 function nomeDeArquivoComoPalpite(fileName: string, readerId: string, leuAlgo: boolean): string {
   if (readerId !== 'generico') return ''
   /**
-   * E nem no genérico, quando a leitura veio VAZIA. O palpite se justifica por ser o único indício
-   * que existe, e isso vale quando existe uma ficha por trás dele: sem nenhum campo e nenhuma
+   * E nem no genérico, quando a leitura veio VAZIA: o palpite se justifica por ser o único indício
+   * que existe, e isso vale quando existe uma ficha por trás dele. Sem nenhum campo e nenhuma
    * rolagem, propor o nome do arquivo cria um personagem chamado "Ficha Kids on Bikes" com a ficha em
-   * branco, e a pessoa só descobre que nada foi lido depois de confirmar. Medido na varredura das
-   * fichas reais do beta: era o caso da ficha em branco de Kids on Bikes, uma ARTE achatada com zero
-   * campos de formulário e UM fragmento de texto na página inteira, a letra "X". Ficha datilografada
-   * sem campo mas com parágrafos escritos continua ganhando o palpite: ali existe conteúdo.
+   * branco — era o caso daquela ARTE achatada, com zero campos e UM fragmento de texto, a letra "X".
+   * Ficha datilografada sem campo mas com parágrafos continua ganhando o palpite.
    */
   if (!leuAlgo) return ''
   return fileName.replace(/\.pdf$/i, '').trim()
