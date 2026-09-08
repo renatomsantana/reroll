@@ -271,14 +271,13 @@
 }
 
 /*
- * A GRADE ÚNICA de toda seção, pedido dele: "fica muito feio um maior que outro, vamos deixar padrão
- * todos na mesma fileira, alinhados, que toda ficha scrapada fique assim".
+ * A GRADE ÚNICA de toda seção, pedido dele: "vamos deixar padrão todos na mesma fileira, alinhados,
+ * que toda ficha scrapada fique assim".
  *
- * Colunas iguais de 150px de piso (`auto-fill`), as mesmas em toda seção, porque toda seção tem a
- * mesma largura: as caixas da Identificação ficam na vertical das do Combate e das Perícias. Cada
- * campo é uma célula (rótulo em cima, caixa embaixo); valor comprido ocupa duas ou três, decidido em
- * `larguraDaCelula`. Isto substitui a fileira de linhas que abraçavam o conteúdo com `field-sizing`,
- * onde cada caixa ficava do tamanho do valor e a fileira dançava.
+ * Colunas iguais de 150px de piso (`auto-fill`), as mesmas em toda seção, então as caixas da
+ * Identificação ficam na vertical das do Combate. Cada campo é uma célula (rótulo em cima, caixa
+ * embaixo); valor comprido ocupa duas ou três, decidido em `larguraDaCelula`. Substitui a fileira com
+ * `field-sizing`, onde cada caixa ficava do tamanho do valor e a fileira dançava.
  */
 .sheet-section-fields {
   display: grid;
