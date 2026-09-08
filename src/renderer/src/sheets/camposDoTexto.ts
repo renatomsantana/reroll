@@ -1,21 +1,16 @@
 import type { PdfSheet, PdfText, SheetImportField } from '@shared/types/sheetImport'
 
 /**
- * Campos de uma ficha SEM FORMULÁRIO, tirados do texto impresso. É o que faz uma ficha exportada do
- * Google Docs (a de Oblivio é uma) render algo além de palpites de rolagem: sem isto, esse tipo de PDF
- * importava zero campos.
+ * Campos de uma ficha SEM FORMULÁRIO, tirados do texto impresso — sem isto, um PDF exportado do
+ * Google Docs (a ficha de Oblivio é um) importava zero campos. As duas formas saíram de comparar a
+ * ficha EM BRANCO com a PREENCHIDA do mesmo documento:
  *
- * As duas formas saíram de comparar a ficha de Oblivio EM BRANCO com a PREENCHIDA do mesmo documento —
- * o que existe só na segunda é, por definição, o que o jogador escreveu:
+ * 1. rótulo e valor NO MESMO FRAGMENTO ("Nome: Rodrigo Barreto"), de quem digita dentro do documento;
+ * 2. valor na MESMA LINHA, à direita do rótulo ("Carne:" e, adiante, "2/10"), de campo em tabela.
  *
- * 1. RÓTULO E VALOR NO MESMO FRAGMENTO ("Nome: Rodrigo Barreto"), que é como se preenche digitando
- *    dentro do documento;
- * 2. VALOR NA MESMA LINHA, À DIREITA DO RÓTULO ("Carne:" e, alguns pontos adiante, "2/10"), que é
- *    como ficam os campos diagramados em tabela.
- *
- * A regra de vizinhança da forma 2 é MESMA LINHA, e isso importa: o texto mais próximo de "2/10" em
- * distância pura é "Representa a", o começo da explicação na linha DE CIMA, enquanto o rótulo certo
- * está a 45 pontos à direita e na mesma altura. Medido nos dois arquivos antes de virar código.
+ * A vizinhança da forma 2 é MESMA LINHA e não distância pura: o texto mais próximo de "2/10" é
+ * "Representa a", começo da explicação na linha DE CIMA, enquanto o rótulo certo está 45 pontos à
+ * direita e na mesma altura.
  */
 
 /** Rótulo e valor juntos: "Nome: Rodrigo Barreto". O rótulo é curto; o valor, não pode ser um parágrafo. */
@@ -23,12 +18,8 @@ const ROTULO_E_VALOR = /^([^:]{2,28}):\s*(\S.{0,119})$/
 
 /**
  * Valor que, na verdade, é pedaço de FRASE. A ficha de Oblivio traz as regras impressas junto, e elas
- * são escritas do mesmo jeito que um campo preenchido: "Limite de Estresse: 6. / Dano: 1D4 PE." —
- * rótulo curto, dois-pontos, número em seguida, indistinguível de "Carne: 2/10" por posição ou
- * tamanho. Foi assim que "Limite de Estresse = 6. /" apareceu no meio dos atributos de verdade.
- *
- * O que separa os dois é a PONTUAÇÃO DE FRASE: valor de ficha não termina em ponto e não tem ponto
- * seguido de espaço. "2/10", "0/5" e "1.5" passam; "+1.", "1." e "1D4 PE. /" não.
+ * são escritas como campo preenchido: "Limite de Estresse: 6. / Dano: 1D4 PE." O que separa os dois é
+ * a PONTUAÇÃO DE FRASE — "2/10", "0/5" e "1.5" passam; "+1.", "1." e "1D4 PE. /" não.
  */
 const PEDACO_DE_FRASE = /\.\s*$|\.\s/
 
@@ -42,10 +33,9 @@ export function camposDoTexto(sheet: PdfSheet): SheetImportField[] {
 }
 
 /**
- * A mesma leitura, dizendo também QUAIS fragmentos ela consumiu. É o que o genérico precisa pra
- * guardar o resto como texto da ficha (regra do usuário: "qualquer anotação de player no pdf
- * precisamos trazer") — sem isto, numa ficha de texto sem formulário tudo que não era "Rótulo:
- * valor" era jogado fora, e o Espaço Livre de Oblívio mostrou que ali mora anotação de jogador.
+ * A mesma leitura, dizendo também QUAIS fragmentos ela consumiu: é o que o genérico precisa pra
+ * guardar o resto como texto da ficha ("qualquer anotação de player no pdf precisamos trazer"). Sem
+ * isto, tudo que não era "Rótulo: valor" ia pro lixo, e o Espaço Livre de Oblívio é anotação.
  */
 export function lerCamposDoTexto(sheet: PdfSheet): { campos: SheetImportField[]; usados: Set<PdfText> } {
   const campos: SheetImportField[] = []
@@ -68,11 +58,9 @@ export function lerCamposDoTexto(sheet: PdfSheet): { campos: SheetImportField[];
   }
 
   /**
-   * Forma 2: valor solto à direita de um rótulo terminado em ":".
-   *
-   * Só valores CURTOS e com dígito. Sem essas duas condições, qualquer palavra solta de uma frase
-   * quebrada em vários fragmentos (e o extrator quebra muito) vira "valor" do rótulo mais próximo —
-   * a ficha de Oblivio tem parágrafos inteiros picados em pedaços de uma palavra.
+   * Forma 2: valor solto à direita de um rótulo terminado em ":". Só valores CURTOS e com dígito —
+   * sem as duas condições, qualquer palavra de uma frase picada pelo extrator vira "valor" do rótulo
+   * mais próximo, e a ficha de Oblivio tem parágrafos inteiros em pedaços de uma palavra.
    */
   const rotulos = sheet.texts.filter((item) => item.text.trim().endsWith(':') && ehRotuloPlausivel(item.text.trim().slice(0, -1)))
   for (const item of sheet.texts) {
@@ -100,36 +88,28 @@ export function lerCamposDoTexto(sheet: PdfSheet): { campos: SheetImportField[];
 }
 
 /**
- * Entrelinha máxima de um mesmo parágrafo, em múltiplos da altura da fonte.
- *
- * Medido na ficha de Oblivio, que separa bem os dois casos: as linhas de dentro de um parágrafo
- * ficam a 1,4 alturas umas das outras, e dois itens DIFERENTES da lista ficam a 2,25. 1,8 passa no
- * meio.
+ * Entrelinha máxima de um mesmo parágrafo, em múltiplos da altura da fonte. Medido na ficha de
+ * Oblivio: dentro de um parágrafo as linhas ficam a 1,4 umas das outras, e dois itens diferentes da
+ * lista ficam a 2,25.
  */
 const ENTRELINHA = 1.8
 
 /**
- * Quanto a linha seguinte pode começar mais à ESQUERDA e ainda ser o mesmo parágrafo.
- *
- * Existe por causa da indentação pendente, que a ficha de Oblivio usa: "Estocada: Você realiza a
- * Ação de Cena…" começa em x=152, e as três linhas que completam a frase começam em x=72, 80 pontos
- * à esquerda. Exigir a mesma margem cortava a habilidade no meio — era exatamente o "(se
- * movimentando" truncado que aparecia na importação.
- *
- * Pra direita quase não há folga (12 pontos), porque parágrafo novo é que costuma ser indentado.
+ * Quanto a linha seguinte pode começar mais à ESQUERDA e ainda ser o mesmo parágrafo. É a indentação
+ * pendente da ficha de Oblivio: "Estocada: Você realiza a Ação de Cena…" começa em x=152 e as três
+ * linhas que completam a frase começam em x=72. Exigir a mesma margem truncava a habilidade no meio.
+ * Pra direita quase não há folga, porque parágrafo NOVO é que costuma ser indentado.
  */
 const RECUO_MAXIMO = 120
 const AVANCO_MAXIMO = 12
 
 /**
- * As linhas que COMPLETAM o valor de um campo, a continuação do parágrafo. O extrator devolve uma linha
- * por fragmento, então "Descrição: 1,87m, cabelos loiros descoloridos, curto dos lados e" era tudo o
- * que entrava na ficha, com o resto indo pro lixo — e metade de uma frase é pior que nada, porque
- * parece completa.
+ * As linhas que COMPLETAM o valor de um campo. O extrator devolve uma linha por fragmento, então
+ * "Descrição: 1,87m, cabelos loiros descoloridos, curto dos lados e" era tudo o que entrava, com o
+ * resto no lixo — e metade de uma frase é pior que nada, porque parece completa.
  *
- * A parada é por três motivos, e cada um evita um jeito diferente de engolir a ficha inteira: buraco
- * vertical (acabou o parágrafo), margem muito diferente (é outra coluna) e a linha ser ela mesma um
- * "Rótulo: valor" (é o campo seguinte).
+ * Para por três motivos, cada um evitando um jeito de engolir a ficha inteira: buraco vertical
+ * (acabou o parágrafo), margem muito diferente (é outra coluna) e a linha ser o campo seguinte.
  */
 function linhasSeguintes(emOrdem: PdfText[], inicio: number): PdfText[] {
   const linhas: PdfText[] = []
@@ -139,9 +119,8 @@ function linhasSeguintes(emOrdem: PdfText[], inicio: number): PdfText[] {
     const proximo = emOrdem[i]
     if (proximo.page !== anterior.page) break
     /**
-     * Sem altura de fonte declarada não há régua de entrelinha, e a resposta certa é não juntar —
-     * um piso inventado colaria linhas que não têm nada a ver umas com as outras. Ver o mesmo
-     * raciocínio em `alturaUtil`, em `anotacoesSobreImagem.ts`.
+     * Sem altura de fonte declarada não há régua de entrelinha, e a resposta é não juntar: um piso
+     * inventado colaria linhas sem nada a ver. Mesmo raciocínio de `alturaUtil`.
      */
     if (anterior.height <= 0) break
     const queda = anterior.y - proximo.y
@@ -161,20 +140,16 @@ function linhasSeguintes(emOrdem: PdfText[], inicio: number): PdfText[] {
 }
 
 /**
- * O que pode ser rótulo. Precisa ter letra (número solto não rotula nada) e não pode ser um pedaço
- * de frase — a ficha de Oblivio traz as REGRAS impressas, e regra tem dois-pontos o tempo todo
- * ("Voracidade: Primeira vez na cena dobre sua Dor"). O corte por palavras é o que separa um rótulo
- * de campo do começo de um parágrafo.
+ * O que pode ser rótulo: tem letra (número solto não rotula nada) e não é pedaço de frase. A ficha de
+ * Oblivio traz as REGRAS impressas, e regra tem dois-pontos o tempo todo ("Voracidade: Primeira vez
+ * na cena dobre sua Dor") — o corte por palavras é o que separa rótulo de começo de parágrafo.
  */
 export function ehRotuloPlausivel(texto: string): boolean {
   const limpo = texto.trim()
   if (limpo.length < 2 || limpo.length > 28) return false
   /**
-   * Tem que COMEÇAR com letra, e não só conter uma.
-   *
-   * A ficha de Oblivio escreve a conta ao lado do campo — "Limite de Estresse (5 + Carne): 0/7" —, e
-   * o fragmento "(5 + Carne)" virava rótulo, produzindo a linha "(5 + Carne) = 0/7". Fórmula não é
-   * nome de campo, e nome de campo de ficha nenhuma começa por parêntese ou sinal.
+   * Tem que COMEÇAR com letra, e não só conter uma: a ficha de Oblivio escreve a conta ao lado do
+   * campo ("Limite de Estresse (5 + Carne): 0/7"), e o fragmento "(5 + Carne)" virava rótulo.
    */
   if (!/^[\p{L}]/u.test(limpo)) return false
   if (limpo.split(/\s+/).length > 4) return false

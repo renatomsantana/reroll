@@ -3,51 +3,40 @@ import { MAX_SIMULTANEOUS_DICE } from '../diceRegistry'
 import { parseDiceExpression } from '../dice/parseDiceExpression'
 
 /**
- * COMO SE ROLA um campo da ficha.
+ * COMO SE ROLA um campo da ficha. A ficha importada era um formulário INERTE: mostrava "Agilidade 3"
+ * e não fazia nada com isso, num app que é um rolador de dados.
  *
- * A ficha importada era um formulário INERTE: mostrava "Agilidade 3" e não fazia nada com isso. Só
- * que ninguém consulta a ficha por consultar, consulta pra rolar — e o app é um rolador de dados.
- *
- * O que se guarda é o TIPO da rolagem, nunca a expressão pronta, e a diferença importa: o valor do
- * campo é editável (sobe de nível, ganha bônus, muda no meio da sessão), e uma expressão gravada na
- * importação envelheceria calada, rolando o +3 de ontem. Guardando o tipo, a expressão é montada NO
- * CLIQUE, a partir do que está escrito agora.
- *
- * Quem diz o tipo é o leitor do sistema, porque isto é exatamente o que só quem conhece o sistema
- * sabe: em D&D um atributo 16 vira 1d20+3, e em Ordem Paranormal um atributo 3 vira "role 3d20 e
- * fique com o maior". O mesmo "3" escrito na ficha, duas rolagens diferentes.
+ * O que se guarda é o TIPO da rolagem, nunca a expressão pronta: o valor do campo é editável, e uma
+ * expressão gravada na importação envelheceria calada, rolando o +3 de ontem. Quem diz o tipo é o
+ * leitor do sistema, porque só ele sabe que 16 vira 1d20+3 em D&D e 3 vira "role 3d20 e fique com o
+ * maior" em Ordem Paranormal.
  */
 export type SheetRollKind =
   /**
    * O valor é um BÔNUS, e o teste é um d20 — "+5" vira 1d20+5. É a forma mais comum em ficha de RPG:
-   * perícia, salvaguarda e bônus de ataque de D&D e de todo sistema d20 se escrevem assim, porque o
-   * dado está implícito no sistema e só o número muda de personagem pra personagem.
+   * perícia, salvaguarda e bônus de ataque de todo sistema d20 se escrevem assim.
    */
   | 'd20'
   /**
-   * O valor é um VALOR DE ATRIBUTO de D&D (3 a 30), e o que entra na rolagem é o modificador dele:
-   * `(valor - 10) / 2` arredondado pra baixo. É um tipo à parte, e não o `d20` com a conta já feita na
-   * importação, porque a ficha mostra o VALOR — é isso que o jogador lê e edita quando o personagem
-   * sobe de nível. Guardando o modificador, a ficha diria "Força +3" onde o papel dele diz 16.
+   * O valor é um VALOR DE ATRIBUTO de D&D (3 a 30), e o que rola é o modificador dele:
+   * `(valor - 10) / 2` pra baixo. É tipo à parte, e não `d20` com a conta feita na importação, porque
+   * a ficha mostra o VALOR: guardando o modificador, ela diria "Força +3" onde o papel dele diz 16.
    */
   | 'd20-valor'
   /**
-   * O valor é QUANTOS DADOS se rola, ficando com o melhor: a regra de teste de Ordem Paranormal. O
-   * ZERO é o caso especial do sistema, e é por isso que este tipo não é um `keep` genérico — atributo 0
-   * rola DOIS dados e fica com o PIOR. Sem tratá-lo aqui, um agente com atributo zero ou não rolaria
-   * nada ou rolaria com vantagem justamente onde a regra pune.
+   * O valor é QUANTOS DADOS se rola, ficando com o melhor: o teste de Ordem Paranormal. O ZERO é o
+   * caso especial do sistema, e é por isso que isto não é um `keep` genérico — atributo 0 rola DOIS
+   * dados e fica com o PIOR, ou seja, justamente onde a regra pune.
    */
   | 'pool-d20'
 
 /**
- * A rolagem de um campo da ficha, ou `null` se aquele valor não dá rolagem nenhuma.
+ * A rolagem de um campo da ficha, ou `null` se aquele valor não dá rolagem nenhuma. `null` é o caso
+ * comum: nome, classe, deslocamento e CA não se rolam, e a tela usa este `null` pra decidir onde NÃO
+ * desenhar o botão.
  *
- * `null` não é falha, é o caso comum: campo de nome, de classe, de deslocamento e de CA existem aos
- * montes numa ficha e não se rolam, e a tela usa este `null` pra decidir onde NÃO desenhar o botão.
- *
- * Sem `kind`, ainda há uma última tentativa: o valor pode ser notação de dado escrita na própria ficha
- * ("2d6+2" na coluna de dano). Isso vale pra qualquer sistema, inclusive os que ninguém cadastrou
- * aqui, e é o que faz o botão aparecer numa ficha genérica.
+ * Sem `kind` ainda há uma última tentativa: o valor pode ser notação de dado escrita na própria ficha
+ * ("2d6+2" na coluna de dano), e é o que faz o botão aparecer numa ficha genérica.
  */
 export function rolagemDoCampo(valor: string, kind?: SheetRollKind): DiceExpression | null {
   const limpo = valor.trim()
@@ -70,13 +59,10 @@ export function rolagemDoCampo(valor: string, kind?: SheetRollKind): DiceExpress
 }
 
 /**
- * O NÚMERO que está escrito no campo, ou `null`. Aceita o sinal ("+5") porque é assim que ficha de RPG
- * escreve bônus, e aceita o lixo em volta ("16 (+3)") porque ficha preenchida à mão tem de tudo. O que
- * ele NÃO faz é pescar um número do meio de uma frase: a busca é ancorada no COMEÇO do valor, senão
- * "Deslocamento 9m/6q" viraria uma rolagem de 1d20+9.
- *
- * O intervalo é o que cabe numa ficha: nada de RPG tem atributo 400, e um número desses quase sempre é
- * outra coisa que caiu no campo — um ano, um peso, uma quantia.
+ * O NÚMERO que está escrito no campo, ou `null`. Aceita o sinal ("+5") e o lixo em volta ("16 (+3)"),
+ * mas NÃO pesca número do meio de uma frase: a busca é ancorada no COMEÇO, senão "Deslocamento
+ * 9m/6q" viraria 1d20+9. O intervalo é o que cabe numa ficha — atributo 400 é outra coisa que caiu
+ * no campo, um ano, um peso, uma quantia.
  */
 function numeroDoCampo(valor: string): number | null {
   const match = /^([+-]?)\s*(\d{1,3})(?!\d)/.exec(valor)
@@ -94,10 +80,9 @@ function d20ComBonus(bonus: number | null): DiceExpression | null {
 }
 
 /**
- * A regra de teste de Ordem Paranormal, com o zero incluído: N dados e fica com o melhor, zero rola
- * dois e fica com o PIOR. O teto é o mesmo da rolagem de verdade porque estes dados caem na bandeja
- * 3D: um campo com "40" digitado por engano viraria quarenta dados numa cena que rola quinze, com o
- * total sem relação com o rótulo. Acima do teto é erro de digitação, não personagem.
+ * A regra de teste de Ordem Paranormal, com o zero incluído. O teto é o mesmo da rolagem de verdade
+ * porque estes dados caem na bandeja 3D: um "40" digitado por engano viraria quarenta dados numa cena
+ * que rola quinze.
  */
 function poolDeD20(quantidade: number | null): DiceExpression | null {
   if (quantidade === null || quantidade < 0) return null
@@ -117,10 +102,9 @@ function poolDeD20(quantidade: number | null): DiceExpression | null {
 const TIPOS: readonly SheetRollKind[] = ['d20', 'd20-valor', 'pool-d20']
 
 /**
- * O tipo de rolagem lido de um arquivo, ou `undefined`. O `notes.json` é editável à mão e sobrevive a
- * versões do app, então um `roll` gravado pode ser qualquer coisa, inclusive um tipo que existiu numa
- * versão futura. Um tipo desconhecido vira "sem tipo", que faz o campo cair no palpite por notação de
- * dado: perde-se o botão certo, nunca a ficha.
+ * O tipo de rolagem lido de um arquivo, ou `undefined`. Tipo desconhecido (arquivo editado à mão, ou
+ * escrito por uma versão futura) vira "sem tipo", e o campo cai no palpite por notação de dado:
+ * perde-se o botão certo, nunca a ficha.
  */
 export function normalizarTipoDeRolagem(bruto: unknown): SheetRollKind | undefined {
   return typeof bruto === 'string' && (TIPOS as readonly string[]).includes(bruto)
