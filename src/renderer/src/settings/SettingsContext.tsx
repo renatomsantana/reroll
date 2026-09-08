@@ -11,78 +11,67 @@ import { CHAVES_DA_APARENCIA, type AparenciaDoPersonagem } from '@shared/types/a
 export type ThemeMode = 'day' | 'night'
 
 /**
- * O que a pessoa ESCOLHEU, que é diferente do tema que está valendo agora. `'system'` existe porque
- * um app aberto ao lado do Discord a noite inteira deveria escurecer junto com o Windows.
+ * O que a pessoa ESCOLHEU, que é diferente do tema valendo agora: `'system'` existe porque um app
+ * aberto ao lado do Discord a noite inteira deveria escurecer junto com o Windows.
  *
- * A distinção entre escolha e efeito é o que evita espalhar condicional pelo app: `themeSource` é o
- * que se guarda, `theme` continua sendo 'day' ou 'night' e é o que todo o resto lê, inclusive o
- * `data-theme` do `<html>`. Nada que consumia `theme` precisou saber que esta opção passou a existir.
+ * A distinção evita espalhar condicional pelo app: `themeSource` é o que se guarda, `theme` continua
+ * sendo 'day' ou 'night' e é o que todo o resto lê, inclusive o `data-theme` do `<html>`.
  */
 export type ThemeSource = ThemeMode | 'system'
 // Reexportado pra não quebrar quem já importava daqui; a definição mora em `shared` porque os
 // leitores de ficha também precisam dela. Ver `shared/types/idioma.ts`.
 export type { Language }
 /**
- * Como o dado entra na bandeja, e se a torre aparece ("uma opção de escolher se quer que tenha a
- * torre ou não, ou se quer que jogue por cima como é o padrão, ou se quer a torre ali só por
- * decoração"):
+ * Como o dado entra na bandeja, e se a torre aparece:
  *
- * - `tray`: sem torre, com o dado arremessado de fora e de cima (`tossDie`), o padrão de sempre;
- * - `tower`: a torre encostada no hexágono e o dado saindo da boca dela (`tossDieFromMouth`);
- * - `towerDecor`: a torre na cena, mas o dado arremessado por cima como no `tray`.
+ * - `tray`: sem torre, dado arremessado de fora e de cima (`tossDie`), o padrão de sempre;
+ * - `tower`: torre encostada no hexágono e dado saindo da boca dela (`tossDieFromMouth`);
+ * - `towerDecor`: torre na cena, dado arremessado por cima como no `tray`.
  *
- * Os três entram no `key` de remontagem em `DiceRoller3D.tsx`: dois trocam a física, e o terceiro
- * muda a cena.
+ * Os três entram no `key` de remontagem em `DiceRoller3D.tsx`: dois trocam a física, o terceiro muda
+ * a cena.
  */
 export type LaunchMode = 'tray' | 'tower' | 'towerDecor'
 
 /**
- * Como o WASD dirige a câmera ("poder movimentar pela mesa inteira, ou deixar lockado no dado, ou
- * free way"):
+ * Como o WASD dirige a câmera:
  *
  * - `table`: anda pela MESA, deslizando no plano dela, sem sair;
  * - `dice`: TRAVADA nos dados, com o alvo perseguindo onde eles pararam e o WASD orbitando;
  * - `free`: LIVRE, voando na direção pra onde a câmera olha.
  *
- * Ao contrário de `launchMode`, isto NÃO entra no `key` de remount: trocar de modo não reconstrói
- * nada, só muda como as teclas são interpretadas no laço de animação.
+ * Ao contrário de `launchMode`, NÃO entra no `key` de remount: só muda como as teclas são lidas.
  */
 export type CameraMode = 'table' | 'dice' | 'free'
 
 /**
- * Como o resultado aparece:
- *
- * - `3d`: os dados caem na bandeja e o resultado é o que eles mostram;
- * - `quick`: o número na hora, sem física e sem espera, pelo mesmo `rollExpression`.
+ * Como o resultado aparece: em `3d` os dados caem na bandeja, em `quick` o número sai na hora, sem
+ * física, pelo mesmo `rollExpression`.
  *
  * O modo rápido não é uma versão pobre: é o que a pessoa quer numa mesa corrida, é o que o modo
- * compacto já fazia por conta própria, e é a REDE de quem não tem WebGL utilizável — sem ele, essa
- * máquina não rola dado nenhum (ver `webglDisponivel.ts`).
+ * compacto já fazia sozinho, e é a REDE de quem não tem WebGL utilizável (ver `webglDisponivel.ts`).
  */
 export type DisplayMode = '3d' | 'quick'
 
 /**
- * As fontes do menu: doze no fechamento do alfa, mais Sweetie, Algerian, Nunito e Determination,
- * pedidas depois. A lista já teve dezoito e foi ENCURTADA a pedido dele — menu de fonte longo não é
- * menu melhor, e metade das que saíram eram variações quase indistinguíveis das que ficaram. Quem
- * tiver uma das removidas gravada nas preferências cai no padrão na próxima abertura (ver
- * `loadInitial`), e quem tiver uma delas gravada numa ANOTAÇÃO cai em "fonte padrão" no seletor do
- * bloco (ver `familyToFontId` em `NotesTab.tsx`).
+ * As fontes do menu. A lista já teve dezoito e foi ENCURTADA a pedido dele: metade das que saíram
+ * eram variações quase indistinguíveis das que ficaram. Quem tiver uma das removidas gravada nas
+ * preferências cai no padrão na próxima abertura (ver `loadInitial`), e quem tiver uma numa ANOTAÇÃO
+ * cai em "fonte padrão" no seletor do bloco (ver `familyToFontId` em `NotesTab.tsx`).
  *
  * O que vale ao mexer nesta lista:
  *
- * 1. a cadeia de RESERVA de cada fonte termina numa família genérica, nunca em outra fonte deste
- *    menu. Terminando num item da própria lista, escolher uma dá visivelmente a outra — foi o bug do
- *    Papyrus, relatado por ele (ver abaixo);
+ * 1. a cadeia de RESERVA de cada fonte termina numa família genérica, NUNCA em outra fonte deste
+ *    menu: terminando num item da própria lista, escolher uma dá visivelmente a outra — foi o bug do
+ *    Papyrus, relatado por ele;
  * 2. fonte que não vem no Windows precisa de um de dois tratamentos, e quem decide é a LICENÇA.
  *    Montserrat, JetBrains Mono, Lora e Nunito são OFL: entram empacotadas em `assets/fonts/`, com a
  *    licença ao lado e um par de `@font-face` no `global.css`. Janda Silly Monkey, Sweetie e
- *    Determination são gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver
- *    instaladas vê o reserva. Sem um dos dois tratamentos, a fonte cai no reserva calada;
+ *    Determination são gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver vê o
+ *    reserva. Sem um dos dois tratamentos, a fonte cai no reserva calada;
  * 3. fonte que só vem com o OFFICE (Century Gothic, Garamond) entra apenas se alguém a pedir pelo
- *    nome, nunca por iniciativa de quem mexe aqui: na máquina sem Office ela vira outra coisa sem
- *    avisar. A Algerian é a única exceção, e o reserva dela é o que faz a exceção custar pouco — não
- *    use a existência dela como precedente pra próxima.
+ *    nome: na máquina sem Office ela vira outra coisa sem avisar. A Algerian é a única exceção, e o
+ *    reserva dela é o que faz a exceção custar pouco — não a use como precedente.
  */
 export const FONT_OPTIONS = [
   { id: 'tahoma', label: 'Tahoma (clássica)', family: "Tahoma, 'MS Sans Serif', Geneva, sans-serif" },
@@ -128,12 +117,12 @@ export const FONT_OPTIONS = [
   // "MS" fora do rótulo a pedido dele; o nome real continua em `family`, que é o que o navegador
   // procura no sistema.
   /**
-   * A opção AMIGÁVEL A DISLÉXICOS da lista, e o rótulo não diz isso, a pedido dele (já foi "Comic
-   * Sans (p/ dislexia)"). A Comic Sans é recomendada com frequência pra leitura com dislexia porque
-   * as letras têm formas irregulares o bastante pra reduzir a troca de b/d/p/q; não é remédio e não
-   * funciona pra todo mundo, e é por isso que ela entra como opção e não como padrão.
+   * A opção AMIGÁVEL A DISLÉXICOS da lista, e o rótulo não diz isso, a pedido dele. A Comic Sans é
+   * recomendada com frequência pra leitura com dislexia porque as letras têm formas irregulares o
+   * bastante pra reduzir a troca de b/d/p/q; não é remédio e não funciona pra todo mundo, e por isso
+   * entra como opção e não como padrão.
    *
-   * Este comentário fica no lugar do rótulo. Sem ele, a Comic Sans vira só "a fonte de piada" da
+   * Este comentário fica no lugar do rótulo: sem ele, a Comic Sans vira só "a fonte de piada" da
    * lista e some na próxima limpeza — e com ela some a única opção que cobre o requisito, já que a
    * OpenDyslexic saiu a pedido dele.
    */
