@@ -62,13 +62,10 @@
 }
 
 /**
- * Caixa de grupo do Windows 98 — o mesmo desenho de `.style-group` (aba Estilo). É ele que faz esta
- * aba ler como FICHA: cada assunto num quadro com o nome escrito na borda, que é como formulário do
- * 98 e ficha impressa se organizam.
- *
- * Duplicado de propósito por enquanto: unificar as duas numa classe compartilhada obrigaria a mexer
- * na aba Estilo inteira (são dez usos lá) sem nenhum ganho pra quem usa. Se aparecer uma terceira,
- * aí vale a extração.
+ * Caixa de grupo do Windows 98, o mesmo desenho de `.style-group`. É ele que faz esta aba ler como
+ * FICHA: cada assunto num quadro com o nome escrito na borda, que é como formulário do 98 e ficha
+ * impressa se organizam. Duplicado de propósito por enquanto — unificar as duas obrigaria a mexer na
+ * aba Estilo inteira (dez usos lá) sem ganho pra quem usa; se aparecer uma terceira, vale a extração.
  */
 .notes-group {
   margin: 0;
@@ -101,11 +98,10 @@
   flex: 1;
   display: grid;
   /**
-   * `minmax(0, …)` e não `3fr 2fr` puro: uma faixa `fr` tem mínimo `auto`, ou seja, ela CRESCE além
-   * da fatia dela se o conteúdo não couber. Com a linha de identidade (seis campos rotulados) a
-   * coluna da ficha estourava e comia a do diário — o "Novo dia" e o ✕ ficavam cortados fora da
-   * tela. Com o mínimo em zero, quem cede é o conteúdo, que é o que se quer aqui: campo de texto
-   * encolhe bem, botão cortado não.
+   * `minmax(0, …)` e não `3fr 2fr` puro: uma faixa `fr` tem mínimo `auto`, ou seja ela CRESCE além da
+   * fatia dela se o conteúdo não couber. Com a linha de identidade (seis campos rotulados) a coluna da
+   * ficha estourava e comia a do diário, cortando o "Novo dia" fora da tela. Com o mínimo em zero, quem
+   * cede é o conteúdo: campo de texto encolhe bem, botão cortado não.
    */
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: 12px;
@@ -161,18 +157,16 @@
 
 /**
  * O seletor de fonte na barra do bloco. Sem largura mínima ele encolhe pro tamanho do rótulo mais
- * curto e passa a cortar os nomes ("Tahoma (clás…", "Comic Sa…") — e a lista herda a largura do
- * botão, então o corte se repete linha a linha, bem em cima da caveirinha do easter egg. 200px é o
- * que faz caber o maior rótulo mais o mascote E o crédito de quem indicou a fonte — com 160 sobrava
- * "JetBr… by caio".
+ * curto e passa a cortar os nomes, e a lista herda a largura do botão, então o corte se repete linha a
+ * linha. 200px é o que faz caber o maior rótulo mais o mascote e o crédito de quem indicou a fonte —
+ * com 160 sobrava "JetBr… by caio".
  */
 .notes-toolbar .font-select {
   /**
-   * `display: flex` junto com a largura, e essa parte não é enfeite: a raiz do seletor não traz
-   * display próprio — quem a torna flex é uma regra do painel de Preferências
-   * (`.settings-panel-field .font-select`). Fora de lá ela fica `block`, e aí a largura mínima vale
-   * pra RAIZ enquanto o botão dentro continua do tamanho do texto. Medido: raiz em 200px, botão em
-   * 105px. A largura sozinha não fazia nada visível.
+   * `display: flex` junto com a largura, e essa parte não é enfeite: a raiz do seletor não traz display
+   * próprio — quem a torna flex é uma regra do painel de Preferências. Fora de lá ela fica `block`, e
+   * aí a largura mínima vale pra RAIZ enquanto o botão dentro continua do tamanho do texto (medido:
+   * raiz em 200px, botão em 105px), ou seja, a largura sozinha não fazia nada visível.
    */
   display: flex;
   min-width: 200px;
@@ -191,18 +185,15 @@
 }
 
 /**
- * As linhas de caderno (fundo) precisam bater com a linha de base do texto de verdade, senão
- * o texto flutua acima/abaixo delas (bug relatado pelo usuário) — a posição antiga (15-16px
- * dentro de cada ciclo de 24px) era um palpite fixo que só por acaso chegava perto da baseline
- * de uma fonte específica; com fontes diferentes (o dropdown de fonte desta aba troca a família
- * inteira) a baseline real varia e o descompasso fica visível. A técnica robusta é desenhar a
- * linha bem no FUNDO de cada ciclo de `line-height` (um "sublinhado" por linha) em vez de tentar
- * acertar a posição exata da baseline — a baseline de qualquer fonte razoável fica sempre um
- * pouco ACIMA do fundo da caixa da linha (a "descida" reservada pelas letras com rabicho),
- * então o texto sempre fica assentado sobre a linha, não flutuando, não importa a fonte.
- * `padding-top: 0` garante que a primeira caixa de linha comece exatamente onde o gradiente de
- * fundo também começa (origem 0,0 da padding-box) — sem isso a primeira linha digitada já nasce
- * desalinhada das demais.
+ * As linhas de caderno (fundo) precisam bater com a linha de base do texto, senão o texto flutua acima
+ * ou abaixo delas (bug relatado). A posição antiga era um palpite fixo dentro do ciclo de 24px, que só
+ * por acaso chegava perto da baseline de uma fonte específica — e o seletor desta aba troca a família
+ * inteira, então a baseline real varia e o descompasso fica visível.
+ *
+ * A técnica robusta é desenhar a linha no FUNDO de cada ciclo de `line-height`, um sublinhado por
+ * linha, em vez de tentar acertar a baseline: ela fica sempre um pouco acima do fundo da caixa da
+ * linha (a descida reservada pelas letras com rabicho), então o texto assenta sobre a linha em
+ * qualquer fonte. `padding-top: 0` faz a primeira caixa de linha começar onde o gradiente começa.
  */
 .notes-textarea {
   flex: 1;
@@ -392,11 +383,9 @@
 }
 
 /**
- * A faixa do seletor de personagem, acima da barra de formatação.
- *
- * Ela fica separada da `notes-toolbar` de propósito: aquela barra é sobre a CANETA (fonte, negrito,
- * cor), e esta é sobre DE QUEM é o caderno. Misturar as duas põe a troca de personagem a um clique
- * de distância do itálico, que é o tipo de vizinhança que produz clique errado.
+ * A faixa do seletor de personagem, acima da barra de formatação. Ela fica separada da `notes-toolbar`
+ * de propósito: aquela barra é sobre a CANETA (fonte, negrito, cor), e esta é sobre DE QUEM é o
+ * caderno. Misturar as duas põe a troca de personagem a um clique de distância do itálico.
  */
 .notes-profile {
   display: flex;

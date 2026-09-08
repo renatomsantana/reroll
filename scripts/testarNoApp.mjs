@@ -1,26 +1,23 @@
 /**
- * TESTAR NO APP — o renderer COMPILADO, numa janela oculta, com um processo principal FALSO em
- * memória, exercitado como uma pessoa faria: clicando, rolando, importando, arrastando.
+ * TESTAR NO APP: o renderer COMPILADO, numa janela oculta, com um processo principal falso em
+ * memória, exercitado como uma pessoa faria — clicando, rolando, importando, arrastando.
  *
- * A suíte do vitest prova cada peça; isto prova o CAMINHO INTEIRO no bundle de produção, que é onde
- * as peças se encontram (o worker do pdf.js, a cena WebGL, o HUD por cima do canvas, a área de
- * transferência pelo IPC). Pedido do usuário: "vamos continuar testando os tipos de hud, os d20, os
- * tipos diferentes de dados, os uploads, os scrapings".
+ * A suíte do vitest prova cada peça; isto prova o CAMINHO INTEIRO no bundle de produção, que é onde as
+ * peças se encontram (o worker do pdf.js, a cena WebGL, o HUD por cima do canvas, a área de
+ * transferência pelo IPC). Pedido dele: "vamos continuar testando os tipos de hud, os d20, os tipos
+ * diferentes de dados, os uploads, os scrapings".
  *
  *     npx electron-vite build && npx electron scripts/testarNoApp.mjs [dados] [hud] [fichas]
  *
- * Sem argumento roda as três fases. Capturas em `out/testar-no-app/`. Sai com código 1 se alguma
+ * Sem argumento roda as três fases. Capturas em `out/testar-no-app/`, e sai com código 1 se alguma
  * checagem falhar — cada uma é impressa como OK/ERR com o que foi medido.
  *
- * - `dados`: cada tipo de dado (d4…d100) rolado no modo rápido, vários dados, modificador, vantagem
- *   e desvantagem, a marca de crítico/falha (rola até sair), a linha copiada pro chat, e UMA rolagem
- *   na cena 3D de verdade (física + leitura da face) com o popup e o clarão.
- * - `hud`: cheio, mini e escondido em cada canto, com nome longo, doze barras e vinte condições,
- *   na janela padrão e na mínima — o cartão tem que ficar DENTRO da cena; e o arrasto de verdade
- *   (`sendInputEvent`) de um canto ao oposto, gravado nas anotações.
- * - `fichas`: cada PDF de `Fichas RPG/` (fora os livros de regras) importado SEM JANELA (desde
- *   02/09/2026: escolher o PDF é o gesto inteiro) — a Ficha diz o leitor reconhecido e quanto leu;
- *   o que o `sheets:apply` recebeu é resumido, e a Ficha resultante é capturada.
+ * - `dados`: cada tipo de dado no modo rápido, vários dados, modificador, vantagem e desvantagem, a
+ *   marca de crítico (rola até sair), a linha copiada pro chat, e UMA rolagem na cena 3D de verdade;
+ * - `hud`: cheio, mini e escondido em cada canto, com nome longo, doze barras e vinte condições, na
+ *   janela padrão e na mínima (o cartão tem que ficar DENTRO da cena), mais o arrasto de verdade;
+ * - `fichas`: cada PDF de `Fichas RPG/` importado pelo caminho da tela — a Ficha diz o leitor
+ *   reconhecido e quanto leu, e o resultado é capturado.
  */
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs'
@@ -461,14 +458,10 @@ async function criarPreset(nome) {
   return esperarAte(`!document.querySelector('.modal-overlay') && Array.from(document.querySelectorAll('.preset-card-name')).some((n) => n.textContent === ${JSON.stringify(nome)})`, 4000)
 }
 /**
- * O "tem certeza?" da importação de ficha (desde 02/09/2026 importar SEMPRE cria um personagem
- * novo, e este diálogo é a única pergunta): clica em OK. Sem o diálogo em 3s, segue; o teste da
- * frente diz se a importação aconteceu.
- */
-/**
- * O caminho da importação (06/09/2026): o "tem certeza?" (OK), depois a LISTA DE SISTEMAS
- * (um seletor fechado com Oblívio marcado; `sistema` escolhe outro pelo `id` do leitor), e só então o
- * seletor de arquivo. `foto` tira a foto da lista aberta.
+ * O caminho da importação de ficha: o "tem certeza?" (OK, porque importar sempre cria um personagem
+ * novo), depois a LISTA DE SISTEMAS (um seletor fechado com Oblívio marcado; `sistema` escolhe outro
+ * pelo `id` do leitor) e só então o seletor de arquivo. `foto` tira a foto da lista aberta. Sem o
+ * diálogo em 3s, segue: o teste da frente diz se a importação aconteceu.
  */
 /** Troca o sistema no `<select>` do diálogo pelo `id` do leitor, disparando o `change` do React. */
 async function escolherNoSeletorDoDialogo(sistema) {

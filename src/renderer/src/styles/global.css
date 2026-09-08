@@ -1,29 +1,22 @@
 /**
  * Windows 98 puro: cinza `#c0c0c0` chapado, sem nenhuma cor dentro, cantos retos e degraus de 2px.
  *
- * Houve uma tentativa de deslocar tudo isto pro quente (osso/pergaminho/madeira) com gradientes
- * suaves e bordas de 3px, pra ficar "mais encorpado". Foi desfeita a pedido do usuário: o gradiente
- * e o degradê, mesmo sem brilho de vidro, leem como MODERNO — é exatamente o vocabulário visual que
- * o 98 não tem. O que dá a época é a chapa lisa com o degrau seco em volta, e qualquer suavização
- * tira isso.
+ * Houve uma tentativa de deslocar tudo isto pro quente (osso, pergaminho, madeira) com gradientes
+ * suaves, e foi desfeita a pedido dele: o gradiente lê como MODERNO, que é exatamente o vocabulário
+ * que o 98 não tem. O que dá a época é a chapa lisa com o degrau seco em volta.
  */
 
 /**
- * As DUAS ÚNICAS fontes que não vêm no Windows, e por isso são as únicas empacotadas aqui. Todas as
- * outras do seletor (`FONT_OPTIONS`) são fontes do sistema: o `family` só diz o nome e o Chromium
- * procura na máquina. Com estas duas isso não funcionaria — escrever só "Montserrat" faria cair no
- * reserva EM SILÊNCIO, que é exatamente o bug do Papyrus descrito em `SettingsContext.tsx`, onde a
- * fonte ausente virou Comic Sans e foi relatada como erro.
+ * As fontes que não vêm no Windows, e por isso as únicas empacotadas aqui. Todas as outras do seletor
+ * são do sistema: o `family` só diz o nome e o Chromium procura na máquina. Com estas, isso não
+ * funcionaria — escrever só "Montserrat" faria cair no reserva EM SILÊNCIO, que é o bug do Papyrus
+ * descrito em `SettingsContext.tsx`.
  *
- * Arquivo VARIÁVEL (`font-weight: 400 700`): um só cobre o regular e o negrito, e a interface usa os
- * dois. Não procurar por um "-bold.woff2" aqui, ele não existe e não falta.
- *
- * Só os subsets `latin` e `latin-ext`. O `latin` já cobre o português inteiro (á ã ç é õ ú vivem em
- * U+0000-00FF); o `latin-ext` vai junto porque custa pouco e evita glifo faltando numa anotação com
- * caractere fora do previsto. Ficaram de fora cirílico, grego e vietnamita, que só pesariam.
- *
- * O `unicode-range` não é enfeite: é ele que faz o Chromium usar o arquivo certo por caractere.
- * Apagar essa linha faz o navegador baixar os dois e desenhar tudo com o primeiro que carregar.
+ * Arquivo VARIÁVEL (`font-weight: 400 700`): um só cobre regular e negrito, e a interface usa os dois;
+ * não procurar por um "-bold.woff2", ele não existe e não falta. Só os subsets `latin` e `latin-ext` —
+ * o primeiro já cobre o português inteiro, e o segundo custa pouco e evita glifo faltando. O
+ * `unicode-range` é o que faz o Chromium usar o arquivo certo por caractere; sem ele, o navegador
+ * baixa os dois e desenha tudo com o primeiro que carregar.
  */
 @font-face {
   font-family: 'Montserrat';
@@ -64,16 +57,13 @@
 }
 
 /*
- * LORA — serifada, pedida pelo usuário e indicada pela cata (o crédito aparece na lista, ver
- * `FONT_OPTIONS`). Como a Montserrat e a JetBrains Mono, ela NÃO vem com o Windows: sem estes dois
- * blocos ela cairia calada no reserva, que é o bug do Papyrus.
+ * LORA — serifada, indicada pela cata (o crédito aparece na lista). Como a Montserrat e a JetBrains
+ * Mono, ela não vem com o Windows: sem estes blocos cairia calada no reserva, que é o bug do Papyrus.
  *
- * Empacotar é legal aqui, e isso não é detalhe: a Lora é OFL (a licença viaja junto, em
- * `assets/fonts/OFL-Lora.txt`), ao contrário da Janda Silly Monkey, que é gratuita só pra uso
- * pessoal e por isso só existe como NOME neste projeto.
- *
- * Arquivo VARIÁVEL, um por subconjunto, cobrindo 400–700 num `src` só — os mesmos dois recortes
- * (latin e latin-ext) e os mesmos `unicode-range` que as outras duas usam.
+ * Empacotar é legal aqui, e isso não é detalhe: a Lora é OFL, com a licença viajando junto em
+ * `assets/fonts/OFL-Lora.txt`, ao contrário da Janda Silly Monkey, que é gratuita só pra uso pessoal e
+ * por isso só existe como NOME neste projeto. Arquivo variável, um por subconjunto, nos mesmos dois
+ * recortes de sempre.
  */
 @font-face {
   font-family: 'Lora';
@@ -95,10 +85,8 @@
 }
 
 /*
- * NUNITO — sans arredondada, pedida pelo usuário e indicada pelo juba (o crédito aparece na lista,
- * ver `FONT_OPTIONS`). OFL como as outras três empacotadas: a licença viaja junto em
- * `assets/fonts/OFL-Nunito.txt`, e o arquivo é o variável do Google Fonts (400–700 num `src` só),
- * nos mesmos dois recortes e `unicode-range` de sempre.
+ * NUNITO — sans arredondada, indicada pelo juba. OFL como as outras três empacotadas (licença em
+ * `assets/fonts/OFL-Nunito.txt`), no arquivo variável do Google Fonts e nos mesmos recortes.
  */
 @font-face {
   font-family: 'Nunito';
@@ -159,13 +147,10 @@
 }
 
 /**
- * Fundo escurecido de janela modal, usado por cinco telas (Preferências, histórico, editor de
- * preset, aviso de atualização e os diálogos da cena 3D).
- *
- * Mora aqui porque é primitivo compartilhado. Estava DUPLICADO em `SettingsPanel.css` e
- * `PresetEditorModal.css`, com as mesmas regras copiadas — quem só importasse um componente novo
- * herdava o estilo por acidente, e o modal aparecia no canto superior esquerdo se por acaso nenhum
- * dos dois arquivos entrasse no pacote.
+ * Fundo escurecido de janela modal, usado por cinco telas. Mora aqui porque é primitivo
+ * compartilhado: estava DUPLICADO em `SettingsPanel.css` e `PresetEditorModal.css`, com as mesmas
+ * regras copiadas — quem só importasse um componente novo herdava o estilo por acidente, e o modal
+ * aparecia no canto superior esquerdo se nenhum dos dois arquivos entrasse no pacote.
  */
 .modal-overlay {
   position: fixed;
@@ -194,14 +179,11 @@ body {
 }
 
 /**
- * Botões e campos: acabamento Windows 98 de volta (pedido do usuário) — degrau `outset` de 2px
- * solto, `inset` afundado no clique, cantos retos e nenhuma transição. O acabamento "moderno"
- * (cantos arredondados, relevo por gradiente+sombra, botão subindo no hover) foi removido: ele
- * destoava do resto da janela, que sempre foi 98 puro (barra de título, abas, painéis, estojo de
- * presets — todos com o mesmo degrau de 2px).
- *
- * O `outset`/`inset` do CSS deriva claro e escuro da própria `border-color`, então a mesma regra
- * serve pro tema dia e pro noturno — cada tema só precisa dizer qual é o `--win-highlight` dele.
+ * Botões e campos: acabamento Windows 98, com degrau `outset` de 2px solto, `inset` afundado no
+ * clique, cantos retos e nenhuma transição. O acabamento moderno (cantos arredondados, relevo por
+ * gradiente, botão subindo no hover) foi removido porque destoava do resto da janela, que sempre foi
+ * 98 puro. O `outset`/`inset` do CSS deriva claro e escuro da própria `border-color`, então a mesma
+ * regra serve pros dois temas: cada um só precisa dizer qual é o `--win-highlight` dele.
  */
 button {
   font-family: inherit;
@@ -222,9 +204,8 @@ button:active:not(:disabled) {
 
 /*
  * O controle deslizante no vocabulário do 98: trilho AFUNDADO e um botão quadrado em relevo, como o
- * controle de volume da época. O `range` nativo do Chromium é azul e arredondado — leu como moderno
- * na captura, e a regra da casa é sem isso. Nasceu no zoom do recorte de foto e virou regra geral
- * quando a barrinha de volume das Preferências precisou do mesmo desenho.
+ * controle de volume da época. O `range` nativo do Chromium é azul e arredondado, e leu como moderno
+ * na captura. Nasceu no zoom do recorte de foto e virou regra geral com a barrinha de volume.
  */
 input[type='range'] {
   appearance: none;

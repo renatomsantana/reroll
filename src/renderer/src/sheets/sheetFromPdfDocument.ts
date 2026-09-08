@@ -8,18 +8,14 @@ import {
 } from '@shared/types/sheetImport'
 
 /**
- * A conversão de um documento já aberto do pdf.js pra `PdfSheet`, separada de quem ABRE o arquivo
- * (`extractPdfSheet.ts`).
+ * A conversão de um documento já aberto do pdf.js pra `PdfSheet`, separada de quem ABRE o arquivo.
  *
  * A separação existe por um motivo de teste, não de organização: `extractPdfSheet` importa o worker
- * do pdf.js com `?worker`, que é transformação do Vite e não existe fora do bundle — então ele não
- * roda em teste. Enquanto esta parte vivia lá dentro, o teste contra as fichas de verdade
- * (`fichasReais.node.test.ts`) mantinha uma CÓPIA da conversão, e as duas divergiram: a cópia
- * protegia `rect` com `?? [0,0,0,0]` e a de produção lia `anotacao.rect[0]` direto. Ou seja, o
- * arquivo que fizesse a produção estourar passava no teste.
- *
- * Recebe o documento pronto justamente pra não saber de onde ele veio — no app vem do worker, no
- * teste vem do build legacy chamado direto.
+ * com `?worker`, que é transformação do Vite e não roda em teste. Enquanto esta parte vivia lá dentro,
+ * o teste contra as fichas de verdade mantinha uma CÓPIA da conversão, e as duas divergiram — a cópia
+ * protegia `rect` com `?? [0,0,0,0]` e a de produção lia `anotacao.rect[0]` direto, ou seja, o arquivo
+ * que fizesse a produção estourar passava no teste. Recebe o documento pronto pra não saber de onde
+ * ele veio.
  */
 
 /** O mínimo que este módulo precisa de um documento do pdf.js — não o tipo inteiro da biblioteca. */
@@ -41,15 +37,13 @@ function numero(valor: unknown, padrao = 0): number {
 /**
  * O retângulo do campo, sempre com quatro números.
  *
- * HONESTIDADE SOBRE ESTA GUARDA: ela não conserta um defeito observado. Medido contra o pdf.js 6
- * (`pdfEstranho.node.test.ts`), TODO `/Rect` torto — ausente, não-array, com dois elementos, com
- * texto ou nome dentro, `null` — volta de `getAnnotations()` já normalizado pra `[0,0,0,0]`. O
- * código antigo lia `anotacao.rect[0]` direto e nunca estourou por isso.
+ * Honestidade sobre esta guarda: ela não conserta um defeito observado. Medido contra o pdf.js 6, TODO
+ * `/Rect` torto — ausente, não-array, com dois elementos, com texto dentro — volta de
+ * `getAnnotations()` já normalizado pra `[0,0,0,0]`.
  *
- * O que ela vale: o `PdfSheet` é o contrato com os leitores (`readers/`), e eles fazem conta de
- * distância com esses números. A normalização é comportamento do pdf.js, não promessa do formato —
- * uma versão nova pode entregar o array cru, e aí a conta viraria `NaN` silencioso espalhado pelos
- * rótulos, que é bem pior de achar que um estouro. Custa uma comparação por campo.
+ * O que ela vale: o `PdfSheet` é o contrato com os leitores, e eles fazem conta de distância com esses
+ * números. A normalização é comportamento do pdf.js, não promessa do formato, e uma versão nova pode
+ * entregar o array cru — aí a conta viraria `NaN` silencioso espalhado pelos rótulos.
  */
 function retangulo(valor: unknown): [number, number, number, number] {
   if (!Array.isArray(valor)) return [0, 0, 0, 0]
@@ -73,12 +67,10 @@ function valorDoCampo(anotacao: { fieldValue?: unknown; options?: unknown }): st
 }
 
 /**
- * Campo de LISTA guarda o valor de EXPORTAÇÃO, que pode não ser o rótulo que a pessoa vê.
- *
- * Medido na ficha da comunidade de Ordem Paranormal (a do Vincenzo): `classe` guardava `"2"` e as
- * opções diziam `2 = "Especialista"`; `origem "2" = "Agente de Saúde"`. Sem esta tradução a
- * conferência mostrava "CLASSE = 2", que não é informação de ninguém. A ficha oficial não muda:
- * lá o valor de exportação É o rótulo, e a tradução devolve o mesmo texto.
+ * Campo de LISTA guarda o valor de EXPORTAÇÃO, que pode não ser o rótulo que a pessoa vê. Medido na
+ * ficha da comunidade de Ordem Paranormal: `classe` guardava `"2"` e as opções diziam `2 =
+ * "Especialista"`. Sem esta tradução a conferência mostrava "CLASSE = 2". A ficha oficial não muda: lá
+ * o valor de exportação É o rótulo, e a tradução devolve o mesmo texto.
  */
 function rotuloDaOpcao(valor: string, options: unknown): string {
   if (!Array.isArray(options)) return valor
@@ -92,12 +84,10 @@ function rotuloDaOpcao(valor: string, options: unknown): string {
 }
 
 /**
- * Um valor solto de PDF vira texto — mas SÓ se ele for um valor de verdade.
- *
- * `String(qualquerObjeto)` devolve `"[object Object]"`, e o estrago disso é específico do
- * importador: essa string entra na ficha como se fosse o conteúdo do campo, aparece na tela de
- * conferência com cara de dado lido, e a pessoa aprova sem olhar. Objeto e função aqui viram VAZIO,
- * que é honesto — "não deu pra ler" —, e o campo some da conferência em vez de aparecer errado.
+ * Um valor solto de PDF vira texto, mas só se ele for um valor de verdade: `String(qualquerObjeto)`
+ * devolve `"[object Object]"`, e o estrago é específico do importador — essa string entra na ficha com
+ * cara de dado lido e a pessoa aprova sem olhar. Objeto e função viram VAZIO, que é honesto, e o campo
+ * some da conferência em vez de aparecer errado.
  */
 function textoDePrimitivo(valor: unknown): string {
   if (typeof valor === 'number' || typeof valor === 'boolean' || typeof valor === 'bigint') {
@@ -112,18 +102,14 @@ export async function sheetFromPdfDocument(fileName: string, doc: PdfLikeDocumen
   const texts: PdfText[] = []
   const pageCount = numero(doc.numPages)
   /**
-   * A varredura para no limite; o `pageCount` devolvido continua sendo o REAL.
+   * A varredura para no limite, mas o `pageCount` devolvido continua sendo o REAL: os avisos dizem
+   * "nenhuma das N páginas tinha texto", e mentir o N pra 100 transformaria um aviso correto numa
+   * informação errada sobre o arquivo da pessoa.
    *
-   * Os dois números são coisas diferentes e os leitores usam o de verdade: `pdf-sem-texto` e
-   * `sem-formulario` (ver `sheetWarning.ts`) dizem "nenhuma das N páginas tinha texto", e mentir o N
-   * pra 100 transformaria um aviso correto numa informação errada sobre o arquivo da pessoa.
-   */
-  /**
-   * Acima do teto NÃO se lê nada. Esta regra já foi "lê as 100 primeiras": medido com os três livros
-   * de regras de Pathfinder 2e (322 a 466 páginas) que o usuário pôs na pasta de fichas, isso rendia
-   * "campos" tirados da prosa, presets de regra ("You take 5d6 damage of the") e um nome de
-   * personagem com uma frase inteira. Um PDF com mais de 100 páginas é um livro, não uma ficha; o
-   * leitor avisa (`paginas-demais`, ver `sheetWarning.ts`) a partir do `pageCount`.
+   * Acima do teto NÃO se lê nada. Esta regra já foi "lê as 100 primeiras": medido com os três livros de
+   * regras de Pathfinder 2e (322 a 466 páginas) que ele pôs na pasta de fichas, isso rendia "campos"
+   * tirados da prosa, presets de regra ("You take 5d6 damage of the") e um nome de personagem com uma
+   * frase inteira. Um PDF com mais de 100 páginas é um livro, não uma ficha.
    */
   if (pageCount > MAXIMO_DE_PAGINAS_DA_FICHA) {
     console.warn(`PDF com ${pageCount} páginas — acima do teto de ${MAXIMO_DE_PAGINAS_DA_FICHA}; não é ficha.`)

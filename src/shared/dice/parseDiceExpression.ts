@@ -2,32 +2,21 @@ import type { DiceExpression } from '../types/dice'
 import { DEFAULT_DICE_SIDES, MAX_SIMULTANEOUS_DICE } from '../diceRegistry'
 
 /**
- * Lê uma expressão de dado escrita à mão e devolve a rolagem correspondente — "1d20+5", "2d6 + 3",
+ * Lê uma expressão de dado escrita à mão e devolve a rolagem correspondente: "1d20+5", "2d6 + 3",
  * "d8-1", "3D10".
  *
- * É o coração do importador de fichas: é isto que transforma o que está escrito na coluna DANO de
- * uma ficha em algo que o app sabe rolar. E é o que faz o importador servir pra ficha que eu nunca
- * vi, que é o pedido do usuário ("outros usuários irão colocar suas próprias fichas"): qualquer
- * sistema de RPG escreve dado da mesma forma, então uma ficha desconhecida ainda entrega presets se
- * tiver notação de dado em algum lugar.
+ * É o coração do importador de fichas — é isto que transforma o que está na coluna DANO em algo que o
+ * app sabe rolar — e é o que faz o importador servir pra ficha que eu nunca vi: qualquer sistema de RPG
+ * escreve dado da mesma forma, então uma ficha desconhecida ainda entrega presets.
  *
- * O que ele ACEITA, e por quê:
+ * Aceita `d` em qualquer caixa, com ou sem quantidade (`d20` é 1d20, como quase toda ficha escreve),
+ * espaço em volta dos sinais (ficha preenchida à mão tem de tudo), vários grupos somados ("1d8+1d6+2",
+ * que é como se escreve dano com bônus elemental) e subtração, virando modificador negativo.
  *
- * - `d` maiúsculo ou minúsculo, com ou sem quantidade (`d20` é 1d20, que é como quase toda ficha
- *   escreve);
- * - espaço em volta dos sinais, porque ficha preenchida à mão tem de tudo;
- * - vários grupos e vários modificadores somados ("1d8+1d6+2"), que é como se escreve dano com
- *   bônus elemental;
- * - subtração, virando modificador negativo.
- *
- * O que ele RECUSA, de propósito:
- *
- * - tipo de dado que o app não tem (`1d3`, `1d30`): o app rola sete tipos, e prometer um oitavo na
- *   tela de conferência seria mentira. Vira aviso, não preset;
- * - quantidade zero ou absurda: ficha com "0d6" ou "999d6" é erro de digitação ou texto que só
- *   PARECE dado, e 999 dados na bandeja é uma cena travada;
- * - texto sem nenhum dado ("Espada longa"), que devolve `null` — sem isso, cada rótulo da ficha
- *   viraria um preset vazio.
+ * Recusa, de propósito: tipo de dado que o app não tem (`1d3`, `1d30`), porque prometer um oitavo tipo
+ * na conferência seria mentira, e vira aviso em vez de preset; quantidade zero ou absurda, que é erro
+ * de digitação ou texto que só PARECE dado (999 dados na bandeja é uma cena travada); e texto sem dado
+ * nenhum, que devolve `null` — sem isso, cada rótulo da ficha viraria um preset vazio.
  */
 
 /**
@@ -43,25 +32,19 @@ export interface ParsedDiceExpression {
 }
 
 /**
- * `(\d*)[dD](\d+)` pega os grupos de dado e `([+-]\s*\d+)` os modificadores soltos. A varredura é
- * feita sobre a string inteira em vez de exigir que ela seja SÓ a expressão: numa ficha a célula
- * costuma ser "Pistola 1d12+2 (curto)", e recusar por causa do resto seria recusar a ficha toda.
+ * `(\d*)[dD](\d+)` pega os grupos de dado e `([+-]\s*\d+)` os modificadores soltos. A varredura é feita
+ * sobre a string inteira em vez de exigir que ela seja SÓ a expressão: numa ficha a célula costuma ser
+ * "Pistola 1d12+2 (curto)", e recusar por causa do resto seria recusar a ficha toda.
  *
- * O `(?![\d\s]*[dD]\s*\d)` no fim do ramo do modificador é o que impede o erro que o teste pegou: em
- * "9d6+9d6" o ramo do modificador casava "+9" ANTES de o ramo do dado ver que aquele 9 era a
- * quantidade do grupo seguinte. Saíam 10d6+9 no lugar de 18d6 — errado, e errado de um jeito
- * plausível. Dano com bônus elemental ("1d8+1d6") é escrito assim em quase todo sistema, então
- * este caso não é exceção: é rotina.
+ * O `(?![\d\s]*[dD]\s*\d)` no fim do ramo do modificador impede o erro que o teste pegou: em "9d6+9d6"
+ * o ramo do modificador casava "+9" antes de o ramo do dado ver que aquele 9 era a quantidade do grupo
+ * seguinte, e saíam 10d6+9 no lugar de 18d6 — errado, e errado de um jeito plausível.
  *
- * O `[\d\s]*` (e não `\s*`) dentro dessa espiada conserta um segundo caso, achado quando o teto de
- * dados subiu pra 20 e as contagens de DOIS DÍGITOS passaram a caber: em "1d6+10d6" a espiada
- * original olhava logo depois do "10", via o "d" e recusava — certo —, mas aí a expressão VOLTAVA
- * ATRÁS e tentava casar só o "+1". Aí a espiada olhava a partir do "0d6", não encontrava um "d"
- * colado, e aceitava: saía um modificador "+1" e sobrava um "0d6", que é quantidade zero, e a
- * leitura inteira era recusada. Ou seja, "1d6+10d6" devolvia NADA enquanto "10d6+1d6" funcionava.
- *
- * Deixando a espiada pular dígitos, o "d" continua sendo visto mesmo depois do recuo, e o ramo do
- * modificador desiste de vez — que é o que abre caminho pro ramo do dado ler "10d6" inteiro.
+ * O `[\d\s]*` (e não `\s*`) conserta um segundo caso, achado quando o teto de dados subiu pra 20 e as
+ * contagens de dois dígitos passaram a caber: em "1d6+10d6" a espiada original olhava depois do "10",
+ * via o "d" e recusava — certo —, mas a expressão VOLTAVA ATRÁS e tentava casar só o "+1", e aí a
+ * espiada olhava a partir do "0d6" e aceitava, sobrando um "0d6" que invalidava a leitura inteira.
+ * Pulando dígitos, o "d" continua sendo visto mesmo depois do recuo.
  */
 const TOKEN = /(\d*)\s*[dD]\s*(\d+)|([+-])\s*(\d+)(?![\d\s]*[dD]\s*\d)/g
 
@@ -139,12 +122,11 @@ export function parseDiceExpression(input: string): ParsedDiceExpression | null 
 
 /**
  * Bônus solto ("+7", "5", "-1") virando um teste de d20 — o caso da coluna TESTE de uma ficha, que
- * quase nunca traz "1d20+7" escrito por extenso: traz só o número, porque o d20 está implícito no
- * sistema.
+ * quase nunca traz "1d20+7" por extenso porque o d20 está implícito no sistema.
  *
- * Fica SEPARADO de `parseDiceExpression` de propósito. Aqui existe um palpite embutido (o de que o
- * teste é um d20), e palpite embutido tem que ser escolha de quem chama: um leitor de sistema que
- * usa d100 ou 2d6 para testes não pode ser servido por esta função sem que ela minta.
+ * Fica SEPARADO de `parseDiceExpression` de propósito: aqui existe um palpite embutido, o de que o
+ * teste é um d20, e palpite embutido tem que ser escolha de quem chama — um leitor de sistema que usa
+ * d100 ou 2d6 para testes não pode ser servido por esta função sem que ela minta.
  */
 export function parseTestBonus(input: string, sides = 20): DiceExpression | null {
   const limpo = input.trim()

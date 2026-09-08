@@ -9,54 +9,45 @@ import {
 } from '@shared/types/notes'
 
 /**
- * Estado das anotações + gravação. Toda mudança grava o arquivo inteiro — é texto curto, e o
+ * Estado das anotações e a gravação. Toda mudança grava o arquivo inteiro: é texto curto, e o
  * alternativo (guardar na memória e gravar ao sair) já custou dados perdidos em app deste tipo.
  *
- * As funções de página existem aqui, e não na tela, porque todas elas mexem em `pages` E em
- * `currentPage` ao mesmo tempo: apagar um dia tem que reposicionar em quem sobrou, criar um tem que
- * pular pra ele. Espalhar isso pela interface é como se cria página órfã e índice fora do intervalo.
+ * As funções de página existem aqui, e não na tela, porque todas mexem em `pages` E em `currentPage`
+ * ao mesmo tempo — apagar um dia tem que reposicionar em quem sobrou, criar tem que pular pra ele.
  *
- * É UMA INSTÂNCIA SÓ por app, servida pelo `NotesProvider` — e isso não era assim. A aba Ficha e a
- * aba Anotações chamavam este hook cada uma por conta própria, duas cópias inteiras do mesmo
- * arquivo, e funcionava porque nunca estavam montadas ao mesmo tempo. As barras de recurso (spec
- * §3.4) acabaram com isso: elas ficam na tela de rolagem, que está SEMPRE montada, e gravam a cada
- * clique no "−". Com uma cópia própria, o clique gravaria as seções que a cópia conhecia — as de
- * antes da última edição na Ficha — por cima do que a pessoa acabou de escrever. Uma fonte só é o
- * que fecha essa porta.
+ * É UMA INSTÂNCIA SÓ por app, servida pelo `NotesProvider`, e isso não era assim: a aba Ficha e a aba
+ * Anotações chamavam este hook cada uma por conta, duas cópias do mesmo arquivo, e funcionava porque
+ * nunca estavam montadas ao mesmo tempo. As barras de recurso acabaram com isso — elas ficam na tela
+ * de rolagem, sempre montada, e gravam a cada clique: com uma cópia própria, o clique gravaria as
+ * seções que ela conhecia por cima do que a pessoa acabou de escrever.
  */
 export function useNotesState() {
   const [notes, setNotes] = useState<NotesData>(() => normalizeNotes(DEFAULT_NOTES))
   const [loading, setLoading] = useState(true)
   /**
-   * De QUAL personagem são as anotações que estão em `notes` neste instante.
-   *
-   * Entre trocar de personagem e a leitura do disco voltar existe um intervalo em que `notes` ainda
-   * é do anterior. Quem tomar decisão baseada nelas nesse intervalo decide errado — foi assim que o
-   * nome do personagem antigo vazou pro recém-criado (ver `SheetTab`). Guardar de quem é o conteúdo
-   * é mais honesto que um `loading` booleano: diz NÃO SÓ que carregou, mas de quem.
+   * De QUAL personagem são as anotações que estão em `notes` neste instante. Entre trocar de personagem
+   * e a leitura do disco voltar existe um intervalo em que `notes` ainda é do anterior, e quem tomar
+   * decisão baseada nelas nesse intervalo decide errado — foi assim que o nome do personagem antigo
+   * vazou pro recém-criado. Mais honesto que um `loading` booleano: diz de quem é o conteúdo.
    */
   const [loadedFor, setLoadedFor] = useState<string | null>(null)
   const [saveError, setSaveError] = useState(false)
   /**
-   * A LEITURA falhou.
-   *
-   * Precisa ser dito, e não só registrado no console, porque a consequência é a ficha ficar
-   * somente-leitura: sem saber o que há no arquivo, gravar por cima seria trocar o conteúdo real
-   * pelo padrão vazio. Sem aviso, isso apareceria como "não consigo digitar nada" — que é
-   * exatamente uma das coisas que o usuário já relatou.
+   * A LEITURA falhou. Precisa ser dito, e não só registrado no console, porque a consequência é a ficha
+   * ficar somente-leitura: sem saber o que há no arquivo, gravar por cima seria trocar o conteúdo real
+   * pelo padrão vazio. Sem aviso, isso apareceria como "não consigo digitar nada", que é exatamente uma
+   * das coisas que ele já relatou.
    */
   const [loadError, setLoadError] = useState(false)
   const { activeId } = useProfiles()
   /**
-   * Pedido explícito de RELER do disco, sem trocar de personagem.
+   * Pedido explícito de RELER do disco, sem trocar de personagem. Existe pela importação de ficha em
+   * cima do personagem que JÁ ESTÁ aberto: o processo principal grava a ficha nova e o `activeId` não
+   * muda, então o efeito abaixo não dispara e as anotações em memória continuam as de ANTES da
+   * importação — a próxima tecla na Ficha gravaria essas por cima das novas.
    *
-   * Existe pela importação de ficha em cima do personagem que JÁ ESTÁ aberto: o processo principal
-   * grava a ficha nova (seções, barras) e o `activeId` não muda — então o efeito abaixo não
-   * dispara, e as anotações em memória continuam as de ANTES da importação. A próxima tecla na
-   * Ficha gravaria essas, velhas, por cima das novas. Ver `useSheetImport.confirmar`.
-   *
-   * Um contador, e não um `reload()` solto, pra passar pelo MESMO efeito — e pela mesma trava de
-   * resposta atrasada — que a troca de personagem usa.
+   * Um contador, e não um `reload()` solto, pra passar pelo MESMO efeito, e pela mesma trava de resposta
+   * atrasada, que a troca de personagem usa.
    */
   const [versao, setVersao] = useState(0)
   const recarregar = useCallback(() => setVersao((atual) => atual + 1), [])
@@ -69,12 +60,10 @@ export function useNotesState() {
    */
   useEffect(() => {
     /**
-     * A resposta que chega DEPOIS de já ter trocado de personagem é descartada.
-     *
-     * Trocar duas vezes rápido (dois cliques na lista) deixa duas leituras no ar ao mesmo tempo, e
-     * elas não voltam necessariamente na ordem em que saíram. Sem esta trava, a leitura do
-     * personagem ANTERIOR pode chegar por último e ficar na tela — com `loadedFor` dizendo que é
-     * dele —, e daí em diante tudo o que for digitado grava a ficha do anterior na pasta do atual.
+     * A resposta que chega DEPOIS de já ter trocado de personagem é descartada. Trocar duas vezes rápido
+     * deixa duas leituras no ar, e elas não voltam necessariamente na ordem em que saíram: sem esta
+     * trava, a leitura do personagem ANTERIOR pode chegar por último e ficar na tela, e daí em diante
+     * tudo o que for digitado grava a ficha do anterior na pasta do atual.
      */
     let atual = true
     setLoading(true)
@@ -103,13 +92,11 @@ export function useNotesState() {
    * O conteúdo em `notes` é do personagem ABERTO? Enquanto não for, gravar é destruir.
    *
    * Entre trocar de personagem e a leitura voltar do disco, a tela continua mostrando a ficha do
-   * ANTERIOR e os campos continuam editáveis. Uma tecla digitada nesse intervalo mandava o conteúdo
-   * velho pro `notes.save`, que escreve na pasta do personagem ATIVO — a ficha do novo apagada pela
-   * do antigo, sem aviso e sem volta. É a janela curta da mesma perda que o usuário relatou
-   * ("quando troquei de Matais para Rodrigo todas as informações sumiram").
+   * ANTERIOR e os campos continuam editáveis: uma tecla digitada nesse intervalo mandava o conteúdo
+   * velho pro `notes.save`, que escreve na pasta do personagem ATIVO. É a janela curta da mesma perda
+   * que ele relatou ("quando troquei de Matais para Rodrigo todas as informações sumiram").
    *
-   * Num ref porque `update` é estável (`useCallback` sem dependências) e precisa ler o valor do
-   * momento da digitação, não o do render em que foi criada.
+   * Num ref porque `update` é estável e precisa ler o valor do momento da digitação.
    */
   const prontoRef = useRef(false)
   prontoRef.current = loadedFor === activeId
