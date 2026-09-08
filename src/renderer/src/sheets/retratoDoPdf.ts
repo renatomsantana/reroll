@@ -1,16 +1,11 @@
 /**
- * O RETRATO embutido na ficha (spec §3.6 / spec de importação, "portrait extraction"): a ficha de
- * Ordem Paranormal e muitas fichas preenchíveis têm um campo de imagem onde a pessoa põe o
- * personagem. Este módulo acha essa imagem na PRIMEIRA página, a de identificação, e a devolve como
- * data URL pra conferência oferecer.
+ * O RETRATO embutido na ficha: a de Ordem Paranormal e muitas fichas preenchíveis têm um campo de
+ * imagem onde a pessoa põe o personagem. Este módulo acha essa imagem na PRIMEIRA página, a de
+ * identificação, e a devolve como data URL pra conferência oferecer.
  *
- * Duas metades, de propósito:
- *
- * - `escolherRetrato` é PURA: recebe a lista de imagens da página (nome, largura, altura em pixels)
- *   e diz qual serve. É a heurística, e é o que se testa;
- * - `extrairRetratoDaPagina` fala com o pdf.js e com o canvas — é IO, e roda só no app.
- *
- * NUNCA segura a importação: qualquer falha aqui vira "sem retrato", com uma linha no console.
+ * Duas metades, de propósito: `escolherRetrato` é PURA (recebe a lista de imagens da página e diz qual
+ * serve — é a heurística, e é o que se testa) e `extrairRetratoDaPagina` fala com o pdf.js e com o
+ * canvas. Nunca segura a importação: qualquer falha aqui vira "sem retrato", com uma linha no console.
  */
 export interface ImagemDaPagina {
   nome: string
@@ -56,13 +51,11 @@ export function escolherRetrato(
 }
 
 /**
- * Isto PARECE uma foto? Uma foto tem muitas cores; um logo, uma seta, um selo têm meia dúzia.
- * Medido no harness com a ficha de Assimilação do Kieran: a "maior imagem com proporção de foto"
- * era um triângulo vermelho sobre preto — duas cores — e ia parar no retrato do personagem.
- * Amostra de 64×64 quantizada em 16 níveis por canal (4096 cores possíveis); abaixo de
- * `CORES_MINIMAS` distintas não é foto, e a próxima candidata é tentada. O número foi medido: com
- * 32 níveis e mínimo de 40, o triângulo passava — o serrilhado das bordas e o JPEG rendem dezenas
- * de tons de vermelho; uma foto, mesmo escura, rende centenas de cores em 4 bits.
+ * Isto PARECE uma foto? Uma foto tem muitas cores; um logo, uma seta ou um selo têm meia dúzia. Medido
+ * no harness com a ficha de Assimilação do Kieran: a "maior imagem com proporção de foto" era um
+ * triângulo vermelho sobre preto, duas cores, e ia parar no retrato do personagem. A amostra é 64×64
+ * quantizada em 16 níveis por canal, e o número foi medido: com 32 níveis e mínimo de 40 o triângulo
+ * passava, porque o serrilhado e o JPEG rendem dezenas de tons de vermelho.
  */
 export const LADO_DA_AMOSTRA = 64
 export const CORES_MINIMAS = 120

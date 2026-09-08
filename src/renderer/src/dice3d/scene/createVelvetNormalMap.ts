@@ -1,27 +1,19 @@
 import * as THREE from 'three'
 
 /**
- * Texturas procedurais simulando o "pelo" (nap) do veludo — o usuário testou o chão da bandeja
- * com só `sheen`/`sheenRoughness` (ver `createScene.ts`) e disse que "ainda não parece veludo":
- * um `sheen` de fresnel puro só fica visível em ângulo rasante contra a luz, então de cima (o
- * ângulo de câmera padrão da bandeja) ele quase não aparece.
+ * Texturas procedurais simulando o pelo do veludo: com só `sheen`/`sheenRoughness` ele testou o chão da
+ * bandeja e disse que "ainda não parece veludo" — um `sheen` de fresnel puro só fica visível em ângulo
+ * rasante, e a câmera padrão olha de cima.
  *
- * Duas camadas, não uma só — REAL lição aprendida ao vivo nesta sessão: um `normalMap` sozinho
- * (variação de ALTURA, que muda a sombra conforme a luz bate) ficou visível de perto mas quase
- * sumia no enquadramento padrão (mais afastado) da bandeja, porque a sensibilidade de um normal
- * map depende do ÂNGULO entre luz e câmera — com a luz principal desta cena vindo de cima numa
- * inclinação moderada e uma luz ambiente forte por cima disso, o contraste que os relevos
- * conseguem criar é limitado, ficando pequeno demais pra notar de longe mesmo em intensidades
- * altas. Um `map` (variação de COR/sombreado, tipo AO barato) resolve isso — é visível em
- * QUALQUER ângulo de câmera/luz, já que não depende de resposta de iluminação nenhuma, só
- * multiplica a cor base. Os dois combinados (mesmo mapa de altura por baixo dos dois, pra ficar
- * coerente) dão um resultado que lê como tecido tanto de perto quanto no enquadramento padrão.
+ * Duas camadas, e não uma, e essa é a lição medida: um `normalMap` sozinho (variação de ALTURA, que
+ * muda a sombra conforme a luz bate) ficou visível de perto e quase sumia no enquadramento padrão,
+ * porque a sensibilidade dele depende do ângulo entre luz e câmera. Um `map` (variação de COR, tipo AO
+ * barato) é visível em qualquer ângulo, porque não depende de resposta de iluminação — só multiplica a
+ * cor base. Os dois combinados, sobre o mesmo mapa de altura, leem como tecido de perto e de longe.
  *
- * Técnica: desenha um mapa de ALTURA (manchas suaves aleatórias, mas com seed determinística —
- * sem `Math.random()`, pra não mudar a cada remount) num canvas em tons de cinza; a partir dele,
- * gera tanto o normal map (diferenças centrais, mesmo método que qualquer editor de normal map
- * usa) quanto o mapa de sombreado (o próprio valor de altura, suavizado pra não ficar contrastado
- * demais, usado como multiplicador da cor base).
+ * Técnica: desenha um mapa de ALTURA (manchas suaves com seed determinística, sem `Math.random()`, pra
+ * não mudar a cada remount) e dele saem os dois mapas — o normal por diferenças centrais, e o de
+ * sombreado pelo próprio valor de altura, suavizado.
  */
 const SIZE = 128
 const BUMP_COUNT = 900
@@ -76,18 +68,16 @@ function heightAt(heights: Float32Array, x: number, y: number): number {
 }
 
 /**
- * `repeat` explicado: `ExtrudeGeometry` NESTA versão do three.js gera UV das tampas com o
- * `WorldUVGenerator` padrão, que usa a posição X/Y BRUTA do vértice (em unidades de mundo) como
- * U/V — NÃO normalizada pra [0,1] como a maioria das outras geometrias (`CylinderGeometry`
- * inclusive, usada pela textura de tijolo da torre, por isso aquela nunca teve esse problema).
- * Confirmado inspecionando o atributo `uv` da geometria diretamente (fora do Electron, com o
- * `three` instalado no projeto) — os valores batiam exatamente com a posição do vértice, não
- * com [0,1]. Como o `repeat` do three.js multiplica a UV existente, tratar essa UV-em-unidades-
- * de-mundo como se fosse [0,1] (repeat = tamanho da superfície / tamanho do tile) inflava a
- * repetição em ~15x além do pretendido — a textura ficava tão fina na tela que o mipmapping
- * (minificação automática de textura) a achatava numa cor quase uniforme, sem nenhum efeito
- * visível em nenhuma intensidade. Como a UV já está em unidades de mundo, o `repeat` certo é
- * simplesmente `1/tileWorldSize` (não depende do tamanho da superfície).
+ * `repeat` explicado: o `ExtrudeGeometry` gera a UV das tampas com o `WorldUVGenerator` padrão, que usa
+ * a posição X/Y BRUTA do vértice, em unidades de mundo, como U/V — e não normalizada pra [0,1] como a
+ * maioria das outras geometrias (o `CylinderGeometry` inclusive, que é por isso que a textura de tijolo
+ * da torre nunca teve esse problema). Confirmado inspecionando o atributo `uv` da geometria fora do
+ * Electron: os valores batiam com a posição do vértice.
+ *
+ * Como o `repeat` multiplica a UV existente, tratar essa UV-em-unidades-de-mundo como [0,1] inflava a
+ * repetição em ~15× — a textura ficava tão fina que o mipmapping a achatava numa cor quase uniforme,
+ * sem efeito visível em intensidade nenhuma. Já que a UV está em unidades de mundo, o `repeat` certo é
+ * `1/tileWorldSize`, e não depende do tamanho da superfície.
  */
 function configureTiling(texture: THREE.CanvasTexture): void {
   texture.wrapS = THREE.RepeatWrapping

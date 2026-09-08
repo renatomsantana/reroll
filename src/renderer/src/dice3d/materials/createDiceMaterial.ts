@@ -8,15 +8,12 @@ export interface CreateDiceMaterialOptions {
 }
 
 /**
- * Ponto único de "como cada acabamento se parece" — os 3 construtores visuais
- * (`buildD6Visual`/`buildD4Visual`/`buildPolyhedronVisual`) só chamam isto, nunca criam
- * `MeshStandardMaterial`/`MeshPhysicalMaterial` na mão. `color` fica sempre neutro
- * (`0xffffff`) — a cor de verdade já está desenhada na textura `map` (ver comentário grande
- * em `createNumberTexture.ts`), `material.color` aqui só multiplicaria por cima.
+ * Ponto único de "como cada acabamento se parece": os três construtores visuais só chamam isto, e nunca
+ * criam material na mão. `color` fica sempre neutro, porque a cor de verdade já está desenhada na
+ * textura (ver `createNumberTexture.ts`) e `material.color` só multiplicaria por cima.
  *
- * `MeshPhysicalMaterial` (superset de `MeshStandardMaterial`, aceita os mesmos
- * `color`/`map`/`roughness`/`metalness` de sempre) em vez de `MeshStandardMaterial` porque
- * plástico/vidro precisam de propriedades que só existem nela (`clearcoat`, `transmission`).
+ * `MeshPhysicalMaterial` (superset do `MeshStandardMaterial`) e não o padrão porque plástico e vidro
+ * precisam de propriedades que só existem nela, `clearcoat` e `transmission`.
  */
 export function createDiceMaterial({ map, finish = 'matte' }: CreateDiceMaterialOptions): THREE.MeshPhysicalMaterial {
   switch (finish) {
@@ -39,27 +36,21 @@ export function createDiceMaterial({ map, finish = 'matte' }: CreateDiceMaterial
         clearcoatRoughness: 0.15
       })
     case 'glass':
-      // `transmission` (refração "de verdade") foi tentado primeiro, mas depende de uma
-      // passada de renderização extra que este `WebGLRenderer` simples não faz — testado ao
-      // vivo (captura de tela real do canvas) e o resultado saía praticamente idêntico ao
-      // fosco, sem nenhuma transparência visível. Transparência simples (`opacity` +
-      // `transparent: true`) é suportada por qualquer configuração de renderer, sem
-      // depender de nenhuma passada extra, e já dá a leitura de "vidro" que se espera —
-      // menos fisicamente correto, mas realmente visível. `envMapIntensity` mais alto
-      // compensa o brilho perdido por não ter mais o clearcoat do plástico.
+      // `transmission` (refração de verdade) foi tentado primeiro, e depende de uma passada de
+      // renderização extra que este `WebGLRenderer` não faz: testado ao vivo, o resultado saía
+      // praticamente idêntico ao fosco. Transparência simples funciona em qualquer configuração e já dá
+      // a leitura de vidro — menos correta fisicamente, mas visível.
       /**
-       * OPACIDADE 0.8 e ambiente 1.0, e não 0.55/1.6 — o vidro estava apagando os números.
+       * OPACIDADE 0.8 e ambiente 1.0, e não 0.55/1.6, porque o vidro estava apagando os números.
        *
-       * Medido na varredura de fechamento do Alfa (45 paletas × 4 acabamentos × 7 dados, render de
-       * verdade, comparando cada dado com ele mesmo pintado sem número pra isolar a tinta): com
-       * 0.55/1.6 o vidro deixava a força da tinta em 0,18 de mediana, contra 0,52 do fosco e 0,50 do
-       * plástico — e 237 das 315 combinações caíam abaixo de 0,20, ou seja, o defeito era do
-       * MATERIAL, não de nenhuma cor em particular. Com 0.8/1.0 a mediana sobe pra 0,36 e sobram 26.
+       * Medido na varredura de fechamento do alfa (45 paletas × 4 acabamentos × 7 dados, render de
+       * verdade, comparando cada dado com ele mesmo sem número pra isolar a tinta): com 0.55/1.6 a força
+       * da tinta no vidro ficava em 0,18 de mediana, contra 0,52 do fosco, e 237 das 315 combinações
+       * caíam abaixo de 0,20 — ou seja, o defeito era do MATERIAL, não de uma cor. Com 0.8/1.0 a mediana
+       * sobe pra 0,36 e sobram 26.
        *
        * A escolha entre 0.75, 0.80 e 0.85 foi olhando o render lado a lado: 0.85 já lê como plástico
-       * fosco, e 0.80 é o ponto em que ainda dá pra ver a translucidez e o número volta a ser preto
-       * no branco. Quem quiser vidro de verdade (refração) precisa da passada extra de
-       * `transmission`, que este renderer não faz — ver o parágrafo abaixo.
+       * fosco, e 0.80 é o ponto em que ainda dá pra ver a translucidez com o número legível.
        */
       return new THREE.MeshPhysicalMaterial({
         color: 0xffffff,

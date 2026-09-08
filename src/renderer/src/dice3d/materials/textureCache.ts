@@ -1,29 +1,20 @@
 import * as THREE from 'three'
 
 /**
- * Cache de texturas de número — chave = valor+cor+fonte, então duas instâncias de dado com o
- * mesmo tipo/cor (ex.: 15d6, ou a prateleira decorativa mostrando o mesmo tipo/cor de um dado
- * que também está rolando) reaproveitam a MESMA `CanvasTexture` em vez de desenhar tudo de novo
- * num canvas (até 100 faces só pro d100).
+ * Cache de texturas de número, com chave = valor + cor + fonte: duas instâncias do mesmo tipo e cor
+ * (15d6, ou a prateleira mostrando um tipo que também está rolando) reaproveitam a MESMA
+ * `CanvasTexture` em vez de desenhar tudo de novo — até 100 faces só pro d100.
  *
- * PERSISTENTE no módulo (`globalCache` abaixo, não recriado por chamador) — de propósito, não só
- * "válido durante uma leva": `DiceCanvasMulti.tsx` REMONTA a cena inteira (física + renderer +
- * todos os meshes, incluindo a prateleira com 1 dado de cada tipo = até 160 faces) toda vez que
- * `groups` muda, ou seja, a cada dado adicionado/removido — medido como a maior fonte de trava
- * visível nesse fluxo ("dados adicionados muito lagados"), bem mais frequente que trocar de cor.
- * Persistir entre remontagens faz a montagem seguinte reaproveitar texturas já desenhadas em vez
- * de desenhar as mesmas ~160 faces de novo só porque a cena inteira nasceu de novo.
+ * PERSISTENTE no módulo, e de propósito: `DiceCanvasMulti` remonta a cena inteira quando `groups` muda,
+ * ou seja a cada dado adicionado, e isso foi medido como a maior fonte de trava visível nesse fluxo
+ * ("dados adicionados muito lagados"). Persistir entre remontagens faz a montagem seguinte reaproveitar
+ * as ~160 faces já desenhadas. Só fica desatualizado quando cor ou acabamento mudam, e aí
+ * `clearDiceTextureCache` é chamado, então ele nunca cresce com cores abandonadas.
  *
- * Só fica desatualizado quando cor/acabamento/material realmente mudam — `clearDiceTextureCache`
- * é chamado nesse momento (ver o efeito de troca de cor em `DiceCanvasMulti.tsx`), então o cache
- * nunca cresce sem limite com cores antigas abandonadas.
- *
- * Compartilhar a MESMA `CanvasTexture` entre vários materiais é seguro pro descarte:
- * `texture.dispose()` não apaga `texture.image` (o canvas já desenhado) — só libera o recurso do
- * lado da GPU, forçando um re-upload automático na próxima vez que a textura for usada (custo
- * pequeno, nunca uma textura quebrada/preta). Por isso é seguro deixar o código de descarte já
- * existente (`disposeMesh`/`disposeScene`) chamar dispose numa textura cacheada sem nenhuma
- * lógica extra de contagem de referências aqui.
+ * Compartilhar a mesma textura entre vários materiais é seguro pro descarte: `texture.dispose()` não
+ * apaga o canvas já desenhado, só libera o recurso da GPU, forçando um re-upload automático no próximo
+ * uso — custo pequeno, nunca uma textura preta. Por isso `disposeMesh`/`disposeScene` podem chamar
+ * dispose numa textura cacheada sem contagem de referências aqui.
  */
 export type DiceTextureCache = Map<string, THREE.CanvasTexture>
 

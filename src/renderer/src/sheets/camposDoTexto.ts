@@ -1,37 +1,31 @@
 import type { PdfSheet, PdfText, SheetImportField } from '@shared/types/sheetImport'
 
 /**
- * Campos de uma ficha SEM FORMULÁRIO, tirados do texto impresso.
+ * Campos de uma ficha SEM FORMULÁRIO, tirados do texto impresso. É o que faz uma ficha exportada do
+ * Google Docs (a de Oblivio é uma) render algo além de palpites de rolagem: sem isto, esse tipo de PDF
+ * importava zero campos.
  *
- * É o que faz uma ficha exportada do Google Docs (a de Oblivio é uma) render algo além de palpites
- * de rolagem. Sem isto, esse tipo de PDF importava zero campos — o app dizia "não tem formulário" e
- * parava aí, o que é honesto mas inútil.
+ * As duas formas saíram de comparar a ficha de Oblivio EM BRANCO com a PREENCHIDA do mesmo documento —
+ * o que existe só na segunda é, por definição, o que o jogador escreveu:
  *
- * As duas formas foram tiradas de comparar a ficha de Oblivio EM BRANCO com a PREENCHIDA do mesmo
- * documento: o que existe só na segunda é, por definição, o que o jogador escreveu. Elas são:
- *
- * 1. RÓTULO E VALOR NO MESMO FRAGMENTO — "Nome: Rodrigo Barreto", "Papel: Quem Age". Acontece
- *    quando se digita dentro do documento, que é como se preenche uma ficha assim;
- * 2. VALOR NA MESMA LINHA, À DIREITA DO RÓTULO — "Carne:" e, alguns pontos adiante, "2/10".
- *    Acontece nos campos diagramados em tabela.
+ * 1. RÓTULO E VALOR NO MESMO FRAGMENTO ("Nome: Rodrigo Barreto"), que é como se preenche digitando
+ *    dentro do documento;
+ * 2. VALOR NA MESMA LINHA, À DIREITA DO RÓTULO ("Carne:" e, alguns pontos adiante, "2/10"), que é
+ *    como ficam os campos diagramados em tabela.
  *
  * A regra de vizinhança da forma 2 é MESMA LINHA, e isso importa: o texto mais próximo de "2/10" em
- * distância pura é "Representa a", que é o começo da explicação na linha DE CIMA. O rótulo certo
- * ("Carne:") está a 45 pontos à direita mas com a mesma altura. Medido nos dois arquivos antes de
- * virar código.
+ * distância pura é "Representa a", o começo da explicação na linha DE CIMA, enquanto o rótulo certo
+ * está a 45 pontos à direita e na mesma altura. Medido nos dois arquivos antes de virar código.
  */
 
 /** Rótulo e valor juntos: "Nome: Rodrigo Barreto". O rótulo é curto; o valor, não pode ser um parágrafo. */
 const ROTULO_E_VALOR = /^([^:]{2,28}):\s*(\S.{0,119})$/
 
 /**
- * Valor que, na verdade, é pedaço de FRASE.
- *
- * A ficha de Oblivio traz as regras impressas junto, e elas são escritas do mesmo jeito que um campo
- * preenchido: "Limite de Estresse: 6. / Dano: 1D4 PE. / Alcance: 1." Rótulo curto, dois-pontos,
- * número logo em seguida — indistinguível de "Carne: 2/10" por posição, tamanho ou presença de
- * dígito. Foi assim que "Limite de Estresse = 6. /" e "Dano = 1D4 PE. /" apareceram na importação
- * do arquivo real, no meio dos atributos de verdade.
+ * Valor que, na verdade, é pedaço de FRASE. A ficha de Oblivio traz as regras impressas junto, e elas
+ * são escritas do mesmo jeito que um campo preenchido: "Limite de Estresse: 6. / Dano: 1D4 PE." —
+ * rótulo curto, dois-pontos, número em seguida, indistinguível de "Carne: 2/10" por posição ou
+ * tamanho. Foi assim que "Limite de Estresse = 6. /" apareceu no meio dos atributos de verdade.
  *
  * O que separa os dois é a PONTUAÇÃO DE FRASE: valor de ficha não termina em ponto e não tem ponto
  * seguido de espaço. "2/10", "0/5" e "1.5" passam; "+1.", "1." e "1D4 PE. /" não.
@@ -128,15 +122,14 @@ const RECUO_MAXIMO = 120
 const AVANCO_MAXIMO = 12
 
 /**
- * As linhas que COMPLETAM o valor de um campo — a continuação do parágrafo.
- *
- * O extrator devolve uma linha por fragmento, então "Descrição: 1,87m, cabelos loiros descoloridos,
- * curto dos lados e" era tudo o que entrava na ficha: o resto da descrição, mais quatro linhas, ia
- * pro lixo. Metade de uma frase é pior que nada, porque parece completa.
+ * As linhas que COMPLETAM o valor de um campo, a continuação do parágrafo. O extrator devolve uma linha
+ * por fragmento, então "Descrição: 1,87m, cabelos loiros descoloridos, curto dos lados e" era tudo o
+ * que entrava na ficha, com o resto indo pro lixo — e metade de uma frase é pior que nada, porque
+ * parece completa.
  *
  * A parada é por três motivos, e cada um evita um jeito diferente de engolir a ficha inteira: buraco
- * vertical (acabou o parágrafo), margem muito diferente (é outra coluna ou outro bloco) e a linha
- * ser ela mesma um "Rótulo: valor" (é o campo seguinte, não a continuação deste).
+ * vertical (acabou o parágrafo), margem muito diferente (é outra coluna) e a linha ser ela mesma um
+ * "Rótulo: valor" (é o campo seguinte).
  */
 function linhasSeguintes(emOrdem: PdfText[], inicio: number): PdfText[] {
   const linhas: PdfText[] = []

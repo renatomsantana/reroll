@@ -2,22 +2,18 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 
 /**
- * OS BACKUPS DA PASTA DE DADOS (spec §8.1 e §9.1): "data loss on update is the single most
- * trust-destroying bug possible for an app whose promise is 'everything is saved'".
+ * OS BACKUPS DA PASTA DE DADOS: "data loss on update is the single most trust-destroying bug possible
+ * for an app whose promise is 'everything is saved'".
  *
  * Dois momentos em que o app copia antes de mexer:
  *
- * 1. NA PRIMEIRA ABERTURA DE UMA VERSÃO NOVA (`fazerBackupSeMudouDeVersao`): antes de ler qualquer
- *    coisa, a pasta inteira de dados (perfis, fichas, presets, preferências) vai pra
- *    `backups/pre-<versão>-<data>/`. O app não tem migração com número de esquema (ver
- *    `normalizeNotes`: o formato é corrigido na leitura), mas TEM formato mudando a cada beta, e a
- *    leitura corrigida grava por cima do arquivo na primeira tecla. Se uma versão ler errado, o
- *    arquivo de antes dela ainda existe. Ficam os três últimos, como a spec pede.
- *
- * 2. AO APAGAR UM PERSONAGEM (`guardarPersonagemApagado`): a pasta dele vai pra
- *    `backups/personagens-apagados/<id>-<data>/` em vez de continuar órfã em `profiles/` — que
- *    era o que acontecia, e que ninguém achava. A spec pede "removes all of its state (with
- *    confirmation + backup)"; a pasta some de onde o app lê e fica onde a pessoa pode recuperar.
+ * 1. na PRIMEIRA ABERTURA DE UMA VERSÃO NOVA, antes de ler qualquer coisa, a pasta inteira vai pra
+ *    `backups/pre-<versão>-<data>/`. O app não tem migração com número de esquema (o formato é
+ *    corrigido na leitura), mas TEM formato mudando a cada beta, e a leitura corrigida grava por cima
+ *    do arquivo na primeira tecla — se uma versão ler errado, o arquivo de antes dela ainda existe.
+ *    Ficam os três últimos;
+ * 2. ao APAGAR UM PERSONAGEM, a pasta dele vai pra `backups/personagens-apagados/`, em vez de continuar
+ *    órfã em `profiles/`, que era o que acontecia e ninguém achava.
  *
  * Nada aqui pode derrubar o arranque: quem chama trata a falha como aviso no console e segue. Um
  * backup que não deu certo é pior que nenhum só se impedir o app de abrir.

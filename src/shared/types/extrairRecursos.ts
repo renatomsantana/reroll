@@ -2,26 +2,23 @@ import { MAXIMO_DE_RECURSOS, TAMANHO_MAXIMO_DO_NOME_DO_RECURSO, TETO_DO_VALOR_DE
 import type { SheetImportField } from './sheetImport'
 
 /**
- * As BARRAS que uma ficha importada propõe (spec §3.4: "imported values pre-fill the bars").
+ * As BARRAS que uma ficha importada propõe.
  *
- * Os leitores de sistema devolvem os recursos como CAMPOS — "PV atual: 19", "PV máximo: 45" —
- * porque é assim que a ficha os mostra, e a aba Ficha os desenha assim mesmo. Mas a barra da tela de
- * rolagem precisa do PAR, com número dos dois lados. Este é o passo que junta as duas metades, e é
- * função pura de propósito: roda na tela de conferência, onde a pessoa vê e desmarca o que não quer,
- * e é testável sem PDF nenhum.
+ * Os leitores devolvem os recursos como CAMPOS ("PV atual: 19", "PV máximo: 45"), porque é assim que a
+ * ficha os mostra e é assim que a aba Ficha os desenha. Mas a barra da tela de rolagem precisa do PAR,
+ * com número dos dois lados: este é o passo que junta as duas metades, e é função pura de propósito —
+ * roda na conferência, onde a pessoa vê e desmarca, e é testável sem PDF nenhum.
  *
  * Três formas de par são reconhecidas, porque são as três que as fichas reais trazem:
  *
- * 1. dois campos com o mesmo nome-base e sufixo "atual"/"máximo" (Ordem, Pathfinder, D&D em
- *    português) — ou prefixo "Current"/"Max" (D&D em inglês);
+ * 1. dois campos com o mesmo nome-base e sufixo "atual"/"máximo", ou prefixo "Current"/"Max";
  * 2. um campo só com valor "12/40" (Oblivio, e a Carga de Ordem);
- * 3. só uma das metades preenchida: o máximo sem o atual é a ficha recém-feita (o Matias só tem os
- *    máximos), e vira barra CHEIA, marcada como `atualEmBranco` pra conferência dizer. O atual sem o
- *    máximo vira barra cheia naquele valor.
+ * 3. só uma das metades: o máximo sem o atual é a ficha recém-feita (o Matias só tem os máximos) e
+ *    vira barra CHEIA, marcada como `atualEmBranco` pra conferência dizer; o atual sem o máximo vira
+ *    barra cheia naquele valor.
  *
- * Par com as DUAS metades vazias não vira barra: é o esqueleto de lacunas (ver `sempre` nos
- * leitores), e uma barra 0/0 na tela de rolagem seria ruído. A pessoa acrescenta à mão quando
- * souber o número.
+ * Par com as duas metades vazias não vira barra: é o esqueleto de lacunas, e uma barra 0/0 na tela de
+ * rolagem seria ruído.
  */
 export interface RecursoExtraido {
   nome: string

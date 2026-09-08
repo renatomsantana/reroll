@@ -1,16 +1,13 @@
 import { prenderAtual, type RecursoVital } from './recursoVital'
 
 /**
- * DESCANSO (spec §3.8): um clique restaura os recursos pelas regras do PRÓPRIO sistema.
+ * DESCANSO: um clique restaura os recursos pelas regras do PRÓPRIO sistema.
  *
- * Cada personagem tem os seus TIPOS de descanso — "Descanso longo" e "curto" em D&D, "Descanso" e
- * "Intervalo" em Ordem —, e cada tipo diz, recurso por recurso, o que acontece: volta ao máximo,
- * soma N, ou nada. É dado do personagem (mora no `notes.json`, ao lado das barras) porque é regra
- * do sistema dele, e é EDITÁVEL porque nenhuma tabela de sistemas cobre a mesa de todo mundo — a
- * importação só preenche um padrão razoável.
- *
- * Sem automação além do clique: nada de timer, nada de "descansou sozinho". O jogador decide quando
- * houve descanso, confirma vendo o que vai mudar, e o histórico registra que houve.
+ * Cada personagem tem os seus TIPOS de descanso — "longo" e "curto" em D&D, "Descanso" e "Intervalo"
+ * em Ordem —, e cada tipo diz, recurso por recurso, o que acontece: volta ao máximo, soma N, ou nada.
+ * É dado do personagem, porque é regra do sistema dele, e é EDITÁVEL porque nenhuma tabela de sistemas
+ * cobre a mesa de todo mundo. Sem automação além do clique: o jogador decide quando houve descanso,
+ * confirma vendo o que vai mudar, e o histórico registra.
  */
 export type ModoDeDescanso = 'maximo' | 'somar' | 'nada'
 
@@ -45,10 +42,10 @@ export function descansoCompleto(recursos: RecursoVital[], nome: string, id: str
 }
 
 /**
- * Os tipos que uma ficha IMPORTADA recebe, pelo sistema. Só o que se sabe com razoável certeza:
+ * Os tipos que uma ficha IMPORTADA recebe, pelo sistema, e só o que se sabe com razoável certeza:
  *
- * - D&D 5e / Pathfinder: descanso longo (tudo ao máximo) e curto (nada, pra pessoa preencher — a
- *   regra real depende de dados de vida e de classe, e inventar aqui seria errar com confiança);
+ * - D&D 5e e Pathfinder: descanso longo (tudo ao máximo) e curto (nada, pra pessoa preencher — a regra
+ *   real depende de dados de vida e de classe, e inventar aqui seria errar com confiança);
  * - Ordem Paranormal: descanso (tudo) e intervalo (só PE ao máximo);
  * - resto: um "Descanso" que devolve tudo.
  *

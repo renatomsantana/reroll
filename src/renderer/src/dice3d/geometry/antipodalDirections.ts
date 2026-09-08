@@ -2,28 +2,24 @@ import type { Vector3Tuple } from '@shared/types/dice3d'
 import { normalize, scale } from './polyhedronMath'
 
 /**
- * Direções para as FACES de um dado: `pares` direções bem espalhadas mais as antípodas delas, ou
- * seja, faces opostas sempre paralelas — como em qualquer dado de verdade.
+ * Direções para as FACES de um dado: `pares` direções bem espalhadas mais as antípodas delas, ou seja,
+ * faces opostas sempre paralelas, como em qualquer dado de verdade.
  *
- * POR QUE A SIMETRIA É O QUE TORNA O DADO HONESTO, e não a área das faces:
+ * POR QUE A SIMETRIA É O QUE TORNA O DADO HONESTO, e não a área das faces: um dado em repouso está
+ * apoiado numa face, a direção "pra cima" é exatamente `-n` da face de baixo, e `readTopFace` lê a face
+ * cuja normal mais se aproxima disso. Existe então um MAPA "face de baixo → face lida", e ele só é
+ * justo se for uma BIJEÇÃO — sem simetria central duas faces de baixo podem levar à mesma face lida, e
+ * a vizinha delas não sai NUNCA.
  *
- * Um dado em repouso está apoiado numa face. A direção "pra cima" é então exatamente `-n` da face
- * de baixo, e `readTopFace` lê a face cuja normal mais se aproxima disso. Ou seja, existe um MAPA
- * "face de baixo → face lida", e ele só é justo se for uma BIJEÇÃO. Sem simetria central, não é:
- * duas faces de baixo diferentes podem levar à mesma face lida, e aí a face vizinha delas não é
- * lida NUNCA.
+ * Medido no d100 com 100 direções de Fibonacci sobre a esfera inteira (áreas de 0,94x a 1,06x da
+ * média): só 92 das 100 faces eram alcançáveis, e a física real confirmou com 12 faces zeradas em 3000
+ * rolagens. Com pares antípodas, a face lida é a oposta exata da de apoio, o mapa vira permutação, e
+ * cada face sai com a probabilidade da SUA área.
  *
- * Medido no d100, com 100 direções de Fibonacci sobre a esfera inteira (áreas ótimas, 0,94x a 1,06x
- * da média): apenas 92 das 100 faces eram alcançáveis pelo mapa de repouso, e a física real
- * confirmou com 12 faces zeradas em 3000 rolagens. Áreas iguais não bastam — o que faltava era a
- * simetria. Com `pares` antípodas, a face lida é sempre a oposta exata da face de apoio, o mapa
- * vira uma permutação, e cada face sai com a probabilidade da SUA área.
- *
- * A RELAXAÇÃO existe porque a espiral de Fibonacci restrita a um hemisfério, espelhada, deixa
- * direções amontoadas perto do equador (medido: vizinhas a 11,5° e áreas de 0,75x a 1,21x). Uma
- * repulsão de Coulomb entre todas as direções, movendo só metade delas e espelhando a cada passo
- * (pra a simetria nunca se perder), conserta as duas coisas: vizinhas passam pra 19,5° e as áreas
- * pra 0,93x–1,07x. Os números pararam de melhorar por volta de 200 iterações — mil davam o mesmo.
+ * A RELAXAÇÃO existe porque a espiral de Fibonacci restrita a um hemisfério, espelhada, deixa direções
+ * amontoadas perto do equador (vizinhas a 11,5°, áreas de 0,75x a 1,21x). Uma repulsão de Coulomb
+ * movendo só metade delas e espelhando a cada passo conserta as duas coisas: 19,5° e 0,93x–1,07x. Os
+ * números pararam de melhorar por volta de 200 iterações.
  */
 export function antipodalDirections(pares: number, iteracoes = 200, passo = 0.002): Vector3Tuple[] {
   let metade = espiralNoHemisferio(pares)

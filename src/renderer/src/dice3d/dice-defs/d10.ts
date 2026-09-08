@@ -3,20 +3,14 @@ import { DICE_DEFAULT_PHYSICS } from '../config/physicsConfig'
 import { computePolyhedronFaces, normalizeToCircumradius, type PolyhedronFaceInput } from '../geometry/polyhedronMath'
 
 /**
- * Trapezoedro pentagonal: 12 vértices (2 ápices + 10 na "cintura" em
- * ziguezague), 10 faces em formato de "pipa" (4 vértices cada). Índices
- * 0-9 = cintura (ângulo = k*36°, altura alterna +h/-h), 10 = ápice de cima,
- * 11 = ápice de baixo.
+ * Trapezoedro pentagonal: 12 vértices (2 ápices e 10 na cintura em ziguezague) e 10 faces em formato de
+ * pipa. Índices 0-9 = cintura (ângulo `k·36°`, altura alternando ±h), 10 e 11 = ápices.
  *
- * `H` é derivado pra cada face-pipa ficar EXATAMENTE planar:
- * H = h·(1+cos36°)/(1-cos36°) ≈ 9,4721·h (ver Fase 7). Minha primeira
- * tentativa usava h=0.3, o que exige H≈2,84 — um formato espichado tipo
- * bola de rúgbi. Minha segunda tentativa reduziu só H (mantendo h=0.3) pra
- * deixar a proporção mais compacta, o que quebrou a planaridade de forma
- * severa (dobra bem visível/feia em cada face, não sutil). A correção certa
- * era reduzir `h` também: com uma cintura mais "rasa" (h menor), o H exigido
- * pra planaridade exata fica proporcionalmente menor TAMBÉM — mantendo tanto
- * a proporção realista quanto a planaridade perfeita (erro numérico ~0).
+ * `H` é DERIVADO pra cada face-pipa ficar exatamente planar: `H = h·(1+cos36°)/(1-cos36°)`. Com h=0.3
+ * isso exige H≈2,84, um formato espichado de bola de rúgbi; reduzir só o H (mantendo h) quebrou a
+ * planaridade com uma dobra bem visível em cada face. A correção certa era reduzir `h` também — com a
+ * cintura mais rasa, o H exigido cai proporcionalmente, e a proporção realista e a planaridade exata
+ * convivem.
  */
 const RING_RADIUS = 1
 const RING_HALF_HEIGHT = 0.15
@@ -57,22 +51,17 @@ export const D10_BOTTOM_FACE_VERTEX_INDICES: number[][] = Array.from({ length: 5
 ])
 
 /**
- * Faces numeradas de 1 A 10 — nunca 0.
+ * Faces numeradas de 1 A 10, nunca 0.
  *
- * Eram os dígitos 0-9, a numeração do d10 físico usado como dado de dezena, na ideia de que
- * "0 sozinho vale 10" seria interpretação de exibição, resolvida mais pra frente. Só que essa
- * conversão nunca existiu em lugar nenhum: nem no valor lido (`readTopFace` devolve o valor da face
- * como está), nem no número impresso (o atlas de textura desenha esse mesmo valor). O resultado era
- * um d10 que tirava ZERO, com um "0" desenhado na face — reportado pelo usuário: "quando for o 0 no
- * d10 é 10, não zero; nenhum dado tira 0, apenas 1 até o máximo".
+ * Eram os dígitos 0-9, a numeração do d10 físico usado como dado de dezena, na ideia de que "0 sozinho
+ * vale 10" seria interpretação de exibição. Só que essa conversão nunca existiu em lugar nenhum, nem no
+ * valor lido nem no número impresso: o resultado era um d10 que tirava ZERO, com um "0" desenhado na
+ * face — "quando for o 0 no d10 é 10, não zero; nenhum dado tira 0, apenas 1 até o máximo".
  *
- * A correção é somar 1 em TODAS as faces, e não trocar só a do zero por 10. Os pares antípodas
- * somavam 9 (a convenção do d10 de dezena, análoga ao "soma 7" do d6); somando 1 nos dois lados de
- * cada par, eles passam a somar 11 — que é exatamente a convenção dos d10 reais numerados de 1 a 10.
- * Relabelar só o zero deixaria aquele par somando 19 e todos os outros 9: uniforme no sorteio, mas
- * errado como objeto.
- *
- * Faces de cima valem 1-5; faces de baixo, 10,9,8,7,6 na ordem correspondente.
+ * A correção é somar 1 em TODAS as faces, e não trocar só a do zero por 10: os pares antípodas somavam
+ * 9 (a convenção do dado de dezena) e passam a somar 11, que é a convenção dos d10 reais de 1 a 10.
+ * Relabelar só o zero deixaria aquele par somando 19 e todos os outros 9 — uniforme no sorteio, errado
+ * como objeto.
  */
 const TOP_VALUES = [1, 2, 3, 4, 5]
 const BOTTOM_VALUES_BY_INDEX = [7, 6, 10, 9, 8] // ver derivação do pareamento antípoda no chat
