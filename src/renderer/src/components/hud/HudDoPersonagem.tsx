@@ -12,16 +12,14 @@ import './HudDoPersonagem.css'
 const COR_DA_CONDICAO_NOVA = '#800000'
 
 /**
- * O HUD DO PERSONAGEM (spec §3.6): o cartão de jogo sobre a cena 3D — retrato, nome, as barras de
- * recurso (as mesmas, com os mesmos "−"/"+") e as condições —, pra gerenciar o personagem sem sair
- * da tela onde os dados caem.
+ * O HUD DO PERSONAGEM: o cartão de jogo sobre a cena 3D — retrato, nome, as barras de recurso (as
+ * mesmas, com os mesmos "−"/"+") e as condições —, pra gerenciar o personagem sem sair da tela onde os
+ * dados caem.
  *
- * É DOM por cima do canvas, e não geometria dentro da cena: texto nítido, custo zero por quadro, e
- * a mesma linguagem visual do resto do app — caixa cinza com relevo, nada de degradê.
- *
- * ARRASTÁVEL entre os quatro cantos: segura pelo cabeçalho, solta, e ele encaixa no canto mais
- * perto. Canto, escondido e mini são do personagem (ver `hud.ts`) e gravam na hora. No modo
- * compacto o HUD não existe — lá as barras finas já fazem esse papel.
+ * É DOM por cima do canvas, e não geometria dentro da cena: texto nítido, custo zero por quadro e a
+ * mesma linguagem visual do resto do app. ARRASTÁVEL entre os quatro cantos, encaixando no mais perto
+ * ao soltar; canto, escondido e mini são do personagem e gravam na hora. No modo compacto o HUD não
+ * existe, porque lá as barras finas já fazem esse papel.
  */
 interface HudDoPersonagemProps {
   profile: Profile

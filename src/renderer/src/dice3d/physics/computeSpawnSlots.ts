@@ -1,19 +1,16 @@
 import { randomInRange, randomUnit } from '../utils/random'
 
 /**
- * Fração do espaçamento entre slots que cada dado pode ser deslocado aleatoriamente do centro
- * do seu slot.
+ * Fração do espaçamento entre slots que cada dado pode ser deslocado do centro do seu slot.
  *
- * Existe por um motivo visual concreto, reportado pelo usuário como "a rolagem não parece
- * natural" e confirmado numa captura da janela com 13 dados na bandeja: com os slots numa
- * grade regular e cada dado sendo arremessado exatamente pro centro do SEU slot (ver
- * `tossDie`), os dados assentavam num RETICULADO visível — linhas e colunas alinhadas, coisa
- * que dados jogados de verdade nunca fazem. A grade continua existindo (é ela que impede dois
- * dados de nascerem sobrepostos e o solver de resolver isso com um impulso violento), só que
- * agora cada alvo é sorteado dentro da célula em vez de ser sempre o centro dela.
+ * Existe por um motivo visual concreto, reportado como "a rolagem não parece natural" e confirmado
+ * numa captura com 13 dados na bandeja: com os slots numa grade regular e cada dado arremessado pro
+ * centro do SEU slot, eles assentavam num RETICULADO visível, coisa que dados jogados de verdade nunca
+ * fazem. A grade continua existindo (é ela que impede dois dados de nascerem sobrepostos), só que
+ * agora cada alvo é sorteado dentro da célula.
  *
- * 0.42 (e não, digamos, 0.5) deixa uma faixa morta entre células vizinhas — dois alvos
- * sorteados um em direção ao outro ainda não coincidem.
+ * 0.42, e não 0.5, deixa uma faixa morta entre células vizinhas: dois alvos sorteados um em direção ao
+ * outro ainda não coincidem.
  */
 const SLOT_JITTER_FRACTION = 0.42
 

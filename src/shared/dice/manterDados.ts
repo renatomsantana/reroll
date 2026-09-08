@@ -1,20 +1,17 @@
 import type { DiceGroupResult, KeepRule } from '../types/dice'
 
 /**
- * "Role N dados e use o MAIOR" — a regra que Ordem Paranormal usa em todo teste, e que o app não
- * sabia fazer.
+ * "Role N dados e use o MAIOR", a regra que Ordem Paranormal usa em todo teste e que o app não sabia
+ * fazer. Um teste com Agilidade 3 é "role 3d20 e fique com o maior", não "some os três": a ficha veio
+ * com a coluna TESTE escrita assim, o importador criava o preset somando, e a soma de 2d20 dá em média
+ * 21 onde a regra dá 13,8 — um número que parece certo e não é.
  *
- * Um teste com Agilidade 3 é "role 3d20 e fique com o maior", não "some os três". A ficha do usuário
- * veio com a coluna TESTE escrita assim ("2d20"), o importador criava o preset somando, e a soma de
- * 2d20 dá em média 21 onde a regra dá 13,8 — um número que parece certo e não é. O aviso que existia
- * na tela de importação pedia pra pessoa "ler o maior dado da mesa" e fazer a conta de cabeça.
- *
- * A regra vale pro CONJUNTO da rolagem, e não por grupo, porque é assim que ela é escrita nos
- * sistemas: "role tudo isso e fique com os dois melhores". Com um grupo só — que é o caso de toda
- * ficha real vista até agora — as duas leituras dão no mesmo.
+ * A regra vale pro CONJUNTO da rolagem, e não por grupo, porque é assim que ela é escrita nos sistemas
+ * ("role tudo isso e fique com os dois melhores"); com um grupo só, que é o caso de toda ficha real
+ * vista até agora, as duas leituras dão no mesmo.
  *
  * Os dados descartados NÃO somem do resultado: eles caíram na bandeja e a pessoa está olhando pra
- * eles. Some-se o que foi mantido e marca-se o resto; esconder metade dos dados que estão na mesa
+ * eles. Soma-se o que foi mantido e marca-se o resto — esconder metade dos dados que estão na mesa
  * seria o app discordando do que a pessoa vê.
  */
 

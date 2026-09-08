@@ -1,20 +1,13 @@
 /**
- * Geometria compartilhada de "polígono regular visto de cima" — usada tanto pela bandeja
- * hexagonal (`TRAY_CONFIG`) quanto pela parede circular da torre (`TOWER_CONFIG`, que já
- * aproximava um círculo com muitos segmentos antes disso existir como arquivo próprio). Um só
- * lugar define a convenção de ângulo (normal do segmento `i` em `i·2π/N + π/N`) pra parede
- * física (`createRingWall`), mesh visual (`THREE.CylinderGeometry` com o mesmo N de segmentos,
- * que usa essa mesma convenção por padrão) e teste de "está dentro" (`isInsideRegularPolygon`)
- * nunca discordarem entre si sobre onde a borda de verdade fica.
+ * Geometria compartilhada de "polígono regular visto de cima", usada pela bandeja e pela parede da
+ * torre. Um só lugar define a convenção de ângulo (normal do segmento `i` em `i·2π/N + π/N`) pra parede
+ * física, mesh visual e teste de "está dentro" nunca discordarem sobre onde a borda de verdade fica.
  */
 
 /**
- * Ângulo (radianos) da normal externa do segmento `i` de um polígono de `segments` lados.
- *
- * `rotation` gira o polígono inteiro. Existe porque a bandeja mudou de forma: um triângulo com a
- * convenção crua fica com uma PONTA virada pra câmera, o que o usuário viu como "o triângulo ficou
- * mt bugado". Girado, ele apoia uma face de frente e a ponta vai pro fundo, onde está o estojo.
- * Zero pro hexágono, que já nasce assim (ver `trayRotation`).
+ * Ângulo da normal externa do segmento `i`. `rotation` gira o polígono inteiro, e existe porque a
+ * bandeja mudou de forma: um triângulo com a convenção crua fica com uma PONTA virada pra câmera ("o
+ * triângulo ficou mt bugado"). Zero pro hexágono, que já nasce assim.
  */
 export function regularPolygonSegmentAngle(i: number, segments: number, rotation = 0): number {
   return (i * 2 * Math.PI) / segments + Math.PI / segments + rotation
@@ -48,17 +41,14 @@ export function isInsideRegularPolygon(
 }
 
 /**
- * Distância do centro até a BORDA do polígono na direção `angle` — o que "raio" significa numa
- * forma que não é círculo. Mesma convenção de ângulo do resto do arquivo.
+ * Distância do centro até a BORDA na direção `angle` — o que "raio" significa numa forma que não é
+ * círculo. Existe porque o ponto de largada do arremesso precisa cair logo FORA da parede, e "logo
+ * fora" não é um número só: num triângulo a borda está a 3.75 na direção de uma face e a 7.5 na direção
+ * de uma ponta, e usar o apótema pros dois lados fazia o dado nascer longe demais numa direção e dentro
+ * da bandeja na outra.
  *
- * Existe porque o ponto de largada do arremesso (`tossDie`) precisa cair logo FORA da parede, e
- * "logo fora" não é um número só: num triângulo a borda está a 3.75 na direção de uma face e a
- * 7.5 na direção de uma ponta. Usar o apótema pros dois lados era o que fazia o dado nascer longe
- * demais numa direção e dentro da bandeja na outra.
- *
- * A conta é o apótema dividido pelo cosseno do quanto `angle` se afasta da normal de face mais
- * próxima — numa face esse afastamento é zero e o raio é o apótema; numa ponta ele é π/N e o raio
- * é o circunraio, que é exatamente `regularPolygonCircumradius`.
+ * A conta é o apótema dividido pelo cosseno do quanto `angle` se afasta da normal de face mais próxima:
+ * numa face isso é zero e o raio é o apótema; numa ponta é π/N e o raio é o circunraio.
  */
 export function regularPolygonRadiusAt(
   angle: number,

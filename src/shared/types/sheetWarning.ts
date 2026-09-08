@@ -1,21 +1,18 @@
 /**
  * Os AVISOS que um leitor de ficha pode dar, como identificadores em vez de frases.
  *
- * Eles eram texto pronto em português, escrito dentro de cada leitor. Isso quebrava o app pra metade
- * de quem ele atende: a interface tem inglês (ver `i18n/translations.ts`), e quem a usava em inglês
- * abria a janela de conferência e encontrava um parágrafo em português explicando o que o app não
- * tinha conseguido ler — justamente a mensagem que mais precisa ser entendida, porque é ela que
- * separa "importou vazio" de "o programa não funcionou".
+ * Eles eram texto pronto em português, escrito dentro de cada leitor, e isso quebrava o app pra metade
+ * de quem ele atende: a interface tem inglês, e quem a usava em inglês encontrava um parágrafo em
+ * português explicando o que o app não conseguiu ler — justamente a mensagem que mais precisa ser
+ * entendida, porque é ela que separa "importou vazio" de "o programa não funcionou".
  *
- * Como identificador, cada aviso é traduzido onde a tradução mora e testado por IDENTIDADE. A
- * segunda parte não é detalhe: os testes casavam a prosa com expressão regular (`/maior dado/i`),
- * então trocar uma palavra do texto quebrava teste sem nada ter mudado de comportamento, e mudar o
- * comportamento sem trocar a palavra não quebrava nada.
+ * Como identificador, cada aviso é traduzido onde a tradução mora e testado por IDENTIDADE. A segunda
+ * parte não é detalhe: os testes casavam a prosa com expressão regular, então trocar uma palavra do
+ * texto quebrava teste sem nada ter mudado, e mudar o comportamento sem trocar a palavra não quebrava
+ * nada.
  *
  * PRA ACRESCENTAR UM AVISO: ponha o id aqui e o texto nos dois idiomas em `translations.ts`. O
- * TypeScript cobra as duas pontas — o dicionário é `Record<SheetWarningId, string>`, então um id
- * novo sem tradução não compila, que é o contrário do que acontecia com frase solta no meio do
- * leitor.
+ * TypeScript cobra as duas pontas, porque o dicionário é `Record<SheetWarningId, string>`.
  */
 export type SheetWarningId =
   /** PDF sem camada de texto: digitalização ou arte exportada sem texto. Não há o que extrair. */

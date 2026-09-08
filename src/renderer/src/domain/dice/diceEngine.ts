@@ -71,13 +71,9 @@ export function expressionLabel(expression: DiceExpression): string {
 
   const base = [groupsLabel, modifiersLabel].filter(Boolean).join(' ')
   /**
-   * A regra de manter entra NO RÓTULO, e não só na conta. É o rótulo que aparece no histórico e no
-   * cartão do preset, e "2d20" com total 14 sem nenhuma explicação parece defeito — a pessoa somou
-   * os dois dados que está vendo e deu outro número.
-   */
-  /**
-   * "explode" entra no rótulo pelo mesmo motivo que a regra de manter: é o rótulo que aparece no
-   * histórico e no cartão do preset, e um "1d6" com total 17 sem explicação parece defeito.
+   * A regra de manter e a explosão entram NO RÓTULO, e não só na conta: é o rótulo que aparece no
+   * histórico e no cartão do preset, e um "2d20" com total 14, ou um "1d6" com total 17, sem nenhuma
+   * explicação, parece defeito — a pessoa somou os dados que está vendo e deu outro número.
    */
   const partes = [rotuloDeManter(expression.keep) && `usa ${rotuloDeManter(expression.keep)}`, expression.explode && 'explode']
     .filter(Boolean)

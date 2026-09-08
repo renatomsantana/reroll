@@ -38,18 +38,16 @@ export class NotesRepository {
   }
 
   /**
-   * A GRAVAÇÃO confere o que chega — o canal `notes:save` não conferia nada.
+   * A GRAVAÇÃO confere o que chega: o canal `notes:save` não conferia nada.
    *
    * Achado da revisão de segurança do 1.0.12: dos canais que gravam em disco, este era o único que
-   * escrevia o objeto exatamente como veio do renderer, sem normalizar nem limitar. A importação de
-   * ficha tem `LIMITES_DA_FICHA`; os presets passam por `isValidPresetInput`; os perfis, por
-   * `normalizeProfiles`. As anotações — que gravam A CADA TECLA — não passavam por nada.
+   * escrevia o objeto exatamente como veio do renderer. A importação de ficha tem `LIMITES_DA_FICHA`, os
+   * presets passam por `isValidPresetInput`, os perfis por `normalizeProfiles` — as anotações, que
+   * gravam A CADA TECLA, não passavam por nada.
    *
-   * O renderer é código nosso e roda em sandbox, então isto não é desconfiança dele: é que um
-   * defeito de interface (um laço que acrescenta páginas, um estado que cresce sem parar) viraria um
-   * `notes.json` de centenas de megabytes lido inteiro em toda abertura do app, e ninguém saberia por
-   * quê. O teto vira uma recusa clara, que a aba de anotações já sabe mostrar (`saveError`), e o que
-   * está no disco continua intacto — recusar é sempre melhor que gravar pela metade.
+   * Não é desconfiança do renderer: é que um defeito de interface viraria um `notes.json` de centenas de
+   * megabytes lido inteiro em toda abertura, sem ninguém saber por quê. O teto vira uma recusa clara,
+   * que a aba já sabe mostrar, e o que está no disco continua intacto.
    */
   async save(notes: NotesData): Promise<NotesData> {
     const limpo = normalizeNotes(notes)

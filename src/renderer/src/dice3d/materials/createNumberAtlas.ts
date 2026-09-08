@@ -1,19 +1,17 @@
 import * as THREE from 'three'
 
 /**
- * Atlas de números: UMA textura com todas as faces de um dado lado a lado, em vez de uma
- * textura (e um material) POR FACE.
+ * Atlas de números: UMA textura com todas as faces de um dado lado a lado, em vez de uma textura (e um
+ * material) POR FACE.
  *
- * Motivo real, medido: cada grupo de material vira um `draw call` próprio no three.js, e antes
- * disso cada dado tinha um grupo por face — um d100 sozinho custava 100 draw calls, e a
- * prateleira decorativa (um dado de cada tipo) custava 160 fixos, todo frame, mais o mesmo
- * tanto de novo na passada de sombra. Medido ao vivo com o HUD de debug: 5 dados na cena →
- * 165 FPS; 13 dados (8 deles d100) → 97 FPS. Com o atlas cada dado tem UM material só, então
- * o custo por dado deixa de escalar com o número de faces.
+ * O motivo é medido: cada grupo de material vira um `draw call` no three, e antes disso cada dado tinha
+ * um grupo por face — um d100 sozinho custava 100 draw calls, e a prateleira decorativa custava 160
+ * fixos por quadro, mais o mesmo tanto na passada de sombra. Medido com o HUD de debug: 5 dados na
+ * cena davam 165 FPS, e 13 dados (8 deles d100) davam 97. Com o atlas cada dado tem UM material, então
+ * o custo deixa de escalar com o número de faces.
  *
- * O truque é só de UV: a geometria continua exatamente a mesma (mesmos vértices, mesmas faces,
- * mesma leitura de face pra resultado), mas as UVs de cada face são reescritas do quadrado
- * [0,1] inteiro pra CÉLULA daquela face dentro do atlas.
+ * O truque é só de UV: a geometria continua a mesma, mas as UVs de cada face são reescritas do
+ * quadrado [0,1] inteiro pra CÉLULA daquela face dentro do atlas.
  */
 
 export interface AtlasGrid {
@@ -36,13 +34,11 @@ export function atlasGridFor(faceCount: number): AtlasGrid {
 }
 
 /**
- * Desenha o atlas. `drawCell` recebe o contexto JÁ TRANSLADADO pro canto superior esquerdo da
- * célula da face — quem chama desenha em coordenadas locais de 0..`cellPx`, sem se preocupar
- * com onde a célula está no atlas.
+ * Desenha o atlas. `drawCell` recebe o contexto JÁ TRANSLADADO pro canto da célula, então quem chama
+ * desenha em coordenadas locais sem se preocupar com onde ela está.
  *
- * `generateMipmaps: false` + `LinearFilter`: com mipmap, os níveis menores misturariam células
- * VIZINHAS (números de outras faces) num borrão — num atlas isso apareceria como número
- * fantasma na face errada, coisa que texturas separadas por face nunca podiam fazer.
+ * `generateMipmaps: false` com `LinearFilter`: com mipmap, os níveis menores misturariam células
+ * VIZINHAS num borrão, o que num atlas apareceria como número fantasma na face errada.
  */
 export function createNumberAtlasTexture(
   faceCount: number,
@@ -82,16 +78,13 @@ export function createNumberAtlasTexture(
 }
 
 /**
- * Reescreve as UVs da geometria pra apontar pra célula do atlas correspondente a cada face, e
- * apaga os grupos de material (o que faz o three desenhar a malha inteira num único draw call).
+ * Reescreve as UVs da geometria pra apontar pra célula do atlas de cada face, e apaga os grupos de
+ * material, o que faz o three desenhar a malha inteira num único draw call.
  *
- * Depende de uma propriedade que TODOS os construtores de dado deste projeto garantem: nenhum
- * vértice é compartilhado entre faces (`buildPolyhedronGeometry` e `buildD4Visual` duplicam os
- * vértices por face pra ter shading facetado; `BoxGeometry` do d6 já nasce assim). Se dois
- * grupos compartilhassem um vértice, remapear um estragaria o outro.
- *
- * `group.materialIndex` (e não a ordem do grupo) é o índice da face — é ele que dizia qual
- * textura por face aquele grupo usava antes do atlas.
+ * Depende de uma propriedade que todos os construtores de dado deste projeto garantem: nenhum vértice é
+ * compartilhado entre faces (os poliedros e o d4 duplicam os vértices pra ter shading facetado, e o
+ * `BoxGeometry` já nasce assim). Se dois grupos compartilhassem um vértice, remapear um estragaria o
+ * outro. `group.materialIndex`, e não a ordem do grupo, é o índice da face.
  */
 export function remapGeometryUvsToAtlas(geometry: THREE.BufferGeometry, faceCount: number): void {
   const { columns, rows } = atlasGridFor(faceCount)

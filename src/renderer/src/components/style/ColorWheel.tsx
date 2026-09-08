@@ -2,15 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import './ColorWheel.css'
 
 /**
- * Disco de cor + barra de brilho, desenhados em canvas. Serve pra escolher QUALQUER cor na hora,
- * sem passar pelo diálogo nativo do Windows (que é o que o `input[type=color]` abre): o dado da
- * prévia acompanha o arrasto, então dá pra procurar o tom olhando o resultado em vez de olhando
- * um quadradinho.
+ * Disco de cor e barra de brilho, desenhados em canvas. Serve pra escolher qualquer cor na hora, sem
+ * passar pelo diálogo nativo do Windows que o `input[type=color]` abre: o dado da prévia acompanha o
+ * arrasto, então dá pra procurar o tom olhando o resultado.
  *
- * O par disco-redondo + barra-de-brilho ao lado é o mesmo desenho do "Definir cores
- * personalizadas" do Windows 98 (lá o campo é retangular, mas a ideia é a mesma: matiz e saturação
- * num plano, luminosidade numa régua separada) — por isso a moldura afundada de 2px em volta de
- * cada um, que é o que amarra a peça ao resto da janela.
+ * O par disco redondo + barra de brilho ao lado é o mesmo desenho do "Definir cores personalizadas" do
+ * Windows 98 (lá o campo é retangular, mas a ideia é a mesma: matiz e saturação num plano, luminosidade
+ * numa régua), e daí a moldura afundada de 2px em volta de cada um.
  */
 
 /**
