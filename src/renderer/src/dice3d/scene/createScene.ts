@@ -19,12 +19,12 @@ export const DEFAULT_BACKGROUND_COLOR = 0x000000
 export const DEFAULT_FLOOR_COLOR = 0x243b6b
 
 /**
- * Chão da bandeja com acabamento de VELUDO. `MeshPhysicalMaterial.sheen*` é o par certo: é a
- * extensão do three feita pra tecido, com a auréola suave nas bordas contra a luz que o especular
- * comum não reproduz; `sheenColor` mais claro que a cor do chão simula a fibra pegando luz.
+ * Chão da bandeja com acabamento de VELUDO. `MeshPhysicalMaterial.sheen*` é a extensão do three feita
+ * pra tecido: auréola suave nas bordas contra a luz, que o especular comum não reproduz, com
+ * `sheenColor` mais claro simulando a fibra pegando luz.
  *
- * Só o `sheen` não bastou ("ainda não parece veludo"): ele é fresnel, quase invisível olhando de
- * cima. O reforço de verdade são as duas texturas de `createVelvetTextures()`.
+ * Só o `sheen` não bastou ("ainda não parece veludo"): ele é fresnel, quase invisível de cima. O
+ * reforço são as duas texturas de `createVelvetTextures()`.
  */
 const FLOOR_ROUGHNESS = 0.97
 const FLOOR_SHEEN = 1
@@ -64,11 +64,11 @@ export function createHexShape(radius: number, segments: number, rotation = 0): 
 
 /**
  * Raio do tampo da mesa, ~2.1× o circunraio do hexágono. Era 40, um disco de cor sólida que cobria
- * quase o quadro inteiro e atrapalhava a imagem de fundo escolhida na aba Estilo; o tampo só
- * precisa desfazer o efeito de ilha flutuando em volta da bandeja.
+ * quase o quadro e atrapalhava a imagem de fundo da aba Estilo; o tampo só precisa desfazer o efeito
+ * de ilha flutuando.
  *
  * Exportado porque o limite de passeio da câmera WASD é este mesmo número (`TABLE_PAN_LIMIT` em
- * `DiceCanvasMulti.tsx`): copiado à mão, sairia de sincronia na primeira vez que o tampo mudasse.
+ * `DiceCanvasMulti.tsx`): copiado à mão, sairia de sincronia na primeira mudança do tampo.
  */
 export const GROUND_RADIUS = 16
 
@@ -91,8 +91,7 @@ export function woodTint(color: number): THREE.Color {
    * Isto era `lerp(branco, 0.42)`, pra compensar um mapa de madeira castanho e escuro. Com o mapa
    * neutro, clarear só LAVA a escolha: misturar branco mexe nos três canais por igual e domina uma
    * cor escura. Medido no preset Couro — com 0.06 de branco a parede saía `#726c66`, um cinza; sem
-   * mistura sai `#33261f`, marrom de verdade. O piso proporcional mantém a relação entre os canais,
-   * ou seja o matiz, e só impede que uma escolha quase preta vire um vazio chapado.
+   * mistura sai `#33261f`, marrom de verdade. O piso proporcional mantém o matiz.
    */
   const brightest = Math.max(tinted.r, tinted.g, tinted.b)
   if (brightest === 0) return tinted.setRGB(MIN_WOOD_LUMA, MIN_WOOD_LUMA, MIN_WOOD_LUMA)
@@ -152,10 +151,8 @@ export interface TableHandle {
 
 /**
  * A mesa onde a bandeja fica apoiada ("uma mesinha bonitinha de grama igual o tabletop rpg"), no
- * lugar do disco de cor sólida que só evitava a bandeja parecer uma ilha flutuando. Tampo de grama
- * procedural mais borda de madeira é o par que lê como mesa de jogo com tapete de terreno. A grama
- * é verde FIXO: grama tingida de mostarda ou roxo (cores que ele usa na bandeja) não é grama. A
- * borda, sim, acompanha a cor de parede, pra mesa continuar combinando com a bandeja.
+ * lugar do disco de cor sólida. A grama é verde FIXO: grama tingida de mostarda ou roxo (cores que
+ * ele usa na bandeja) não é grama. A borda de madeira, sim, acompanha a cor de parede.
  */
 export function createGroundPlane(edgeColor: number): TableHandle {
   const group = new THREE.Group()
@@ -214,15 +211,13 @@ function createFloor(floorColor: number, wallSegments: number): THREE.Mesh {
 
   /**
    * `ShapeGeometry` (chapa plana) e não `ExtrudeGeometry`: com a extrusão o chão parecia um tronco,
-   * um bloco hexagonal baixo com a lateral à mostra, em vez de um chão liso encostado no terreno. O
-   * collider físico continua com espessura de verdade — é a mesma separação visual/física da altura
-   * da parede. A UV também sai em unidades de mundo, então o veludo não precisou de ajuste.
+   * um bloco hexagonal baixo com a lateral à mostra. O collider físico continua com espessura de
+   * verdade — é a mesma separação visual/física da altura da parede.
    *
    * A rotação entra NEGADA, e isso não é gosto: o `Shape` é desenhado no plano XY e deitado com
-   * `rotateX(-π/2)`, o que leva o Y da forma pro -Z do mundo, ou seja, espelha a figura. A parede
-   * física usa `(cos, sin)` como `(x, z)`, sem espelho. No hexágono isso nunca apareceu (espelhar um
-   * polígono regular com vértice em 0° devolve os mesmos vértices); girar quebra a coincidência, e
-   * aí o triângulo desenhado apontava pra um lado e a parede que segura os dados pro outro.
+   * `rotateX(-π/2)`, o que leva o Y da forma pro -Z do mundo, ou seja espelha a figura; a parede
+   * física usa `(cos, sin)` como `(x, z)`, sem espelho. No hexágono nunca apareceu (espelhar um
+   * polígono regular com vértice em 0° devolve os mesmos vértices), mas girar quebra a coincidência.
    */
   const geometry = new THREE.ShapeGeometry(createHexShape(circumradius, wallSegments, -trayRotation(wallSegments)))
   // Shape fica no plano XY, olhando pra +Z — gira pra ficar plano no XZ (chão), olhando pra
@@ -262,15 +257,14 @@ export const TABLE_DROP = 0.75
 export const TABLE_SURFACE_Y = -TABLE_DROP - 0.03
 
 /**
- * Plataforma copiada de `ideias/plataforma ideia.webp`: uma bandeja hexagonal de MDF cortada a
- * laser. O que define a peça é uma caixa hexagonal baixa embaixo, de raio maior que a bandeja, e
- * uma ABA plana correndo em volta do topo dessa caixa, saltando pra fora dela — é essa sobra em
- * balanço que faz ler como bandeja montada sobre uma base, e não como uma caixa só.
+ * Plataforma copiada de `ideias/plataforma ideia.webp`: uma bandeja hexagonal de MDF cortada a laser.
+ * O que define a peça é uma caixa hexagonal baixa embaixo, de raio maior que a bandeja, e uma ABA
+ * plana correndo em volta do topo dela — é essa sobra em balanço que faz ler como bandeja sobre uma
+ * base, e não como uma caixa só.
  *
  * O chão dos dados é a superfície de CIMA, no máximo uma espessura de MDF abaixo do topo da aba (a
- * primeira leitura da foto punha a aba alta e o veludo fundo no meio, tipo poço). Logo a bandeja
- * inteira é uma caixa ELEVADA sobre a mesa; e como o chão está preso em y=0, onde mora o collider
- * físico, quem desce é a MESA — ver `TABLE_DROP`.
+ * primeira leitura da foto punha a aba alta e o veludo fundo, tipo poço). Como o chão está preso em
+ * y=0, onde mora o collider, quem desce é a MESA — ver `TABLE_DROP`.
  */
 const PLATFORM_BASE_Y = -TABLE_DROP - 0.02
 /** Topo da caixa de baixo, logo acima do chão da bandeja. */
@@ -285,10 +279,10 @@ const PLATFORM_BOX_OFFSET = 0.78
 /**
  * Quanto a aba cresce além da bandeja, maior que a caixa: é essa diferença que vira o balanço.
  *
- * Ele é pequeno por causa do ângulo da câmera, não por gosto. A foto é tirada quase da altura da
- * mesa; a nossa câmera chega no rebordo da frente a ~60° de elevação, e nesse ângulo uma aba que
- * avança `O` esconde `O·tan(60°) ≈ 1.7·O` de altura da caixa. Com 0.45 a caixa inteira ficava tapada
- * pela própria aba e a bandeja voltava a parecer um aro deitado na grama; com 0.18 sobra ~0.46.
+ * Ele é pequeno por causa do ÂNGULO DA CÂMERA. A foto é quase da altura da mesa; a nossa câmera chega
+ * ao rebordo da frente a ~60° de elevação, e nesse ângulo uma aba que avança `O` esconde
+ * `O·tan(60°) ≈ 1.7·O` de altura da caixa. Com 0.45 a caixa inteira ficava tapada e a bandeja voltava
+ * a parecer um aro deitado na grama; com 0.18 sobra ~0.46.
  */
 const PLATFORM_RIM_OFFSET = 0.96
 /**
@@ -301,12 +295,11 @@ const PLATFORM_INNER_OVERLAP = 0.05
 const WALL_THICKNESS = 0.18
 /**
  * Altura da parede visível acima da aba. Nada a ver com `TRAY_CONFIG.wallHeight`, que era a casca
- * vazada antiga, nem com o collider, que é a contenção física e não muda.
+ * vazada antiga, nem com o collider, que é a contenção física.
  *
  * O número sai de um limite de visão: a reta que sai da câmera (0, 13, 14.65) e raspa o topo interno
  * de uma parede de altura `h` chega ao chão a `6.5 - 8.15·h/(13-h)`. Com os 1.8 de antes isso
- * esconderia 1.3 de bandeja na frente, um dado inteiro; com 0.75 a faixa cai pra ~0.5, e a face de
- * cima de um dado encostado na parede da frente continua à vista.
+ * escondia 1.3 de bandeja na frente, um dado inteiro; com 0.75 a faixa cai pra ~0.5.
  */
 const WALL_VISUAL_HEIGHT = 0.75
 
@@ -391,12 +384,11 @@ function createArenaPlatform(woodMaterial: THREE.MeshStandardMaterial, wallSegme
 
 /**
  * A parede hexagonal já foi um `CylinderGeometry` aberto renderizado só por dentro; hoje é o anel
- * maciço de `createArenaPlatform`. Fica registrado o que aquela versão tinha de sutil, porque vale
- * pra qualquer hexágono novo aqui: ela precisava de `thetaStart: -Math.PI / 2`, porque o
- * `CylinderGeometry` põe o primeiro vértice em `(0, raio)` e o `createHexShape` põe o dele em
- * `(raio, 0)`. Num polígono de 6 lados esses 90° não são múltiplo dos 60° entre vértices, e os
- * hexágonos ficam visivelmente desencontrados — foi bug relatado ("hexágono, parede e veludo em
- * vértices diferentes").
+ * maciço de `createArenaPlatform`. Fica registrado o que aquela versão tinha de sutil, porque vale pra
+ * qualquer hexágono novo aqui: ela precisava de `thetaStart: -Math.PI / 2`, porque o `CylinderGeometry`
+ * põe o primeiro vértice em `(0, raio)` e o `createHexShape` põe o dele em `(raio, 0)`. Num polígono
+ * de 6 lados esses 90° não são múltiplo dos 60° entre vértices, e os hexágonos ficam desencontrados
+ * ("hexágono, parede e veludo em vértices diferentes").
  */
 
 function createLights(): THREE.Light[] {
