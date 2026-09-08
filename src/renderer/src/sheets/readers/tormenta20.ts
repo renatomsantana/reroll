@@ -8,33 +8,27 @@ import { extrairGenerico, presetsSemRepetidos, valorDeFicha } from './generic'
 import type { SheetReader } from './types'
 
 /**
- * Leitor de TORMENTA20 — o sistema brasileiro mais jogado, e o que mais chega em ficha de formato
- * variado: a editável da Jambô, as caseiras feitas no Word ou no Google Docs, as de comunidade com
- * cálculo automático. Não existe UM modelo, e este leitor foi escrito sem nenhuma ficha real na mão
- * (as duas de teste, `23-tormenta20-formulario-em-portugues` e `46-tormenta20-modelo-em-branco`, são
+ * Leitor de TORMENTA20, o sistema brasileiro mais jogado e o que mais chega em ficha de formato
+ * variado: a editável da Jambô, as caseiras feitas no Word, as de comunidade com cálculo automático.
+ * Não existe UM modelo, e este leitor foi escrito sem nenhuma ficha real na mão (as duas de teste são
  * fabricadas). Por isso ele é diferente dos de Ordem, D&D e Pathfinder, que casam NOME DE CAMPO
- * exato: aqui o que se casa é o VOCABULÁRIO do sistema, seja ele nome de campo ou rótulo impresso,
- * com ou sem acento, em maiúsculas ou não. Uma ficha de T20 que o app nunca viu ainda cai no lugar
- * certo se chamar as coisas do jeito que o livro chama.
+ * exato: aqui o que se casa é o VOCABULÁRIO do sistema, seja nome de campo ou rótulo impresso, com ou
+ * sem acento — uma ficha de T20 que o app nunca viu cai no lugar certo se chamar as coisas como o
+ * livro chama.
  *
- * O que só quem conhece o sistema sabe, e é o que este leitor acrescenta ao genérico:
+ * O que só quem conhece o sistema sabe:
  *
  * - os seis atributos são os de D&D em português, e a ROLAGEM depende da edição: no livro de 2019 o
- *   atributo é um VALOR (Força 14, modificador +2), na edição Jogo do Ano é só o MODIFICADOR (Força
- *   +2). A mesma ficha nunca mistura os dois, então a decisão é por ficha, olhando os seis juntos
- *   (`estiloDosAtributos`);
- * - PV e PM são os recursos que se gastam, e viram barra. Entram com nome canônico ("PV atual",
- *   "PM máximo") porque a barra é montada pelo nome (ver `extrairRecursos`), e "PONTOS DE VIDA
- *   TOTAL" não vira barra sozinho;
+ *   atributo é um VALOR (Força 14, modificador +2), na edição Jogo do Ano é só o MODIFICADOR. A mesma
+ *   ficha nunca mistura os dois, então a decisão é por ficha, olhando os seis juntos;
+ * - PV e PM viram barra, com nome canônico ("PV atual", "PM máximo"), porque a barra é montada pelo
+ *   nome e "PONTOS DE VIDA TOTAL" não vira barra sozinho;
  * - as 29 perícias (com Iniciativa entre elas, que em T20 é perícia) rolam d20 + o número;
- * - a grade de ataques (Arma, Teste, Dano, Crítico) vira uma linha por arma e dois presets — o
- *   teste e o dano —, tanto quando vem em colunas numeradas quanto quando alguém escreve tudo numa
- *   célula só ("Adaga +5 1d4+2").
+ * - a grade de ataques vira uma linha por arma e dois presets, o teste e o dano, tanto em colunas
+ *   numeradas quanto quando alguém escreve tudo numa célula só ("Adaga +5 1d4+2").
  *
- * Como nos outros leitores brasileiros, o rótulo que vai pra tela é o que está IMPRESSO na ficha —
- * "FORÇA" fica "FORÇA" — porque a pessoa lê a tela com o papel do lado. A exceção são os recursos,
- * pelo motivo acima. E como em Ordem e Pathfinder, ficha COM DONO traz o esqueleto de lacunas (cada
- * atributo, recurso e perícia, mesmo vazio); o modelo em branco não traz nada além do que está nele.
+ * O rótulo que vai pra tela é o que está IMPRESSO na ficha, porque a pessoa lê a tela com o papel do
+ * lado; a exceção são os recursos, pelo motivo acima. E ficha COM DONO traz o esqueleto de lacunas.
  */
 
 const GRUPOS = {
@@ -284,31 +278,23 @@ function sobraDoTexto(sheet: PdfSheet): string | undefined {
 /* ------------------------------------------------------------------------------------------ */
 
 /**
- * A ficha que um testador trouxe (a do Milo, 02/09/2026) e que "ficou horrível" pelo caminho do
- * vocabulário: é a editável de comunidade, com 343 campos de NOME PRÓPRIO, e o que ela tem de
- * bom é exatamente o que o vocabulário não vê. Medido no arquivo:
+ * A ficha que um testador trouxe (a do Milo) e que "ficou horrível" pelo caminho do vocabulário: é a
+ * editável de comunidade, com 343 campos de NOME PRÓPRIO, e o que ela tem de bom é exatamente o que o
+ * vocabulário não vê. Medido no arquivo:
  *
- * - atributos como MODIFICADOR em `ModFor`…`ModCar`; PV/PM em `Pontos de Vida atuais` e
- *   `Pontos de Vida m#C3#A1ximos` (o `#C3#A1` é "á" escapado à moda do PDF, ver
- *   `nomeDeCampoDecodificado`);
- * - a GRADE DE PERÍCIAS em células numeradas por linha: `NN1` é a metade do nível, `NN3` o bônus
- *   de treino, `NN4` outros bônus, `ModAtribXxxx` o modificador do atributo escolhido em
- *   `SeleAtribXxxx`, e `Mar Trei xxxx` a caixa de treinada. `ModAtribXxxx` é campo OCULTO
- *   (bandeira 2 do PDF) e o extrator o descarta de propósito, então o modificador sai do atributo
- *   ESCOLHIDO: `SeleAtribAcro = "Des"` lê `ModDes`. O TOTAL só existe gravado em algumas linhas
- *   (`NN0`, e zerado onde o JavaScript do PDF não rodou), então ele é REFEITO daqui: metade do
- *   nível + atributo + treino + outros (+ o modificador de tamanho, na Furtividade). Conferido
- *   nas linhas em que o arquivo guardou o total: Pilotagem 6, Pontaria 4, Reflexos 6, Vontade 4;
- * - cinco linhas de ataque (`Ataque N`, `Bonus do ataque N`, `Dano causado pelo ataque N`,
- *   `Margem de cr#C3#ADtico e multiplicador N`, `Tipo de dano do ataque N`, `Alcance do ataque N`);
- * - dezessete linhas de item (`Item N`, `Quantidade Item N`, `Slots Item N`), `Tibares`, `Carga
- *   Usada` e `Limite de carga`;
- * - Defesa em `CA` (com os componentes em `Base CA`, `ModAtribDefe`, `B.Arm`, `B.Esc`, `Outros
- *   B.CA`), armadura e escudo com bônus e penalidade, `Lv`, `SeleTamanho`, e os textos longos
- *   da página 2 (habilidades de raça/origem e de classe, magias, descrição, anotações).
+ * - atributos como MODIFICADOR em `ModFor`…`ModCar`, e PV/PM em `Pontos de Vida atuais` e `Pontos de
+ *   Vida m#C3#A1ximos` (o `#C3#A1` é "á" escapado à moda do PDF, ver `nomeDeCampoDecodificado`);
+ * - a GRADE DE PERÍCIAS em células numeradas por linha: `NN1` é a metade do nível, `NN3` o treino,
+ *   `NN4` outros bônus, e `ModAtribXxxx` o modificador do atributo escolhido em `SeleAtribXxxx`. O
+ *   `ModAtribXxxx` é campo OCULTO e o extrator o descarta, então o modificador sai do atributo
+ *   escolhido; e o TOTAL só existe gravado em algumas linhas, então é REFEITO aqui (metade do nível +
+ *   atributo + treino + outros, mais o tamanho na Furtividade). Conferido onde o arquivo guardou o
+ *   total: Pilotagem 6, Pontaria 4, Reflexos 6, Vontade 4;
+ * - cinco linhas de ataque, dezessete de item, `Tibares`, carga, Defesa em `CA` com os componentes,
+ *   armadura e escudo, `Lv`, `SeleTamanho`, e os textos longos da página 2.
  *
- * As células numéricas da grade não têm rótulo e caíam no texto sem rótulo da ficha ("2 0 4 6 5
- * 8 10 3" no bloco de história): neste modelo TODO campo é conhecido, então nada vai pra lá.
+ * As células numéricas da grade não têm rótulo e caíam no texto sem rótulo da ficha ("2 0 4 6 5 8 10
+ * 3" no bloco de história): neste modelo TODO campo é conhecido, então nada vai pra lá.
  */
 const MARCAS_DO_MODELO = ['modfor', 'moddes', 'modcar', 'seleatribacro', 'pontos de vida atuais', 'pontos de mana atuais', 'ataque 1', 'tibares', 'lv']
 

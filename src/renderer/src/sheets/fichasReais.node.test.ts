@@ -9,14 +9,12 @@ import { abrirPdfNoNode } from './testes/abrirPdfNoNode'
  * O importador contra as FICHAS DE VERDADE.
  *
  * Todo o resto da suíte monta a `PdfSheet` à mão, o que é bom (leitor é função pura) e insuficiente:
- * uma régua calibrada em fixture inventada passa no teste e erra no arquivo. Foi exatamente o que
- * aconteceu duas vezes — os cinco atributos de Ordem Paranormal sumindo por nomes de campo
- * repetidos, e "Limite de Estresse = 6. /" entrando como atributo de Oblivio. Nenhum dos dois
- * apareceria sem abrir o PDF.
+ * uma régua calibrada em fixture inventada passa no teste e erra no arquivo. Foi o que aconteceu duas
+ * vezes — os cinco atributos de Ordem Paranormal sumindo por nomes de campo repetidos, e "Limite de
+ * Estresse = 6. /" entrando como atributo de Oblivio.
  *
- * As fichas estão no `.gitignore` (são material dos sistemas, não do repositório), então este
- * arquivo PULA sozinho quando elas não existem. Quem tem os arquivos ganha a verificação de ponta a
- * ponta; quem não tem continua com a suíte passando.
+ * As fichas estão no `.gitignore` (são material dos sistemas), então este arquivo PULA sozinho quando
+ * elas não existem: quem tem os arquivos ganha a verificação de ponta a ponta.
  */
 
 const PASTA = join(process.cwd(), 'Fichas RPG')
@@ -27,12 +25,11 @@ const KIDS_BRANCA = join(PASTA, 'Ficha Kids on Bikes.pdf')
 
 
 /**
- * A ficha EM BRANCO de Kids on Bikes — o caso que a varredura de fechamento do Alfa encontrou.
- *
- * Ela é uma ARTE achatada: zero campos de formulário e zero rótulos impressos (medido — 41
- * fragmentos de texto solto na preenchida, nenhum par rótulo/valor na vazia). Não há sistema de
- * leitura que a resolva, e não é isso que este teste cobra: cobra que, não tendo lido NADA, o app
- * não proponha criar um personagem chamado "Ficha Kids on Bikes". Era o que ele fazia.
+ * A ficha EM BRANCO de Kids on Bikes, o caso que a varredura de fechamento do alfa encontrou. Ela é
+ * uma ARTE achatada: zero campos de formulário e zero rótulos impressos (medido — 41 fragmentos de
+ * texto solto na preenchida, nenhum par rótulo/valor na vazia). Não há leitura que a resolva, e não é
+ * isso que este teste cobra: cobra que, não tendo lido NADA, o app não proponha criar um personagem
+ * chamado "Ficha Kids on Bikes".
  */
 describe.skipIf(!existsSync(KIDS_BRANCA))('ficha real em branco de Kids on Bikes', () => {
   it('não rende campo nenhum, e por isso não propõe nome de personagem', async () => {
@@ -54,12 +51,10 @@ describe.skipIf(!existsSync(ORDEM))('ficha real de Ordem Paranormal', () => {
     expect(lido.characterName).toBeTruthy()
 
     /**
-     * OS PARES ATUAL/MÁXIMO VÊM INTEIROS, mesmo com metade em branco no arquivo.
-     *
-     * Nesta ficha só os máximos estão preenchidos (PV 45, PE 12, Sanidade 15) — o jogador nunca
-     * anotou quanto tem AGORA. A importação trazia só essa metade, e a ficha no app ficava sem
-     * lugar pra escrever o número que muda toda sessão. Foi o que o usuário reportou: "ficou
-     * faltando, coloca o máximo e atuais de tudo".
+     * OS PARES ATUAL/MÁXIMO VÊM INTEIROS, mesmo com metade em branco no arquivo. Nesta ficha só os
+     * máximos estão preenchidos (PV 45, PE 12, Sanidade 15): a importação trazia só essa metade, e a
+     * ficha no app ficava sem lugar pra escrever o número que muda toda sessão — "ficou faltando,
+     * coloca o máximo e atuais de tudo".
      */
     const recursos = new Map(lido.fields.filter((c) => c.group === 'Recursos').map((c) => [c.label, c.value]))
     expect(recursos.get('PV máximo')).toBe('45')
@@ -71,13 +66,10 @@ describe.skipIf(!existsSync(ORDEM))('ficha real de Ordem Paranormal', () => {
     expect(recursos.get('PV atual')).toBe('')
 
     /**
-     * O ESQUELETO INTEIRO da ficha, com as lacunas vazias — pedido do usuário: "coloca lacunas para
-     * TUDO que é preenchível, porque às vezes precisamos preencher no app também mesmo que não
-     * tenha, porque é um item novo na sessão".
-     *
-     * As 29 perícias vêm com o NOME de cada uma (o nome é texto impresso, casado por posição — ver
-     * `nomeDaPericia`), os 20 espaços de ritual e os 22 de item vêm numerados. Nesta ficha todos
-     * estão em branco: o Matias não tem perícia treinada, ritual nem item anotado.
+     * O ESQUELETO INTEIRO da ficha, com as lacunas vazias ("coloca lacunas para TUDO que é
+     * preenchível... porque é um item novo na sessão"). As 29 perícias vêm com o NOME de cada uma (que
+     * é texto impresso, casado por posição, ver `nomeDaPericia`), e os espaços de ritual e de item vêm
+     * numerados. Nesta ficha todos estão em branco: o Matias não tem nada anotado.
      */
     const porGrupo = (nome: string): typeof lido.fields => lido.fields.filter((c) => c.group === nome)
     expect(porGrupo('Perícias')).toHaveLength(29)
@@ -159,11 +151,9 @@ describe.skipIf(!existsSync(OBLIVIO))('ficha real de Oblivio', () => {
     expect(aspectos).toEqual(['Coragem', 'Dor', 'Fôlego', 'Proteção', 'Velocidade'])
 
     /**
-     * O EQUIPAMENTO CARREGADO, que este leitor perdia inteiro — e é a arma do personagem.
-     *
-     * A página escreve "○ Torso:" e o item nas linhas de baixo, então nenhum par "Rótulo: valor" da
-     * mesma linha existia pra achar; e o rótulo ainda colidia com a região de dano do corpo
-     * ("Torso: 0/5"), que vem antes. Ficava tudo de fora: a vestimenta, a lâmina e o dano dela.
+     * O EQUIPAMENTO CARREGADO, que este leitor perdia inteiro — e é a arma do personagem. A página
+     * escreve "○ Torso:" e o item nas linhas de baixo, então não havia par "Rótulo: valor" da mesma
+     * linha pra achar; e o rótulo ainda colidia com a região de dano do corpo, que vem antes.
      */
     const equipamento = lido.fields.filter((c) => c.group === 'Equipamento')
     expect(equipamento.map((c) => c.label)).toEqual(['Torso', 'Braço Esquerdo'])
@@ -233,13 +223,11 @@ describe.skipIf(!existsSync(OBLIVIO))('ficha real de Oblivio', () => {
 
 describe.skipIf(!existsSync(KIDS))('ficha real de Kids on Bikes — arte com anotação por cima', () => {
   /**
-   * O terceiro tipo de ficha, e o mais difícil: a arte inteira é imagem, inclusive os nomes dos
-   * campos, e o que existe de texto no arquivo é só o que a pessoa digitou por cima. São 41
-   * fragmentos em 2 páginas, contra os 68 POR PÁGINA da de Oblivio — é essa diferença de densidade
-   * que separa os dois caminhos de leitura.
-   *
-   * Antes disto, a ficha caía no caminho de "PDF de texto" e importava três pedaços de frase, sem
-   * nome de personagem, com um aviso que dizia algo falso sobre o arquivo. Todo o resto se perdia.
+   * O terceiro tipo de ficha, e o mais difícil: a arte inteira é imagem, inclusive os nomes dos campos,
+   * e o que existe de texto é só o que a pessoa digitou por cima — 41 fragmentos em 2 páginas, contra
+   * os 68 POR PÁGINA da de Oblivio, e é essa diferença de densidade que separa os dois caminhos de
+   * leitura. Antes disto a ficha caía no caminho de "PDF de texto" e importava três pedaços de frase,
+   * sem nome, com um aviso falso sobre o arquivo.
    */
   it('remonta o que foi escrito, propõe o nome e não finge saber o que é cada valor', async () => {
     const lido = readSheet(await abrirPdfNoNode(KIDS))
@@ -311,17 +299,14 @@ const OBLIVIO_BRANCA = join(PASTA, 'Ficha Oblivio - Colorida.pdf')
 const ORDEM_BRANCA = join(PASTA, 'Ordem Paranormal - Ficha de Personagem Editável.pdf')
 
 /**
- * Os MODELOS EM BRANCO dos dois sistemas — os arquivos que se baixa do site antes de preencher.
- *
- * É o caso mais comum de importação errada: a pessoa baixa a ficha oficial, importa por engano antes
- * de preencher, e o app tem que dizer isso em vez de criar um personagem de mentira. Estes dois
- * arquivos estavam na pasta e não tinham teste nenhum.
+ * Os MODELOS EM BRANCO dos dois sistemas, os arquivos que se baixa do site antes de preencher. É o
+ * caso mais comum de importação errada: a pessoa baixa a ficha oficial, importa por engano antes de
+ * preencher, e o app tem que dizer isso em vez de criar um personagem de mentira.
  *
  * O defeito que estas asserções travam: o app propunha o NOME DO ARQUIVO como nome do personagem, ou
- * seja, oferecia criar alguém chamado "Ordem Paranormal - Ficha de Personagem Editável". Quando um
- * leitor dedicado reconhece o sistema e não acha nome nenhum escrito, o arquivo é o título da ficha,
- * não uma pessoa — e vazio é melhor que isso, porque a tela de conferência não deixa confirmar sem
- * nome e a pessoa digita o dela.
+ * seja oferecia criar alguém chamado "Ordem Paranormal - Ficha de Personagem Editável". Quando um
+ * leitor dedicado reconhece o sistema e não acha nome escrito, o arquivo é o título da ficha, não uma
+ * pessoa.
  */
 describe.skipIf(!existsSync(OBLIVIO_BRANCA) || !existsSync(ORDEM_BRANCA))('modelos em branco', () => {
   it('Oblivio em branco: reconhece o sistema, avisa que está vazia e NÃO propõe nome', async () => {
@@ -348,12 +333,10 @@ describe.skipIf(!existsSync(OBLIVIO_BRANCA) || !existsSync(ORDEM_BRANCA))('model
 })
 
 /**
- * O MODELO EM BRANCO não ganha o esqueleto de recursos.
- *
- * O par atual/máximo entra vazio porque numa ficha DE ALGUÉM ele é espaço pra anotar. Num modelo
- * baixado do site seriam seis linhas vazias a mais na tela de quem só quer ver o que o arquivo
- * tinha — e a ficha em branco de Ordem Paranormal já vem com 76 campos preenchidos de fábrica,
- * então o corte é o NOME do personagem, que ninguém preenche numa ficha que não vai usar.
+ * O MODELO EM BRANCO não ganha o esqueleto de recursos: o par atual/máximo entra vazio porque numa
+ * ficha DE ALGUÉM ele é espaço pra anotar, e num modelo baixado do site seriam seis linhas vazias a
+ * mais. A ficha em branco de Ordem já vem com 76 campos preenchidos de fábrica, então o corte é o
+ * NOME do personagem, que ninguém preenche numa ficha que não vai usar.
  */
 describe.skipIf(!existsSync(ORDEM_BRANCA))('modelo em branco de Ordem Paranormal', () => {
   it('não inventa linhas vazias de recurso', async () => {

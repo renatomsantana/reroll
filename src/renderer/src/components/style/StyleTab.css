@@ -13,10 +13,9 @@
 }
 
 /**
- * A largura daqui é o TAMANHO DA PRÉVIA, porque é ela que manda nesta coluna: o quadrado do dado
- * vira `min(largura útil, altura útil)`, e a altura útil na janela padrão passa de 570px — ou
- * seja, quem limita é a largura. Os 470px dão uma prévia de ~446px de lado (os fixos de antes
- * eram 140) e ainda deixam ~750px pra grade de opções, que é o suficiente pras três colunas.
+ * A largura daqui é o TAMANHO DA PRÉVIA, porque é ela que manda nesta coluna: o quadrado do dado vira
+ * `min(largura útil, altura útil)`, e a altura útil na janela padrão passa de 570px, ou seja quem
+ * limita é a largura. Os 470px dão uma prévia de ~446px de lado e ainda deixam ~750px pra grade.
  */
 .style-tab-preview-pane {
   flex: 0 0 470px;
@@ -25,11 +24,10 @@
   gap: 10px;
   min-height: 0;
   /**
-   * Obrigatório, e a razão não é óbvia: o canvas da prévia recebe largura em pixels do próprio
-   * three (`renderer.setSize`), então ele ENTRA na largura mínima automática desta coluna
-   * (`min-width: auto` de item flex). Sem esta linha a coluna nunca encolhia abaixo do canvas que
-   * o quadro ANTERIOR desenhou — medido: na janela de 900px ela continuava com 395px em vez dos
-   * 340px pedidos aqui embaixo, e a grade de opções perdia a segunda coluna por causa disso.
+   * Obrigatório, e a razão não é óbvia: o canvas da prévia recebe largura em pixels do próprio three,
+   * então ele ENTRA na largura mínima automática desta coluna. Sem esta linha ela nunca encolhia
+   * abaixo do canvas que o quadro ANTERIOR desenhou — medido: na janela de 900px continuava com 395px
+   * em vez dos 340 pedidos aqui embaixo, e a grade de opções perdia a segunda coluna.
    */
   min-width: 0;
 }
@@ -46,12 +44,10 @@
 }
 
 /**
- * Grade, não coluna. Numa janela de 1300px sobram ~750px pra cá; em coluna única cada botão de
- * "Fosco" ou "Gemas" esticava por essa largura inteira. Com `auto-fill` cabem três colunas de
- * ~245px na janela padrão e duas na mínima, e o botão volta a ter o tamanho do rótulo.
- *
- * O piso de 212px é o que a roda de cores precisa pra chegar no tamanho mínimo dela (140px de
- * disco + 26 da barra de brilho + as molduras e o recuo da caixa de grupo).
+ * Grade, não coluna: numa janela de 1300px sobram ~750px pra cá, e em coluna única cada botão de
+ * "Fosco" ou "Gemas" esticava por essa largura inteira. Com `auto-fill` cabem três colunas na janela
+ * padrão e duas na mínima. O piso de 212px é o que a roda de cores precisa pra chegar no tamanho
+ * mínimo dela (140px de disco, 26 da barra de brilho, e as molduras).
  */
 .style-tab-options {
   flex: 1;
@@ -66,14 +62,12 @@
 }
 
 /**
- * Janela larga: a roda ocupa duas colunas. Sobram quatro caixas de opção pra três colunas, então
- * sem isto a terceira coluna da segunda fileira ficava vazia — e a roda, que é a peça que mais
- * ganha com tamanho ("a paletona"), ficava do tamanho da caixa mais estreita da grade. Com o vão
- * dobrado ela chega no teto de 300px de disco (ver `ColorWheel.tsx`).
+ * Janela larga: a roda ocupa duas colunas. Sobram quatro caixas de opção pra três colunas, então sem
+ * isto a terceira coluna da segunda fileira ficava vazia — e a roda, que é a peça que mais ganha com
+ * tamanho ("a paletona"), ficava do tamanho da caixa mais estreita da grade.
  *
- * O corte em 1200px é medido, não chutado: a partir dele a grade tem pelo menos três colunas em
- * qualquer combinação de largura de prévia, então nunca sobra um item de duas colunas numa grade
- * de uma só.
+ * O corte em 1200px é medido: a partir dele a grade tem pelo menos três colunas em qualquer
+ * combinação de largura de prévia, então nunca sobra um item de duas colunas numa grade de uma só.
  */
 @media (min-width: 1200px) {
   .style-tab-wheel-group {
@@ -337,11 +331,9 @@
 }
 
 /*
- * Alvos de cor da CENA, em duas fileiras rotuladas dentro do grupo da roda.
- *
- * Antes eram sete botões repartidos em duas caixas distantes na tela — três aqui e quatro num grupo
- * no canto direito — que controlam a MESMA roda, coisa que não se adivinha olhando. E os quatro da
- * torre, espremidos numa coluna estreita, cortavam o rótulo: "Bandeira" não cabia no botão.
+ * Alvos de cor da CENA, em duas fileiras rotuladas dentro do grupo da roda. Antes eram sete botões
+ * repartidos em duas caixas distantes na tela, que controlam a MESMA roda — coisa que não se adivinha
+ * olhando; e os quatro da torre, espremidos numa coluna estreita, cortavam o rótulo.
  */
 .style-tab-target-rows {
   display: flex;
@@ -426,12 +418,10 @@
 }
 
 /*
- * A frase quebra em quantas linhas precisar (`normal`, contra o `nowrap` que as listas usam) e é
- * menor que o título — é explicação, não rótulo.
- *
- * A cor NÃO pode ser fixa: na linha marcada o fundo é a cor de destaque, e um cinza de texto
- * apagado por cima dela some. `inherit` faz a frase seguir a cor da linha, e o que a separa do
- * título passa a ser o peso e o tamanho.
+ * A frase quebra em quantas linhas precisar (contra o `nowrap` que as listas usam) e é menor que o
+ * título: é explicação, não rótulo. A cor NÃO pode ser fixa — na linha marcada o fundo é a cor de
+ * destaque, e um cinza de texto apagado por cima dela some. `inherit` faz a frase seguir a cor da
+ * linha, e o que a separa do título passa a ser o peso e o tamanho.
  */
 .style-tab-mode-description {
   font-size: 11px;
