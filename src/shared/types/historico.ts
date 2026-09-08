@@ -39,6 +39,7 @@ export function normalizarHistorico(bruto: unknown): ItemDoHistorico[] {
         typeof rolagem.id === 'string' &&
         typeof rolagem.total === 'number' &&
         Array.isArray(rolagem.groups) &&
+        rolagem.groups.every(grupoDeDados) &&
         typeof rolagem.timestamp === 'number'
       ) {
         itens.push({ tipo: 'rolagem', rolagem: rolagem as unknown as RollResult })
@@ -56,4 +57,19 @@ export function normalizarHistorico(bruto: unknown): ItemDoHistorico[] {
     }
   }
   return itens.slice(0, MAXIMO_DO_HISTORICO)
+}
+
+/**
+ * O grupo tem a forma que a tela percorre. Não é zelo: `HistoryEntry` faz `g.rolls.map(...)` em todo
+ * grupo, então um `groups: ["x"]` vindo do `notes.json` — ou do pacote de personagem de outra pessoa —
+ * derrubava a janela de histórico inteira em vez de perder a linha estragada.
+ */
+function grupoDeDados(bruto: unknown): boolean {
+  if (typeof bruto !== 'object' || bruto === null) return false
+  const grupo = bruto as Record<string, unknown>
+  return (
+    typeof grupo.sides === 'number' &&
+    Array.isArray(grupo.rolls) &&
+    grupo.rolls.every((face) => typeof face === 'number')
+  )
 }
