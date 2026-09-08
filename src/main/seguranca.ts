@@ -2,18 +2,15 @@ import { app, ipcMain, Menu, session, shell, type IpcMainInvokeEvent, type Sessi
 
 /**
  * As travas de segurança do app: as que valem pra TUDO que rodar dentro dele, e não só pra uma
- * janela.
+ * janela. Existem porque o app é distribuído pra gente que não é de computador, e pra esse público a
+ * garantia que importa é poder dizer, e provar, duas coisas: o Reroll não pede acesso a nada da
+ * máquina (câmera, microfone, localização, notificação) e não fala com a internet, exceto pra
+ * perguntar ao GitHub se existe versão nova.
  *
- * Existe porque o app é distribuído pra gente que não é de computador ("vou mandar para muitos
- * amigos e pessoas que não manjam muito de pc"). Pra esse público, a garantia que importa é poder
- * dizer, e provar, duas coisas: o Reroll não pede acesso a nada da máquina (câmera, microfone,
- * localização, notificação), e não fala com a internet, exceto pra perguntar ao GitHub se existe
- * versão nova.
- *
- * TUDO AQUI É POR EVENTO DO `app`, e não por janela, e é essa a diferença: as travas de navegação
- * viviam dentro do `createWindow`, então valiam pra AQUELA janela, e uma segunda criada um dia
- * nasceria sem nenhuma delas, sem ninguém reparar. Com `web-contents-created` e `session-created`, a
- * trava alcança o que ainda não foi escrito.
+ * TUDO AQUI É POR EVENTO DO `app`, e não por janela: as travas de navegação viviam dentro do
+ * `createWindow`, então uma segunda janela criada um dia nasceria sem nenhuma delas, sem ninguém
+ * reparar. Com `web-contents-created` e `session-created`, a trava alcança o que ainda não foi
+ * escrito.
  */
 
 /**

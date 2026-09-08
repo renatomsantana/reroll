@@ -43,17 +43,12 @@ type SceneColorTarget =
 
 const SCENE_TARGETS: SceneColorTarget[] = ['wall', 'floor', 'background']
 /**
- * Os alvos da torre ficam em GRUPO SEPARADO, não emendados em `SCENE_TARGETS`: os dois escrevem no
- * MESMO `sceneTarget`, então a roda continua sendo uma só, editando quem estiver marcado — em
- * qualquer um dos dois.
+ * Os alvos da torre ficam em GRUPO SEPARADO, e não emendados em `SCENE_TARGETS`: os dois escrevem no
+ * MESMO `sceneTarget`, então a roda continua sendo uma só, editando quem estiver marcado em qualquer
+ * um dos dois.
  *
- * A razão de separar é largura, e ela foi testada nas duas direções. A fileira de botões foi
- * dimensionada pra três ou quatro ("com as três ou quatro caixas de cada seção nada disso rola pra
- * fora da tela na janela padrão", ver o comentário do grupo da roda), e são SETE alvos no total:
- * numa fileira só, transbordam. Chegaram a virar quatro por um momento — enquanto a torre em cena
- * era o modelo `.glb`, que é uma malha só e só respondia a `stone`, os outros três editavam o
- * invisível e o grupo próprio gastava um fieldset pra segurar UM botão. Com a torre desenhada em
- * código de volta (`createTowerBesideTray.ts`), as quatro peças existem e pintam de novo.
+ * A razão de separar é LARGURA: a fileira de botões foi dimensionada pra três ou quatro, e são SETE
+ * alvos no total — numa fileira só, transbordam da janela padrão.
  */
 const TOWER_TARGETS: SceneColorTarget[] = ['towerStone', 'towerRoof', 'towerFlag', 'towerDoor']
 
@@ -76,18 +71,14 @@ function sameColor(a: string, b: string): boolean {
 }
 
 /**
- * Aba própria pra estilizar dados/bandeja — antes essas opções viviam espremidas no modal de
- * Preferências (⚙️), que ficou pequeno demais conforme a lista cresceu.
- *
- * A largura se divide em duas partes com papéis diferentes:
+ * Aba própria pra estilizar dados e bandeja — antes essas opções viviam espremidas no modal de
+ * Preferências, que ficou pequeno conforme a lista cresceu. A largura se divide em duas partes:
  *
  * - COLUNA FIXA da esquerda: o seletor de seção e a PRÉVIA, que ocupa toda a altura que sobra
- *   (~350px de lado, contra os 140px fixos de antes). Ela não rola: é olhando pra ela que se mexe
- *   em qualquer coisa aqui.
- * - GRADE rolável da direita: as caixas de opção, em quantas colunas couberem. Antes era uma
- *   coluna só ocupando os ~1000px restantes da janela, o que esticava cada botão de "Fosco" ou
- *   "Gemas" numa barra larguíssima — o pedido de "reorganizar pros botões não ficarem tão longos"
- *   é resolvido pela grade: cada coluna tem ~250px, e o botão volta ao tamanho do rótulo dele.
+ *   (~350px de lado, contra os 140px fixos de antes). Ela não rola: é olhando pra ela que se mexe;
+ * - GRADE rolável da direita: as caixas de opção, em quantas colunas couberem. Antes era uma coluna
+ *   só nos ~1000px restantes, o que esticava cada botão de "Fosco" numa barra larguíssima. Cada
+ *   coluna tem ~250px, e o botão volta ao tamanho do rótulo.
  */
 export function StyleTab() {
   const t = useTranslation()
@@ -204,15 +195,11 @@ export function StyleTab() {
   }
 
   /**
-   * Atualiza corpo E número JUNTOS, numa única chamada — usado pelos presets prontos
-   * (metálico/gema/fosco/plástico), que mudam os dois de uma vez. BUG REAL encontrado testando
-   * ao vivo (print da janela + clique simulado, não só lido no código): antes disso existiam
-   * DUAS funções separadas, cada uma lendo `selectedBodyColor`/`selectedNumberColor` do
-   * closure do render atual — um preset chamando as duas em sequência fazia a SEGUNDA
-   * sobrescrever o override inteiro com o valor ANTIGO (ainda não atualizado) do campo que a
-   * PRIMEIRA acabou de mudar, perdendo aquela mudança. Só não era óbvio de imediato porque o
-   * preset testado (Zinabre) tem `numberColor` igual ao preto padrão, então "não mudou nada"
-   * parecia só a cor do corpo emperrada, quando na real as DUAS chamadas se atropelavam.
+   * Atualiza corpo E número JUNTOS, numa chamada só — é o que os presets prontos
+   * (metálico/gema/fosco/plástico) fazem. Existiam DUAS funções separadas, cada uma lendo
+   * `selectedBodyColor`/`selectedNumberColor` do closure do render atual, e um preset chamando as
+   * duas em sequência fazia a SEGUNDA sobrescrever o override com o valor ANTIGO do campo que a
+   * PRIMEIRA acabou de mudar. Achado testando ao vivo, não lendo o código.
    */
   function handleSelectedColorChange(bodyColor: string, numberColor: string): void {
     if (selectedDiceType === 'default') {
