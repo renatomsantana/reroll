@@ -13,9 +13,7 @@ import { TABLE_SURFACE_Y } from './createScene'
  *
  * O arquivo é um glTF binário exportado do SolidWorks: uma malha só, 1592 vértices, um material sem
  * textura, já em Y-up e apoiado no zero. Mede 0.16 × 0.24 × 0.16 nas unidades dele — centímetros de
- * um objeto real, não as unidades da cena —, então tudo aqui gira em torno de reescalar e assentar.
- *
- * Fica do LADO OPOSTO ao da torre de código, pra dar pra comparar as duas na mesma cena.
+ * um objeto real —, então tudo aqui gira em torno de reescalar e assentar.
  */
 
 /**
@@ -29,14 +27,13 @@ const TARGET_HEIGHT = 3.6
 const SHELL_GAP = 0.15
 
 /**
- * Direção da PORTA no referencial do modelo: ela olha pro +Z local (90° na convenção
- * `(cos θ, sin θ)` sobre `(x, z)` que o resto da torre usa).
+ * Direção da PORTA no referencial do modelo: ela olha pro +Z local (90° na convenção `(cos θ, sin θ)`
+ * sobre `(x, z)` que o resto da torre usa).
  *
- * Achado OLHANDO, não medindo — e a tentativa de medir merece registro, porque ela falhou de um
- * jeito convincente: varri a parede externa por setor procurando onde ela não chegasse ao chão, e
- * TODOS os setores tinham vértice em y=0. Conclusão errada ("a torre é fechada embaixo"). O motivo é
- * que as ombreiras do arco também tocam o chão, então "menor y por setor" não distingue parede de
- * batente. Renderizar os quatro lados lado a lado mostrou o arco na primeira volta, em um segundo.
+ * Achado OLHANDO, não medindo, e a tentativa de medir merece registro porque falhou de um jeito
+ * convincente: varri a parede externa por setor procurando onde ela não chegasse ao chão, e TODOS os
+ * setores tinham vértice em y=0 — as ombreiras do arco também tocam o chão, então "menor y por setor"
+ * não distingue parede de batente.
  */
 const DOOR_ANGLE_RAD = Math.PI / 2
 
@@ -79,14 +76,13 @@ export interface TowerModelHandle {
 }
 
 /**
- * Carrega e assenta o modelo. Assíncrono porque o `GLTFLoader` é — o chamador monta a cena e o
- * modelo entra quando chegar, em vez de a cena inteira esperar por ele.
+ * Carrega e assenta o modelo. Assíncrono porque o `GLTFLoader` é — o chamador monta a cena e o modelo
+ * entra quando chegar.
  *
- * `angleRad` segue a mesma convenção do resto da torre: `(cos θ, sin θ)` sobre `(x, z)`. O padrão é
- * o MESMO assento da torre desenhada em código (`TOWER_BESIDE_CONFIG.angleRad`) porque este modelo
- * TOMA O LUGAR dela — e isso sai de graça: a boca cai a `apothem + wallThickness + shellGap` do
- * centro nas duas, sem depender do raio da torre, então `tossDieFromMouth` continua lançando do mesmo
- * ponto, sem nenhuma mudança na física.
+ * `angleRad` segue a convenção do resto da torre, e o padrão é o MESMO assento da torre desenhada em
+ * código porque este modelo TOMA O LUGAR dela. Isso sai de graça: a boca cai a
+ * `apothem + wallThickness + shellGap` do centro nas duas, sem depender do raio, então
+ * `tossDieFromMouth` continua lançando do mesmo ponto.
  */
 export async function createTowerModel(
   angleRad = TOWER_BESIDE_CONFIG.angleRad,

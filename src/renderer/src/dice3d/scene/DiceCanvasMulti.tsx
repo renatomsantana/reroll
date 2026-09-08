@@ -437,14 +437,13 @@ export function createShelfCaseMesh(
   const outerDepth = CASE_DEPTH + CASE_WALL_THICKNESS * 2
 
   /**
-   * Duas famílias de material, e é o contraste entre elas que faz a caixa ler como estojo de dados:
-   * casca em madeira na cor de parede e forro macio na cor do chão da bandeja. A primeira versão
-   * usava a mesma cor em tudo e virava um bloco cinza sem leitura nenhuma.
+   * Duas famílias de material, e é o contraste entre elas que faz a caixa ler como estojo: casca em
+   * madeira na cor de parede e forro macio na cor do chão. A primeira versão usava a mesma cor em
+   * tudo e virava um bloco cinza.
    *
-   * A casca leva o mesmo veio da parede da bandeja e da borda da mesa (`createWoodTexture.ts` +
-   * `woodTint`), o que amarra o estojo ao resto da cena em vez de parecer objeto de outro jogo. A
-   * repetição é bem mais alta que a da bandeja (3 → 7): tábua estreita lê como madeira rústica, de
-   * ripa; tábua larga lê como painel industrial.
+   * A casca leva o mesmo veio da parede e da borda da mesa, o que amarra o estojo à cena. A repetição
+   * é bem mais alta que a da bandeja (3 → 7): tábua estreita lê como madeira de ripa, tábua larga
+   * como painel industrial.
    */
   const shellWood = createWoodTextures(7, 1)
   const shellMaterial = new THREE.MeshStandardMaterial({
@@ -961,14 +960,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           plush.scale.setScalar(PLUSH_SCALE)
           /**
            * Sentada na mesa, que é mais baixa que o chão da bandeja, e escondida no enquadramento em
-           * que o app abre: ela é easter egg, quem gira a câmera pra trás encontra. Encostada no
-           * estojo isso vale por geometria e não por distância — 0.53 de altura contra 1.22 dele.
+           * que o app abre: ela é easter egg. Encostada no estojo isso vale por geometria e não por
+           * distância — 0.53 de altura contra 1.22 dele.
            *
            * Duas lições das dez posições anteriores: o "está flutuando" que ele repetiu quatro vezes
            * nunca foi altura, sombra nem cor de bota, era MARGEM DE GRAMADO (perto da beirada do
-           * disco de grama, uma câmera baixa recorta a pelúcia contra o fundo preto); e conferir na
-           * câmera EM QUE ELE ESTÁ, porque recarregar o app reseta o enquadramento pro padrão, o
-           * único ângulo em que ela sempre aparecia assentada.
+           * disco, uma câmera baixa recorta a pelúcia contra o fundo preto); e conferir na câmera EM
+           * QUE ELE ESTÁ, porque recarregar o app reseta o enquadramento pro padrão.
            */
           plush.position.set(PLUSH_X, TABLE_SURFACE_Y - PLUSH_SINK, plushZBehindCase(positions[0].z))
           /**
@@ -1016,15 +1014,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       controls.enableDamping = true
       controls.dampingFactor = 0.08
       /**
-       * Zoom fundo. O 6 antigo era mais ou menos o raio da própria bandeja: dava pra enquadrar a
-       * mesa, nunca pra chegar perto de UMA peça, e um dado tem menos de 1 de lado. 1.8 é seguro
-       * contra o plano de corte (`near` = 0.1).
+       * Zoom fundo. O 6 antigo era mais ou menos o raio da bandeja: dava pra enquadrar a mesa, nunca
+       * pra chegar perto de UMA peça. 1.8 é seguro contra o plano de corte (`near` = 0.1).
        *
        * Limites iguais nos dois modos, e isso é conserto de bug real: enquanto a torre tinha cena
        * própria, tinha limites próprios (1.2 e 19). Com a bandeja compartilhada o 19 ficou, e o
        * `OrbitControls` cortava a câmera de `TOWER_BESIDE_CAMERA_CONFIG` (que nasce a 23.08 do alvo)
-       * já no primeiro `update()`, entregando um enquadramento mais fechado que o medido, com o topo
-       * da torre cortado.
+       * já no primeiro `update()`, com o topo da torre cortado.
        */
       controls.minDistance = 1.8
       controls.maxDistance = 35
@@ -1382,15 +1378,15 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         /**
          * Teto de quadros. Antes disto a cena era desenhada a cada quadro do `requestAnimationFrame`,
          * que é a taxa do monitor: no dele, 164 renderizações por segundo de uma cena com sombra e
-         * reflexo, com os dados parados e ninguém mexendo em nada. Isso mantém a GPU sob carga
-         * constante, e foi assim que ele percebeu — um chiado que só existia na aba de rolagem.
+         * reflexo, com os dados parados. Isso mantém a GPU sob carga constante, e foi assim que ele
+         * percebeu — um chiado que só existia na aba de rolagem.
          *
          * Três taxas: dado em movimento e mexida na câmera pedem a taxa cheia (senão o arrasto fica
-         * travado na mão); cena parada vai a 30, de sobra pra bandeira e respiração, as duas lentas.
+         * travado na mão); cena parada vai a 30, de sobra pra bandeira e respiração.
          *
-         * O teto governa TAMBÉM as animações, e não só o desenho: elas ficavam de fora e eram
-         * recalculadas 165 vezes por segundo pra serem desenhadas 30. A física continua fora dele, de
-         * propósito: limitar o desenho é economia, limitar a simulação mudaria o comportamento.
+         * O teto governa TAMBÉM as animações: elas ficavam de fora e eram recalculadas 165 vezes por
+         * segundo pra serem desenhadas 30. A física continua fora dele, de propósito — limitar o
+         * desenho é economia, limitar a simulação mudaria o comportamento.
          */
         const mexendoNaCamera = now - ultimaInteracaoMs < 400
         const alvoFps = rolando || mexendoNaCamera ? FPS_ATIVO : FPS_PARADO
@@ -1449,16 +1445,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         towerBesideRef.current?.update(sceneElapsedMsRef.current / 1000)
 
         /**
-         * Respiração da pelúcia: sobe e desce alguns milímetros e balança um tiquinho, bem devagar,
-         * pra ela ler como bichinho apoiado na mesa e não como enfeite de resina parado. Amplitude
-         * minúscula de propósito, pra não competir com os dados pela atenção.
+         * Respiração da pelúcia: sobe e desce alguns milímetros e balança um tiquinho, bem devagar.
+         * Amplitude minúscula de propósito, pra não competir com os dados pela atenção.
          *
          * A altura de repouso é guardada uma vez (`userData.restY`) e a respiração é um deslocamento
          * em cima dela. Esta linha já ATRIBUIU `position.y`, jogando fora a altura da montagem e
          * prendendo a pelúcia oscilando em torno de y=0, que é o chão da bandeja: depois que a mesa
-         * foi rebaixada, o boneco ficou pairando 0.78 acima do gramado. Foram seis reportes de "o
-         * plush está flutuando" e rodadas mexendo em altura, sombra e cor, e nada podia funcionar,
-         * porque tudo era sobrescrito no quadro seguinte.
+         * foi rebaixada, o boneco pairava 0.78 acima do gramado. Foram seis reportes de "o plush está
+         * flutuando", e nada podia funcionar, porque tudo era sobrescrito no quadro seguinte.
          */
         const plush = plushRef.current
         if (plush) {

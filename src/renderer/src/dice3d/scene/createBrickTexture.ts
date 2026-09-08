@@ -2,20 +2,17 @@ import * as THREE from 'three'
 
 /**
  * Textura procedural de tijolo pra torre, desenhada num canvas 2D (a mesma técnica dos números dos
- * dados) e não uma imagem externa: um padrão de tijolo repetido é o que mais rápido lê como pedra de
- * castelo à distância, sem asset nenhum. Um ladrilho de fiadas deslocadas meio tijolo (o "running
- * bond" clássico) é desenhado uma vez e repetido por `RepeatWrapping`, com variação de tom
- * determinística pela própria posição (e não `Math.random()`, que mudaria a cada remount).
+ * dados) e não uma imagem externa. Um ladrilho de fiadas deslocadas meio tijolo (o "running bond"
+ * clássico) é desenhado uma vez e repetido por `RepeatWrapping`, com variação de tom determinística
+ * pela posição — e não `Math.random()`, que mudaria a cada remount.
  *
- * Também sai um NORMAL MAP do mesmo layout (junta de argamassa = baixo, tijolo = alto), porque só
- * variação de cor não dá profundidade sob luz direta e a argamassa precisa ler como recuada.
+ * Sai também um NORMAL MAP do mesmo layout (junta = baixo, tijolo = alto): só variação de cor não dá
+ * profundidade sob luz direta.
  *
  * O LADRILHO é calibrado pra ter a mesma escala de pixel nos dois eixos: cobre 8 tijolos por fiada e
- * 8 fiadas, o que em unidades de mundo dá 8.8 × 4.4, ou seja 2:1 — daí o canvas ser 512×256 e não
- * quadrado. Quadrado era um erro silencioso: com o mesmo número de pixels cobrindo 8.8 na horizontal
- * e 4.4 na vertical, a junta saía com o dobro da grossura num eixo e metade no outro. Mais tijolo por
- * ladrilho é a outra metade do conserto da repetição: 64 pedras diferentes antes de o desenho
- * repetir, em vez de 8.
+ * 8 fiadas, o que em unidades de mundo dá 8.8 × 4.4, ou seja 2:1 — daí o canvas ser 512×256. Quadrado
+ * era um erro silencioso: a junta saía com o dobro da grossura num eixo e metade no outro. Mais
+ * tijolo por ladrilho é a outra metade do conserto da repetição: 64 pedras antes de repetir, não 8.
  */
 const TILE_WIDTH = 512
 const TILE_HEIGHT = 256
@@ -158,26 +155,25 @@ export function createBrickTexture(
 
   /**
    * Quantas vezes o tile se repete na superfície, FRACIONÁRIO quando a peça é menor que um tile. Era
-   * `Math.max(1, Math.round(...))`, e esse piso de 1 é que deixava as ameias e o portão feios: numa
-   * ameia de 0.5 de largura a conta dá 0.45, o piso subia pra 1, e uma repetição inteira significa o
-   * tile inteiro espremido numa pedra de meio metro. Trocar o TAMANHO do tijolo não resolvia nada,
-   * porque o piso apagava a conta antes dela chegar aqui.
+   * `Math.max(1, Math.round(...))`, e esse piso de 1 deixava as ameias e o portão feios: numa ameia de
+   * 0.5 a conta dá 0.45, o piso subia pra 1, e uma repetição inteira é o tile inteiro espremido numa
+   * pedra de meio metro. Trocar o TAMANHO do tijolo não resolvia, porque o piso apagava a conta antes.
    *
-   * O arredondamento continua pra quem passa de um tile: numa superfície que dá a VOLTA (casca,
-   * pedestal, cornija) uma repetição fracionária corta o tijolo ao meio onde a textura fecha.
+   * O arredondamento continua pra quem passa de um tile: numa superfície que dá a VOLTA, repetição
+   * fracionária corta o tijolo ao meio onde a textura fecha.
    */
   const inteiroOuFracao = (bruto: number): number => (bruto >= 1 ? Math.round(bruto) : bruto)
   /**
    * A conta divide pelo tamanho do LADRILHO, não pelo de um tijolo, e era daí que vinham duas queixas
-   * de uma vez ("tão mt repetidos e colados um no outro"): com o divisor errado o ladrilho inteiro era
-   * espremido no espaço de um tijolo, cada tijolo saía com 1/6 da largura devida, e a junta virava
-   * sub-pixel na tela. Medido na casca da torre: circunferência 9.11 com tijolo de 1.1 dava 8
-   * repetições (32 tijolos na volta, de 0.28 cada); agora dá 1, com os tijolos no tamanho certo.
+   * ("tão mt repetidos e colados um no outro"): com o divisor errado o ladrilho inteiro era espremido
+   * no espaço de um tijolo, cada tijolo saía com 1/6 da largura e a junta virava sub-pixel. Medido na
+   * casca: circunferência 9.11 com tijolo de 1.1 dava 8 repetições (32 tijolos na volta, de 0.28
+   * cada); agora dá 1.
    */
   /**
-   * PEÇA PEQUENA ganha tijolo menor, pra continuar mostrando alvenaria em vez de mancha: o tijolo
-   * encolhe até caberem uns dois e meio, que é o mínimo pra a junta aparecer. `Math.min` porque isso
-   * só pode ENCOLHER, senão a casca ganharia pedras gigantes.
+   * PEÇA PEQUENA ganha tijolo menor, pra continuar mostrando alvenaria em vez de mancha: ele encolhe
+   * até caberem uns dois e meio, que é o mínimo pra a junta aparecer. `Math.min` porque isso só pode
+   * ENCOLHER, senão a casca ganharia pedras gigantes.
    */
   const TIJOLOS_MINIMOS = 1.6
   /**

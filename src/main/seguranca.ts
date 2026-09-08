@@ -232,24 +232,21 @@ function ehDesenvolvimento(): boolean {
 /**
  * TIRA O MENU PADRÃO do Electron na versão instalada, e com ele o DevTools.
  *
- * Isto conserta um buraco que passou despercebido desde o começo. A janela é `frame: false`, então
- * nunca houve barra de menu visível e era fácil supor que não havia menu nenhum; mas quando ninguém
- * chama `setApplicationMenu`, o Electron instala o menu padrão dele — invisível numa janela sem
- * moldura, e com os ATALHOS todos funcionando. Medido dentro do Electron 43, numa janela oculta com
- * a mesma configuração desta:
+ * A janela é `frame: false`, então nunca houve barra de menu visível e era fácil supor que não havia
+ * menu nenhum; mas quando ninguém chama `setApplicationMenu`, o Electron instala o menu padrão dele —
+ * invisível numa janela sem moldura, e com os ATALHOS funcionando. Medido no Electron 43, numa janela
+ * oculta com a mesma configuração desta:
  *
  *     View   > Toggle Developer Tools   Ctrl+Shift+I
  *     View   > Reload                   Ctrl+R
  *     Window > Close                    Ctrl+W
  *
- * O inspetor do Chromium num app não assinado é o que a spec proíbe; o `Ctrl+R` remonta a cena e
- * apaga o histórico de rolagens, que vive só na memória, sem nada na tela explicando; e o `Ctrl+W`
- * fecha a janela por fora do botão do app. Em desenvolvimento o menu fica, porque ali o inspetor é
- * ferramenta.
+ * O inspetor num app não assinado é o que a spec proíbe; o `Ctrl+R` remonta a cena e apaga o
+ * histórico, que vive só na memória; e o `Ctrl+W` fecha a janela por fora do botão do app. Em
+ * desenvolvimento o menu fica, porque ali o inspetor é ferramenta.
  *
- * `devTools: false` no `webPreferences` da janela é a outra metade, e as duas são necessárias: sem
- * menu ninguém abre o inspetor pelo atalho, e sem `devTools` ninguém abre por
- * `webContents.openDevTools()`, que é uma linha que qualquer código futuro pode chamar sem querer.
+ * `devTools: false` no `webPreferences` é a outra metade, e as duas são necessárias: sem menu ninguém
+ * abre o inspetor pelo atalho, e sem `devTools` ninguém abre por `webContents.openDevTools()`.
  */
 export function tirarMenuDeProducao(): void {
   if (ehDesenvolvimento()) return
