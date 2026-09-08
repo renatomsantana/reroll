@@ -30,27 +30,20 @@ export function createTowerColliders(world: RAPIER.World): void {
   )
 
   /**
-   * Prateleiras (baffles) — um cuboide ARREDONDADO (`roundCuboid`, não `cuboid`) fixo por
-   * prateleira, mesmo transform do mesh visual (ver `createTowerScene.ts`). `new
-   * RAPIER.Quaternion(...)` explícito (não um objeto literal `{x,y,z,w}`) — mesmo padrão já
-   * usado em `createRingWall.ts`, necessário pro binding do Rapier aceitar a rotação de verdade.
+   * Prateleiras: um cuboide ARREDONDADO (`roundCuboid`, não `cuboid`) por prateleira, com o mesmo
+   * transform do mesh visual. `new RAPIER.Quaternion(...)` explícito, e não um objeto literal, é o
+   * mesmo padrão de `createRingWall.ts` — o binding do Rapier só aceita a rotação assim.
    *
-   * BUG REAL medido nesta sessão (teste headless cobrindo os 7 tipos de dado, não só o d6): D20
-   * (icosaédrico) e D100 (quase esférico) ficavam PERMANENTEMENTE presos, 0/20 tentativas cada,
-   * sempre na QUINA AFIADA da borda de uma prateleira (confirmado com um traço de
-   * posição/velocidade: o dado assentava exatamente na altura da borda, além do próprio
-   * comprimento da prateleira — ou seja, na quina em si, não em cima da superfície). Uma forma
-   * com muitas facetas quase planas encontra um encaixe mecanicamente estável contra um canto de
-   * 90°, que formas mais angulares (D4-D12) simplesmente não encontram. Nem um empurrão de
-   * recuperação bem mais forte (`applyTowerStuckNudge.ts`) resolvia de forma confiável — o dado
-   * voltava a assentar na mesma quina.
+   * BUG REAL medido com o teste headless dos 7 tipos de dado: d20 e d100 ficavam permanentemente
+   * presos, 0 de 20 tentativas cada, sempre na QUINA AFIADA da borda de uma prateleira (confirmado com
+   * um traço de posição: o dado assentava exatamente na altura da borda, além do comprimento da
+   * prateleira, ou seja na quina em si). Uma forma com muitas facetas quase planas encontra um encaixe
+   * mecanicamente estável contra um canto de 90° que d4-d12 não encontram, e nem um empurrão de
+   * recuperação bem mais forte resolvia.
    *
-   * Corrigido na RAIZ (não só tentando empurrar mais forte): arredondar a borda do collider
-   * (`baffleEdgeRadius`) elimina a quina de 90° em si — o próprio `dice_tower_parametric_prompt.md`
-   * já pedia isso (`fillet_dice_contact`, "anywhere a die can strike or slide"), só não tinha sido
-   * aplicado ainda no collider físico (só no visual seria insuficiente, o dado colide com a
-   * FÍSICA). Com a quina arredondada, um dado que chega até a borda desliza/tomba por cima dela
-   * de forma suave, igual uma rampa de skate, em vez de poder se equilibrar num canto reto.
+   * Corrigido na RAIZ: arredondar a borda do collider elimina a quina. O próprio spec da torre já pedia
+   * isso ("anywhere a die can strike or slide"), e só no visual seria inútil — o dado colide com a
+   * FÍSICA. Com a quina arredondada, o dado que chega à borda tomba por cima dela como numa rampa.
    */
   const edgeRadius = TOWER_CONFIG.baffleEdgeRadius
   for (const baffle of computeBaffleTransforms()) {

@@ -3,34 +3,23 @@ import { randomInRange } from '../utils/random'
 import { findNearestBaffleDirection } from '../geometry/buildTowerBaffles'
 
 /**
- * Empurrão de recuperação SÓ da torre — DIRECIONADO (não um empurrão radial genérico) e
- * ESCALADO por `attempt` (quantas vezes SEGUIDAS, sem progresso real no meio, o dado já foi
- * considerado "travado" — ver `DieInstance.stuckAttempts` em `DiceCanvasMulti.tsx`).
+ * Empurrão de recuperação SÓ da torre: direcionado (não radial genérico) e escalado por `attempt`,
+ * quantas vezes seguidas o dado já foi considerado travado sem progresso no meio.
  *
- * HISTÓRICO DE DIAGNÓSTICO nesta sessão: um teste headless cobrindo os 7 tipos de dado (não só o
- * d6, que sozinho sempre deu 100%) achou que D20 (icosaédrico) e D100 (quase esférico) ficavam
- * presos na primeira prateleira — formas com muitas facetas quase planas encontram um repouso
- * estável ali que dados mais angulares (D4-D12) não encontram. Cadeia de tentativas medidas:
- * 1. Empurrão genérico mais forte (radial-pra-fora do eixo central) — ainda 0/20 pros dois.
- * 2. Arredondar a quina física da prateleira (`baffleEdgeRadius`) — sozinho, insuficiente.
- * 3. Empurrão DIRECIONADO (`findNearestBaffleDirection`) — resolveu o D20 na hora. D100 continuou
- *    preso (atrito máximo "engolia" o impulso quase inteiro no mesmo frame).
- * 4. Reduzir atrito/restituição do D100 só dentro da torre (`TOWER_D100_PHYSICS_OVERRIDE`) —
- *    sozinho insuficiente, mas mantido (não atrapalha, ajuda combinado com o resto).
- * 5. Aumentar bastante o DESLOCAMENTO DE POSIÇÃO (não só impulso) — resolveu o D100 de vez.
+ * O diagnóstico foi uma cadeia de tentativas medidas, e ela é o argumento contra simplificar isto: um
+ * teste headless com os 7 tipos de dado (o d6 sozinho sempre deu 100%) achou d20 e d100 presos na
+ * primeira prateleira, porque formas com muitas facetas quase planas encontram ali um repouso estável
+ * que d4-d12 não encontram. Empurrão genérico mais forte: ainda 0/20 nos dois. Arredondar a quina da
+ * prateleira: insuficiente sozinho. Empurrão DIRECIONADO (`findNearestBaffleDirection`): resolveu o d20
+ * na hora, e o d100 continuou preso, porque o atrito máximo engolia o impulso no mesmo frame. Reduzir
+ * o atrito do d100 dentro da torre: insuficiente sozinho, mantido porque ajuda. Aumentar o
+ * DESLOCAMENTO DE POSIÇÃO: resolveu o d100 de vez.
  *
- * BUG REAL da rodada seguinte: aplicar a versão FORTE (com salto de posição) já na PRIMEIRA
- * pausa detectada fazia dados que só tiveram um quique normal entre duas prateleiras (não really
- * "travados", só uma pausa momentânea que o `stuckTimeoutMs` == 500ms às vezes captura) "pularem"
- * visivelmente pra baixo, em vez de escorregar pela prateleira como deveriam — o usuário reportou
- * "the dice... are just jumping through the tower to the floor". A força forte continua
- * necessária pro D100 (que genuinamente precisa dela, em múltiplos ciclos), mas não deveria ser o
- * padrão pra toda pausa. Corrigido escalando em 3 níveis por `attempt`:
- * - 1ª tentativa: correção BEM discreta (só impulso pequeno + torque leve, sem mexer na posição)
- *   — o suficiente pra maioria dos casos reais (um dado só de leve equilibrado numa borda).
- * - 2ª tentativa: correção intermediária (mais impulso/torque, ainda sem mexer na posição).
- * - 3ª tentativa em diante: a correção forte (salto de posição incluído) — só chega aqui quem
- *   realmente precisa, depois de duas tentativas mais discretas já terem falhado.
+ * E daí veio o bug seguinte: aplicar a versão forte, com salto de posição, já na primeira pausa fazia
+ * dados que só tiveram um quique normal entre prateleiras pularem visivelmente pra baixo — "the dice...
+ * are just jumping through the tower to the floor". Por isso os três níveis por `attempt`: correção bem
+ * discreta na primeira (só impulso e torque leves), intermediária na segunda, e a forte, com salto de
+ * posição, só da terceira em diante — onde chega quem realmente precisa.
  */
 interface NudgeTier {
   impulseStrength: number

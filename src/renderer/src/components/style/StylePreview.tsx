@@ -50,58 +50,41 @@ export function StylePreview({ sides, bodyColor, numberColor, material }: StyleP
   const sceneRef = useRef<THREE.Scene | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   /**
-   * Cache PRÓPRIO da prévia (o global de `textureCache.ts` é da cena principal, que o esvazia a
-   * cada troca de cor). Sem ele, percorrer a grade de doze paletas redesenhava o atlas de números
-   * inteiro em toda parada do mouse — até cem números no d100 — mesmo pra uma cor já vista um
-   * clique antes. Com ele, voltar numa cor já experimentada é instantâneo.
+   * Cache PRÓPRIO da prévia (o global de `textureCache.ts` é da cena principal, que o esvazia a cada
+   * troca de cor). Sem ele, percorrer a grade de doze paletas redesenhava o atlas de números inteiro em
+   * toda parada do mouse — até cem números no d100 — mesmo pra uma cor já vista um clique antes.
    *
-   * O teto existe porque a chave inclui a cor: arrastar o seletor gera uma entrada nova por tom
-   * experimentado, e sem limite o mapa cresceria pelo tempo que a aba ficasse aberta. Ao estourar,
-   * esvazia tudo em vez de expulsar o mais antigo — a lista é curta, e a única coisa que se perde é
-   * o atalho de uma cor que provavelmente não vai voltar.
+   * O teto existe porque a chave inclui a cor: arrastar o seletor gera uma entrada nova por tom, e sem
+   * limite o mapa cresceria pelo tempo que a aba ficasse aberta. Ao estourar, esvazia tudo em vez de
+   * expulsar o mais antigo — a lista é curta, e o que se perde é o atalho de uma cor que não vai voltar.
    */
   const textureCacheRef = useRef<DiceTextureCache>(new Map())
 
   /**
-   * QUANTAS VEZES A CENA JÁ NASCEU. Existe pra consertar um defeito que chegou ao usuário: entrando
-   * na aba Estilo, a bandeja aparecia e O DADO NÃO — só depois de mexer numa cor, num acabamento ou
-   * no tipo do dado.
+   * QUANTAS VEZES A CENA JÁ NASCEU. Conserta um defeito que chegou ao usuário: entrando na aba Estilo,
+   * a bandeja aparecia e O DADO NÃO, só depois de mexer numa cor ou no tipo do dado.
    *
-   * A causa é a ordem, e ela virou defeito no dia em que a montagem passou a esperar dois quadros
-   * (ver o efeito logo abaixo). Quem CRIA o dado é o outro efeito, o das cores, e a primeira coisa
-   * que ele faz é desistir se a cena ainda não existe. Na primeira passagem ela nunca existe: o
-   * efeito de cor roda junto com o de montagem, e a montagem só acontece dois quadros depois. As
-   * dependências dele são as props de aparência, que não mudam sozinhas — então ele não rodava de
-   * novo, e o dado ficava por criar numa cena que já estava sendo desenhada, vazia.
+   * A causa é a ordem, e virou defeito no dia em que a montagem passou a esperar dois quadros: quem CRIA
+   * o dado é o efeito das cores, e a primeira coisa que ele faz é desistir se a cena ainda não existe.
+   * Na primeira passagem ela nunca existe, e as dependências dele são props de aparência, que não mudam
+   * sozinhas — então ele não rodava de novo e o dado ficava por criar numa cena vazia já sendo
+   * desenhada. A `TrayPreview` não tem o problema porque lá a geometria nasce dentro da montagem.
    *
-   * A `TrayPreview` não tinha o problema porque lá a geometria nasce DENTRO da montagem; aqui o
-   * dado nasce fora dela, porque precisa ser refeito a cada cor.
-   *
-   * CONTADOR e não booleano: em `StrictMode` o React monta, desmonta e monta de novo, e um booleano
-   * que já está `true` não provoca render nenhum na segunda montagem — o efeito não rodaria e o
-   * defeito voltaria só no modo de desenvolvimento, que é o pior lugar pra ele se esconder.
+   * CONTADOR e não booleano: em `StrictMode` o React monta, desmonta e monta de novo, e um booleano que
+   * já está `true` não provoca render nenhum na segunda montagem — o defeito voltaria só em
+   * desenvolvimento, que é o pior lugar pra ele se esconder.
    */
   const [geracaoDaCena, setGeracaoDaCena] = useState(0)
 
   /**
-   * A MONTAGEM ESPERA UM QUADRO, e essa linha é o conserto de um engasgo medido.
+   * A MONTAGEM ESPERA UM QUADRO, e essa linha é o conserto de um engasgo medido: criar um
+   * `WebGLRenderer` custa ~15ms, e a aba Estilo cria DOIS mais as cenas, luzes e texturas de cada um,
+   * tudo no mesmo quadro em que a aba aparece — medido no app instalado, 66ms, quatro quadros perdidos.
+   * Adiando, a aba PINTA primeiro e a prévia entra logo depois.
    *
-   * Criar um `WebGLRenderer` custa ~15ms, e a aba Estilo cria DOIS (o dado e a bandeja) mais as
-   * cenas, luzes, geometrias e texturas de cada um — tudo dentro do mesmo quadro em que a aba
-   * aparece. Medido no app instalado: trocar pra Estilo custava 66ms, ou seja, quatro quadros
-   * perdidos de uma vez. É o tipo de engasgo que não parece bug, parece "o app é meio pesado".
-   *
-   * Adiando, a aba PINTA primeiro — texto, botões, paletas, tudo no lugar — e a prévia entra logo
-   * depois. O trabalho é o mesmo; o que muda é ele não acontecer entre o clique e a tela.
-   *
-   * DOIS `requestAnimationFrame` aninhados, e não um. É a parte que erra fácil: o callback do rAF
-   * roda ANTES da pintura do quadro, então adiar um só empurra o trabalho pra dentro do mesmo
-   * quadro — a tela continua esperando por ele, e a medição não muda em nada (foi o que aconteceu na
-   * primeira tentativa). Com o segundo aninhado, a pintura do primeiro quadro já aconteceu quando a
-   * montagem começa.
-   *
-   * O `cancelado` é o que impede o caso feio: trocar de aba rápido demais desmontaria o componente
-   * antes de o quadro chegar, e a montagem rodaria criando um renderer que ninguém iria descartar.
+   * DOIS `requestAnimationFrame` aninhados, e não um: o callback do rAF roda ANTES da pintura do quadro,
+   * então adiar um só empurra o trabalho pra dentro do mesmo quadro e a medição não muda. O `cancelado`
+   * impede o caso feio — trocar de aba rápido demais criaria um renderer que ninguém iria descartar.
    */
   useEffect(() => {
     const container = containerRef.current

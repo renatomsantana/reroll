@@ -104,16 +104,13 @@ export async function createTowerModel(
    */
   const modelo = new THREE.Group()
   /**
-   * Material NOSSO no lugar do que veio no arquivo.
+   * Material NOSSO no lugar do que veio no arquivo: o exportador do SolidWorks gravou cinza-claro com
+   * rugosidade 0.2, quase um espelho, e sob a luz da cena isso estoura em branco chapado — que é como a
+   * torre aparecia. Além de feio, ficava fora da paleta, porque a cor da pedra é editável na aba Estilo
+   * e um material trazido de fora não responderia a ela.
    *
-   * O exportador do SolidWorks gravou cinza-claro (0.894) com rugosidade 0.2 — quase um espelho.
-   * Sob a luz da cena isso estoura em branco chapado, que é como a torre aparecia. Além de feio, ela
-   * ficava fora da paleta: a cor da pedra é editável na aba Estilo, e um material trazido de fora não
-   * responderia a ela.
-   *
-   * A malha não tem UV (só POSITION e NORMAL), então a textura de tijolo não tem como ser aplicada —
-   * é cor chapada com a rugosidade da pedra do resto da cena, e é o máximo que este arquivo permite
-   * sem gerar coordenadas de textura por conta própria.
+   * A malha não tem UV (só POSITION e NORMAL), então a textura de tijolo não tem como ser aplicada: é
+   * cor chapada com a rugosidade da pedra do resto da cena.
    */
   const material = new THREE.MeshStandardMaterial({ color: colors.stone, roughness: STONE_ROUGHNESS })
   gltf.scene.traverse((filho) => {

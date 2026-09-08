@@ -1,24 +1,21 @@
 import * as THREE from 'three'
 
 /**
- * Madeira procedural pra parede da bandeja e pra borda da mesa — pedido do usuário: "o hexágono
- * deixa mais rústico, algo como madeira".
+ * Madeira procedural pra parede da bandeja e pra borda da mesa ("o hexágono deixa mais rústico, algo
+ * como madeira").
  *
- * O mapa é QUASE BRANCO (um sussurro de quente), não castanho: ele modula o BRILHO — veio, juntas
- * e variação entre tábuas — e deixa a COR inteira por conta de quem usa (a escolha da aba Estilo).
+ * O mapa é QUASE BRANCO, não castanho: ele modula o BRILHO — veio, juntas e variação entre tábuas — e
+ * deixa a COR inteira por conta de quem usa. Já foi castanho de verdade, e isso foi bug relatado: "as
+ * paredes não estão mudando a cor direito". Medido na cena real, amostrando o pixel da parede da
+ * frente: pedindo `#ff0000` saía `#ff966f`, pedindo `#0000ff` saía `#bb9698` e pedindo PRETO saía
+ * `#bb966f` — azul e preto davam o mesmo bege, porque um mapa castanho multiplicando a cor escolhida
+ * impõe o matiz dele.
  *
- * Já foi castanho de verdade, e isso foi um bug relatado pelo usuário: "as paredes não estão
- * mudando a cor direito". Medido na cena real, amostrando o pixel da parede da frente: pedindo
- * vermelho `#ff0000` saía `#ff966f`, pedindo azul `#0000ff` saía `#bb9698` e pedindo PRETO saía
- * `#bb966f` — ou seja, azul e preto davam praticamente o mesmo bege. Um mapa castanho multiplicando
- * a cor escolhida impõe o matiz dele; nenhuma escolha do usuário conseguia escapar do bege.
+ * A tentativa anterior era um mapa cinza médio, e falhou pelo motivo oposto: multiplicar 0.5 numa cor
+ * já escura apagava o veio. Por isso este está perto de 1.0 — ele quase não escurece, só desenha.
  *
- * A tentativa ANTERIOR a essa era um mapa cinza médio, e ela falhou pelo motivo oposto: multiplicar
- * `0.5` numa cor já escura apagava o veio. Por isso este está perto de 1.0 (base 0.94 de um branco
- * quase puro) e não no meio da escala — ele quase não escurece, só desenha.
- *
- * Desenhado em canvas, sem imagem externa, e com sorteio determinístico (seed fixa) pro veio não
- * mudar a cada remontagem da cena.
+ * Desenhado em canvas, sem imagem externa, com sorteio determinístico pro veio não mudar a cada
+ * remontagem da cena.
  */
 
 const SIZE = 512
@@ -64,14 +61,14 @@ interface WoodCanvases {
 }
 
 /**
- * O DESENHO da madeira é sempre o mesmo (seed fixa, ver comentário do topo) — o que muda entre
- * chamadas é só `repeat`, que vive na `Texture`, não no canvas. Então os dois canvas são
- * desenhados UMA vez por sessão e reaproveitados.
+ * O DESENHO da madeira é sempre o mesmo (seed fixa); o que muda entre chamadas é só `repeat`, que vive
+ * na `Texture` e não no canvas. Então os dois canvas são desenhados uma vez por sessão e
+ * reaproveitados.
  *
- * Isso importa de verdade: o normal map é um laço por pixel de 512×512 (262 mil iterações, cada
- * uma lendo quatro vizinhos), e ele era refeito do zero toda vez que a cena montava, que a prévia
- * da bandeja abria e — o pior caso — a cada troca de cor de parede/chão, porque o estojo era
- * reconstruído inteiro. Medido como a trava mais visível da aba Estilo.
+ * Isso importa: o normal map é um laço por pixel de 512×512 (262 mil iterações, cada uma lendo quatro
+ * vizinhos), e ele era refeito do zero a cada montagem da cena, a cada abertura da prévia e — o pior
+ * caso — a cada troca de cor, porque o estojo era reconstruído inteiro. Era a trava mais visível da
+ * aba Estilo.
  */
 let cachedWoodCanvases: WoodCanvases | null = null
 

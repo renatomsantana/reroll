@@ -4,26 +4,22 @@ import { FontMascot } from './FontMascot'
 import './FontSelect.css'
 
 /**
- * Seletor de fonte próprio, no lugar do `<select>` nativo. Existe por um motivo só: `<option>` não
- * desenha imagem em nenhum navegador, e o usuário pediu a caveirinha do easter egg TAMBÉM na lista
- * ("coloca na lista também, tipo papyrus (caveira), comic sans (caveira)"), não só ao lado da fonte
- * já escolhida.
+ * Seletor de fonte próprio, no lugar do `<select>` nativo, por um motivo só: `<option>` não desenha
+ * imagem em nenhum navegador, e ele pediu a caveirinha do easter egg TAMBÉM na lista ("coloca na lista
+ * também, tipo papyrus (caveira), comic sans (caveira)"), não só ao lado da fonte escolhida.
  *
- * Mantém o desenho da caixa de combinação do 98: campo afundado com o valor atual e um botãozinho
- * em relevo com a seta na ponta. Cada linha é escrita NA PRÓPRIA FONTE dela — é um seletor de
- * fonte, e ver o desenho da letra vale mais que ler o nome.
+ * Mantém o desenho da caixa de combinação do 98: campo afundado com o valor atual e um botãozinho em
+ * relevo com a seta. Cada linha é escrita NA PRÓPRIA FONTE dela — é um seletor de fonte, e ver o
+ * desenho da letra vale mais que ler o nome.
  */
 
 /**
- * Altura de uma linha da lista e a folga de borda/padding — a matéria-prima da conta de altura.
+ * Altura de uma linha da lista e a folga de borda: a matéria-prima da conta de altura.
  *
- * O teto era um NÚMERO FIXO (350px) com uma cópia no CSS, e as duas tinham que andar juntas: quem
- * acrescentasse fonte sem lembrar disso ganhava uma lista que decide o flip por uma altura que ela
- * não tem. Isso caducou na primeira vez que precisou — o alfa fechou com 18 fontes, e 350px passou a
- * cortar seis.
- *
- * Agora a altura é CALCULADA a partir de quantas opções existem, limitada pela janela. Some a cópia,
- * some a armadilha, e a lista passa a crescer sozinha quando alguém acrescentar a próxima fonte.
+ * O teto era um NÚMERO FIXO (350px) com uma cópia no CSS, e as duas tinham que andar juntas — quem
+ * acrescentasse fonte sem lembrar disso ganhava uma lista que decide o flip por uma altura que ela não
+ * tem. Caducou na primeira vez que precisou: o alfa fechou com 18 fontes, e 350px passou a cortar
+ * seis. Agora a altura é CALCULADA a partir de quantas opções existem, limitada pela janela.
  */
 const LINE_HEIGHT = 26
 const LIST_PADDING = 8

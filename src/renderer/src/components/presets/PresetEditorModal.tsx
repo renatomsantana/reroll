@@ -46,20 +46,16 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
   )
   const modifier = modificadorDoTexto(textoDoModificador)
   /**
-   * A regra de manter, em dois estados separados — o MODO e QUANTOS.
-   *
-   * Separados porque a pessoa muda um sem querer perder o outro: trocar "os maiores" por "os
-   * menores" não deveria zerar o "quantos contam" que ela acabou de ajustar. `modo` em `'all'` é a
-   * ausência de regra, que é o comportamento de sempre.
+   * A regra de manter, em dois estados separados — o MODO e QUANTOS —, porque a pessoa muda um sem
+   * querer perder o outro: trocar "os maiores" por "os menores" não deveria zerar o quantos. `modo` em
+   * `'all'` é a ausência de regra.
    */
   /**
-   * Uma regra guardada que NÃO faz nada — "usar os 3 maiores" de 3 dados, ou `count` zero de um
-   * `presets.json` editado à mão — abre como "todos os dados", que é o que ela sempre foi.
-   *
-   * Achado da revisão de código: abrir e salvar (só pra renomear) um preset assim transformava a
-   * regra inerte numa regra de verdade, porque o mostrador prende o valor em `total − 1` e o que
-   * está na tela é o que se grava. Prender é certo; o erro era deixar uma regra inerte chegar ao
-   * mostrador como se fosse uma escolha.
+   * Uma regra guardada que NÃO faz nada ("usar os 3 maiores" de 3 dados, ou `count` zero de um
+   * `presets.json` editado à mão) abre como "todos os dados", que é o que ela sempre foi. Achado da
+   * revisão de código: abrir e salvar um preset assim só pra renomear transformava a regra inerte numa
+   * regra de verdade, porque o mostrador prende o valor em `total − 1` e o que está na tela é o que se
+   * grava. Prender é certo; o erro era a regra inerte chegar ao mostrador como se fosse uma escolha.
    */
   const dadosNoInicio = (preset?.expression?.groups ?? []).reduce((soma, g) => soma + g.count, 0)
   const regraInicial = preset?.expression?.keep
@@ -77,34 +73,28 @@ export function PresetEditorModal({ preset, onSave, onCancel }: PresetEditorModa
   const totalDiceCount = groups.reduce((sum, g) => sum + g.count, 0)
   const tooManyDice = totalDiceCount > MAX_SIMULTANEOUS_DICE
   /**
-   * QUANTOS DADOS PODEM CONTAR: no máximo um a menos que o total — com todos contando não existe
+   * QUANTOS DADOS PODEM CONTAR: no máximo um a menos que o total, porque com todos contando não existe
    * regra, é a soma de sempre.
    *
-   * `keepEfetivo` é o valor que MANDA em tudo: no que aparece, no que os botões fazem e no que é
-   * gravado. Antes, só o mostrador era limitado (`Math.min(...)` na hora de desenhar) e o estado
-   * guardava o número velho, e daí saíam dois defeitos que o usuário viu como "botão bugado":
-   *
-   * 1. um preset de 6 dados guardando "os 5 maiores", reduzido pra 2 dados, mostrava 1 na tela e
-   *    tinha 5 na memória — os três primeiros cliques no "−" não mudavam nada do que se via;
-   * 2. pior, salvar nesse estado PERDIA A REGRA sem avisar: `regraDeManter` comparava os 5 guardados
-   *    com os 2 dados, concluía "não é regra" e gravava o preset somando tudo. A tela dizia "os
-   *    maiores"; o preset gravado somava os dois dados.
+   * `keepEfetivo` é o valor que MANDA em tudo — no que aparece, no que os botões fazem e no que é
+   * gravado. Antes só o mostrador era limitado e o estado guardava o número velho, e daí saíam dois
+   * defeitos que ele viu como "botão bugado": um preset de 6 dados guardando "os 5 maiores", reduzido
+   * pra 2 dados, mostrava 1 na tela e tinha 5 na memória, com os três primeiros cliques no "−" sem
+   * efeito visível; e pior, salvar nesse estado PERDIA A REGRA sem avisar, porque `regraDeManter`
+   * comparava os 5 guardados com os 2 dados e concluía "não é regra".
    */
   const keepMaximo = Math.max(1, totalDiceCount - 1)
   const keepEfetivo = Math.max(1, Math.min(keepCount, keepMaximo))
 
   /**
-   * O CAMPO DE FÓRMULA — a gramática de rolagem (`shared/dice/formula.ts`) dentro do editor, o que
-   * o spec chama de "the universal escape hatch for any system": quem sabe escrever "4d6kh3 + 2"
-   * não precisa clicar, e os botões continuam lá pra quem não sabe. Os dois falam do MESMO preset:
-   * o texto preenche os botões, e os botões reescrevem o texto, na forma canônica, a cada mudança.
+   * O CAMPO DE FÓRMULA: a gramática de rolagem dentro do editor, o que o spec chama de "the universal
+   * escape hatch for any system". Quem sabe escrever "4d6kh3 + 2" não precisa clicar, e os botões
+   * continuam lá pra quem não sabe; os dois falam do MESMO preset, com o texto preenchendo os botões e
+   * os botões reescrevendo o texto na forma canônica.
    *
-   * O texto só NÃO é reescrito enquanto a pessoa está digitando nele — senão "4d6k" (que ainda não
-   * lê) viraria "4d6" debaixo do dedo. Ao sair do campo fica a forma canônica do que foi aceito; o
-   * que não foi aceito fica escrito, com o motivo embaixo, e os botões não mudam. O motivo vem da
-   * ponte (`formulaParaExpressao.ts`): ou a fórmula não lê, ou diz algo que o rolador desta versão
-   * ainda não faz — e cada um desses casos é dito com o nome, em vez de um preset que rola diferente
-   * do que está escrito.
+   * O texto só não é reescrito enquanto a pessoa está digitando nele, senão "4d6k" viraria "4d6" debaixo
+   * do dedo. O que não foi aceito fica escrito, com o motivo embaixo, e os botões não mudam — ou a
+   * fórmula não lê, ou diz algo que o rolador desta versão ainda não faz, e cada caso é dito com o nome.
    */
   const campoDaFormula = useRef<HTMLInputElement>(null)
   const formulaDosBotoes =

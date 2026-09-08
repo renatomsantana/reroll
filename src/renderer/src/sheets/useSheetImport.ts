@@ -34,27 +34,22 @@ function rotuloDoSistema(id: string, rotuloDoGenerico: string): string {
 /**
  * O fluxo da importação de ficha, do clique até o personagem gravado, SEM JANELA NO MEIO.
  *
- * Pedido dele (02/09/2026): "não precisa perguntar para a pessoa e mostrar aquela página inteira de
- * ficha, apenas upload, scrap tudo, e deixa editável para o user". A importação já foi uma tela de
- * conferência campo a campo, depois um "ok, importaremos" pequeno; agora é um gesto só: escolher o
- * PDF. As etapas:
+ * Pedido dele: "não precisa perguntar para a pessoa e mostrar aquela página inteira de ficha, apenas
+ * upload, scrap tudo, e deixa editável para o user". A importação já foi uma tela de conferência campo
+ * a campo e depois um "ok, importaremos" pequeno; agora as etapas são:
  *
  * 1. o processo principal abre o seletor e devolve os BYTES do PDF;
  * 2. o pdf.js extrai campos e texto (`extractPdfSheet`);
  * 3. o leitor certo interpreta (`readSheet`);
- * 4. o app decide o nome por regra (`escolherDestino`) e o processo principal CRIA o personagem
- *    e grava tudo nele: anotações, presets, barras (o HUD), retrato, páginas e o texto sem rótulo.
+ * 4. o app decide o nome (`escolherDestino`) e o principal CRIA o personagem com tudo dentro:
+ *    anotações, presets, barras, retrato, páginas e o texto sem rótulo.
  *
- * Antes da etapa 1 há o "tem certeza?" (o diálogo do app) e a LISTA DE SISTEMAS, e nada mais. A
- * regra dele (02/09/2026): "toda vez que uploadar uma ficha nova, que CRIE um personagem novo, para
- * não perder o que já está lá; clicou em uploadar, tem certeza? aí cria um novo"; e o caminho que
- * ele fechou em 06/09/2026: "clicar no importar, avisar que vai criar um novo, aí lista dos
- * sistemas, aí arquivo no PC da pessoa e cria". Importar nunca grava por
- * cima de ninguém: é por isso que um importador que adivinha e grava sem conferência é aceitável.
- * No teto de personagens o botão fica apagado com a dica do limite (ver `SheetTab`), e este hook
- * ainda recusa por conta própria, pro caso de o clique escapar. Tudo o que entrou é editável e
- * apagável na aba Ficha, na hora. O que a tela ainda diz, DEPOIS de importar, é o que foi lido e o
- * que NÃO foi (`feito`): silêncio sobre isso viraria "o app importou errado".
+ * Antes da etapa 1 há o "tem certeza?" e a LISTA DE SISTEMAS, e nada mais — o caminho que ele fechou:
+ * "clicar no importar, avisar que vai criar um novo, aí lista dos sistemas, aí arquivo no PC da pessoa
+ * e cria". Importar nunca grava por cima de ninguém, e é por isso que um importador que adivinha sem
+ * conferência é aceitável. No teto de personagens o botão fica apagado, e este hook ainda recusa por
+ * conta própria caso o clique escape. Depois de importar, a tela diz o que foi lido e o que NÃO foi:
+ * silêncio sobre isso viraria "o app importou errado".
  */
 export interface ImportacaoFeita {
   /** O personagem que recebeu a ficha: o aviso só aparece enquanto ele estiver aberto. */

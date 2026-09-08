@@ -1,11 +1,9 @@
 /**
  * O QUE ESTÁ PRONTO NA `main` MAS AINDA NÃO VAI PROS TESTADORES.
  *
- * Ele libera uma coisa de cada vez pra receber feedback de uma coisa de cada vez (foi assim com a
- * Ficha beta, com o teto de três personagens, e é assim com o HUD). O código fica inteiro na
- * `main`, testado e instalado na máquina dele; o que muda entre a `main` e o branch de lançamento
- * (`lancamento`) é SÓ o valor daqui. Quando ele mandar liberar, é virar pra `true` no branch e
- * lançar — nada pra reescrever.
+ * Ele libera uma coisa de cada vez pra receber feedback de uma coisa de cada vez (foi assim com a Ficha
+ * beta, com o teto de três personagens, e é assim com o HUD). O código fica inteiro na `main`, testado
+ * e instalado na máquina dele; o que muda entre a `main` e o branch `lancamento` é SÓ o valor daqui.
  */
 
 /**
@@ -39,13 +37,11 @@ export const CRITICO_NAS_PREFERENCIAS = false
 export const INTERRUPTOR_DE_SOM_NAS_PREFERENCIAS = false
 
 /**
- * PERSONAGENS À VONTADE — a regra do dono, dita em 30/08/2026: "EU o DONO posso ter quantos
- * personagens quiser, OS OUTROS usuários apenas 3, eles são bloqueados e recebem um aviso: máximo
- * de personagens atingido = 3".
+ * PERSONAGENS À VONTADE, a regra do dono: "EU o DONO posso ter quantos personagens quiser, OS OUTROS
+ * usuários apenas 3, eles são bloqueados e recebem um aviso".
  *
- * Ligado (a `main`, o cliente dele): o teto de criação é o do disco (`TETO_DE_PERSONAGENS_NO_DISCO`).
- * Desligado (o branch `lancamento`, os testadores): o teto volta a TRÊS, duro — o botão "Novo
- * personagem" avisa "limite de {max} atingido" pelo diálogo do app, e a importação trava o OK com o
- * mesmo motivo. Quem decide o valor é `MAX_PROFILES` em `shared/types/profile.ts`, derivado daqui.
+ * Ligado (a `main`, o cliente dele): o teto de criação é o do disco. Desligado (o branch `lancamento`):
+ * o teto volta a TRÊS, duro, com o botão "Novo personagem" avisando pelo diálogo do app e a importação
+ * travando o OK com o mesmo motivo. Quem decide o valor é `MAX_PROFILES`, derivado daqui.
  */
 export const PERSONAGENS_LIBERADOS = true

@@ -1,27 +1,20 @@
 import * as THREE from 'three'
 
 /**
- * Grama procedural pro tampo da mesa onde a bandeja fica apoiada — pedido do usuário: "algo como
- * se fosse uma mesinha bonitinha de grama igual o tabletop rpg". A referência é o tapete de
- * terreno de uma mesa de RPG de verdade, não um gramado fotorrealista.
+ * Grama procedural pro tampo da mesa ("algo como se fosse uma mesinha bonitinha de grama igual o
+ * tabletop rpg"). A referência é o tapete de terreno de uma mesa de RPG, não um gramado fotorrealista.
  *
- * SEGUNDA versão, depois do usuário ver a primeira e dizer "a grama tá bem falsa". O que estava
- * denunciando, e o que mudou:
+ * SEGUNDA versão, depois de ele ver a primeira e dizer "a grama tá bem falsa". O que denunciava:
  *
- * 1. LADRILHO REPETINDO NA CARA. O tile de 256px se repetia a cada 2 unidades de mundo, então a
- *    mesma manchinha aparecia dezenas de vezes em fileira — o olho pega esse padrão na hora.
- *    Agora o tile é de 512px cobrindo 8 unidades (4 repetições no tampo inteiro, contra 16).
- * 2. VARIAÇÃO SÓ NUMA ESCALA. Era grama uniforme + manchas de um tamanho só, o que lê como
- *    ruído. Grama de verdade varia em várias escalas ao mesmo tempo: manchões amplos de tom,
- *    tufos médios e as folhas. Agora são três camadas (ver `drawTonalNoise`).
- * 3. TEXTURA BORRADA NO ÂNGULO RASANTE. A câmera olha a mesa quase de lado, e é justamente aí
- *    que a filtragem padrão do GPU achata a textura numa papa. `anisotropy` resolve isso (o
- *    three limita sozinho ao máximo que a placa suporta, então pedir 8 é seguro).
- * 4. FOLHAS TODAS DO MESMO TAMANHO E COR. Agora variam em comprimento, largura, tom e
- *    inclinação, e uma parte delas é desenhada mais clara na ponta.
+ * 1. o LADRILHO repetindo na cara — o tile de 256px se repetia a cada 2 unidades, então a mesma
+ *    manchinha aparecia dezenas de vezes em fileira. Agora são 512px cobrindo 8 unidades;
+ * 2. variação SÓ NUMA ESCALA, que lê como ruído. Grama de verdade varia em várias ao mesmo tempo:
+ *    manchões amplos de tom, tufos médios e as folhas (ver `drawTonalNoise`);
+ * 3. textura BORRADA no ângulo rasante, que é justamente como a câmera olha a mesa — resolvido com
+ *    `anisotropy`, que o three limita sozinho ao máximo da placa;
+ * 4. folhas todas do mesmo tamanho e cor, que agora variam em comprimento, largura, tom e inclinação.
  *
- * Continua sem imagem externa (mesma política do resto do projeto — ver `createBrickTexture.ts`)
- * e com sorteio DETERMINÍSTICO (seed fixa), pra grama não mudar de desenho a cada remontagem.
+ * Continua sem imagem externa e com sorteio determinístico, pra grama não mudar a cada remontagem.
  */
 
 const SIZE = 768
@@ -46,16 +39,13 @@ const SOIL_BASE = '#33301f'
 const GRASS_BASE = '#3d6a2f'
 
 /**
- * TRÊS famílias de folha, sorteadas por tufo — e é isto que separa grama de tapete sintético.
+ * TRÊS famílias de folha, sorteadas por tufo, e é isto que separa grama de tapete sintético. A versão
+ * anterior tinha uma faixa só de verdes: cada folha variava de claro pra escuro, mas todas com o mesmo
+ * matiz. Grama de verdade tem moitas mais azuladas, moitas mais amarelas e falhas ressecadas de palha —
+ * foi por isso que ele disse que continuava "tipo sintética", porque cor uniforme é exatamente o que a
+ * grama artificial tem de característico.
  *
- * A versão anterior tinha uma faixa só de verdes: cada folha variava de claro pra escuro, mas
- * todas com o MESMO matiz. Grama de verdade nunca é de um verde só — tem moitas mais azuladas
- * (à sombra, mais viçosas), moitas mais amarelas e falhas ressecadas de palha. Foi por isso que
- * o usuário disse que continuava "tipo sintética": a cor era uniforme demais, e cor uniforme é
- * exatamente o que grama artificial tem de característico.
- *
- * A escolha é POR TUFO (não por folha) porque quem seca ou pega sombra é a moita inteira, não
- * uma folha isolada no meio das outras.
+ * A escolha é POR TUFO, e não por folha, porque quem seca ou pega sombra é a moita inteira.
  */
 const BLADE_FAMILIES = {
   /** Verde comum — a maioria do gramado. */
@@ -173,15 +163,12 @@ function pickFamily(random: () => number): BladeFamily {
 }
 
 /**
- * Grama em TUFOS, não espalhada uniformemente.
+ * Grama em TUFOS, não espalhada uniformemente: era o que ainda fazia a grama parecer falsa depois de
+ * arrumar ladrilho e variação de tom, porque folhas sorteadas com posição uniforme dão densidade
+ * constante em todo lugar — e densidade constante não existe na natureza. Grama nasce em moitas, com
+ * falhas entre elas, e é nas falhas que a terra aparece.
  *
- * Era o que ainda fazia a grama parecer falsa mesmo depois de arrumar ladrilho e variação de
- * tom: folhas sorteadas com posição uniforme dão uma densidade constante em todo lugar, e
- * densidade constante é exatamente o que não existe na natureza. Grama nasce em moitas, com
- * falhas entre elas — e é nas falhas que a terra aparece, o que por sua vez dá profundidade.
- *
- * Cada tufo tem seu próprio tom base e sua própria inclinação dominante (como se o vento
- * tivesse penteado aquela moita), com as folhas variando em volta desses valores.
+ * Cada tufo tem tom base e inclinação dominante próprios, como se o vento tivesse penteado a moita.
  */
 function drawClumps(ctx: CanvasRenderingContext2D, random: () => number): void {
   ctx.lineCap = 'round'
