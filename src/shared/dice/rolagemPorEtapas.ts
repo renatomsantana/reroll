@@ -17,24 +17,22 @@ import {
  * A BANDEJA FALANDO A GRAMÁTICA: a rolagem por etapas que faz um preset de fórmula rolar de verdade,
  * com dados caindo na cena.
  *
- * O problema: `avaliarFormula` é síncrona e pede faces a uma `FonteDeDados` na hora em que precisa
- * delas; a bandeja 3D é o contrário, leva segundos entre o arremesso e o assentamento. Ligar as duas
- * por callback assíncrono espalharia `await` pela gramática inteira, que é um módulo puro.
+ * O problema: `avaliarFormula` é síncrona e pede faces na hora em que precisa delas; a bandeja 3D
+ * leva segundos entre o arremesso e o assentamento, e ligar as duas por callback assíncrono
+ * espalharia `await` pela gramática inteira, que é um módulo puro.
  *
  * A ligação é por REPLAY: a avaliação roda do zero a cada onda, consumindo um DIÁRIO de faces já
- * colhidas na ordem em que as chamadas acontecem — que é determinística, porque a árvore é a mesma.
- * Quando o diário acaba no meio de uma chamada, a avaliação para ali e devolve O PEDIDO ("preciso de N
- * dados de X lados"); quem guia a bandeja arremessa isso, anota as faces no fim do diário e roda tudo
- * de novo. O prefixo já anotado dá o mesmo resultado de antes, e a avaliação anda um pedido por vez.
+ * colhidas na ordem determinística em que as chamadas acontecem. Quando o diário acaba no meio de uma
+ * chamada, a avaliação para e devolve O PEDIDO ("preciso de N dados de X lados"); quem guia a bandeja
+ * arremessa isso, anota as faces no fim do diário e roda tudo de novo.
  *
- * Cada pedido é UMA onda na cena, o mesmo gesto que a explosão já encena: `2d6r<2` cai como 2d6, e o
- * dado que pede reroll volta sozinho pra segunda queda; `2d20kl1 + 1d4` cai em duas levas, que é como
- * uma pessoa rolaria na mesa — ataque, depois dano.
+ * Cada pedido é UMA onda na cena: `2d6r<2` cai como 2d6 e o dado que pede reroll volta sozinho;
+ * `2d20kl1 + 1d4` cai em duas levas, que é como uma pessoa rolaria — ataque, depois dano.
  *
- * A ordem que o diário reproduz é a de `avaliarFormula`, termo COMPLETO por termo: os dados iniciais
- * do termo, os rerolls dele, os elos de explosão dele, e só então o termo seguinte. É por isso que não
- * existe pré-busca dos termos todos numa onda só — as faces do termo 1 decidem quantas chamadas ainda
- * acontecem antes do termo 2, e um diário pré-preenchido entregaria a face errada à chamada errada.
+ * A ordem que o diário reproduz é a de `avaliarFormula`, termo COMPLETO por termo, e é por isso que
+ * não existe pré-busca dos termos todos numa onda só: as faces do termo 1 decidem quantas chamadas
+ * ainda acontecem antes do termo 2, e um diário pré-preenchido entregaria a face errada à chamada
+ * errada.
  */
 
 /** Uma face já colhida na cena, com o tipo do dado que a produziu — uma entrada do diário. */
@@ -138,12 +136,10 @@ const TIPOS_DA_BANDEJA = DEFAULT_DICE_SIDES.map((lados) => `d${lados}`).join(', 
 /**
  * A fórmula cabe na bandeja? `null` quando cabe; senão o motivo, escrito pra pessoa.
  *
- * É a régua ÚNICA dos três lugares que aceitam preset de fórmula — o editor e as validações do
- * processo principal — pra nunca existir um preset gravado que a bandeja não sabe jogar. Confere o que
- * a rolagem por ondas exige: pelo menos um dado, só tipos que existem como dado físico, cada TERMO
- * dentro do teto de dados simultâneos (termos somados podem passar, porque caem em levas, mas um termo
- * só não tem como ser dividido) e nenhuma referência à ficha, que o preset ainda não lê na hora de
- * rolar.
+ * É a régua ÚNICA dos três lugares que aceitam preset de fórmula, pra nunca existir um preset gravado
+ * que a bandeja não sabe jogar: pelo menos um dado, só tipos que existem como dado físico, cada TERMO
+ * dentro do teto de dados simultâneos (termos somados podem passar, porque caem em levas, mas um
+ * termo só não tem como ser dividido) e nenhuma referência à ficha.
  */
 export function conferirFormulaPraBandeja(formula: Formula): string | null {
   const referencia = acharReferencia(formula.expressao)
@@ -181,13 +177,11 @@ function acharReferencia(no: NoDaFormula): string[] | null {
  * O resultado avaliado no formato que o histórico e as telas já entendem.
  *
  * Cada TERMO vira um grupo, e não "um grupo por tipo de dado" como na rolagem de sempre, porque numa
- * fórmula dois termos do mesmo tipo podem ter regras diferentes (`2d6#>=5 + 1d6`) e fundi-los
- * misturaria dados que contam de jeitos diferentes.
+ * fórmula dois termos do mesmo tipo podem ter regras diferentes (`2d6#>=5 + 1d6`).
  *
- * O que a `DiceExpression` dizia por regras aqui vem POR MARCA, dado a dado, porque as regras da
- * gramática são por termo e as telas não têm como refazer essa conta — a marca pronta é a única
- * garantia de que o que aparece como "conta" é o que entrou no total. Num termo de contagem, "conta"
- * quer dizer "satisfez a condição".
+ * O que a `DiceExpression` dizia por regras aqui vem POR MARCA, dado a dado: as regras da gramática
+ * são por termo e as telas não têm como refazer essa conta. Num termo de contagem, "conta" quer dizer
+ * "satisfez a condição".
  */
 export function resultadoParaRollResult(
   formula: Formula,

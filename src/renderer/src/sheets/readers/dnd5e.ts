@@ -5,22 +5,19 @@ import type { Language } from '@shared/types/idioma'
 import type { SheetReader } from './types'
 
 /**
- * Leitor da ficha de DUNGEONS & DRAGONS 5ª EDIÇÃO.
- *
- * É o sistema mais jogado do mundo e era o caso pior do importador: a ficha oficial tem uns 160
- * campos e quase nenhum rótulo IMPRESSO ao lado deles — os nomes ("FORÇA", "Percepção") são parte da
- * arte, desenhados dentro das caixas. O genérico, que vive de casar campo com o texto ao lado, não
- * tinha o que casar: saía uma lista de "1_2 = 16" e "Check Box 22 = sim".
+ * Leitor da ficha de DUNGEONS & DRAGONS 5ª EDIÇÃO, o caso pior do importador: a ficha oficial tem uns
+ * 160 campos e quase nenhum rótulo IMPRESSO ao lado deles — os nomes ("FORÇA", "Percepção") são parte
+ * da arte. O genérico, que vive de casar campo com o texto ao lado, saía com "1_2 = 16" e "Check Box
+ * 22 = sim".
  *
  * O que salva é o outro lado: os NOMES DE CAMPO da ficha oficial da Wizards são estáveis e falam
- * ("STR", "ProfBonus", "Wpn1 AtkBonus"), e as fichas preenchíveis da comunidade quase todas
- * descendem dela. Então aqui o caminho é o INVERSO do genérico: o nome do campo é a fonte, e o texto
- * impresso não é consultado.
+ * ("STR", "ProfBonus", "Wpn1 AtkBonus"), e as fichas da comunidade quase todas descendem dela. Então
+ * aqui o caminho é o INVERSO do genérico: o nome do campo é a fonte, e o texto impresso não é lido.
  *
  * Duas armadilhas do arquivo oficial, as duas medidas: vários nomes terminam em ESPAÇO, de forma
- * inconsistente entre si (`Race `, `Wpn3 AtkBonus  `), então tudo aqui passa por `chave()`; e a
- * ficha guarda o VALOR do atributo e o MODIFICADOR em campos separados, com quem preenche à mão
- * escrevendo só um dos dois (ver `atributos()`).
+ * inconsistente entre si (`Race `, `Wpn3 AtkBonus  `), então tudo passa por `chave()`; e a ficha
+ * guarda o VALOR do atributo e o MODIFICADOR em campos separados, com quem preenche à mão escrevendo
+ * só um dos dois (ver `atributos()`).
  */
 
 /** Nome de campo normalizado: sem espaço nas pontas e sem caixa. Ver o comentário do arquivo. */
@@ -29,15 +26,13 @@ function chave(nome: string): string {
 }
 
 /**
- * AS MAGIAS DA PÁGINA DE CONJURAÇÃO, lidas pela POSIÇÃO — cada sistema raspado "igual o de Oblívio,
- * cada um com seu jeito específico dependendo do PDF".
+ * AS MAGIAS DA PÁGINA DE CONJURAÇÃO, lidas pela POSIÇÃO. O nome do campo não diz nada (`Spells 1014`,
+ * numeração de quem montou o formulário por cópia), mas a PÁGINA diz: são três colunas, cada nível é
+ * um bloco encabeçado pelo campo `SlotsTotal N`, e os truques são o bloco do alto da primeira coluna,
+ * sem cabeçalho. Uma magia pertence ao cabeçalho mais próximo ACIMA dela na mesma coluna.
  *
- * O nome do campo não diz nada (`Spells 1014`, numeração de quem montou o formulário por cópia), mas
- * a PÁGINA diz: são três colunas, cada nível é um bloco encabeçado pelo campo `SlotsTotal N`, e os
- * truques são o bloco do alto da primeira coluna, sem cabeçalho. Uma magia pertence ao cabeçalho
- * mais próximo ACIMA dela na mesma coluna. Medido na ficha do Go (goblin ladino/mago): oito truques
- * e onze magias de 1º nível chegavam como "Spells 1014" e sumiam. Sai uma linha por NÍVEL, e não uma
- * por magia: é assim que se lê a lista na mesa.
+ * Medido na ficha do Go: oito truques e onze magias de 1º nível chegavam como "Spells 1014" e sumiam.
+ * Sai uma linha por NÍVEL, e não uma por magia: é assim que se lê a lista na mesa.
  */
 const CABECALHO_DE_NIVEL = /^slotstotal\s*(\d+)$/i
 const LINHA_DE_MAGIA = /^spells\s*\d+$/i
@@ -450,18 +445,15 @@ export const dnd5eReader: SheetReader = {
 /**
  * Os seis atributos, tratando o caso que a ficha oficial cria sozinha: VALOR e MODIFICADOR em campos
  * separados, preenchidos à mão, e quase nunca os dois. A ficha não calcula nada, então na prática se
- * vê de tudo — ficha com os dois, só com o valor, só com o modificador, e com os dois DIVERGINDO
- * porque o personagem subiu de nível e só um foi corrigido.
+ * vê de tudo, inclusive os dois DIVERGINDO porque o personagem subiu de nível e só um foi corrigido.
  *
  * A regra, nessa ordem:
  *
- * 1. tem VALOR (3 a 30, a faixa que o sistema permite): mostra o valor e rola o modificador
- *    calculado a partir dele. É o número que o jogador reconhece, e calcular é mais confiável que
- *    ler, porque o modificador escrito é o campo que envelhece;
+ * 1. tem VALOR (3 a 30, a faixa do sistema): mostra o valor e rola o modificador CALCULADO a partir
+ *    dele — é o número que o jogador reconhece, e o modificador escrito é o campo que envelhece;
  * 2. só tem MODIFICADOR: mostra ele e rola somando;
- * 3. o valor está fora da faixa ou vem com SINAL: quase sempre é o modificador digitado na caixa
- *    errada — ninguém escreve "+16" como valor de Força. Tratar como modificador acerta esse caso e,
- *    se for outra coisa, ainda mostra o que está escrito.
+ * 3. valor fora da faixa ou COM SINAL: é o modificador digitado na caixa errada, porque ninguém
+ *    escreve "+16" como valor de Força.
  */
 function atributos(
   valor: (nome: string) => string | null,
