@@ -6,14 +6,10 @@ import { isInsideRegularPolygon } from './regularPolygon'
 import { D100_DEFINITION } from '../dice-defs/d100Sphere'
 
 /**
- * Atrito/restituição usados SÓ enquanto o D100 está dentro da torre (ver `dropDieIntoTower.ts`) —
- * bem mais próximos do padrão dos outros dados (`DICE_DEFAULT_PHYSICS`) que o tuning original do
- * D100 (`D100_DEFINITION.physics`, atrito máximo/restituição baixa, pensado pra "grudar" na
- * bandeja aberta). MEDIDO: com o tuning original, o D100 fica preso por MINUTOS simulados no
- * mecanismo de prateleiras (atrito máximo engole o empurrão de recuperação quase inteiro a cada
- * frame) — restaurado ao valor original (`D100_DEFINITION.physics`, nunca duplicado aqui) assim
- * que o dado sai da torre (`exitTowerIfDescended` abaixo), pra continuar "grudando" na bandeja
- * de pouso como sempre, sem rolar pra sempre por ali.
+ * Atrito e restituição só enquanto o d100 está dentro da torre (`dropDieIntoTower.ts`). O tuning
+ * dele (`D100_DEFINITION.physics`) é feito pra grudar na bandeja aberta, e medido no mecanismo de
+ * prateleiras deixava o dado preso por minutos simulados: o atrito máximo engolia quase todo o
+ * empurrão de recuperação a cada frame. O original volta na saída (`exitTowerIfDescended`).
  */
 export const TOWER_D100_PHYSICS_OVERRIDE = {
   friction: 0.5,
@@ -21,47 +17,30 @@ export const TOWER_D100_PHYSICS_OVERRIDE = {
 }
 
 /**
- * Grupos de colisão do Rapier (16 bits de "pertence a" + 16 bits de "colide com", ver
- * `InteractionGroups`). Usados só pra uma coisa: deixar um dado recém-arremessado do LADO DE
- * FORA da bandeja (ver `tossDie.ts`) atravessar o LUGAR da parede sem colidir com ela
- * enquanto ainda está entrando, evitando precisar de um arco físico alto o bastante pra
- * "pular por cima" da parede de verdade — essa altura extra de queda (~3.5+ unidades pra
- * limpar `TRAY_CONFIG.wallHeight`) se traduzia em impacto forte demais no chão/outros dados,
- * causando escapes por cima da parede na hora de POUSAR, não de entrar (ver histórico deste
- * arquivo/commit se quiser os números). Continua colidindo com o chão e com os dados que JÁ
- * ESTÃO na bandeja o tempo todo — o que ele ignora é a parede e os outros dados que também
- * ainda estão entrando (ver `GROUP_DICE_ENTERING` abaixo).
+ * Grupos de colisão do Rapier (16 bits de "pertence a" + 16 de "colide com"). Servem pra uma
+ * coisa: o dado recém-arremessado atravessa o LUGAR da parede enquanto está entrando, em vez de
+ * precisar de um arco alto o bastante pra pular por cima dela (essa altura extra virava impacto
+ * forte demais no pouso, e daí escapes). Ele segue colidindo com o chão e com quem já está na
+ * bandeja; ignora só a parede e os outros dados que também ainda estão entrando.
  */
 const GROUP_DICE = 0b0001
 const GROUP_WALL = 0b0010
 const GROUP_FLOOR = 0b0100
 /**
- * Prateleiras/parede da torre de dados (modo "torre", ver `TOWER_CONFIG`) — bit próprio, não
- * reusa `GROUP_WALL`: diferente da parede da bandeja aberta (que um dado "entrando" ignora
- * temporariamente, ver `DICE_ENTERING_GROUPS` abaixo), as prateleiras da torre precisam colidir
- * com o dado O TEMPO TODO enquanto ele está caindo — não existe um equivalente de "ainda
- * entrando" aqui, ignorá-las faria o dado atravessá-las direto.
+ * Prateleiras e parede da torre. Bit próprio, e não `GROUP_WALL`, porque elas precisam colidir com
+ * o dado o tempo todo: não existe fase "ainda entrando" aqui, ignorá-las seria atravessá-las.
  */
 const GROUP_TOWER = 0b1000
 /**
- * Bit PRÓPRIO do dado que ainda está entrando, em vez de ele continuar sendo um `GROUP_DICE`
- * comum com um filtro menor. Serve pra uma coisa só: dois dados ENTRANDO não colidem entre si.
+ * Bit próprio do dado que ainda está entrando, pra dois dados entrando não colidirem entre si.
  *
- * MEDIDO (15 dados de tipos misturados, 12 rolagens, física de verdade): com todos os dados
- * entrando podendo se atropelar, 18% deles na bandeja e 24% na boca da torre eram desviados no
- * meio do voo e acabavam parados FORA do hexágono — até 6.74 unidades além da parede (um apótema
- * inteiro) e até 2450ms lá fora. A única coisa que os trazia de volta era o empurrão de entrada
- * (`restoreWallCollisionIfInside` abaixo), que TROCA a velocidade do dado de uma vez: 1837
- * empurrões em 44 dados, mudando a velocidade em até 15.4 u/s num único quadro. Foi isso que o
- * usuário viu e descreveu como "ele sai mas tenta voltar rapidamente pra bandeja" — não é física,
- * é um ímã.
- *
- * A causa é a fase de entrada, não o pouso: na boca da torre todo dado nasce no MESMO ponto
- * (`tossDieFromMouth`), um a cada 140ms, e na bandeja os pontos de largada ficam próximos por
- * construção (`SPAWN_CONFIG.launchAngleSpreadRad`). Enquanto atravessam o lugar da parede eles
- * ainda não são obstáculo legítimo um pro outro — são todos "não estão na mesa ainda". Um dado
- * que já ESTÁ na bandeja continua sendo obstáculo de verdade, e a colisão com ele continua
- * valendo: o que some é só fantasma contra fantasma.
+ * Medido (15 dados de tipos misturados, 12 rolagens): deixando-os se atropelar, 18% dos da bandeja
+ * e 24% dos da boca da torre eram desviados no voo e paravam FORA do hexágono, até 6.74 unidades
+ * além da parede e até 2450ms lá fora; o que os trazia de volta era o empurrão de entrada, com
+ * 1837 disparos em 44 dados. É o "ele sai mas tenta voltar rapidamente pra bandeja" que o usuário
+ * viu. A causa é a largada: na torre todo dado nasce no mesmo ponto, um a cada 140ms, e na bandeja
+ * os pontos ficam próximos por construção. Enquanto atravessam o lugar da parede eles não são
+ * obstáculo legítimo um pro outro; quem já está na bandeja continua sendo.
  */
 const GROUP_DICE_ENTERING = 0b10000
 
@@ -71,9 +50,9 @@ function pack(membership: number, filter: number): number {
 
 export const WALL_COLLISION_GROUPS = pack(GROUP_WALL, GROUP_DICE)
 /**
- * O chão precisa aceitar as DUAS pertinências de dado: o dado entrando não é mais `GROUP_DICE`
- * (ver `GROUP_DICE_ENTERING`), e sem este bit no filtro ele atravessaria o chão em queda livre.
- * A parede NÃO ganha o mesmo — ignorá-la é justamente o que define a fase de entrada.
+ * O chão aceita as duas pertinências de dado: o que está entrando não é mais `GROUP_DICE` e sem
+ * este bit atravessaria o chão em queda livre. A parede não ganha o mesmo, ignorá-la é o que
+ * define a fase de entrada.
  */
 export const FLOOR_COLLISION_GROUPS = pack(GROUP_FLOOR, GROUP_DICE | GROUP_DICE_ENTERING)
 export const TOWER_COLLISION_GROUPS = pack(GROUP_TOWER, GROUP_DICE)
@@ -83,7 +62,7 @@ const DICE_NORMAL_GROUPS = pack(
   GROUP_DICE | GROUP_WALL | GROUP_FLOOR | GROUP_DICE_ENTERING
 )
 const DICE_ENTERING_GROUPS = pack(GROUP_DICE_ENTERING, GROUP_DICE | GROUP_FLOOR)
-/** Dado "caindo dentro da torre" (modo torre) — colide com outros dados e com as prateleiras/parede da torre, nunca com a parede/chão da bandeja aberta (que nem existe nesse modo, ver `createTowerScene.ts`). */
+/** Dado caindo dentro da torre: colide com dados e com a torre, nunca com a bandeja aberta (que nem existe nesse modo). */
 const DICE_DESCENDING_GROUPS = pack(GROUP_DICE, GROUP_DICE | GROUP_TOWER | GROUP_FLOOR)
 
 export function diceNormalCollisionGroups(): number {
@@ -99,106 +78,72 @@ export function diceDescendingCollisionGroups(): number {
 }
 
 /**
- * Dado "na fila" da torre (ainda não é a vez dele cair, ver `TOWER_CONFIG.maxConcurrentInTower`
- * / fila em `DiceCanvasMulti.tsx`) — não colide com NADA (filtro vazio), só pra não correr o
- * risco de vários corpos nascendo sobrepostos na origem se sobreporem de verdade (o solver do
- * Rapier resolve sobreposição profunda com um impulso de separação que pode ser bem mais
- * violento que qualquer física de jogo normal, já visto antes neste projeto — ver comentário de
- * `launchRadiusJitter` em `physicsConfig.ts`). O mesh desse dado também fica invisível
- * (`mesh.visible = false`) enquanto estiver nesse grupo — a posição exata não importa, ele nunca
- * deveria aparecer na tela até ser ativado.
+ * Dado na fila da torre (`TOWER_CONFIG.maxConcurrentInTower`): não colide com nada, senão vários
+ * corpos parados na origem se sobreporiam e o solver separaria com violência. O mesh dele também
+ * fica invisível enquanto estiver aqui.
  */
 export function parkedCollisionGroups(): number {
   return pack(GROUP_DICE, 0)
 }
 
-/** Ver comentário do "empurrão de entrada" dentro de `restoreWallCollisionIfInside`. */
+/** Ver o empurrão de entrada em `restoreWallCollisionIfInside`. */
 const ENTRY_ASSIST_SPEED_THRESHOLD = 3.5
-/**
- * Velocidade RADIAL pra dentro que o empurrão de entrada persegue — teto, não valor imposto. Assim
- * que o dado já está entrando nesse ritmo, o empurrão para de agir sozinho.
- */
+/** Velocidade radial pra dentro que o empurrão persegue: é teto, não valor imposto. */
 const ENTRY_ASSIST_TARGET_SPEED = 4.5
 /**
  * Aceleração (u/s²) do empurrão de entrada.
  *
- * O empurrão ANTES era um `setLinvel`: trocava a velocidade horizontal do dado de uma vez, rumo ao
- * centro. Medido com física de verdade (15 dados de tipos misturados, 12 rolagens por forma): isso
- * mudava a velocidade em até 15.4 u/s num único quadro, e agia quadro após quadro (1837 empurrões
- * em 44 dados) enquanto o dado não cruzasse pra dentro. Na tela lê exatamente como o usuário
- * descreveu — "ele sai mas tenta voltar rapidamente pra bandeja" —, porque não é física: é um ímã
- * ligado no dado.
+ * Era um `setLinvel`, que trocava a velocidade horizontal de uma vez: medido, mudava até 15.4 u/s
+ * num quadro e agia quadro após quadro. Na tela lê como ímã, não como física. Como aceleração, o
+ * resgate muda no máximo `ENTRY_ASSIST_ACCELERATION × dt` por quadro (0.75 u/s a 60fps) e o dado
+ * CURVA de volta mantendo o giro.
  *
- * Como aceleração, o mesmo resgate acontece com no máximo `ENTRY_ASSIST_ACCELERATION × dt` de
- * mudança por quadro (0.75 u/s a 60fps, 20× menos que o pico do puxão antigo): o dado CURVA de
- * volta pra bandeja mantendo o giro e o resto do movimento, em vez de mudar de direção num quadro.
- *
- * O valor não é de gosto, é medido contra o ATRITO: um dado parado do lado de fora está apoiado no
- * chão, e o atrito dele (`DICE_DEFAULT_PHYSICS.friction` 0.6, com gravidade 13) come ~7.8 u/s² de
- * qualquer empurrão horizontal. Com 14 sobravam ~6 líquidos e o resgate ficava fraco demais — 3
- * dados em 1440 acabaram parados fora da bandeja e sem assentar, e as excursões chegaram a 10.6
- * unidades e 4 segundos. Com 45 sobram ~37, o dado volta em ~0.12s e nenhum ficou fora.
+ * O valor é medido contra o ATRITO: parado do lado de fora o dado está apoiado no chão, e o atrito
+ * (0.6 com gravidade 13) come ~7.8 u/s² de qualquer empurrão horizontal. Com 14 sobravam ~6 e o
+ * resgate ficava fraco (3 dados em 1440 pararam fora da bandeja, com excursões de 10.6 unidades);
+ * com 45 sobram ~37, o dado volta em ~0.12s e nenhum ficou fora.
  */
 const ENTRY_ASSIST_ACCELERATION = 45
 
 /**
- * Tempo máximo (ms) que um dado "entrando" pode ficar sem colidir com a parede antes do
- * empurrão de retorno passar a agir MESMO com velocidade acima de `ENTRY_ASSIST_SPEED_THRESHOLD`
- * — ver comentário grande do empurrão abaixo. BUG REAL medido com física de verdade (10 d6
- * simultâneos, 15 rodadas): um dado rebatido por outro dado ainda entrando pode manter
- * velocidade horizontal alta por bastante tempo sem nunca cruzar de volta pra dentro do
- * hexágono — sem esse teto, chegou a ficar até 3283ms "fantasma" (sem parede nenhuma),
- * vagando até 6.6 unidades pra fora do hexágono (quase o apótema inteiro, 6.5). Valor
- * escolhido um pouco ACIMA do pior caso de uma entrada LEGÍTIMA sem interferência
- * (`launchOutsideDistance`±jitter / `minHorizontalSpeed` ≈ 875ms), pra não disparar cedo
- * demais numa entrada normal, só devagar.
+ * Quanto tempo um dado entrando pode ficar sem cruzar pra dentro antes de o empurrão agir mesmo
+ * com velocidade acima do limiar. Sem esse teto, um dado rebatido por outro mantinha velocidade
+ * alta sem nunca voltar: medido, até 3283ms fantasma e 6.6 unidades fora do hexágono. O valor fica
+ * um pouco acima do pior caso de uma entrada legítima (≈875ms) pra não disparar numa entrada
+ * normal, só devagar.
  */
 const ENTRY_FORCE_PUSH_TIMEOUT_MS = 900
 
 /**
- * Margem de segurança (unidades de mundo) subtraída do apótema na checagem de "já entrou" —
- * BUG REAL encontrado rolando `d6.statistical.test.ts` repetidas vezes depois da bandeja virar
- * hexágono: o teste "está dentro" original usava o apótema puro como limite, mas o COLLIDER
- * físico da parede tem meia-espessura própria (`createRingWall`'s `halfThickness=0.15`) —
- * então um dado cujo CENTRO acabou de cruzar o apótema pode já estar fisicamente embutido
- * dentro do volume sólido da parede no exato instante em que a colisão é restaurada. Perto de
- * um LADO plano isso é só ~0.15 de sobreposição (pequena, resolvida sem drama). Perto de um
- * VÉRTICE do hexágono é bem pior: dois painéis adjacentes se encontram ali, e o próprio limite
- * geométrico "dentro do polígono" (baseado no apótema) chega a ficar praticamente na MESMA
- * distância radial onde o volume físico da parede começa (verificado numericamente: apótema
- * 6.5 → limite de "dentro" no vértice ≈ 7.505, enquanto a parede ocupa daí pra fora a partir de
- * ~7.33) — ou seja, sem margem, a transição podia acontecer com o dado JÁ tocando a parede.
- * Reproduzido ao vivo: dado lançado rumo ao centro, colisão restaurada bem perto de um vértice,
- * solver resolve a sobreposição com um impulso violento (inversão quase total da velocidade,
- * ver histórico de `_debugD6`/investigação desta sessão) que arremessa o dado pra fora da
- * bandeja — o mesmo padrão de "sobreposição profunda → impulso de separação violento" que este
- * projeto já documentou antes (spawn jitter, ver `launchRadiusJitter`). Corrigido encolhendo o
- * polígono usado no teste por essa margem, garantindo que a transição sempre aconteça bem ANTES
- * do dado alcançar o volume físico da parede, em qualquer direção (lado ou vértice).
+ * Margem tirada do apótema na checagem de "já entrou".
+ *
+ * O collider da parede tem meia-espessura própria, então um dado cujo centro acabou de cruzar o
+ * apótema pode já estar embutido no volume sólido dela quando a colisão é restaurada. Num LADO
+ * plano é ~0.15 de sobreposição; num VÉRTICE é bem pior, porque o limite geométrico do polígono
+ * fica praticamente na mesma distância radial onde a parede começa (apótema 6.5 → limite no
+ * vértice ≈ 7.505, parede a partir de ~7.33). Reproduzido: colisão restaurada perto de um vértice,
+ * o solver desfaz a sobreposição com um impulso que inverte a velocidade e joga o dado pra fora.
+ * Encolhendo o polígono do teste, a transição acontece antes de o dado alcançar a parede em
+ * qualquer direção.
  */
 const WALL_ENTRY_SAFETY_MARGIN = 0.5
 
 /**
- * Chamado todo frame por dado (ver `DiceCanvasMulti.tsx`/testes de física): assim que a
- * posição horizontal do dado volta pra dentro da bandeja, restaura a colisão normal com a
- * parede. Idempotente e barato — só mexe no collider quando ele ainda está na fase "entrando"
- * E já cruzou pra dentro, então é seguro chamar em todo dado, todo frame, sem checar nada
+ * Chamado todo frame por dado: quando ele volta pra dentro da bandeja, restaura a colisão com a
+ * parede. Idempotente e barato, só age na fase "entrando", então dá pra chamar sem checar nada
  * fora daqui.
  *
- * `enteringElapsedMs` (opcional, default 0): quanto tempo simulado o dado já passou nesta fase
- * "entrando" sem cruzar pra dentro — quem chama é responsável por acumular e resetar isso (ver
- * `DiceCanvasMulti.tsx`/`diceEscape.test.ts`). Usado só pra decidir quando o empurrão de
- * retorno abaixo passa a agir mesmo com velocidade alta (ver `ENTRY_FORCE_PUSH_TIMEOUT_MS`).
+ * `enteringElapsedMs` é o tempo simulado nesta fase sem cruzar pra dentro; quem chama acumula e
+ * reseta. Só decide quando o empurrão passa a agir mesmo com velocidade alta.
  */
 export function restoreWallCollisionIfInside(
   body: RAPIER.RigidBody,
   enteringElapsedMs = 0,
-  /** Lados da bandeja em cena — a forma é escolhida pelo usuário (ver `trayShape.ts`). */
+  /** Lados da bandeja em cena: a forma é escolha do usuário (`trayShape.ts`). */
   sides = TRAY_CONFIG.wallSegments,
   /**
-   * Tempo de física simulado desde a última chamada. O empurrão de entrada é uma ACELERAÇÃO (ver
-   * `ENTRY_ASSIST_ACCELERATION`), e aceleração sem `dt` seria um valor por quadro — o que faria o
-   * resgate depender da taxa de quadros da máquina. Default = um passo a 60Hz.
+   * Tempo de física desde a última chamada. O empurrão é uma aceleração, e sem `dt` viraria um
+   * valor por quadro, ou seja, resgate dependente da taxa de quadros da máquina.
    */
   dtMs = 1000 / WORLD_CONFIG.physicsStepsPerSecond
 ): void {
@@ -221,18 +166,10 @@ export function restoreWallCollisionIfInside(
   }
 
   /**
-   * Empurrão de entrada: um dado "entrando" que perde o embalo ANTES de cruzar pra dentro da
-   * bandeja (ex.: bateu noutro dado no meio do caminho) nunca dispararia o `withinTray` acima
-   * — ficaria parado pra sempre do lado de fora, visível fora da bandeja, já que ele ignora a
-   * parede enquanto estiver nesse estado. Define a velocidade horizontal (não SOMA um
-   * impulso — nunca acelera sem limite mesmo chamado todo frame) rumo ao centro quando o dado
-   * já está devagar OU quando já passou tempo demais tentando entrar (`enteringElapsedMs` >
-   * `ENTRY_FORCE_PUSH_TIMEOUT_MS`) — essa segunda condição existe porque um dado rebatido por
-   * outro dado vizinho ainda entrando pode manter velocidade alta por vários segundos sem
-   * nunca cruzar pra dentro, ficando "fantasma" (sem colisão com a parede) visível por tempo
-   * demais (medido: até 3283ms/6.6 unidades pra fora sem esse teto). (Uma versão mais fraca,
-   * baseada em impulso pequeno somado em vez de substituir a velocidade, não vencia o
-   * atrito/colisões com dados vizinhos.)
+   * Empurrão de entrada: o dado que perde o embalo antes de cruzar (bateu noutro no caminho)
+   * nunca dispararia o `withinTray` acima, e ficaria parado do lado de fora, visível, ignorando a
+   * parede pra sempre. Age quando ele está devagar, quando já passou tempo demais tentando, ou
+   * quando está indo pra longe.
    */
   const v = body.linvel()
   const horizontalSpeed = Math.hypot(v.x, v.z)
@@ -242,18 +179,15 @@ export function restoreWallCollisionIfInside(
   const inwardX = -t.x / distanceFromCenter
   const inwardZ = -t.z / distanceFromCenter
 
-  // Só a componente RADIAL importa: se o dado já está indo pra dentro nesse ritmo, não há o que
-  // corrigir, e insistir seria acelerar sem limite um dado que já vai entrar sozinho.
+  // Só a componente radial importa: quem já vai entrar nesse ritmo não precisa de correção, e
+  // insistir seria acelerar sem limite um dado que entra sozinho.
   const inwardSpeed = v.x * inwardX + v.z * inwardZ
   if (inwardSpeed >= ENTRY_ASSIST_TARGET_SPEED) return
 
   /**
-   * Três motivos pra agir, e o terceiro é o que encurta as excursões longas: dado ENTRANDO que
-   * está indo PRA LONGE da bandeja nunca está certo, por mais rápido que vá. Antes só a lentidão
-   * (`ENTRY_ASSIST_SPEED_THRESHOLD`) e o tempo (`ENTRY_FORCE_PUSH_TIMEOUT_MS`) disparavam, então um
-   * dado rebatido pra fora a 5 u/s ficava quase um segundo se afastando sem ninguém tocar nele —
-   * medido chegando a 10.6 unidades além da parede. Um lançamento normal nasce indo pra dentro, ou
-   * seja, esta condição não encosta nele.
+   * O terceiro motivo é o que encurta as excursões longas: dado entrando que se AFASTA nunca está
+   * certo, por mais rápido que vá. Só com lentidão e tempo, um dado rebatido a 5 u/s passava quase
+   * um segundo se afastando (medido, até 10.6 unidades). Lançamento normal nasce indo pra dentro.
    */
   const afastando = inwardSpeed < 0
   if (!afastando && horizontalSpeed >= ENTRY_ASSIST_SPEED_THRESHOLD && enteringElapsedMs <= ENTRY_FORCE_PUSH_TIMEOUT_MS) {
@@ -264,23 +198,18 @@ export function restoreWallCollisionIfInside(
     (ENTRY_ASSIST_ACCELERATION * dtMs) / 1000,
     ENTRY_ASSIST_TARGET_SPEED - inwardSpeed
   )
-  // `mass × Δv` — impulso que produz exatamente `deltaV`, seja qual for o tipo de dado (a massa é
-  // a mesma hoje, mas derivar dela é o que mantém a aceleração igual se algum dado mudar de massa).
+  // `massa × Δv`: o impulso que produz exatamente `deltaV` seja qual for o dado. A massa é a mesma
+  // hoje, mas derivar dela mantém a aceleração igual se algum dado mudar.
   const impulse = body.mass() * deltaV
   body.applyImpulse({ x: inwardX * impulse, y: 0, z: inwardZ * impulse }, true)
 }
 
 /**
- * Equivalente de `restoreWallCollisionIfInside` pro modo torre: assim que o dado desce abaixo da
- * altura de saída (`TOWER_CONFIG.exitY`), ele já "saiu" — troca pro grupo normal (colide com
- * dado/parede/chão). Não existe uma fase intermediária "entrando" aqui como na bandeja aberta: a
- * cena da torre não tem parede retangular nenhuma pra ignorar temporariamente
- * (`createTowerScene.ts`), então ir direto pro grupo normal já é seguro — o único collider que
- * passa a valer de novo é o chão circular da base, que o dado sempre deveria colidir mesmo.
+ * O equivalente pro modo torre: abaixo de `TOWER_CONFIG.exitY` o dado já saiu e vai pro grupo
+ * normal. Não há fase intermediária aqui porque a cena da torre não tem parede de bandeja pra
+ * ignorar; o único collider que volta a valer é o chão da base.
  *
- * NÃO mexe na velocidade aqui — o dado chega já se movendo com a velocidade real que construiu
- * caindo entre as prateleiras (ver `dropDieIntoTower.ts`/`buildTowerBaffles.ts`), sem nenhum
- * reforço/redirecionamento artificial na saída.
+ * A velocidade não é tocada: o dado chega com a que construiu caindo entre as prateleiras.
  */
 export function exitTowerIfDescended(body: RAPIER.RigidBody, sides?: PhysicalDiceSides): void {
   if (body.numColliders() === 0) return
@@ -289,16 +218,12 @@ export function exitTowerIfDescended(body: RAPIER.RigidBody, sides?: PhysicalDic
 
   if (body.translation().y <= TOWER_CONFIG.exitY) {
     collider.setCollisionGroups(DICE_NORMAL_GROUPS)
-    // Desliga o soft-CCD ligado em `dropDieIntoTower.ts` (0 = desligado, ver doc de
-    // `setSoftCcdPrediction`) — só precisa dele enquanto o dado está dentro da torre.
+    // Desliga o soft-CCD ligado em `dropDieIntoTower.ts`; só vale dentro da torre.
     body.setSoftCcdPrediction(0)
-    // Restaura o atrito/restituição originais do D100 (ver `TOWER_D100_PHYSICS_OVERRIDE` acima) —
-    // só valem ENQUANTO dentro da torre; de volta na bandeja de pouso, o D100 precisa continuar
-    // "grudando" como sempre.
+    // Devolve o atrito original do d100: fora da torre ele precisa grudar na bandeja como sempre.
     if (sides === 100) {
       collider.setFriction(D100_DEFINITION.physics.friction)
       collider.setRestitution(D100_DEFINITION.physics.restitution)
     }
   }
 }
-

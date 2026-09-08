@@ -1,36 +1,21 @@
 import * as THREE from 'three'
 
 /**
- * Textura procedural de tijolo/pedra pra torre — desenhada num canvas 2D (mesma técnica já
- * usada pros números dos dados, ver `createNumberTexture.ts`), NÃO uma imagem externa. O
- * usuário trouxe referências reais (`ideias/`) de torres de castelo com padrão de tijolo visível
- * e pediu explicitamente "como está na imagem" depois de achar a torre anterior (lisa, cinza
- * sólida, com vários torreões separados) sem cara de castelo — um padrão de tijolo repetido é o
- * que mais rapidamente lê como "pedra de castelo" à distância, sem precisar de nenhum asset.
+ * Textura procedural de tijolo pra torre, desenhada num canvas 2D (a mesma técnica dos números dos
+ * dados) e não uma imagem externa: um padrão de tijolo repetido é o que mais rápido lê como pedra de
+ * castelo à distância, sem asset nenhum. Um ladrilho de fiadas deslocadas meio tijolo (o "running
+ * bond" clássico) é desenhado uma vez e repetido por `RepeatWrapping`, com variação de tom
+ * determinística pela própria posição (e não `Math.random()`, que mudaria a cada remount).
  *
- * Um único "ladrilho" (2 fiadas de tijolo, a de baixo deslocada meio tijolo — o padrão clássico
- * "running bond") é desenhado uma vez e repetido via `RepeatWrapping`; cada tijolo recebe uma
- * variação leve e determinística de tom (baseada na própria posição, não `Math.random()`, pra
- * não mudar a cada remount) pra não ficar "computador demais".
+ * Também sai um NORMAL MAP do mesmo layout (junta de argamassa = baixo, tijolo = alto), porque só
+ * variação de cor não dá profundidade sob luz direta e a argamassa precisa ler como recuada.
  *
- * Também gera um NORMAL MAP a partir do mesmo layout (junta de argamassa = baixo, tijolo = alto)
- * — pedido do usuário ("os tijolos ainda não estão tão realistas"): só variação de COR não dá
- * profundidade nenhuma sob luz direta, a argamassa precisa ler como realmente recuada. Mesma
- * técnica (altura → normal via diferenças centrais) já usada em `createVelvetNormalMap.ts`.
- */
-/**
- * O LADRILHO, calibrado pra ter a MESMA escala de pixel nos dois eixos.
- *
- * Ele cobre 8 tijolos por fiada e 8 fiadas — 64 tijolos distintos, contra os 8 de antes. Em unidades
- * de mundo isso dá 8 x 1.1 = 8.8 de largura por 8 x 0.55 = 4.4 de altura, ou seja 2:1, e é por isso
- * que o canvas é 512x256 e não quadrado.
- *
- * Quadrado era um erro silencioso: com o mesmo número de pixels cobrindo 8.8 na horizontal e 4.4 na
- * vertical, a junta de argamassa saía com o dobro da grossura num eixo e metade no outro. Agora são
- * 58 pixels por unidade nos dois, e a junta tem a mesma espessura em qualquer direção.
- *
- * Mais tijolo por ladrilho é a outra metade do conserto da repetição que o usuário viu: 64 pedras
- * diferentes antes de o desenho se repetir, em vez de 8.
+ * O LADRILHO é calibrado pra ter a mesma escala de pixel nos dois eixos: cobre 8 tijolos por fiada e
+ * 8 fiadas, o que em unidades de mundo dá 8.8 × 4.4, ou seja 2:1 — daí o canvas ser 512×256 e não
+ * quadrado. Quadrado era um erro silencioso: com o mesmo número de pixels cobrindo 8.8 na horizontal
+ * e 4.4 na vertical, a junta saía com o dobro da grossura num eixo e metade no outro. Mais tijolo por
+ * ladrilho é a outra metade do conserto da repetição: 64 pedras diferentes antes de o desenho
+ * repetir, em vez de 8.
  */
 const TILE_WIDTH = 512
 const TILE_HEIGHT = 256
@@ -119,15 +104,12 @@ export interface BrickTextures {
 }
 
 /**
- * Gera as texturas + aplica `repeat` proporcional às dimensões reais da superfície (largura ×
- * altura), pra o tijolo não sair esticado/achatado em superfícies de tamanhos bem diferentes
- * (casca alta vs. parede baixa da base).
+ * Gera as texturas e aplica `repeat` proporcional às dimensões reais da superfície, pra o tijolo não
+ * sair esticado numa peça e achatado noutra.
  *
  * `brickWorldWidth`/`brickWorldHeight` existem pras peças PEQUENAS da torre ao lado da bandeja
- * (ameia, pilar do portão, soleira — ver `createTowerBesideTray.ts`). Um tijolo de 1.1 × 0.55 é
- * maior que uma ameia inteira: o `Math.max(1, ...)` abaixo cairia em 1 repetição e a peça sairia
- * com um tijolo só esticado por cima dela, que lê como mancha, não como alvenaria. Com tijolo
- * menor, a mesma peça mostra dois ou três de verdade.
+ * (ameia, pilar do portão, soleira): um tijolo de 1.1 × 0.55 é maior que uma ameia inteira, e a peça
+ * sairia com um tijolo só esticado por cima, que lê como mancha e não como alvenaria.
  */
 export function createBrickTexture(
   stoneColor: number,
@@ -137,12 +119,10 @@ export function createBrickTexture(
   brickWorldWidth = 1.1,
   brickWorldHeight = 0.55,
   /**
-   * Se o tamanho da pedra pode ser ENCOLHIDO pra peça pequena caber num tanto mínimo delas.
-   *
-   * `false` quando quem chama já escolheu a pedra a dedo — é o caso da cantaria do portão, onde a
-   * ombreira pede um bloco tão largo quanto ela e a verga pede cinco deitadas. Nesses casos o
-   * ajuste automático não ajuda: ele encolhia a pedra pedida até caber 1.6, e o pedido virava outra
-   * coisa.
+   * Se o tamanho da pedra pode ser ENCOLHIDO pra caber um tanto mínimo dela na peça. `false` quando
+   * quem chama já escolheu a pedra a dedo, como a cantaria do portão, onde a ombreira pede um bloco
+   * tão largo quanto ela e a verga pede cinco deitadas: ali o ajuste automático encolhia a pedra
+   * pedida até caber 1.6, e o pedido virava outra coisa.
    */
   ajustarPecaPequena = true
 ): BrickTextures {
@@ -177,58 +157,35 @@ export function createBrickTexture(
   const normalMap = buildNormalMap(buildHeightMap(rowHeight, brickWidth))
 
   /**
-   * Quantas vezes o tile se repete na superfície. FRACIONÁRIO quando a peça é menor que um tile.
+   * Quantas vezes o tile se repete na superfície, FRACIONÁRIO quando a peça é menor que um tile. Era
+   * `Math.max(1, Math.round(...))`, e esse piso de 1 é que deixava as ameias e o portão feios: numa
+   * ameia de 0.5 de largura a conta dá 0.45, o piso subia pra 1, e uma repetição inteira significa o
+   * tile inteiro espremido numa pedra de meio metro. Trocar o TAMANHO do tijolo não resolvia nada,
+   * porque o piso apagava a conta antes dela chegar aqui.
    *
-   * Era `Math.max(1, Math.round(...))`, e esse piso de 1 é que deixava as ameias e o portão feios:
-   * numa ameia de 0.5 de largura a conta dá 0.45, o piso subia pra 1, e uma repetição INTEIRA
-   * significa o tile inteiro — quatro tijolos de largura por duas fiadas — espremido numa pedra de
-   * meio metro. O usuário viu isso duas vezes ("os tijolos do portão estão mt feios... e os tijolos
-   * dos bicos da torre lá em cima também"), e trocar o TAMANHO do tijolo não resolvia nada, porque
-   * o piso apagava a conta antes de ela chegar aqui.
-   *
-   * O arredondamento continua pra quem passa de um tile, e por um motivo: numa superfície que dá a
-   * VOLTA (a casca, o pedestal, a cornija) uma repetição fracionária corta o tijolo ao meio no
-   * ponto em que a textura fecha, e isso aparece como uma emenda vertical na pedra.
+   * O arredondamento continua pra quem passa de um tile: numa superfície que dá a VOLTA (casca,
+   * pedestal, cornija) uma repetição fracionária corta o tijolo ao meio onde a textura fecha.
    */
   const inteiroOuFracao = (bruto: number): number => (bruto >= 1 ? Math.round(bruto) : bruto)
   /**
-   * A conta divide pelo tamanho do LADRILHO, não pelo de um tijolo — e essa era a origem de duas
-   * queixas de uma vez ("tão mt repetidos e colados um no outro").
-   *
-   * O ladrilho tem `BRICKS_PER_ROW` tijolos, mas o divisor era a largura de UM. Resultado: o
-   * ladrilho inteiro era espremido no espaço de um tijolo, cada tijolo saía com 1/6 da largura que
-   * este arquivo diz que ele tem, e o mesmo punhado de tijolos se repetia seis vezes mais que o
-   * necessário. De quebra, encolhido, a junta de argamassa virava sub-pixel na tela — daí eles
-   * parecerem colados um no outro.
-   *
-   * Medido na casca da torre: circunferência 9.11, tijolo de 1.1. Antes dava 8 repetições do
-   * ladrilho (32 tijolos na volta, cada um com 0.28 de largura); agora dá 1.4 → 1 repetição, com os
-   * 6 tijolos do ladrilho ocupando a volta inteira no tamanho que deveriam ter.
+   * A conta divide pelo tamanho do LADRILHO, não pelo de um tijolo, e era daí que vinham duas queixas
+   * de uma vez ("tão mt repetidos e colados um no outro"): com o divisor errado o ladrilho inteiro era
+   * espremido no espaço de um tijolo, cada tijolo saía com 1/6 da largura devida, e a junta virava
+   * sub-pixel na tela. Medido na casca da torre: circunferência 9.11 com tijolo de 1.1 dava 8
+   * repetições (32 tijolos na volta, de 0.28 cada); agora dá 1, com os tijolos no tamanho certo.
    */
   /**
-   * PEÇA PEQUENA ganha tijolo menor, pra continuar mostrando alvenaria em vez de mancha.
-   *
-   * Um tijolo de 1.1 é maior que uma ameia inteira ou que o pilar do portão: com o tamanho fixo,
-   * essas peças recebiam uma fração tão pequena do ladrilho que ficavam com meio tijolo esticado por
-   * cima, ou seja, cor chapada. Aqui o tijolo encolhe até a peça caber uns dois e meio — que é o
-   * mínimo pra a junta aparecer e ela ler como pedra.
-   *
-   * `Math.min` porque isso só pode ENCOLHER: numa superfície grande o tijolo continua sendo o que a
-   * torre pediu, senão a casca ganharia pedras gigantes.
+   * PEÇA PEQUENA ganha tijolo menor, pra continuar mostrando alvenaria em vez de mancha: o tijolo
+   * encolhe até caberem uns dois e meio, que é o mínimo pra a junta aparecer. `Math.min` porque isso
+   * só pode ENCOLHER, senão a casca ganharia pedras gigantes.
    */
   const TIJOLOS_MINIMOS = 1.6
   /**
-   * O encolhimento é PROPORCIONAL — um fator só pros dois eixos —, e é isso que preserva a forma do
-   * tijolo.
-   *
-   * Encolhendo eixo a eixo, como estava, cada peça esticava a pedra num sentido diferente: a
-   * ombreira do portão (0.29 x 1.78) saía com tijolo de 0.12 x 0.55, quatro vezes mais alto que
-   * largo, e a verga (2.46 x 0.32) com 0.99 x 0.13, sete vezes mais larga que alta. É por isso que
-   * os tijolos em volta do vão da porta ficavam feios enquanto os da casca estavam certos: não era
-   * tamanho, era PROPORÇÃO.
-   *
-   * Com um fator único, o tijolo do portão é o mesmo da torre, só menor — que é o que acontece numa
-   * construção de verdade, onde a pedra da ombreira é da mesma pedreira que a da parede.
+   * O encolhimento é PROPORCIONAL, um fator só pros dois eixos, e é isso que preserva a forma do
+   * tijolo. Eixo a eixo, cada peça esticava a pedra num sentido diferente: a ombreira do portão
+   * (0.29 × 1.78) saía com tijolo quatro vezes mais alto que largo e a verga (2.46 × 0.32) com um
+   * sete vezes mais largo que alto. Não era tamanho, era PROPORÇÃO. Com um fator único, o tijolo do
+   * portão é o mesmo da torre, só menor, que é o que acontece numa construção de verdade.
    */
   const fator = ajustarPecaPequena
     ? Math.min(

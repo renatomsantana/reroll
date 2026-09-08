@@ -2,15 +2,10 @@ import * as THREE from 'three'
 import type { CameraMode } from '@renderer/settings/SettingsContext'
 
 /**
- * A matemática de câmera do WASD, separada do componente pra poder ser TESTADA.
- *
- * Ela mora aqui, e não solta dentro de `DiceCanvasMulti.tsx`, por um motivo prático: a única forma
- * de conferir câmera olhando é dirigir o app pelo teclado, e teclado sintético não chega numa
- * janela do Electron que não está em primeiro plano. Sem isto, "o WASD funciona" seria uma
- * afirmação sem prova nenhuma por trás.
- *
- * Os três modos vêm do pedido do usuário — andar pela mesa, travar nos dados, ou voar livre (ver
- * `CameraMode`).
+ * A matemática de câmera do WASD, separada do componente pra poder ser TESTADA: a única forma de
+ * conferir câmera olhando é dirigir o app pelo teclado, e teclado sintético não chega numa janela do
+ * Electron que não está em primeiro plano. Os três modos (andar pela mesa, travar nos dados, voar
+ * livre) vêm do pedido dele, ver `CameraMode`.
  */
 
 export interface CameraKeys {
@@ -30,13 +25,10 @@ export interface CameraLimits {
   /** Até onde o alvo pode passear no plano da mesa (modo `table`). */
   panRadius: number
   /**
-   * Piso da câmera: altura de mundo abaixo da qual ela não desce. É o tampo da mesa — pedido do
-   * usuário, "ver tudo da mesa MENOS debaixo dela".
-   *
-   * Só o ângulo polar não resolvia isso. Ele impede INCLINAR a vista de baixo pra cima, mas no modo
-   * livre o Q/E TRANSLADA a câmera: dava pra descer reto, atravessar o tampo e sair embaixo dele,
-   * olhando pra baixo o tempo todo — nenhum ângulo proibido em nenhum momento, e ainda assim
-   * embaixo da mesa, vendo a face de baixo do tampo e o vazio preto em volta.
+   * Piso da câmera: a altura de mundo abaixo da qual ela não desce, que é o tampo da mesa ("ver tudo
+   * da mesa MENOS debaixo dela"). Só o ângulo polar não resolvia: ele impede INCLINAR a vista de
+   * baixo pra cima, mas no modo livre o Q/E TRANSLADA a câmera, então dava pra descer reto,
+   * atravessar o tampo e sair embaixo dele sem usar nenhum ângulo proibido.
    */
   minCameraY: number
 }
@@ -49,24 +41,22 @@ export interface CameraSpeeds {
 }
 
 /**
- * Velocidades do teclado, DOBRADAS a pedido do usuário ("a câmera WASD está lenta").
- *
- * Os números não saíram de "parece melhor": cada um foi medido contra o tamanho da coisa que ele
- * atravessa, porque velocidade de câmera só quer dizer alguma coisa em relação à cena.
+ * Velocidades do teclado, dobradas a pedido dele ("a câmera WASD está lenta"). Os números foram
+ * medidos contra o tamanho da coisa que cada um atravessa, porque velocidade de câmera só quer dizer
+ * alguma coisa em relação à cena:
  *
  *                          antes            agora
  *   W/S zoom inteiro       3,7 s            1,7 s     (33,2 unidades entre `minDistance` e `maxDistance`)
  *   A/D volta completa     3,9 s            2,0 s
- *   Q/E arco inteiro       1,3 s            0,7 s     (o polar já estava no lugar, acompanha os outros)
+ *   Q/E arco inteiro       1,3 s            0,7 s
  *   WASD mesa inteira      3,6 s            1,6 s     (32 unidades, o diâmetro de `GROUND_RADIUS`)
  *
- * A régua é a mesma pros quatro: uma travessia de ponta a ponta deve custar cerca de dois segundos
- * de tecla apertada. Mais que isso vira espera; menos, e o passo fica difícil de parar no lugar.
+ * A régua é a mesma pros quatro: uma travessia de ponta a ponta custa cerca de dois segundos de tecla
+ * apertada. Mais que isso vira espera; menos, e o passo fica difícil de parar no lugar.
  *
- * CUIDADO ao subir mais: perto do zoom máximo (`minDistance` = 1.8, feito pra ler o número gravado
+ * Cuidado ao subir mais: perto do zoom máximo (`minDistance` = 1.8, feito pra ler o número gravado
  * numa face) a velocidade é a mesma que a de longe, então o que é confortável na vista padrão já é
- * brusco colado num dado. Se um dia precisar de mais velocidade, o caminho é escalar pela distância
- * da câmera ao alvo, não subir o número plano.
+ * brusco colado num dado. Se precisar de mais, o caminho é escalar pela distância ao alvo.
  */
 export const DEFAULT_CAMERA_SPEEDS: CameraSpeeds = {
   orbit: 3.2,

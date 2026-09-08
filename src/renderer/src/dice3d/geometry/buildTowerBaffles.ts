@@ -2,17 +2,11 @@ import * as THREE from 'three'
 import { TOWER_CONFIG } from '../config/physicsConfig'
 
 /**
- * Geometria do mecanismo de "dice tower" de verdade — prateleiras (baffles) inclinadas, cada uma
- * presa numa parede e girada em relação à anterior (`baffleRotationalOffsetDeg`, alternando
- * sentido), criando um caminho em zig-zag espiralado ao redor do eixo da torre: o dado cai, bate
- * numa prateleira, é redirecionado pra borda aberta (do lado oposto de onde está presa) e cai na
- * próxima, presa numa parede girada. Segue `dice_tower_parametric_prompt.md` (spec CAD trazida
- * pelo usuário) — substituiu tanto a rampa em espiral contínua do design original quanto a
- * primeira versão de baffles desta sessão (só 2 lados fixos, sem giro).
- *
- * Cada prateleira é construída/consumida como um retângulo simples (posição + quaternion +
- * dimensões) — o MESMO transform alimenta tanto o mesh visual (`createTowerScene.ts`) quanto o
- * collider físico (`createTowerColliders.ts`), pra garantir que nunca desalinham.
+ * Geometria do mecanismo de dice tower: prateleiras inclinadas, cada uma presa numa parede e girada
+ * em relação à anterior (`baffleRotationalOffsetDeg`, alternando sentido), criando um caminho em
+ * zig-zag espiralado — o dado cai, bate numa prateleira, é redirecionado pra borda aberta do lado
+ * oposto e cai na próxima. Cada prateleira é um retângulo (posição, quaternion e dimensões), e o
+ * MESMO transform alimenta o mesh visual e o collider físico, pra nunca desalinharem.
  */
 export interface BaffleTransform {
   position: THREE.Vector3
@@ -23,10 +17,9 @@ export interface BaffleTransform {
   width: number
   thickness: number
   /**
-   * Vetor unitário "morro abaixo" desta prateleira (da parede presa rumo à borda aberta) — usado
-   * por `applyTowerStuckNudge.ts` pra empurrar um dado travado NA DIREÇÃO CERTA daquela
-   * prateleira específica, em vez de um empurrão genérico (ver `findNearestBaffleDirection`
-   * abaixo).
+   * Vetor unitário "morro abaixo" desta prateleira (da parede presa rumo à borda aberta), usado por
+   * `applyTowerStuckNudge.ts` pra empurrar um dado travado na direção certa daquela prateleira, em
+   * vez de um empurrão genérico (ver `findNearestBaffleDirection`).
    */
   direction: THREE.Vector3
   /** Altura (Y) do ponto de FIXAÇÃO (parede) desta prateleira — topo do intervalo vertical dela. */
@@ -36,13 +29,11 @@ export interface BaffleTransform {
 }
 
 /**
- * Ângulo (radianos, mesma convenção `(cos(theta)·R, y, sin(theta)·R)` usada pelo resto da torre)
- * onde a prateleira `i` (0 = mais alta) fica PRESA na parede. A prateleira 0 fixa em 0°; cada
- * próxima gira `180° + baffleRotationalOffsetDeg` em relação à anterior, alternando o SINAL do
- * deslocamento extra (+/-) a cada uma — é esse sinal alternado (não só o giro em si) que produz
- * o caminho não repetitivo pedido pelo spec ("prevent geometrically biased outcomes"): sem
- * alternar o sinal, o giro extra se acumularia sempre na mesma direção e o padrão voltaria a ser
- * previsível depois de `360/offset` prateleiras.
+ * Ângulo onde a prateleira `i` (0 = mais alta) fica presa na parede, na convenção
+ * `(cos θ·R, y, sin θ·R)` do resto da torre. A 0 fica em 0°, e cada próxima gira
+ * `180° + baffleRotationalOffsetDeg`, alternando o SINAL do deslocamento extra. É esse sinal
+ * alternado, e não o giro em si, que produz o caminho não repetitivo: sem alternar, o giro extra se
+ * acumularia sempre na mesma direção e o padrão voltaria a ser previsível.
  */
 function computeAttachAngle(index: number): number {
   const offsetRad = (TOWER_CONFIG.baffleRotationalOffsetDeg * Math.PI) / 180
@@ -55,10 +46,8 @@ function computeAttachAngle(index: number): number {
 }
 
 /**
- * Altura (Y) onde o dado nasce — acima da primeira (mais alta) prateleira, com
- * `TOWER_CONFIG.topClearance` de queda livre antes do primeiro impacto (`entry_drop_height` no
- * spec). Determinístico a partir de `TOWER_CONFIG`, calculado uma vez como constante de módulo
- * (`TOWER_TOP_Y`).
+ * Altura em que o dado nasce: acima da prateleira mais alta, com `topClearance` de queda livre antes
+ * do primeiro impacto. Determinístico a partir de `TOWER_CONFIG`, calculado uma vez em `TOWER_TOP_Y`.
  */
 export function computeTowerTopY(): number {
   const { exitY, bottomClearance, baffleCount, baffleVerticalSpacing, topClearance } = TOWER_CONFIG
@@ -69,11 +58,9 @@ export function computeTowerTopY(): number {
 export const TOWER_TOP_Y = computeTowerTopY()
 
 /**
- * Ângulo (radianos) na direção em que o dado naturalmente sai da ÚLTIMA prateleira — usado por
- * `buildTowerShellGeometry.ts` (recorte do portão) e `createExitLandingPlatform` (posição da
- * "mini área de aterrissagem"). A última prateleira empurra o dado PRA FORA da parede onde ela
- * está presa (ver `computeBaffleTransforms`) — ou seja, na direção OPOSTA ao próprio ângulo de
- * fixação dela.
+ * Ângulo na direção em que o dado sai da ÚLTIMA prateleira, usado pelo recorte do portão
+ * (`buildTowerShellGeometry.ts`) e pela posição da plataforma de pouso. A última prateleira empurra o
+ * dado PRA FORA da parede onde está presa, ou seja, na direção oposta ao ângulo de fixação dela.
  */
 export function computeTowerExitAngle(): number {
   const lastIndex = TOWER_CONFIG.baffleCount - 1
@@ -81,14 +68,12 @@ export function computeTowerExitAngle(): number {
 }
 
 /**
- * Constrói os transforms (posição + rotação + dimensões) de todas as prateleiras, da mais alta
- * (primeira atingida) até a mais baixa (última antes da saída).
+ * Constrói os transforms de todas as prateleiras, da mais alta (primeira atingida) à mais baixa.
  *
- * Cada prateleira é modelada por um vetor DIREÇÃO unitário (da parede presa, apontando pra dentro
- * da torre e pra baixo) — usar `THREE.Quaternion.setFromUnitVectors` pra alinhar o eixo +X local
- * do retângulo a essa direção, em vez de compor rotações por eixo/sinal na mão, é a mesma técnica
- * já usada em `createRingWall.ts`/`createGateStructure` (`createTowerScene.ts`) depois de bugs
- * reais de sinal nesta sessão com trigonometria manual.
+ * Cada prateleira é modelada por um vetor DIREÇÃO unitário (da parede presa, apontando pra dentro da
+ * torre e pra baixo), e alinhar o eixo +X local do retângulo a ele com
+ * `Quaternion.setFromUnitVectors` — em vez de compor rotações por eixo e sinal na mão — é a mesma
+ * técnica de `createRingWall.ts`, adotada depois de bugs reais de sinal com trigonometria manual.
  */
 export function computeBaffleTransforms(): BaffleTransform[] {
   const {
@@ -109,11 +94,10 @@ export function computeBaffleTransforms(): BaffleTransform[] {
   const transforms: BaffleTransform[] = []
 
   for (let i = 0; i < baffleCount; i++) {
-    // i=0 é a prateleira MAIS ALTA (primeira atingida); attachY decresce conforme i cresce.
-    // `(baffleCount - i)` (não `baffleCount - 1 - i`) — a última prateleira (i = baffleCount-1)
-    // precisa ter sua borda aberta ACIMA de `exitY` por `bottomClearance`, não seu ponto de
-    // FIXAÇÃO (ver histórico: um bug real de "off-by-one" aqui derrubava a borda aberta da
-    // última prateleira pra ABAIXO do chão).
+    // i=0 é a prateleira mais alta, então `attachY` decresce conforme i cresce. É `(baffleCount - i)`
+    // e não `baffleCount - 1 - i`: a última precisa ter a BORDA ABERTA acima de `exitY` por
+    // `bottomClearance`, não o ponto de FIXAÇÃO — um off-by-one aqui já derrubou a borda aberta dela
+    // pra baixo do chão.
     const attachY = exitY + bottomClearance + (baffleCount - i) * baffleVerticalSpacing
 
     const isLast = i === baffleCount - 1
@@ -150,15 +134,11 @@ export function computeBaffleTransforms(): BaffleTransform[] {
 }
 
 /**
- * Direção "morro abaixo" da prateleira mais próxima da altura `y` — usado por
- * `applyTowerStuckNudge.ts` pra empurrar um dado travado NA DIREÇÃO CERTA daquela prateleira
- * específica.
- *
- * BUG REAL medido nesta sessão: um empurrão genérico (radial-pra-fora do eixo central da torre,
- * sem saber em qual prateleira o dado está) tirava D20/D100 do lugar, mas raramente na direção
- * que de fato ajudava — o dado voltava a assentar perto de onde estava, ciclo após ciclo (medido:
- * ~30+ segundos simulados até escapar, bem devagar demais pra um jogo). Empurrar na direção REAL
- * da prateleira (calculada geometricamente, nunca "no olho") resolve isso na raiz.
+ * Direção "morro abaixo" da prateleira mais próxima da altura `y`, usada por `applyTowerStuckNudge`
+ * pra empurrar um dado travado na direção certa. Medido: o empurrão genérico (radial pra fora do eixo
+ * da torre, sem saber em qual prateleira o dado está) tirava d20 e d100 do lugar, mas raramente na
+ * direção que ajudava, e o dado voltava a assentar perto de onde estava, ciclo após ciclo (~30
+ * segundos simulados até escapar). Empurrar na direção real da prateleira resolve na raiz.
  */
 export function findNearestBaffleDirection(y: number): THREE.Vector3 {
   const baffles = computeBaffleTransforms()

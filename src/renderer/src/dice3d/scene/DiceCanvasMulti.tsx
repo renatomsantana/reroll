@@ -72,53 +72,32 @@ import './DiceCanvas.css'
 const COLOR_UPDATE_DEBOUNCE_MS = 120
 
 /**
- * RECENTRALIZAÇÃO AUTOMÁTICA DA CÂMERA — REMOVIDA (ficava aqui uma animação que movia
- * `controls.target` pra cima de onde os dados assentavam).
- *
- * Motivo, medido ao vivo com capturas antes/depois da mesma rolagem: mover o alvo da órbita não
- * é "só olhar pra outro ponto". O enquadramento da cena inteira desabava — a bandeja aparecia
- * rasa, quase de perfil, às vezes escondida atrás da própria parede — e o desvio se mantinha
- * pelas rolagens seguintes. Testado isolando a variável: limitando o deslocamento a 1 unidade
- * o quadro AINDA desabava; só com deslocamento ZERO (alvo sempre no enquadramento padrão) o
- * quadro antes e depois da rolagem fica idêntico, rolagem após rolagem.
- *
- * A intenção original (ver os dados que pousaram longe do centro) continua atendida pela órbita
- * MANUAL, que nunca deixou de funcionar: arrastar na cena gira/aproxima como sempre, e agora
- * nada mexe na câmera pelas costas do usuário.
+ * Não existe recentralização automática da câmera aqui. Medido com capturas da mesma rolagem:
+ * mover `controls.target` pra cima de onde os dados assentam desabava o enquadramento da cena
+ * inteira, e o desvio se mantinha nas rolagens seguintes; só com deslocamento zero o quadro fica
+ * idêntico antes e depois. A órbita manual atende o mesmo propósito, sem mexer na câmera pelas
+ * costas de quem joga.
  */
 
 /**
- * Escala da mini pelúcia do Riebeck na cena (ver `createRiebeckPlush`, modelada com ~1.5 de
- * altura) — do tamanho de um dado, não de um móvel. 0.45 → 0.36 → 0.27 em dois pedidos seguidos de
- * "faz ele menor", somando com as idas pra ponta da mesa: junto, as duas coisas deixam ela quase
- * metade do tamanho na tela do que era.
- *
- * O tamanho também entra na conta de ficar ESCONDIDA atrás da tampa do estojo (ver a posição
- * abaixo): em 0.30 a pontinha do capacete ainda passava por cima da tampa.
+ * Escala da pelúcia do Riebeck (modelada com ~1.5 de altura): do tamanho de um dado, não de um
+ * móvel. O tamanho também entra na conta de ela ficar escondida atrás da tampa do estojo — em 0.30
+ * a pontinha do capacete ainda passava por cima.
  */
 const PLUSH_SCALE = 0.27
 
 /**
- * Quanto a pelúcia desce ABAIXO da superfície da mesa, além do assentamento que o próprio modelo
- * já faz (`SIT_DEPTH` em `createRiebeckPlush.ts`).
- *
- * ZERO: o assentamento do próprio modelo basta. Este número chegou a 0.5 enquanto o usuário pedia
- * "desce mais" e nada acontecia — mas a causa era a respiração sobrescrevendo `position.y` (ver o
- * comentário grande no laço de animação), não falta de afundamento. Corrigido aquilo, qualquer
- * valor aqui enterraria o boneco de verdade.
- *
- * Fica como constante mesmo em zero por ser o lugar certo pra esse ajuste, caso um dia se queira:
- * é gosto de quem olha a cena, separado da geometria do modelo.
+ * Quanto a pelúcia desce abaixo da mesa, além do assentamento que o próprio modelo faz
+ * (`SIT_DEPTH`). Zero, porque o do modelo basta: chegou a 0.5 enquanto "desce mais" não fazia
+ * efeito, mas a causa era a respiração sobrescrevendo `position.y` (ver o laço de animação), e
+ * corrigido aquilo qualquer valor aqui enterraria o boneco. Fica como constante por ser o lugar
+ * certo desse ajuste.
  */
 const PLUSH_SINK = 0
 
 /**
- * A cena não tem unidade declarada, então "2cm" precisa de uma âncora — e a melhor é o próprio
- * dado: um d20 aqui tem 0.56 de lado (`DICE_REGISTRY[20].definition.scale`) e um d20 de verdade tem
- * uns 2cm de face a face. Logo 2cm ≈ 0.56 unidade, e 1 unidade ≈ 3.6cm.
- *
- * Ancorar no dado e não na bandeja é de propósito: o dado é o objeto desta cena cujo tamanho real
- * todo mundo conhece.
+ * A cena não tem unidade declarada, então "2cm" precisa de âncora, e a melhor é o próprio dado: o
+ * d20 daqui tem 0.56 de lado e um de verdade tem uns 2cm de face a face. Logo 1 unidade ≈ 3.6cm.
  */
 const CENTIMETER = 0.56 / 2
 
@@ -126,17 +105,11 @@ const CENTIMETER = 0.56 / 2
 const PLUSH_X = 0
 
 /**
- * Z da pelúcia pra ela ficar EXATAMENTE atrás do estojo, com 1cm de folga entre as duas — pedido do
- * usuário (foram 2cm na primeira tentativa, "diminui para 1cm"). Os números vêm de medir os dois
- * objetos montados, não de tentativa:
- *
- * - o estojo vai de z = -10.69 a z = -9.33 (fundo dele em `zEstojo - 0.685`);
- * - a pelúcia é simétrica em z e, na escala da cena (`PLUSH_SCALE`), tem 0.48 de profundidade,
- *   ou seja 0.24 do centro até a barriga.
- *
- * Então: fundo do estojo − 1cm − meia pelúcia. Fica escondida da câmera padrão (ela tem 0.53 de
- * altura contra 1.22 do estojo), que é a intenção desde que ela virou easter egg — só aparece pra
- * quem gira a câmera pra trás.
+ * Z da pelúcia pra ela ficar atrás do estojo com 1cm de folga. Medido nos dois objetos montados: o
+ * estojo vai de z = -10.69 a -9.33 (fundo dele em `zEstojo - 0.685`) e a pelúcia tem 0.48 de
+ * profundidade na escala da cena. Então: fundo do estojo − 1cm − meia pelúcia. Fica escondida da
+ * câmera padrão (0.53 de altura contra 1.22 do estojo), que é a intenção desde que ela virou
+ * easter egg.
  */
 const PLUSH_GAP_CM = 1
 const CASE_HALF_DEPTH = 0.685
@@ -146,85 +119,32 @@ function plushZBehindCase(caseZ: number): number {
   return caseZ - CASE_HALF_DEPTH - PLUSH_GAP_CM * CENTIMETER - PLUSH_HALF_DEPTH
 }
 
-/**
- * Ficou DESLIGADA um tempo a pedido do usuário — o modelo não estava bom o bastante ("achei
- * feio"). Religada depois da terceira versão do boneco, que foi refeita comparando com as FOTOS
- * do produto em `riebeck/` em vez de de memória (as duas primeiras tinham traje marrom e capacete
- * oliva com visor; a pelúcia real é corpo pêssego com cúpula amarela de quatro olhos bordados).
- * Se ainda assim não agradar, virar isto pra `false` tira a pelúcia da mesa sem mexer em mais nada.
- */
+/** Virar pra `false` tira a pelúcia da mesa sem mexer em mais nada. */
 const SHOW_PLUSH = true
 
-/**
- * CAVALO DE TROIA na mesa — EM TESTE, e fora do 0.1.9 por decisão do usuário ("apenas vamos
- * testar, coloca mas n vamos colocar no patch 9 ainda").
- *
- * Quem for fechar o patch: ou este interruptor vai pra `false`, ou o arquivo do cavalo
- * (`createTrojanHorse.ts`) e este bloco ficam de fora do commit. Ele está aqui pra ser visto no app
- * instalado, que é onde o usuário julga, e não pra sair.
- */
+/** Virar pra `false` tira o cavalo de troia da mesa sem mexer em mais nada. */
 const MOSTRA_CAVALO = true
 
 /**
- * ESCALA do cavalo na cena — pedido do usuário depois de ver as quatro versões: "faz ele bem menor".
- *
- * O modelo é desenhado com 4.3 de altura (ver `createTrojanHorse.ts`), e o número aqui NÃO é
- * escolhido: é o que faz ele caber inteiro atrás do estojo, que tem 1.22 de altura. Os 0.08 de
- * desconto são pra folga — colado no limite, um pedacinho da orelha aparecia por cima da tampa.
- *
- * A regra amarrada à caixa, e não um decimal solto, é o que impede isto de quebrar calado: se o
- * estojo mudar de altura um dia, o cavalo continua escondido.
- *
- * Mesma história da pelúcia do Riebeck, que encolheu duas vezes até virar enfeite. E encolher
- * resolve o que quatro rodadas de ajuste não resolveram — o acabamento do bicho: no tamanho de
- * easter egg, o que se lê é a silhueta (essa é medida da foto e está certa), não a emenda do
- * pescoço.
+ * Escala do cavalo: não é escolhida, é o que faz ele caber escondido atrás do estojo, que tem 1.22
+ * de altura. O desconto é folga — com 0.08 a orelha ainda aparecia por cima da tampa. Amarrar na
+ * altura da caixa, em vez de um decimal solto, é o que impede isto de quebrar calado no dia em que
+ * o estojo mudar de tamanho.
  */
 const CAIXA_ALTURA = 1.22
-/**
- * O desconto subiu de 0.08 pra 0.4 a pedido do usuário ("faz ele menor, ta colidindo com o
- * estojo") e de novo em seguida ("pode diminuir o tamanho"): agora ele tem 0.67 de altura contra os
- * 1.22 da caixa, com folga de sobra em vez de
- * caber raspando.
- */
 const CAVALO_ESCALA = (CAIXA_ALTURA - 0.8) / TROJAN_HORSE_SIZE.altura
 
 /**
- * ASSENTO DO CAVALO: o centro de face OPOSTO ao da torre de castelo (-30°), a mesma distância do
- * centro que ela.
- *
- * A distância é a conta da torre (`towerBesideTrayLayout`): apótema 6.5 + parede 0.2 + raio 1.45 +
- * folga 0.75 = 8.9. Espelhar o assento é o que faz os dois objetos equilibrarem a mesa em vez de
- * amontoarem do mesmo lado — e, quando o cavalo virar modo de lançamento, é de um centro de face
- * que ele vai precisar sair, como ela.
- */
-/**
- * ATRÁS DO ESTOJO, ao lado da pelúcia — pedido do usuário, e o mesmo esconderijo dela.
- *
- * O assento ao lado da bandeja saiu: encostado na traseira-esquerda o bicho sumia atrás da parede,
- * e na frente-esquerda ele ficava na entrada principal da cena, que é justamente de onde o usuário
- * já tinha mandado tirar a pelúcia ("não quero que dê pra ver ele da entrada principal").
- *
- * O X afasta da pelúcia, que mora no centro do estojo (`PLUSH_X` = 0): meia pelúcia + meio cavalo +
- * uma folga. O estojo vai de -4.86 a 4.86, então sobra estojo de sobra pra tapar os dois.
- */
-/**
- * Folga entre a PELÚCIA e o cavalo, que é outra coisa e por isso tem número próprio: com a mesma
- * folga do estojo (4cm) os dois ficavam longe um do outro, e o usuário pediu o cavalo "mais perto do
- * riebeck". 1cm é a mesma folga que ela usa com o estojo — é a distância de "encostado" desta cena.
+ * Folga entre a pelúcia e o cavalo. 1cm é a mesma folga que ela usa com o estojo: é a distância de
+ * "encostado" desta cena. Os dois moram atrás do estojo, que vai de -4.86 a 4.86 e tapa os dois de
+ * frente.
  */
 const CAVALO_FOLGA_PELUCIA_CM = 1
 
 /**
- * Onde o cavalo assenta, a partir da CAIXA REAL dele — não das constantes do modelo.
- *
- * `TROJAN_HORSE_SIZE.largura` mede a PLATAFORMA (1.76), e os cubos das rodas passam dela: a largura
- * de verdade é 2.18, 24% maior. Foi essa diferença que fez o bicho encostar no estojo mesmo com a
- * conta "certa" — a constante estava descrevendo uma parte do objeto e sendo usada como se fosse o
- * objeto inteiro.
- *
- * Medindo o grupo montado, o número passa a ser o que está em cena, e continua certo no dia em que
- * alguém mexer no modelo. É a mesma lição do enquadramento da prévia da aba Estilo.
+ * Onde o cavalo assenta, medido da CAIXA REAL dele e não das constantes do modelo:
+ * `TROJAN_HORSE_SIZE.largura` mede só a plataforma (1.76) e os cubos das rodas passam dela (2.18 de
+ * verdade). Foi essa diferença que fez o bicho encostar no estojo mesmo com a conta "certa".
  */
 function assentarCavaloAtrasDoEstojo(cavalo: THREE.Group, caseZ: number): void {
   cavalo.updateMatrixWorld(true)
@@ -237,17 +157,9 @@ function assentarCavaloAtrasDoEstojo(cavalo: THREE.Group, caseZ: number): void {
     // Ao lado da pelúcia, que fica no centro do estojo: meia pelúcia + meio cavalo + folga.
     0.3 + meioComprimento + CAVALO_FOLGA_PELUCIA_CM * CENTIMETER,
     TABLE_SURFACE_Y,
-    /**
-     * O MESMO Z da pelúcia — pedido do usuário ("coloca ele na mesma linha q o riebeck").
-     *
-     * Antes cada um era assentado pela própria profundidade a partir da traseira do estojo, o que
-     * alinhava a FRENTE dos dois e deixava os centros desencontrados (a pelúcia tem 0.48 de fundo, o
-     * cavalo 0.25). De trás, isso lia como um fora de lugar. Alinhando pelo centro, os dois ficam na
-     * mesma linha da prateleira, que é como duas peças enfileiradas se parecem de qualquer ângulo.
-     *
-     * A folga com o estojo continua garantida: o cavalo é o mais raso dos dois, então onde a pelúcia
-     * cabe, ele cabe com sobra.
-     */
+    // O mesmo Z da pelúcia. Assentar cada um pela própria profundidade alinhava a FRENTE dos dois e
+    // deixava os centros desencontrados; a folga com o estojo continua garantida porque o cavalo é
+    // o mais raso dos dois.
     plushZBehindCase(caseZ)
   )
 }
@@ -282,78 +194,54 @@ export interface DiceCanvasMultiProps {
   /** Chamado quando TODOS os dados já assentaram com face dominante. `null` = "rolando, sem resultado ainda". */
   onResult?: (result: MultiRollResult | null) => void
   /**
-   * Chamado se a cena falhar ao inicializar (Rapier ou criação de algum dado). Sem isso o
-   * app ficava travado em "Rolando..." pra sempre com só um `console.error` invisível pro
-   * usuário — script.md exige que falhas críticas sejam visíveis, nunca silenciosas.
+   * Chamado se a cena falhar ao inicializar (Rapier ou criação de algum dado). Sem isso o app
+   * ficava travado em "Rolando..." pra sempre, com um `console.error` que ninguém vê.
    */
   onError?: (error: unknown) => void
   /**
-   * Se `true`, o arremesso automático do primeiro mount já conta como uma rolagem de
-   * verdade (relata resultado ao assentar) — usado pelo clique num preset, que É a própria
-   * ação de rolar, sem um segundo clique em "Rolar" depois. Se ausente/`false` (troca de
-   * tipo/quantidade/modo/cor/debug), o arremesso do mount é só visual (ver `armedRef`
-   * abaixo). Lido só uma vez, no mount — mesma convenção de `groups`/`bodyColor`.
+   * O arremesso automático do mount conta como rolagem de verdade (relata resultado ao assentar):
+   * é o clique num preset, que já É a ação de rolar. Sem isto (troca de tipo, quantidade, modo, cor
+   * ou debug) o arremesso do mount é só visual, ver `armedRef`. Lido uma vez só, no mount.
    */
   autoRoll?: boolean
   /**
-   * Cor do corpo/número resolvida POR TIPO de dado (chave = lados) — já mescla a cor global
-   * com qualquer override individual (ver `SettingsContext.diceColorOverrides`), sempre com
-   * uma entrada pra cada tipo em `AVAILABLE_DICE_TYPES`; quem monta isso é `DiceRoller3D.tsx`.
-   * Usado tanto pelos dados de verdade quanto pela prateleira decorativa.
+   * Cor do corpo e do número por TIPO de dado (chave = lados), já com os overrides individuais
+   * mesclados; quem monta é `DiceRoller3D.tsx`. Vale pros dados de verdade e pra prateleira.
    */
   diceColors: Record<number, { bodyColor: number; numberColor: string }>
-  /** Acabamento (Preferências ⚙️: fosco/metálico/plástico/vidro). Mesma convenção de `diceColors` — atualizado em cima do mesh existente, não força remount. */
+  /** Acabamento do dado (fosco, metálico, plástico, vidro). Aplicado no mesh existente, sem remount. */
   material?: DiceMaterialFinish
-  /** Cor da parede da bandeja (hex numérico). Mesma convenção de `bodyColor` — atualizado em cima da cena existente, não força remount. */
+  /** Cor da parede da bandeja (hex numérico). Aplicada na cena existente, sem remount. */
   wallColor?: number
-  /** Cor de fundo da cena (hex numérico). Mesma convenção de `bodyColor`. */
+  /** Cor de fundo da cena (hex numérico). */
   backgroundColor?: number
-  /** Cor do chão da bandeja (hex numérico). Mesma convenção de `wallColor`. */
+  /** Cor do chão da bandeja (hex numérico). */
   floorColor?: number
-  /**
-   * Cores da torre ao lado da bandeja (pedra, telhado, flâmula, porta). Mesma convenção de
-   * `wallColor`: aplicadas em cima da torre existente, sem remontar a cena.
-   */
+  /** Cores da torre (pedra, telhado, flâmula, porta). Aplicadas na torre existente, sem remount. */
   towerColors?: TowerColors
-  /** Imagem de fundo da cena (data URL) — `null`/ausente usa `backgroundColor` sólida. Mesma convenção de no-remount de `wallColor`. */
+  /** Imagem de fundo (data URL); sem ela vale `backgroundColor`. Também sem remount. */
   backgroundImage?: string | null
   /**
-   * Modo de lançamento: bandeja aberta (arremesso de fora, padrão) ou torre de castelo (prateleiras
-   * inclinadas alternadas, física real, ver `TOWER_CONFIG`). Estrutural — muda a cena/física
-   * inteira, então precisa estar no `key` do componente pai (`DiceRoller3D.tsx`), igual `debugMode`.
+   * Bandeja aberta (padrão) ou torre de castelo. Estrutural: muda cena e física inteiras, então
+   * precisa estar no `key` do componente pai (`DiceRoller3D.tsx`), como `debugMode`.
    */
   launchMode?: LaunchMode
   /** Lados da bandeja — forma escolhida pelo usuário (ver `trayShape.ts`). */
   traySides?: number
-  /** Modo debug (Seção 25 do script.md): colisores, normais de face, confiança, velocidade e FPS sobrepostos à cena. */
+  /** Modo debug: colisores, normais de face, confiança, velocidade e FPS sobrepostos à cena. */
   debugMode?: boolean
   /**
-   * Estojo de dados atrás da bandeja aberto (`true`, padrão) ou fechado — controlado pelo botão
-   * na barra do roller. Anima em cima da cena existente, NUNCA remonta nada (não entra no `key`
-   * de `DiceRoller3D.tsx`): abrir e fechar a caixinha não pode custar uma cena 3D nova.
+   * Estojo atrás da bandeja aberto (padrão) ou fechado, pelo botão da barra do roller. Anima em
+   * cima da cena existente e nunca remonta: abrir a caixinha não pode custar uma cena 3D nova.
    */
   caseOpen?: boolean
-  /**
-   * Chamado quando o usuário CLICA no estojo dentro da cena 3D — pedido do usuário, que quer
-   * abrir/fechar clicando na caixinha em si, não só no botão. Quem decide o que fazer é o pai
-   * (que é dono do estado `caseOpen`); aqui só se detecta o clique.
-   */
+  /** Clique no estojo dentro da cena 3D; quem decide o que fazer é o pai, dono do `caseOpen`. */
   onCaseClick?: () => void
-  /**
-   * Ponte levadiça da torre abaixada (`true`, padrão) ou levantada. Mesma convenção do `caseOpen`:
-   * anima em cima da cena existente e NUNCA remonta nada.
-   */
+  /** Ponte levadiça da torre abaixada (padrão) ou levantada. Como o estojo: anima, nunca remonta. */
   bridgeOpen?: boolean
-  /**
-   * Chamado quando o usuário CLICA na ponte levadiça dentro da cena — pedido do usuário, e só vale
-   * na TORRE DE ENFEITE (ver `onBridgeClickRef` no efeito de montagem). Como no estojo, quem decide
-   * o que fazer é o pai; aqui só se detecta o clique.
-   */
+  /** Clique na ponte dentro da cena. Só vale na torre de enfeite, ver `bridgeUnderPointer`. */
   onBridgeClick?: () => void
-  /**
-   * Como o WASD dirige a câmera (ver `CameraMode` em `SettingsContext.tsx`). NÃO entra no `key` de
-   * remount: trocar de modo não pode custar uma cena 3D nova.
-   */
+  /** Como o WASD dirige a câmera. Não entra no `key`: trocar de modo não remonta a cena. */
   cameraMode?: CameraMode
 }
 
@@ -370,52 +258,41 @@ interface DieInstance {
    */
   phase: 'queued' | 'rolling' | 'done'
   /**
-   * Instante (na régua de `sceneElapsedMsRef`) em que este dado sai da boca da torre. Os dados
-   * saem em FILA, um a cada `MOUTH_RELEASE_INTERVAL_MS`, porque todos nascem no mesmo ponto —
-   * ver o comentário de `MOUTH_RELEASE_INTERVAL_MS`. `undefined` = ainda não foi enfileirado.
+   * Instante (na régua de `sceneElapsedMsRef`) em que este dado sai da boca da torre. Eles saem em
+   * fila, um a cada `MOUTH_RELEASE_INTERVAL_MS`, porque nascem todos no mesmo ponto. `undefined` =
+   * ainda não foi enfileirado.
    */
   releaseAtMs?: number
   lastValue: number | null
   spawnSlot: { x: number; z: number }
-  /** Quanto tempo simulado (ms) o dado já passou na fase "entrando" (sem colidir com a parede) sem cruzar pra dentro — ver `ENTRY_FORCE_PUSH_TIMEOUT_MS` em `collisionGroups.ts`. Zerado a cada novo arremesso. */
+  /** Tempo simulado na fase "entrando" sem cruzar pra dentro (ver `ENTRY_FORCE_PUSH_TIMEOUT_MS` em `collisionGroups.ts`). Zerado a cada arremesso. */
   enteringElapsedMs: number
   debug?: { visuals: DiceDebugVisuals; updateRow: (snapshot: DieDebugSnapshot) => void }
 }
 
 /**
- * Posições (x, z) de uma "prateleira" decorativa com um dado de cada tipo disponível, numa
- * fileira reta do lado de FORA do hexágono — pedido do usuário pra poder ver a cor/acabamento
- * escolhido em cada tipo de dado sem precisar rolar. Fica no lado oposto à câmera (ver
- * `CAMERA_CONFIG.position`, Z positivo olhando pra origem), pra aparecer ao fundo da cena sem
- * tampar a bandeja em si.
+ * Espaçamento da prateleira decorativa: um dado de cada tipo em fileira reta fora do hexágono, pra
+ * ver a cor e o acabamento escolhidos sem precisar rolar. Fica do lado oposto à câmera, ao fundo da
+ * cena, sem tampar a bandeja.
  */
 const SHELF_SPACING = 1.4
 
 /**
- * Altura de um dado parado no estojo, JÁ em coordenadas de mundo.
+ * Altura de um dado parado no estojo, já em coordenadas de mundo.
  *
- * Existe como função por causa de um BUG REAL: as medidas do estojo (`CASE_DICE_Y` e companhia)
- * são todas relativas à BASE DELE, mas os dados da prateleira são adicionados direto na cena, e
- * não dentro do grupo do estojo. Quando a bandeja virou uma caixa elevada e o estojo desceu pra
- * mesa (`TABLE_DROP`), os dados ficaram na altura antiga e apareceram FLUTUANDO acima do estojo.
- * Com a conta num lugar só, os dois pontos que posicionam prateleira (montagem e remontagem por
- * troca de cor) não têm como divergir de novo.
+ * É função por causa de um bug real: as medidas do estojo são relativas à BASE dele, mas os dados
+ * da prateleira entram direto na cena. Quando a bandeja virou caixa elevada e o estojo desceu pra
+ * mesa (`TABLE_DROP`), os dados ficaram na altura antiga, flutuando. Com a conta num lugar só, a
+ * montagem e a remontagem por troca de cor não têm como divergir de novo.
  */
 function shelfDieY(dieScale: number): number {
   return CASE_DICE_Y + dieScale / 2 + TABLE_SURFACE_Y
 }
 
 /**
- * Assenta um dado no seu compartimento do estojo: a posição na prateleira e o MAIOR NÚMERO virado
- * pra cima E de frente pra quem olha (d4 com 4, d6 com 6, d20 com 20, d100 com 100), a pedido do
- * usuário.
- *
- * Sem a orientação, cada tipo mostrava a face que a orientação de repouso do modelo calhasse de
- * deixar em cima — que não é escolha nenhuma, é o que sobrou de como a malha foi desenhada.
- *
- * Existe como função pelo mesmo motivo do `shelfDieY` logo acima: os dois pontos que montam a
- * prateleira (a montagem e a remontagem por troca de cor) precisam concordar, e já divergiram uma
- * vez quando só a altura era compartilhada.
+ * Assenta um dado no compartimento dele: a posição na prateleira e o maior número virado pra cima e
+ * de frente pra quem olha (d4 com 4, d20 com 20). Sem a orientação, cada tipo mostrava a face que a
+ * malha calhasse de deixar em cima. É função pelo mesmo motivo do `shelfDieY` acima.
  */
 function assentarDadoDaPrateleira(
   mesh: THREE.Mesh,
@@ -437,80 +314,63 @@ export function computeShelfPositions(): { x: number; z: number }[] {
 /** Profundidade ÚTIL (interna) do estojo — folga confortável em volta do maior dado (0.7). */
 const CASE_DEPTH = 1.05
 /**
- * Altura das paredes. 0.34 → 0.42: com 0.34 os dados (até 0.7 de altura) ficavam mais pra fora
- * que pra dentro, empoleirados em cima das divisórias como num pente, em vez de encaixados em
- * compartimentos — foi a primeira coisa que o usuário apontou como "desencaixado".
+ * Altura das paredes. Com 0.34 os dados (até 0.7 de altura) ficavam mais pra fora que pra dentro,
+ * empoleirados nas divisórias como num pente em vez de encaixados em compartimentos.
  */
 const CASE_WALL_HEIGHT = 0.42
 const CASE_WALL_THICKNESS = 0.11
 /** Espessura do forro (chão e faces internas) — fino de propósito, é revestimento, não estrutura. */
 const CASE_LINING_THICKNESS = 0.045
 /**
- * FERRO envelhecido das ferragens (dobradiças e fecho). Fixo: é detalhe metálico, não acompanha a
- * cor da bandeja.
- *
- * Era latão dourado (0xc9a227) até o usuário pedir o estojo "mais rústico e antique". Trocar a cor
- * sozinha não resolveria: latão claro com `metalness` alto é justamente a leitura de ferragem
- * NOVA, polida. Um estojo antigo tem ferro forjado — escuro, quase fosco, que aparece por
- * CONTRASTE com a madeira em vez de por brilho. Daí o `metalness` e o `roughness` do material
- * andarem junto com a cor.
+ * Ferro envelhecido das ferragens, fixo: é detalhe metálico, não acompanha a cor da bandeja. Era
+ * latão dourado, e trocar só a cor não resolveria — latão claro com `metalness` alto é justamente a
+ * leitura de ferragem nova e polida. Por isso cor, `metalness` e `roughness` andam juntos.
  */
 const CASE_METAL_COLOR = 0x39332c
 /**
- * O estojo tem CORPO: pezinhos + fundo maciço + paredes, tudo apoiado em cima da mesa.
- *
- * Antes daqui existia um pedestal de 3 unidades enterrado no chão, criado só pra tapar o disco
- * do chão cruzando a base. Da câmera, o que sobrava disso era exatamente o que o usuário
- * descreveu: "parece apenas paredes colocadas" — quatro paredes finas nascendo do nada, sem
- * nenhum volume embaixo. Agora o fundo tem espessura visível e o conjunto se apoia em quatro
- * pezinhos, que é o que faz um objeto ler como caixa POUSADA numa mesa (e ainda ganha sombra
- * própria por baixo, reforçando o apoio).
+ * O estojo tem corpo: pezinhos, fundo maciço e paredes, tudo apoiado na mesa. Antes havia um
+ * pedestal enterrado no chão, criado só pra tapar o disco do chão cruzando a base, e da câmera o
+ * que sobrava eram quatro paredes finas nascendo do nada. Com fundo espesso e pezinhos, o conjunto
+ * lê como caixa pousada, e ainda ganha sombra própria por baixo.
  */
 const CASE_FOOT_HEIGHT = 0.08
 const CASE_FLOOR_THICKNESS = 0.14
 /** Altura (y) do topo do fundo maciço — onde o forro é assentado. */
 const CASE_INTERIOR_Y = CASE_FOOT_HEIGHT + CASE_FLOOR_THICKNESS
 /**
- * Altura (y) onde os dados da prateleira se apoiam: em cima do FORRO, que por sua vez é assentado
- * em cima do fundo maciço.
+ * Altura onde os dados da prateleira se apoiam: em cima do FORRO, que por sua vez fica em cima do
+ * fundo maciço.
  *
- * BUG REAL relatado pelo usuário ("embaixo dos dados do estojo tá dando um bug visual quando a
- * câmera mexe"): o forro do chão era afundado DENTRO do fundo maciço, com a face de cima dos dois
- * exatamente na mesma altura. Duas faces coplanares apontando pro MESMO lado (as duas pra cima,
- * as duas visíveis de onde a câmera está) disputam o mesmo valor de profundidade, e quem ganha
- * muda conforme a câmera se move — o piso inteiro do estojo piscava entre madeira e feltro. Com o
- * forro POR CIMA do fundo, as faces que se encostam são a de baixo do forro e a de cima do fundo:
- * apontam pra lados opostos, então uma delas é sempre descartada e não existe empate.
+ * O forro era afundado dentro do fundo, com a face de cima dos dois na mesma altura. Duas faces
+ * coplanares apontando pro mesmo lado disputam o mesmo valor de profundidade, e quem ganha muda
+ * conforme a câmera se move: o piso do estojo piscava entre madeira e feltro. Com o forro por cima,
+ * as faces que se encostam apontam pra lados opostos e não há empate.
  */
 const CASE_DICE_Y = CASE_INTERIOR_Y + CASE_LINING_THICKNESS
 
 /**
- * Tampa do estojo — pedido do usuário: "o estojo não está fechado, quero uma animação abrindo
- * e mostrando os dados". A tampa é uma caixa rasa virada pra baixo (tampo + saia nas quatro
- * laterais), com a dobradiça na aresta de TRÁS do topo das paredes (o lado oposto à câmera
- * padrão, ver `computeShelfPositions`): fechada, ela encaixa POR FORA das paredes como tampa de
- * caixa de verdade; ao abrir, gira pra trás e pra cima, sem nunca passar na frente dos dados.
+ * Tampa do estojo: uma caixa rasa virada pra baixo (tampo e saia nas quatro laterais), com a
+ * dobradiça na aresta de trás do topo das paredes, o lado oposto à câmera padrão. Fechada, encaixa
+ * POR FORA das paredes como tampa de caixa de verdade; abrindo, gira pra trás e pra cima, sem nunca
+ * passar na frente dos dados.
  *
- * `CASE_LID_SKIRT` + `CASE_WALL_HEIGHT` (0.5 + 0.42) precisa passar da altura do dado mais alto
- * em pé (0.7, o d6) pra tampa fechada cobrir tudo. A divisão entre parede e saia foi ajustada
- * pra caixa fechada ficar baixa e elegante, em vez do bloco alto da primeira versão — que o
- * usuário viu como uma placa solta pairando atrás do estojo.
+ * `CASE_LID_SKIRT` + `CASE_WALL_HEIGHT` precisa passar da altura do dado mais alto em pé (0.7) pra
+ * tampa fechada cobrir tudo.
  */
 const CASE_LID_SKIRT = 0.5
 const CASE_LID_THICKNESS = 0.08
-/** ~104° — passa da vertical o bastante pra tampa "descansar" aberta pra trás, como uma caixa de verdade, em vez de ficar equilibrada em pé. */
+/** ~104°: passa da vertical o bastante pra tampa descansar aberta pra trás, em vez de ficar equilibrada em pé. */
 const CASE_LID_OPEN_ANGLE = Math.PI * 0.58
-/** Espera antes de começar a abrir (ms) — a cena aparece com o estojo fechado por um instante, senão a animação já começa antes do usuário olhar pra ela. */
+
 /**
- * Teto de quadros por segundo da cena (ver o comentário no `tick`).
- *
- * 60 e 30 não são números redondos escolhidos por gosto: 60 é o piso do que se lê como fluido num
- * objeto que gira rápido, e 30 é o piso do que se lê como movimento contínuo num objeto lento — que
- * é o caso do que continua animando com a cena parada (bandeira e pelúcia).
+ * Teto de quadros por segundo da cena (ver o `tick`). 60 é o piso do que se lê como fluido num
+ * objeto que gira rápido, e 30 é o piso do que se lê como movimento contínuo num objeto lento, que
+ * é o caso do que continua animando com a cena parada: bandeira e pelúcia.
  */
 const FPS_ATIVO = 60
 const FPS_PARADO = 30
 
+/** A cena aparece com o estojo fechado por um instante antes de ele abrir sozinho. */
 const CASE_LID_OPEN_DELAY_MS = 650
 const CASE_LID_OPEN_DURATION_MS = 1100
 
@@ -519,22 +379,17 @@ export interface ShelfCaseHandle {
   /** Grupo-dobradiça da tampa: girar `rotation.x` (negativo = abrindo) é o que anima a abertura. */
   lidPivot: THREE.Group
   /**
-   * Troca as cores NO LUGAR, sem reconstruir nada. Só três materiais dependem das cores
-   * escolhidas (casca, forro e forro da tampa) e em todos a cor é literalmente `material.color` —
-   * geometria, texturas de madeira e ferragens são idênticas antes e depois.
-   *
-   * Antes disso, tanto a cena principal quanto a prévia da bandeja jogavam o estojo inteiro fora e
-   * chamavam `createShelfCaseMesh` de novo a cada troca de cor: ~30 `BoxGeometry`, materiais novos
-   * e as texturas de madeira redesenhadas do zero. Era o que travava ao soltar o seletor de cor na
-   * aba Estilo.
+   * Troca as cores no lugar, sem reconstruir nada: só casca, forro e forro da tampa dependem das
+   * cores escolhidas, e em todos ela é literalmente `material.color`. Antes disso, cada troca jogava
+   * o estojo fora e refazia ~30 `BoxGeometry`, materiais e as texturas de madeira do zero — era o
+   * que travava ao arrastar o seletor de cor na aba Estilo.
    */
   updateColors: (floorColorHex: number, wallColorHex: number) => void
 }
 
 /**
- * Progresso 0→1 da abertura, com um leve "passar do ponto" no fim (a tampa sobe, ultrapassa
- * um pouco o ângulo final e volta) — é o que faz a abertura ler como uma tampa com peso sendo
- * jogada pra trás, não uma interpolação linear de software.
+ * Progresso 0→1 com um leve passar do ponto no fim: é o que faz a abertura ler como uma tampa com
+ * peso sendo jogada pra trás, e não como interpolação linear.
  */
 function easeOutBack(t: number): number {
   const c1 = 1.70158
@@ -554,11 +409,9 @@ interface LidAnimation {
 }
 
 /**
- * Progresso da tampa (0 fechada, 1 aberta) no instante `elapsedMs` do relógio da cena.
- *
- * Fechando NÃO usa o `easeOutBack` da abertura: o "passar do ponto" que dá peso à tampa
- * abrindo, na direção contrária, enfiaria a tampa pra dentro da caixa antes de voltar —
- * atravessando os dados na cara do usuário.
+ * Progresso da tampa (0 fechada, 1 aberta) no instante `elapsedMs` do relógio da cena. Fechando não
+ * usa o `easeOutBack` da abertura: na direção contrária, o passar do ponto enfiaria a tampa pra
+ * dentro da caixa, atravessando os dados.
  */
 function lidProgressAt(animation: LidAnimation, elapsedMs: number): number {
   const t = Math.min(1, Math.max(0, (elapsedMs - animation.startMs) / CASE_LID_OPEN_DURATION_MS))
@@ -568,12 +421,10 @@ function lidProgressAt(animation: LidAnimation, elapsedMs: number): number {
 }
 
 /**
- * Estojo/caixinha de display ao redor da prateleira (ver `computeShelfPositions`) — pedido do
- * usuário pra parecer uma caixa de verdade onde os dados ficam guardados (com uma divisória por
- * compartimento), não só uma placa exposta com os dados em fileira por cima. Só visual, sem
- * collider físico, nunca interage com nada — mesma convenção da placa que substitui. Reaproveita
- * `wallColor`/`floorColor` já customizáveis na aba Estilo (parede do estojo = cor de parede,
- * base = cor de chão), então não precisa de nenhuma cor nova pra configurar.
+ * Estojo de display em volta da prateleira, com uma divisória por compartimento, pra parecer uma
+ * caixa onde os dados ficam guardados e não uma placa com dados em fileira. Só visual, sem
+ * collider. Reaproveita `wallColor`/`floorColor` da aba Estilo (parede do estojo = cor de parede,
+ * base = cor de chão), então não precisa de cor nova nenhuma.
  */
 export function createShelfCaseMesh(
   z: number,
@@ -586,36 +437,21 @@ export function createShelfCaseMesh(
   const outerDepth = CASE_DEPTH + CASE_WALL_THICKNESS * 2
 
   /**
-   * Duas famílias de material, e é esse CONTRASTE que faz a caixa ler como estojo de dados:
-   * casca em "madeira/couro" na cor de parede (escura na configuração padrão) e forro macio na
-   * cor do chão da bandeja (o feltro claro). A primeira versão usava a mesma cor de parede em
-   * tudo — casca, divisórias e tampa — e por isso virava um bloco cinza sem leitura nenhuma.
-   */
-  /**
-   * A casca leva o MESMO veio de madeira da parede da bandeja e da borda da mesa
-   * (`createWoodTexture.ts` + `woodTint`), em vez da cor chapada de antes. Foi a troca que mais
-   * pesou no "mais rústico" que o usuário pediu: sem os ornamentos de latão, uma caixa de cor
-   * lisa vira um bloco de cor sem material nenhum — é a madeira que sustenta a leitura sozinha
-   * agora. E usar a mesma textura da bandeja amarra o estojo ao resto da cena, em vez de parecer
-   * um objeto de outro jogo pousado na mesa.
+   * Duas famílias de material, e é o contraste entre elas que faz a caixa ler como estojo de dados:
+   * casca em madeira na cor de parede e forro macio na cor do chão da bandeja. A primeira versão
+   * usava a mesma cor em tudo e virava um bloco cinza sem leitura nenhuma.
    *
-   * Repetição baixa (3): a UV de uma `BoxGeometry` vai de 0 a 1 em CADA face, então o mesmo
-   * número vale pra parede comprida da frente e pro pezinho de 0.28. Com repetição alta, as peças
-   * pequenas viram um borrão listrado.
-   */
-  /**
-   * Repetição bem mais alta que a da bandeja (3 → 7): tábua estreita lê como madeira RÚSTICA, de
-   * ripa; tábua larga lê como painel industrial. É o segundo eixo, além da cor, que separa o
-   * estojo do tabuleiro sem precisar de uma textura nova.
+   * A casca leva o mesmo veio da parede da bandeja e da borda da mesa (`createWoodTexture.ts` +
+   * `woodTint`), o que amarra o estojo ao resto da cena em vez de parecer objeto de outro jogo. A
+   * repetição é bem mais alta que a da bandeja (3 → 7): tábua estreita lê como madeira rústica, de
+   * ripa; tábua larga lê como painel industrial.
    */
   const shellWood = createWoodTextures(7, 1)
   const shellMaterial = new THREE.MeshStandardMaterial({
     /**
-     * Madeira BEM mais escura que a da bandeja (0.72 → 0.42), a pedido do usuário: "mais escura e
-     * rústica, não igual à do tabuleiro". A versão anterior já escurecia, mas de leve, e com a
-     * bandeja agora sendo uma caixa de MDF clara logo à frente o estojo voltava a se confundir com
-     * ela. O escurecimento é aplicado DEPOIS do `woodTint`, então a cor escolhida na aba Estilo
-     * continua mandando no tom — o estojo é sempre a peça velha e escura da mesma família.
+     * Madeira bem mais escura que a da bandeja: com a bandeja sendo uma caixa clara logo à frente, o
+     * estojo se confundia com ela. O escurecimento vem DEPOIS do `woodTint`, então a cor escolhida
+     * na aba Estilo continua mandando no tom.
      */
     color: woodTint(wallColorHex).multiplyScalar(0.42),
     map: shellWood.map,
@@ -655,9 +491,8 @@ export function createShelfCaseMesh(
   }
 
   /**
-   * Pezinhos + fundo maciço: o VOLUME que faltava embaixo (ver `CASE_FOOT_HEIGHT`). O fundo é
-   * uma peça só, do tamanho externo cheio, e as paredes nascem em cima dele — então de qualquer
-   * ângulo o estojo tem uma "casca" contínua, sem parede começando no ar.
+   * Pezinhos e fundo maciço: o volume que faltava embaixo. O fundo é uma peça só, do tamanho externo
+   * cheio, e as paredes nascem em cima dele, sem nenhuma começando no ar.
    */
   const footInset = 0.18
   for (const xSide of [-1, 1]) {
@@ -703,10 +538,9 @@ export function createShelfCaseMesh(
     )
   }
 
-  // Forro: piso + faces internas do fundo e das laterais. A face interna da parede da FRENTE
-  // não entra — a câmera padrão olha de cima e de frente, então essa é a única que nunca
-  // aparece; forrar ela seria desenho que ninguém vê.
-  // Forro do chão POR CIMA do fundo maciço, nunca afundado nele — ver `CASE_DICE_Y`.
+  // Forro: piso e faces internas do fundo e das laterais. A da FRENTE não entra, porque a câmera
+  // olha de cima e de frente e é a única que nunca aparece. O piso vai POR CIMA do fundo maciço,
+  // nunca afundado nele (ver `CASE_DICE_Y`).
   piece(
     new THREE.BoxGeometry(innerWidth, CASE_LINING_THICKNESS, CASE_DEPTH),
     liningMaterial,
@@ -750,15 +584,12 @@ export function createShelfCaseMesh(
   }
 
   /**
-   * Dobradiça na aresta de TRÁS do topo das paredes (z mais negativo = lado oposto à câmera
-   * padrão, ver `CAMERA_CONFIG`): girando `rotation.x` pro negativo, a aresta da frente sobe e
-   * vai pra trás — a tampa nunca cruza a linha de visão entre a câmera e os dados enquanto
-   * abre. As peças da tampa são posicionadas RELATIVAS a essa dobradiça.
+   * Dobradiça na aresta de trás do topo das paredes, o lado oposto à câmera padrão: girando
+   * `rotation.x` pro negativo, a aresta da frente sobe e vai pra trás, e a tampa nunca cruza a linha
+   * de visão entre a câmera e os dados. As peças da tampa são posicionadas relativas a ela.
    *
-   * A tampa tem exatamente a MESMA planta da caixa (mesma largura e profundidade externas). Na
-   * primeira versão ela era maior que a caixa e a dobradiça ficava acima das paredes, então
-   * aberta ela parecia uma placa solta pairando atrás do estojo — foi o "desencaixado" que o
-   * usuário apontou.
+   * A tampa tem a mesma planta da caixa. Na primeira versão era maior, com a dobradiça acima das
+   * paredes, e aberta parecia uma placa solta pairando atrás do estojo.
    */
   const lidPivot = new THREE.Group()
   lidPivot.position.set(0, CASE_INTERIOR_Y + CASE_WALL_HEIGHT, z - outerDepth / 2)
@@ -789,12 +620,9 @@ export function createShelfCaseMesh(
     )
   }
   /**
-   * Forro por DENTRO da tampa: com a tampa aberta é justamente essa face que fica virada pra
-   * câmera. Sem ela, o que se vê é o fundo cru da casca.
-   *
-   * Um tom mais escuro que o forro do fundo (0.82×): o interior de uma tampa aberta fica virado
-   * pra longe da luz principal, e com a MESMA cor dos dois lados o painel virava uma chapa
-   * amarela chapada, sem profundidade.
+   * Forro por dentro da tampa: com ela aberta é essa a face virada pra câmera, e sem forro se vê o
+   * fundo cru da casca. Um tom mais escuro que o do fundo porque ela fica virada pra longe da luz
+   * principal; com a mesma cor dos dois lados, o painel virava uma chapa amarela sem profundidade.
    */
   const lidLiningMaterial = new THREE.MeshStandardMaterial({
     color: new THREE.Color(floorColorHex).multiplyScalar(0.82),
@@ -808,16 +636,8 @@ export function createShelfCaseMesh(
     lidPivot
   )
 
-  /**
-   * O forro da tampa é liso: o emblema em losango de latão que ficava aqui saiu junto com o resto
-   * dos ornamentos dourados, a pedido do usuário. Era o ornamento mais visível de todos (com a
-   * tampa aberta, este painel é a maior superfície virada pra câmera), e é justamente por isso
-   * que ele era o mais "dourado" da caixa inteira.
-   */
-
-  // Ferragens: duas dobradiças de ferro na aresta traseira e um fecho na frente. São as ÚNICAS
-  // peças de metal que sobraram — e ficam porque são funcionais: são elas que dizem "isto abre",
-  // mesmo com a tampa parada. Sem elas a tampa vira uma placa de madeira solta em cima da caixa.
+  // Ferragens: duas dobradiças de ferro na aresta traseira e um fecho na frente. São as únicas peças
+  // de metal que sobraram, e ficam porque são funcionais: são elas que dizem "isto abre".
   for (const xSide of [-1, 1]) {
     const hinge = piece(
       new THREE.CylinderGeometry(0.05, 0.05, 0.26, 12),
@@ -833,17 +653,11 @@ export function createShelfCaseMesh(
   )
 
   /**
-   * SEM ORNAMENTOS. Aqui existiam cantoneiras de latão nas quatro quinas (corpo e rodapé),
-   * rebites ao longo da frente, plaquinhas ladeando o fecho e um friso correndo a borda superior
-   * das paredes — todos removidos a pedido do usuário ("tira os detalhes dourados do estojo,
-   * deixa mais rústico e antique").
-   *
-   * Junto com eles saiu o `ORNAMENT_SINK`, a folga que afundava cada peça chapada um tiquinho na
-   * superfície onde estava pregada. Não era detalhe de código: sem ela a face de trás do ornamento
-   * ficava EXATAMENTE no plano da parede, as duas disputavam o mesmo valor de profundidade e o
-   * estojo "chiava" trocando de face conforme a câmera girava. Sumindo o ornamento some o empate —
-   * mas fica o registro, porque qualquer peça chapada nova colada na casca vai precisar da
-   * mesma folga.
+   * Sem ornamentos: as cantoneiras, os rebites, as plaquinhas e o friso de latão saíram a pedido do
+   * usuário. Junto deles saiu o `ORNAMENT_SINK`, a folga que afundava cada peça chapada um tiquinho
+   * na superfície onde estava pregada — sem ela as duas faces ficavam coplanares e o estojo chiava,
+   * trocando de face conforme a câmera girava. Fica o registro: peça chapada nova colada na casca
+   * vai precisar da mesma folga.
    */
 
   return {
@@ -879,13 +693,9 @@ function parkTowerDie(die: DieInstance): void {
 }
 
 /**
- * Generaliza `DiceCanvas` pra N dados (potencialmente de tipos diferentes,
- * inclusive o d100 esférico — ver `dice-defs/d100Sphere.ts`) simultâneos,
- * cada um com seu próprio corpo físico,
- * colidindo entre si e com a bandeja, assentando de forma independente. O
- * resultado só é reportado quando TODOS já assentaram — junto com a lista
- * individual de cada um, não só o total (ver requisito de não esconder os
- * valores individuais atrás da soma).
+ * N dados simultâneos, de tipos diferentes, cada um com seu corpo físico, colidindo entre si e com
+ * a bandeja e assentando de forma independente. O resultado só é reportado quando TODOS assentaram,
+ * e vem com a lista individual, não só o total.
  */
 export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMultiProps>(
   function DiceCanvasMulti(
@@ -916,15 +726,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     const diceRef = useRef<DieInstance[]>([])
     const sceneRef = useRef<THREE.Scene | null>(null)
     const trayRef = useRef<TraySceneHandle | null>(null)
-/**
-     * `null` fora do modo torre — é o que deixa a roda de cor tingir a torre sem recriá-la. Tipo
-     * mínimo (só o que a tela usa) pra trocar entre a torre de código e o modelo 3D não exigir mexer
-     * aqui.
-     */
     /**
-     * O handle inteiro da torre, e não uma cópia à mão dos dois métodos que a cena usava. A lista
-     * escrita aqui já estava desatualizada assim que a torre ganhou a ponte levadiça — e o jeito de
-     * isso não acontecer de novo é não manter duas descrições do mesmo objeto.
+     * `null` fora do modo torre, que é o que deixa a roda de cor tingir a torre sem recriá-la. É o
+     * handle inteiro, e não uma cópia à mão dos métodos que a cena usa: a lista escrita à mão já
+     * tinha ficado desatualizada assim que a torre ganhou a ponte levadiça.
      */
     const towerBesideRef = useRef<TowerBesideTrayHandle | null>(null)
     /** Meshes decorativos da prateleira fora do hexágono (ver `computeShelfPositions`). */
@@ -934,32 +739,24 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     /** Mini pelúcia do Riebeck na mesa (ver `createRiebeckPlush`) — só pra animar a respiração no `tick`. */
     const plushRef = useRef<THREE.Group | null>(null)
     /**
-     * Quanto tempo (ms) a cena já está montada — só alimenta a animação de abertura da tampa do
-     * estojo (ver `lidAngleForElapsed`). Fica num ref, e não numa variável local do efeito de
-     * mount, porque o efeito de troca de cor RECRIA o estojo (tampa incluída) e precisa
-     * recolocá-la no ângulo em que ela já estava, sem "fechar e abrir de novo" só porque o
-     * usuário trocou uma cor.
+     * Quanto tempo a cena já está montada; só alimenta a animação da tampa do estojo. Fica num ref
+     * porque o efeito de troca de cor recria o estojo e precisa recolocar a tampa no ângulo em que
+     * ela já estava, sem fechar e abrir de novo só porque alguém trocou uma cor.
      */
     const sceneElapsedMsRef = useRef(0)
     /** Estado atual da tampa: 0 = fechada, 1 = aberta (ver `lidProgressAt`). */
     const lidProgressRef = useRef(0)
     const lidAnimationRef = useRef<LidAnimation | null>(null)
     /**
-     * Estado atual da PONTE LEVADIÇA: 1 = abaixada (padrão), 0 = levantada.
-     *
-     * Reaproveita a máquina de animação da tampa do estojo (`LidAnimation`/`lidProgressAt`) — é o
-     * mesmo problema, uma peça girando em torno de uma dobradiça, com a mesma necessidade de
-     * inverter no meio do caminho quando alguém clica duas vezes seguidas. Uma segunda versão dela
-     * seria a mesma curva escrita de novo, pra sair de sincronia na primeira vez que uma das duas
-     * fosse ajustada.
+     * Ponte levadiça: 1 = abaixada (padrão), 0 = levantada. Reaproveita a máquina de animação da
+     * tampa (`LidAnimation`/`lidProgressAt`) porque é o mesmo problema — uma peça girando numa
+     * dobradiça, com a mesma necessidade de inverter no meio do caminho em dois cliques seguidos.
      */
     const bridgeProgressRef = useRef(1)
     const bridgeAnimationRef = useRef<LidAnimation | null>(null)
     /**
-     * Mundo físico e HUD de debug espelhados em ref — o efeito de montagem os cria como
-     * variáveis locais (`world`/`hud`), mas o efeito de resincronização de dados (ver mais
-     * abaixo, `groupsSignature`) roda numa segunda passada de efeito, sem acesso a essas
-     * variáveis por closure. Só usados no modo bandeja (ver o próprio efeito de resync).
+     * Mundo físico e HUD de debug espelhados em ref: o efeito de montagem os cria como variáveis
+     * locais, e o efeito de resync de dados roda numa segunda passada, sem elas por closure.
      */
     const worldRef = useRef<RAPIER.World | null>(null)
     const hudRef = useRef<DiceDebugHud | null>(null)
@@ -977,9 +774,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     onBridgeClickRef.current = onBridgeClick
 
     /**
-     * A ponte ABAIXADA no modo em uso — e não o `bridgeOpen` cru. Quem decide é `ponteAbertaNoModo`:
-     * fora da torre de enfeite a ponte fica sempre abaixada, senão o dado sairia atravessando a
-     * folha levantada (a medição está lá).
+     * A ponte ABAIXADA no modo em uso, e não o `bridgeOpen` cru: fora da torre de enfeite ela fica
+     * sempre abaixada, senão o dado sairia atravessando a folha levantada (`ponteAbertaNoModo`).
      */
     const ponteAbaixada = ponteAbertaNoModo(launchMode, bridgeOpen)
     /** Espelha o valor acima pro efeito de montagem, que roda uma vez só — ver o uso na criação da torre. */
@@ -987,17 +783,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     bridgeOpenRef.current = ponteAbaixada
 
     /**
-     * "Algo que projeta sombra mudou" — ver `shadowMap.autoUpdate` na montagem da cena.
-     *
-     * Com o mapa de sombras deixando de se refazer sozinho a cada quadro, quem MEXE na cena fora do
-     * laço precisa avisar. Sem isto há um defeito visível e específico: clicar em "+" pra somar um
-     * dado põe um dado novo na bandeja e a sombra dele não existe até a rolagem seguinte.
-     *
-     * Num ref, e não em estado, porque quem lê é o laço de animação — que roda fora do React.
+     * "Algo que projeta sombra mudou" (ver `shadowMap.autoUpdate` na montagem). Com o mapa de sombras
+     * deixando de se refazer sozinho, quem mexe na cena fora do laço precisa avisar: sem isto,
+     * clicar em "+" põe um dado novo na bandeja e a sombra dele não existe até a rolagem seguinte.
+     * Num ref, e não em estado, porque quem lê é o laço de animação, que roda fora do React.
      */
     const precisaDeSombraRef = useRef(true)
 
-    /** Espelham as props mais recentes pro efeito de resync (abaixo) nunca usar valores desatualizados de cor/acabamento, mesmo que o próprio efeito só dispare por causa de `groups`. */
+    /** Espelham as props mais novas pro efeito de resync nunca usar cor ou acabamento desatualizados. */
     const diceColorsRef = useRef(diceColors)
     diceColorsRef.current = diceColors
     const materialRef = useRef(material)
@@ -1010,24 +803,19 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     const caseOpenRef = useRef(caseOpen)
     caseOpenRef.current = caseOpen
     /**
-     * Espelhado num ref DE PROPÓSITO: o laço de animação e os handlers de tecla são criados uma vez
-     * só, no mount. Se eles lessem a prop direto, ficariam presos ao valor do primeiro render e
-     * trocar de modo não teria efeito nenhum — e pôr `cameraMode` nas dependências do efeito
-     * remontaria a cena 3D inteira (recriando física, texturas e dados) só pra mudar como três
-     * teclas são interpretadas.
+     * Em ref de propósito: o laço de animação e os handlers de tecla são criados uma vez só. Lendo a
+     * prop direto ficariam presos ao primeiro render, e pôr `cameraMode` nas dependências do efeito
+     * remontaria a cena 3D inteira só pra mudar como três teclas são interpretadas.
      */
     const cameraModeRef = useRef(cameraMode)
     cameraModeRef.current = cameraMode
 
     /**
-     * Os dados já nascem sendo arremessados (ver efeito abaixo) só por efeito visual — pra
-     * não ficarem parados/flutuando quando a cena monta ou remonta (troca de tipo/cor/modo
-     * debug força remount via `key`). Mas isso NÃO é uma rolagem pedida pelo usuário: sem
-     * essa flag, o assentamento desse arremesso automático dispara `onResult` sozinho,
-     * gravando uma entrada fantasma no histórico e tocando o som de rolagem toda vez que a
-     * cena monta — inclusive na abertura do app ou ao só trocar uma cor nas Preferências.
-     * Só fica `true` a partir da primeira chamada explícita de `roll()` — ou já nasce `true`
-     * se `autoRoll` foi passado (rolagem via preset, ver comentário da prop acima).
+     * Os dados já nascem sendo arremessados só por efeito visual, pra não ficarem parados no ar
+     * quando a cena monta ou remonta. Isso não é uma rolagem pedida: sem esta flag, o assentamento
+     * desse arremesso dispara `onResult` sozinho, gravando uma entrada fantasma no histórico e
+     * tocando o som de rolagem toda vez que a cena monta, inclusive ao abrir o app ou trocar uma cor.
+     * Só fica `true` no primeiro `roll()` explícito, ou já nasce assim com `autoRoll` (preset).
      */
     const armedRef = useRef(autoRoll ?? false)
 
@@ -1035,10 +823,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       roll: () => {
         armedRef.current = true
         if (launchMode === 'tower') {
-          // Refila tudo: todo dado volta pra fila e sai pela boca na sua vez, um a cada
-          // `MOUTH_RELEASE_INTERVAL_MS` (ver o comentário de lá — eles nascem todos no MESMO ponto,
-          // então o que os separa é o tempo, não a posição). O relógio é o de
-          // `sceneElapsedMsRef`, o mesmo que a tampa do estojo já usa.
+          // Refila tudo: cada dado volta pra fila e sai pela boca na sua vez, um a cada
+          // `MOUTH_RELEASE_INTERVAL_MS` (nascem todos no mesmo ponto, o que os separa é o tempo).
           diceRef.current.forEach((die, i) => {
             die.lastValue = null
             parkTowerDie(die)
@@ -1067,16 +853,11 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       renderer.shadowMap.enabled = true
       renderer.shadowMap.type = THREE.PCFSoftShadowMap
       /**
-       * O MAPA DE SOMBRAS não se refaz sozinho a cada quadro.
-       *
-       * `autoUpdate` é `true` por padrão no three.js, e o que isso quer dizer é que a cena inteira é
-       * desenhada MAIS UMA VEZ, do ponto de vista da luz, em todo quadro — inclusive com os dados
-       * parados há dez minutos e a sombra sendo exatamente a mesma. Numa cena com sombra suave
-       * (`PCFSoftShadowMap`) esse segundo desenho é uma boa fatia do custo do quadro.
-       *
-       * Aqui ele passa a ser PEDIDO: `needsUpdate` é ligado enquanto há dado se mexendo, e mais uma
-       * vez quando tudo assenta — esse último é o que importa, porque é ele que grava a sombra final
-       * dos dados onde eles pararam. Ver `precisaDeSombra` no laço.
+       * O mapa de sombras não se refaz sozinho a cada quadro. Com `autoUpdate` (o padrão do three), a
+       * cena inteira é desenhada mais uma vez, do ponto de vista da luz, em TODO quadro, inclusive
+       * com os dados parados há dez minutos; com sombra suave isso é boa fatia do custo do quadro.
+       * Aqui ele passa a ser pedido: `needsUpdate` liga enquanto há dado se mexendo e mais uma vez
+       * quando tudo assenta, que é o que grava a sombra final. Ver `precisaDeSombra` no laço.
        */
       renderer.shadowMap.autoUpdate = false
       renderer.shadowMap.needsUpdate = true
@@ -1091,21 +872,16 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       const mostraTorre = launchMode === 'tower' || launchMode === 'towerDecor'
       const lancaPelaBoca = launchMode === 'tower'
       /**
-       * No modo torre a câmera RECUA (`TOWER_BESIDE_CAMERA_CONFIG`, 37%): a torre de código chega a
-       * 9.42 de altura com telhado e flâmula, contra os 6.79 que a câmera padrão enquadra.
-       *
-       * Houve uma volta atrás aqui. O modelo `.glb` terminava em 5.75 e dispensava o recuo, o que
-       * devolvia a bandeja em tamanho cheio no modo torre — mas o modelo saiu (ver o comentário da
-       * montagem, logo abaixo) e com ele foi embora o motivo de usar a câmera padrão.
+       * No modo torre a câmera recua (`TOWER_BESIDE_CAMERA_CONFIG`): a torre chega a 9.42 de altura
+       * com telhado e flâmula, contra os 6.79 que a câmera padrão enquadra.
        */
       const cameraConfig = mostraTorre ? TOWER_BESIDE_CAMERA_CONFIG : CAMERA_CONFIG
 
       /**
-       * Os dois modos usam a MESMA cena de bandeja agora. A torre deixou de ser um cenário
-       * alternativo (praça de pedra, sem hexágono, dado caindo por dentro dela — `createTowerScene`)
-       * e virou uma peça ENCOSTADA no hexágono, de cuja boca o dado sai rolando pra dentro
-       * (`createTowerBesideTray` + `tossDieFromMouth`). Como a bandeja é a mesma, tudo o que vive
-       * nela — estojo, prateleira, pelúcia, colisores, gravidade — vale igual nos dois modos.
+       * Os dois modos usam a MESMA cena de bandeja. A torre deixou de ser um cenário alternativo e
+       * virou uma peça encostada no hexágono, de cuja boca o dado sai rolando pra dentro
+       * (`createTowerBesideTray` + `tossDieFromMouth`); estojo, prateleira, pelúcia, colisores e
+       * gravidade valem igual nos dois.
        */
       const tray = createTrayScene(wallColor, backgroundColor, floorColor, backgroundImage ?? null, traySides)
       const scene = tray.scene
@@ -1113,33 +889,21 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       const camera = createCamera(container.clientWidth / container.clientHeight, cameraConfig)
       if (mostraTorre) {
         /**
-         * A torre DESENHADA EM CÓDIGO, de volta no lugar do modelo `.glb` — decisão do usuário
-         * depois de ver as duas: "acho q a torre antiga está melhor, temos textura ela ta do
-         * tamanho melhor".
-         *
-         * O motivo técnico bate com o que ele viu: a malha do `.glb` veio do SolidWorks com
-         * POSITION e NORMAL e mais nada — sem UV não há onde a textura de tijolo se apoiar, então
-         * ela era cor chapada, um material só, e as quatro cores da torre viravam uma. Aqui são
-         * tijolo com normal map e quatro peças coloríveis (pedra, telhado, flâmula, porta).
-         *
-         * De brinde some a assincronia: esta é síncrona, então a torre existe junto com a cena e
-         * não há janela em que uma rolagem aconteça sem ela na tela.
-         *
-         * `createTowerModel.ts` continua no projeto, como a torre de código já continuou quando o
-         * modelo tomou o lugar dela: trocar de volta é trocar a chamada aqui.
+         * A torre desenhada em CÓDIGO, no lugar do modelo `.glb` (decisão dele: "a torre antiga está
+         * melhor"). O motivo técnico bate com o que ele viu: a malha do `.glb` veio do SolidWorks só
+         * com POSITION e NORMAL, e sem UV não há onde a textura de tijolo se apoiar — virava cor
+         * chapada, um material só, e as quatro cores da torre viravam uma. De brinde, esta é
+         * síncrona: não existe janela em que uma rolagem aconteça sem a torre na tela.
+         * `createTowerModel.ts` continua no projeto; trocar de volta é trocar a chamada aqui.
          */
         const tower = createTowerBesideTray(towerColorsRef.current, {}, traySides)
         scene.add(tower.group)
         towerBesideRef.current = tower
         /**
-         * A ponte nasce abaixada, mas o estado de aberta/fechada vive no React e SOBREVIVE à
-         * remontagem da cena (que acontece ao trocar de modo de lançamento, de forma de bandeja ou
-         * de modo de depuração — ver o `key` em `DiceRoller3D`).
-         *
-         * Sem esta linha, levantar a ponte e trocar a forma da bandeja devolveria uma ponte
-         * abaixada na tela com o app achando que ela está levantada: o clique seguinte animaria de
-         * levantada pra abaixada, ou seja, não faria nada visível, e só o segundo clique
-         * funcionaria. Sem animação aqui de propósito — a cena está nascendo, não há de onde animar.
+         * A ponte nasce abaixada, mas o estado de aberta ou fechada vive no React e sobrevive à
+         * remontagem da cena. Sem esta linha, levantar a ponte e trocar a forma da bandeja devolvia
+         * uma ponte abaixada na tela com o app achando que ela estava levantada, e só o segundo
+         * clique funcionava. Sem animação aqui: a cena está nascendo, não há de onde animar.
          */
         bridgeProgressRef.current = bridgeOpenRef.current ? 1 : 0
         tower.ponte.definirAbertura(bridgeProgressRef.current)
@@ -1148,23 +912,16 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       const environment = setupDiceEnvironment(scene, renderer)
 
       /**
-       * Cache GLOBAL (não recriado a cada mount, ver `textureCache.ts`) — como este componente
-       * remonta a cena inteira toda vez que `groups` muda (adicionar/remover um dado), usar o
-       * cache persistente aqui é o que faz a montagem seguinte reaproveitar texturas já
-       * desenhadas em vez de redesenhar a prateleira inteira (até 160 faces) e cada dado de
-       * novo do zero.
+       * Cache GLOBAL de textura, não recriado a cada mount: como a cena remonta inteira quando
+       * `groups` muda, é ele que faz a montagem seguinte reaproveitar as texturas em vez de
+       * redesenhar a prateleira (até 160 faces) e cada dado do zero.
        */
       const mountTextureCache = getGlobalDiceTextureCache()
 
-      // Prateleira decorativa: um dado de cada tipo disponível, parado do lado de FORA do
-      // hexágono, só pra visualizar a cor/acabamento escolhidos sem precisar rolar — nunca tem
-      // corpo físico (não participa da simulação, não se move, não é clicável).
-      //
-      // Vale nos DOIS modos desde que a torre passou a encostar na bandeja em vez de substituí-la:
-      // é a mesma mesa, o mesmo hexágono e a mesma borda externa. O bloco continua existindo (em
-      // vez de virar código solto) só pra manter o escopo de `positions`/`shelfCase`, que não
-      // precisam vazar pro resto do efeito. O estojo fica em z ≈ -10 e a torre, a -30°, então um
-      // não passa na frente do outro.
+      // Prateleira decorativa: um dado de cada tipo parado do lado de fora do hexágono, só pra ver a
+      // cor e o acabamento sem precisar rolar. Nunca tem corpo físico. Vale nos dois modos desde que
+      // a torre passou a encostar na bandeja em vez de substituí-la. O bloco existe pra manter o
+      // escopo de `positions`/`shelfCase`, que não precisam vazar pro resto do efeito.
       {
         const positions = computeShelfPositions()
         const shelfCase = createShelfCaseMesh(
@@ -1187,33 +944,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           : null
 
         /**
-         * Mini pelúcia do Riebeck sentada na QUINA da bandeja (um vértice do hexágono, o da
-         * frente-direita visto da câmera padrão), com as pernas pra dentro, olhando pro meio da
-         * mesa — pedido do usuário, referências em `riebeck/`. Fica meio corpo pra fora da linha
-         * da parede de propósito: assim ela lê como "sentada na beirada" sem ficar por cima da
-         * área onde os dados de fato caem e assentam.
-         *
-         * Decorativa como a prateleira e o estojo: sem corpo físico, sem collider, descartada
-         * junto com a cena por `disposeScene` (ver limpeza do efeito).
-         */
-        /**
-         * Na MESA (o chão em volta, `createGroundPlane`), não na borda do tabuleiro, e hoje
-         * EXATAMENTE ATRÁS DO ESTOJO, encostada nele com 1cm de folga — ver `plushZBehindCase`,
-         * onde a conta está feita a partir das medidas dos dois objetos.
-         *
-         * Bem pequena (`PLUSH_SCALE`): é um bonequinho de astronauta na mesa, não um móvel —
-         * pedido do usuário depois de ver a primeira versão, do tamanho de dois dados.
-         *
-         * O giro é calculado, não escolhido: `atan2` das próprias coordenadas, senão ela apareceria
-         * de lado (foi assim que a primeira posição precisou de conserto).
-         */
-        /**
-         * O cavalo é DECORATIVO como a pelúcia: nenhum corpo físico, nenhum collider, nenhuma linha
-         * no laço da física — ele não existe pra rolagem nenhuma.
-         *
-         * DE PERFIL pra câmera (`rotation.y = 90°`), e não alinhado com a face da bandeja: o bicho
-         * só lê como cavalo de lado — de frente vira uma caixa com quatro pernas. Renderizado nos
-         * dois ângulos antes de escolher.
+         * Enfeites da mesa, os dois decorativos: sem corpo físico, sem collider, fora do laço da
+         * física, e descartados junto com a cena por `disposeScene`. Ficam atrás do estojo, que é o
+         * esconderijo pedido ("não quero que dê pra ver ele da entrada principal"). O cavalo fica de
+         * perfil pra câmera: de frente ele vira uma caixa com quatro pernas.
          */
         if (MOSTRA_CAVALO) {
           const cavalo = createTrojanHorse()
@@ -1226,39 +960,23 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           const plush = createRiebeckPlush()
           plush.scale.setScalar(PLUSH_SCALE)
           /**
-           * Sentada na MESA, que é mais baixa que o chão da bandeja (ver `TABLE_SURFACE_Y`).
+           * Sentada na mesa, que é mais baixa que o chão da bandeja, e escondida no enquadramento em
+           * que o app abre: ela é easter egg, quem gira a câmera pra trás encontra. Encostada no
+           * estojo isso vale por geometria e não por distância — 0.53 de altura contra 1.22 dele.
            *
-           * ESCONDIDA no enquadramento em que o app abre, e isso é o pedido, não acidente: "mais
-           * atrás do estojo, não quero que dê pra ver ele da entrada principal". Ela é um easter
-           * egg — quem gira a câmera pra trás encontra. Encostada no estojo isso fica garantido por
-           * geometria e não por distância: ela tem 0.53 de altura contra 1.22 do estojo, então a
-           * própria caixa a tampa inteira de frente, com a tampa aberta ou fechada.
-           *
-           * DUAS LIÇÕES das dez posições anteriores, que continuam valendo se um dia ela sair daqui:
-           *
-           * 1. O "está flutuando" que o usuário repetiu quatro vezes nunca foi altura, sombra nem
-           *    cor das botas — era MARGEM DE GRAMADO. Perto da beirada do disco de grama (raio 16,
-           *    `GROUND_RADIUS`), uma câmera baixa e afastada recorta a pelúcia contra o fundo preto,
-           *    e aí ela lê como boiando. A saída é aproximar do centro, nunca mexer em altura.
-           * 2. Eu não conseguia reproduzir o problema porque recarregava o app antes de capturar, e
-           *    o reload RESETA a câmera pro enquadramento padrão — alto e de frente, o único ângulo
-           *    em que ela sempre aparecia assentada. Conferir na câmera EM QUE ELE ESTÁ, não na
-           *    inicial.
+           * Duas lições das dez posições anteriores: o "está flutuando" que ele repetiu quatro vezes
+           * nunca foi altura, sombra nem cor de bota, era MARGEM DE GRAMADO (perto da beirada do
+           * disco de grama, uma câmera baixa recorta a pelúcia contra o fundo preto); e conferir na
+           * câmera EM QUE ELE ESTÁ, porque recarregar o app reseta o enquadramento pro padrão, o
+           * único ângulo em que ela sempre aparecia assentada.
            */
           plush.position.set(PLUSH_X, TABLE_SURFACE_Y - PLUSH_SINK, plushZBehindCase(positions[0].z))
           /**
-           * DE COSTAS pro hexágono, olhando pra fora da mesa — pedido do usuário ("vira ele de
-           * costas pro hexágono"). Antes ela ficava virada pra bandeja ("com vista do dado"), o que
-           * fazia sentido quando ela estava mais pra dentro; sentada na beirada, de costas, ela lê
-           * como alguém olhando o horizonte em vez de assistindo à partida.
-           *
-           * O boneco é modelado olhando pro +Z, então `rotation.y = θ` aponta ele pra
-           * `(sin θ, 0, cos θ)`. Com `atan2(x, z)` das PRÓPRIAS coordenadas, essa direção é o vetor
-           * que sai do centro da mesa e passa por ele — ou seja, pra fora. A versão anterior usava
-           * `atan2(-x, -z)`, o mesmo vetor invertido, que aponta pro centro.
-           *
-           * Calculado e não escolhido à mão porque ele não está num eixo: em (3.2, -15.4) qualquer
-           * ângulo fixo o deixaria torto em relação à beirada.
+           * De costas pro hexágono, olhando pra fora da mesa: sentada na beirada, ela lê como alguém
+           * olhando o horizonte em vez de assistindo à partida. O boneco é modelado olhando pro +Z,
+           * então `rotation.y = θ` aponta pra `(sin θ, 0, cos θ)`; com `atan2(x, z)` das próprias
+           * coordenadas, essa direção é o vetor que sai do centro da mesa e passa por ele. Calculado
+           * porque ele não está num eixo: qualquer ângulo fixo o deixaria torto com a beirada.
            */
           plush.rotation.y = Math.atan2(plush.position.x, plush.position.z)
           // Altura de repouso, guardada pra respiração oscilar EM CIMA dela em vez de substituí-la
@@ -1284,17 +1002,12 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       }
 
       /**
-       * Câmera orbital/arrastável — o usuário pediu um jeito de "puxar a imagem" e ver a
-       * bandeja/torre de outros ângulos (inclusive de cima), já que a câmera fixa original
-       * podia deixar dados fora do enquadramento em rolagens com vários dados. Danping ligado
-       * pra um arrasto suave; distância e ângulo polar limitados pra não deixar o usuário dar
-       * zoom pra dentro da cena nem virar a câmera pra baixo do chão.
+       * Câmera orbital: arrastar gira e aproxima, já que a câmera fixa podia deixar dados fora do
+       * quadro em rolagens com muitos dados. Damping ligado; distância e ângulo polar limitados pra
+       * ninguém dar zoom pra dentro da cena nem virar a câmera pra baixo do chão.
        */
       const controls = new OrbitControls(camera, renderer.domElement)
-      /**
-       * Instante da última mexida na câmera. Alimenta o teto de quadros logo abaixo: arrastar a cena
-       * precisa da taxa cheia, senão o arrasto fica travado na mão.
-       */
+      /** Última mexida na câmera; alimenta o teto de quadros, porque arrastar precisa da taxa cheia. */
       let ultimaInteracaoMs = performance.now()
       controls.addEventListener('change', () => {
         ultimaInteracaoMs = performance.now()
@@ -1303,51 +1016,32 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       controls.enableDamping = true
       controls.dampingFactor = 0.08
       /**
-       * ZOOM MUITO MAIS FUNDO: 6 → 1.8, a pedido do usuário ("aumenta a potência do zoom pra poder
-       * ver mais detalhes").
+       * Zoom fundo. O 6 antigo era mais ou menos o raio da própria bandeja: dava pra enquadrar a
+       * mesa, nunca pra chegar perto de UMA peça, e um dado tem menos de 1 de lado. 1.8 é seguro
+       * contra o plano de corte (`near` = 0.1).
        *
-       * O 6 antigo era mais ou menos o raio da própria bandeja (7.5): dava pra enquadrar a mesa,
-       * nunca pra chegar perto de UMA peça. Um dado tem menos de 1 de lado e a pelúcia tem ~0.4 —
-       * pra ler o número gravado numa face, ou os olhos bordados do Riebeck, a câmera precisa
-       * passar da casa da unidade.
-       *
-       * 1.8 é seguro contra o plano de corte (`CAMERA_CONFIG.near` = 0.1): mesmo colada num dado, a
-       * câmera fica bem longe de começar a fatiar geometria.
-       *
-       * LIMITES IGUAIS NOS DOIS MODOS, e isso é correção de um bug real: enquanto a torre tinha
-       * cena própria (praça de pedra, escala menor), ela também tinha limites próprios — 1.2 e 19.
-       * Quando o modo torre passou a usar a bandeja, o 19 ficou: a câmera de
-       * `TOWER_BESIDE_CAMERA_CONFIG` nasce a 23.08 do alvo, e o `OrbitControls` corta a distância no
-       * teto já no primeiro `update()` — o app puxava a câmera de 23.08 pra 19 antes do primeiro
-       * quadro, entregando um enquadramento mais fechado que o medido, com o topo da torre cortado.
-       * Cena igual, limites iguais.
+       * Limites iguais nos dois modos, e isso é conserto de bug real: enquanto a torre tinha cena
+       * própria, tinha limites próprios (1.2 e 19). Com a bandeja compartilhada o 19 ficou, e o
+       * `OrbitControls` cortava a câmera de `TOWER_BESIDE_CAMERA_CONFIG` (que nasce a 23.08 do alvo)
+       * já no primeiro `update()`, entregando um enquadramento mais fechado que o medido, com o topo
+       * da torre cortado.
        */
       controls.minDistance = 1.8
       controls.maxDistance = 35
       /**
-       * Era exatamente `Math.PI / 2` (horizontal perfeito) — no ângulo mais baixo permitido, a
-       * câmera ficava praticamente na mesma altura (y≈0) do chão "infinito" ao redor da bandeja
-       * (`createGroundPlane`), olhando quase de raspão pra ele: nesse ângulo degenerado, o disco
-       * de chão bem próximo da câmera projeta como uma faixa larga e clara na tela (perspectiva
-       * de uma superfície quase paralela ao olhar, bem perto) — o usuário reportou isso como
-       * "ainda dá pra ver o chão" bem na direção do estojo (que fica alinhado com a câmera
-       * padrão). Reduzir a folga em ~10° tira só esse extremo degenerado, sem restringir a
-       * órbita livre pro resto do intervalo.
+       * Era `Math.PI / 2` exato: nesse ângulo a câmera fica quase na altura do chão em volta e olha
+       * pra ele de raspão, e o disco perto da câmera projeta como uma faixa larga e clara na tela
+       * ("ainda dá pra ver o chão", na direção do estojo). A folga de ~10° tira só esse extremo.
        */
       controls.maxPolarAngle = Math.PI / 2 - 0.17
       controls.update()
 
       /**
-       * Clique NO ESTOJO dentro da cena 3D abre/fecha a tampa — pedido do usuário. Detalhes que
-       * fazem funcionar sem atrapalhar a câmera:
-       *
-       * - só conta como clique se o ponteiro andou menos de `CLICK_DRAG_TOLERANCE_PX` entre
-       *   apertar e soltar. Sem isso, terminar um arrasto de órbita em cima do estojo abriria a
-       *   caixa sem ninguém pedir (o botão esquerdo é o mesmo que o `OrbitControls` usa);
-       * - o raio testa o GRUPO inteiro do estojo (casca, forro, tampa, ferragens), então
-       *   qualquer parte visível responde ao clique;
-       * - passar o mouse por cima troca o cursor pra "mãozinha", que é o que avisa que aquilo
-       *   ali é clicável — sem isso ninguém descobre o recurso.
+       * Clique no estojo dentro da cena 3D abre e fecha a tampa. Três detalhes fazem funcionar sem
+       * atrapalhar a câmera: só conta como clique se o ponteiro andou menos de
+       * `CLICK_DRAG_TOLERANCE_PX` (senão terminar um arrasto de órbita em cima do estojo abriria a
+       * caixa, já que o botão é o mesmo); o raio testa o GRUPO inteiro, então qualquer parte visível
+       * responde; e o cursor vira mãozinha, que é o que avisa que aquilo é clicável.
        */
       const raycaster = new THREE.Raycaster()
       const pointerNdc = new THREE.Vector2()
@@ -1371,14 +1065,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       }
 
       /**
-       * A PONTE LEVADIÇA aceita clique SÓ NA TORRE DE ENFEITE, e a condição é do usuário: no modo
-       * `tower` o dado sai pela boca e passa por cima do tabuleiro, então uma ponte levantada seria
-       * uma parede no caminho da rolagem — e descobrir isso no meio de uma partida é pior do que
-       * não ter o recurso. Na torre de enfeite nada sai pela boca, e a ponte é só enfeite que se
-       * mexe.
-       *
-       * `launchMode` é lido direto da closure de montagem, e isso é correto aqui: o modo entra no
-       * `key` de `DiceRoller3D`, então trocar de modo já remonta a cena inteira com o valor novo.
+       * A ponte aceita clique só na torre de ENFEITE, e a condição é dele: no modo `tower` o dado sai
+       * pela boca e passa por cima do tabuleiro, então uma ponte levantada seria uma parede no
+       * caminho da rolagem. `launchMode` vem da closure de montagem, e isso é correto aqui: o modo
+       * está no `key` de `DiceRoller3D`, então trocá-lo já remonta a cena com o valor novo.
        */
       function bridgeUnderPointer(event: PointerEvent): boolean {
         if (launchMode !== 'towerDecor') return false
@@ -1397,9 +1087,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         if (event.button !== 0) return
         const moved = Math.hypot(event.clientX - pointerDownAt.x, event.clientY - pointerDownAt.y)
         if (moved > CLICK_DRAG_TOLERANCE_PX) return
-        // O estojo primeiro: ele e a ponte nunca se sobrepõem na tela (o estojo fica atrás da
-        // bandeja, a torre ao lado), mas testar os dois na ordem evita que um clique conte duas
-        // vezes no dia em que a câmera achar um ângulo em que se cruzam.
+        // O estojo primeiro: os dois nunca se sobrepõem na tela hoje, mas testar em ordem evita que
+        // um clique conte duas vezes no dia em que a câmera achar um ângulo em que se cruzem.
         if (caseUnderPointer(event)) onCaseClickRef.current?.()
         else if (bridgeUnderPointer(event)) onBridgeClickRef.current?.()
       }
@@ -1415,15 +1104,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       renderer.domElement.addEventListener('pointermove', handlePointerMove)
 
       /**
-       * Câmera no teclado (pedido do usuário): W/S aproxima e afasta, A/D gira em volta da
-       * bandeja, Q/E sobe e desce. É a mesma órbita do mouse, só que dirigida por tecla — o
-       * `OrbitControls` trabalha com a posição da câmera em coordenadas esféricas ao redor de
-       * `target`, então mexer no vetor `posição - alvo` aqui e deixar o `update()` do próprio
-       * controle terminar o trabalho mantém tudo (limites de zoom, de ângulo, damping)
-       * funcionando igual, sem duas lógicas de câmera concorrendo.
-       *
-       * As teclas são lidas por `event.code` (posição física), não por `key`: em teclado ABNT2
-       * ou AZERTY o W continua sendo a tecla de cima do bloco.
+       * Câmera no teclado: W/S aproxima e afasta, A/D gira em volta da bandeja, Q/E sobe e desce. É a
+       * mesma órbita do mouse — mexer no vetor `posição - alvo` e deixar o `update()` do controle
+       * terminar mantém limites e damping valendo, sem duas lógicas de câmera concorrendo. As teclas
+       * são lidas por `event.code` (posição física), pra ABNT2 e AZERTY continuarem com o W em cima.
        */
       const pressedKeys = new Set<string>()
       const CAMERA_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'])
@@ -1443,11 +1127,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         if (!CAMERA_KEYS.has(event.code) || isTypingInField()) return
         if (event.ctrlKey || event.altKey || event.metaKey) return
         /**
-         * Com a aba de rolagem ESCONDIDA (o usuário está em Estilo ou Anotações), a cena continua
-         * montada — é o que preserva os dados e o resultado ao trocar de aba, ver `App.tsx`. Sem
-         * esta linha, um W apertado fora de um campo de texto giraria uma câmera que ninguém está
-         * vendo, e a pessoa voltaria pra aba com o enquadramento mexido sem ter tocado na cena.
-         * `isTypingInField` acima já cobre digitação; isto cobre o resto.
+         * Com a aba de rolagem escondida a cena continua montada, que é o que preserva os dados ao
+         * trocar de aba. Sem esta linha, um W apertado fora de um campo giraria uma câmera que
+         * ninguém está vendo, e a pessoa voltaria pra aba com o enquadramento mexido.
          */
         if (!container || container.clientWidth === 0) return
         pressedKeys.add(event.code)
@@ -1463,14 +1145,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       }
 
       /**
-       * Limite do passeio no modo mesa. Sem isto, segurar o W leva o alvo pra fora do gramado e a
-       * cena inteira some do quadro, sem nenhuma pista de como voltar — o mesmo tipo de beco sem
-       * saída que fez a recentralização automática ser removida lá atrás.
-       *
-       * É exatamente o raio do tampo (`GROUND_RADIUS`), não mais um 15 escrito à mão: "andar pela
-       * mesa" tem que querer dizer a mesa INTEIRA — pedido do usuário, "ver tudo da mesa". O número
-       * solto de antes parava uma unidade antes da beirada e, pior, não tinha como acompanhar se o
-       * tampo mudasse de tamanho.
+       * Limite do passeio no modo mesa: sem ele, segurar o W leva o alvo pra fora do gramado e a cena
+       * some do quadro sem nenhuma pista de como voltar. É o raio do tampo (`GROUND_RADIUS`), e não
+       * um número escrito à mão, porque "andar pela mesa" quer dizer a mesa inteira e o número solto
+       * parava antes da beirada, sem acompanhar o tampo se ele mudasse.
        */
       const TABLE_PAN_LIMIT = GROUND_RADIUS
 
@@ -1484,10 +1162,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         maxPolarAngle: controls.maxPolarAngle,
         panRadius: TABLE_PAN_LIMIT,
         /**
-         * Piso da câmera um palmo ACIMA do tampo (`TABLE_SURFACE_Y`), não exatamente nele: parada
-         * rente à superfície, ela olha o gramado de raspão e o tampo vira uma faixa clara ocupando
-         * a tela — o mesmo enquadramento degenerado que fez `maxPolarAngle` precisar da folga de
-         * 0.17 logo acima.
+         * Um palmo acima do tampo, não nele: parada rente à superfície a câmera olha o gramado de
+         * raspão e o tampo vira uma faixa clara ocupando a tela, o mesmo extremo degenerado que o
+         * `maxPolarAngle` acima evita.
          */
         minCameraY: TABLE_SURFACE_Y + 0.5
       }
@@ -1503,11 +1180,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             for (const die of settled) diceFocus.add(die.mesh.position)
             diceFocus.divideScalar(settled.length)
             /**
-             * Persegue com suavização (12% por frame) em vez de saltar pro ponto: pular o alvo de
-             * um lugar pro outro entre dois frames dá um tranco na cena inteira, que foi
-             * exatamente o problema da recentralização automática removida antes. Aqui o usuário
-             * PEDIU o comportamento e pode desligar trocando de modo, então ele existe — mas
-             * suave, e só neste modo.
+             * Persegue com suavização em vez de saltar pro ponto: pular o alvo entre dois quadros dá
+             * um tranco na cena inteira, que foi o problema da recentralização automática removida.
+             * Aqui ele pediu o comportamento e pode desligar trocando de modo.
              */
             controls.target.lerp(diceFocus, 0.12)
           }
@@ -1535,21 +1210,17 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         if (!container) return
         const { clientWidth, clientHeight } = container
         /**
-         * Tamanho ZERO acontece de verdade: trocar de aba esconde a cena com `display: none` (ver
-         * `App.tsx`, que mantém a aba de rolagem montada pra não perder os dados), e nesse estado o
-         * container mede 0×0. Sem esta guarda, `aspect` viraria `0/0` = NaN, o que envenena a matriz
-         * de projeção — e o quadro seguinte, já com a aba visível de novo, sairia em branco até o
-         * próximo redimensionamento.
+         * Tamanho zero acontece de verdade: trocar de aba esconde a cena com `display: none` e o
+         * container mede 0×0. Sem a guarda, `aspect` vira NaN e envenena a matriz de projeção, e o
+         * quadro seguinte, já com a aba visível, sai em branco até o próximo redimensionamento.
          */
         if (clientWidth === 0 || clientHeight === 0) return
         /**
-         * `false` no terceiro argumento: o three NÃO escreve `style="width: …px; height: …px"` no
-         * canvas. Com o estilo inline, o canvas passava a ter altura própria em pixels — vencendo o
-         * `height: 100%` do CSS — e, quando o contêiner deixou de ter altura fixa (a seção da cena
-         * passou a crescer com o conteúdo, ver `App.tsx`), era o CANVAS que ditava a altura do
-         * contêiner, o `ResizeObserver` lia a altura nova, aumentava o canvas… e a cena crescia a
-         * cada quadro (medido: 533px → 773px). Só os atributos `width`/`height` (a resolução) mudam
-         * aqui; o tamanho na tela é do layout.
+         * `false` no terceiro argumento: o three não escreve `width`/`height` inline no canvas. Com o
+         * estilo inline o canvas ganhava altura própria em pixels, vencia o `height: 100%` do CSS e,
+         * com o contêiner crescendo com o conteúdo, era o CANVAS que ditava a altura: o
+         * `ResizeObserver` lia a altura nova, aumentava o canvas, e a cena crescia a cada quadro
+         * (medido: 533px → 773px). Só a resolução muda aqui; o tamanho na tela é do layout.
          */
         renderer.setSize(clientWidth, clientHeight, false)
         camera.aspect = clientWidth / clientHeight
@@ -1596,10 +1267,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         updateDieDebug(die)
 
         /**
-         * Na fila da boca da torre: fica parado e invisível até chegar a vez dele, e aí SAI —
-         * visível, com colisão de volta (`tossDieFromMouth` restaura os grupos) e já rolando pra
-         * dentro do hexágono. A partir daqui ele é um dado de bandeja como qualquer outro; não
-         * existe mais fase de descida, porque ele nunca passa por dentro da torre.
+         * Na fila da boca da torre: parado e invisível até a vez dele, e aí SAI — visível, com
+         * colisão de volta e já rolando pra dentro do hexágono. Daí em diante é um dado de bandeja
+         * como outro qualquer; ele nunca passa por dentro da torre.
          */
         if (die.phase === 'queued') {
           if (die.releaseAtMs === undefined || sceneElapsedMsRef.current < die.releaseAtMs) return
@@ -1618,10 +1288,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           return
         }
 
-        // Acumula quanto tempo simulado o dado já passou "entrando" (sem colidir com a
-        // parede) sem cruzar pra dentro — alimenta o teto de `restoreWallCollisionIfInside`
-        // (ver `ENTRY_FORCE_PUSH_TIMEOUT_MS`/comentário lá). Zera assim que ele sai dessa
-        // fase. Sem efeito pra dados da torre (nunca entram em `DICE_ENTERING_GROUPS`).
+        // Acumula o tempo simulado na fase "entrando" pro teto de `restoreWallCollisionIfInside`
+        // (ver `ENTRY_FORCE_PUSH_TIMEOUT_MS`). Zera assim que o dado sai dessa fase; sem efeito pros
+        // dados da torre, que nunca entram em `DICE_ENTERING_GROUPS`.
         const isEntering =
           die.body.numColliders() > 0 && die.body.collider(0).collisionGroups() === diceEnteringCollisionGroups()
         if (isEntering) die.enteringElapsedMs += simulatedSeconds * 1000
@@ -1657,20 +1326,16 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       /** Último instante em que a cena foi DESENHADA (ver o teto de quadros abaixo). */
       let ultimoDesenhoMs = 0
       /**
-       * A sombra precisa ser refeita neste quadro? Ver `shadowMap.autoUpdate` na montagem.
-       *
-       * Começa ligado (a primeira sombra tem que existir) e é religado sempre que algo que projeta
-       * sombra se mexe — ou seja, enquanto há dado rolando, e uma última vez quando o último assenta.
+       * A sombra precisa ser refeita neste quadro? Começa ligada e volta a ligar sempre que algo que
+       * projeta sombra se mexe: enquanto há dado rolando, e uma última vez quando o último assenta.
        */
       let precisaDeSombra = true
       let estavaRolando = false
       /**
-       * QUEM ESTÁ SE MEXENDO AGORA — a pergunta que decide quanto trabalho este quadro custa.
-       *
-       * `rolling`, mais o `queued` que JÁ TEM hora de sair. Não dá pra escrever `phase !== 'done'`,
-       * que era a versão óbvia: no modo torre os dados nascem `queued` e ficam PARQUEADOS —
-       * invisíveis, fora da simulação — até alguém clicar em rolar, e com aquele teste a torre nunca
-       * sairia do modo caro. O `releaseAtMs` é o que separa dado parqueado de dado na fila da boca.
+       * Quem está se mexendo agora, a pergunta que decide quanto este quadro custa: os `rolling`,
+       * mais os `queued` que JÁ TÊM hora de sair. Não dá pra escrever `phase !== 'done'`, que era a
+       * versão óbvia: no modo torre os dados nascem `queued` e ficam parqueados, fora da simulação,
+       * até alguém rolar, e com aquele teste a torre nunca sairia do modo caro.
        */
       function temDadoSeMexendo(): boolean {
         return diceRef.current.some(
@@ -1684,27 +1349,20 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         lastFrameTime = now
 
         /**
-         * A CENA ESTÁ NA TELA? `display: none` deixa `clientWidth` em zero, e é assim que a aba de
-         * rolagem some sem ser desmontada (ver `App.tsx`).
-         *
-         * Isto era consultado só na hora de DESENHAR — o resto do quadro rodava igual, escondido ou
-         * não. Medido no app instalado: 5,4% de CPU na aba Ficha e 3,0% nas Anotações, com a cena
-         * invisível e ninguém mexendo em nada, a 165 quadros por segundo. É o "pequeno lag em tudo"
-         * que o usuário descreveu — a cena 3D competindo com o React pela mesma thread em telas onde
-         * ela nem aparece.
+         * A cena está na tela? `display: none` deixa `clientWidth` em zero, e é assim que a aba de
+         * rolagem some sem ser desmontada. Isto era consultado só na hora de DESENHAR, e o resto do
+         * quadro rodava igual: medido no app instalado, 5,4% de CPU na aba Ficha e 3,0% nas
+         * Anotações, com a cena invisível e ninguém mexendo em nada. É o "pequeno lag em tudo" que
+         * ele descreveu.
          */
         const visivel = !!container && container.clientWidth > 0 && container.clientHeight > 0
         const rolando = temDadoSeMexendo()
 
         /**
-         * FÍSICA: só enquanto há dado se mexendo — e aí SIM mesmo com a aba escondida.
-         *
-         * A segunda metade é de propósito e não pode ser simplificada: quem rola e troca de aba no
-         * meio quer voltar e encontrar o resultado pronto, não os dados congelados no ar.
-         *
-         * A primeira metade é a economia. Com tudo parado, `world.step()` e o laço de `updateDie`
-         * (agora até vinte dados, cada um consultando colisor, rastreador de repouso e leitura de
-         * face) rodavam 165 vezes por segundo pra concluir, toda vez, que nada mudou.
+         * Física só enquanto há dado se mexendo, e aí sim mesmo com a aba escondida: quem rola e troca
+         * de aba no meio quer voltar e achar o resultado pronto, não os dados congelados no ar. A
+         * economia é a outra metade — com tudo parado, `world.step()` e o laço de `updateDie` (até
+         * vinte dados) rodavam 165 vezes por segundo pra concluir que nada mudou.
          */
         if (rolando && stepPhysics) {
           const simulatedSeconds = stepPhysics(deltaSeconds)
@@ -1712,13 +1370,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         }
 
         /**
-         * ESCONDIDA: acaba aqui. O que sobra do quadro é animação e desenho, e nenhum dos dois tem
-         * sentido numa tela que ninguém está vendo — a bandeira tremulando atrás de um `display:
-         * none` é trabalho puro.
-         *
-         * O laço continua vivo (o `requestAnimationFrame` abaixo) porque ele precisa estar de pé no
-         * quadro em que a aba voltar. Um `tick` que só faz duas comparações e reagenda é
-         * praticamente de graça.
+         * Escondida: acaba aqui. O que sobra do quadro é animação e desenho, e bandeira tremulando
+         * atrás de um `display: none` é trabalho puro. O laço continua vivo porque precisa estar de
+         * pé no quadro em que a aba voltar, e um `tick` que só compara duas coisas é de graça.
          */
         if (!visivel) {
           frameId = requestAnimationFrame(tick)
@@ -1726,27 +1380,17 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         }
 
         /**
-         * TETO DE QUADROS. Antes disto a cena era desenhada a CADA quadro do `requestAnimationFrame`,
-         * que é a taxa do monitor — no monitor do usuário, 164 Hz a 2560×1440. Ou seja: 164
-         * renderizações por segundo de uma cena com sombra e reflexo, sem parar, com os dados
-         * parados e ninguém mexendo em nada. Isso mantém a GPU sob carga constante, e foi assim que
-         * ele percebeu: um chiado que só existia na aba de rolagem e sumia nas outras (som do app
-         * nenhum depende de aba; a cena 3D é a única coisa que só vive aqui).
+         * Teto de quadros. Antes disto a cena era desenhada a cada quadro do `requestAnimationFrame`,
+         * que é a taxa do monitor: no dele, 164 renderizações por segundo de uma cena com sombra e
+         * reflexo, com os dados parados e ninguém mexendo em nada. Isso mantém a GPU sob carga
+         * constante, e foi assim que ele percebeu — um chiado que só existia na aba de rolagem.
          *
-         * Três taxas, e a diferença entre elas é o que está acontecendo na tela:
+         * Três taxas: dado em movimento e mexida na câmera pedem a taxa cheia (senão o arrasto fica
+         * travado na mão); cena parada vai a 30, de sobra pra bandeira e respiração, as duas lentas.
          *
-         * - dado em movimento: taxa cheia, porque é a hora em que a suavidade importa de verdade;
-         * - mexendo na câmera: taxa cheia também, senão o arrasto fica travado na mão;
-         * - cena parada: 30, que é de sobra pro que continua se mexendo sozinho — a bandeira
-         *   tremulando e a respiração da pelúcia, as duas lentas.
-         *
-         * O teto agora governa TAMBÉM as animações, e não só o desenho. Elas ficavam de fora, e o
-         * resultado era pano de bandeira e respiração de pelúcia sendo recalculados 165 vezes por
-         * segundo pra serem desenhados 30 — cinco sextos daquele trabalho iam direto pro lixo.
-         *
-         * A FÍSICA continua fora do teto, e isso segue sendo de propósito: ela é passada acima com o
-         * `deltaSeconds` real. Limitar o desenho é economia; limitar a simulação mudaria o
-         * comportamento dos dados, que é a última coisa que se quer mexer aqui.
+         * O teto governa TAMBÉM as animações, e não só o desenho: elas ficavam de fora e eram
+         * recalculadas 165 vezes por segundo pra serem desenhadas 30. A física continua fora dele, de
+         * propósito: limitar o desenho é economia, limitar a simulação mudaria o comportamento.
          */
         const mexendoNaCamera = now - ultimaInteracaoMs < 400
         const alvoFps = rolando || mexendoNaCamera ? FPS_ATIVO : FPS_PARADO
@@ -1762,9 +1406,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           hud.updateFps(fpsSmoothed)
         }
 
-        // Abertura da tampa do estojo (ver `createShelfCaseMesh`) — puramente visual, fora da
-        // física: o estojo nunca teve collider e continua sem ter. `deltaSeconds` limitado pra
-        // um frame longo (janela minimizada, aba trocada) não pular a animação inteira de uma vez.
+        // Abertura da tampa do estojo: puramente visual, fora da física. `deltaSeconds` limitado pra
+        // um quadro longo (janela minimizada, aba trocada) não pular a animação inteira de uma vez.
         const shelfCase = shelfCaseMeshRef.current
         if (shelfCase) {
           sceneElapsedMsRef.current += Math.min(deltaSeconds, 0.1) * 1000
@@ -1780,12 +1423,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         }
 
         /**
-         * Ponte levadiça, no mesmo lugar e pelo mesmo motivo da tampa: puramente visual, sem
-         * collider, animada pelo relógio da cena.
-         *
-         * O `sceneElapsedMsRef` NÃO é adiantado aqui — quem faz isso é o bloco da tampa logo acima,
-         * uma vez por quadro. Adiantar de novo faria o relógio andar em dobro nos quadros em que os
-         * dois existem, e as duas animações correriam ao dobro da velocidade sem motivo aparente.
+         * Ponte levadiça, no mesmo lugar e pelo mesmo motivo da tampa. O `sceneElapsedMsRef` não é
+         * adiantado aqui: quem faz isso é o bloco da tampa, uma vez por quadro. Adiantar de novo
+         * faria as duas animações correrem em dobro nos quadros em que os dois existem.
          */
         const ponte = towerBesideRef.current?.ponte
         if (ponte) {
@@ -1801,36 +1441,25 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         }
 
         /**
-         * Respiração da pelúcia: sobe/desce alguns milímetros e balança um tiquinho, bem devagar.
-         * Sem isso ela lê como um enfeite de resina parado no cenário; com isso, como um bichinho
-         * de pelúcia apoiado na mesa. Amplitude minúscula de propósito — não pode competir com os
-         * dados pela atenção de quem está olhando a rolagem.
-         *
-         * BUG REAL, e o mais caro desta sessão inteira: esta linha ATRIBUÍA `position.y` em vez de
-         * somar, ou seja, jogava fora a altura definida na montagem e prendia a pelúcia oscilando
-         * em torno de y=0 — que é a altura do CHÃO DA BANDEJA. Depois que a mesa foi rebaixada
-         * (`TABLE_SURFACE_Y`), isso deixou o boneco pairando 0.78 acima do gramado, para sempre.
-         *
-         * O usuário reportou "o plush está flutuando" seis vezes e chegou a descrever exatamente o
-         * sintoma — "ele está na mesma altura que o dado no hexágono" —, e eu passei rodadas
-         * mexendo em altura de mesa, sombra de contato, profundidade de assentamento, cor de bota e
-         * posição: NADA daquilo podia funcionar, porque tudo era sobrescrito no frame seguinte. O
-         * que finalmente apontou pra cá foi ele dizer "não está descendo" mesmo depois de um reload
-         * que comprovadamente aplicava a posição nova.
-         *
-         * Por isso a altura de repouso é guardada uma vez (`userData.restY`) e a respiração passa a
-         * ser um deslocamento em cima dela.
-         */
-        /**
-         * Bandeira da torre tremulando (ver `createFlag`). Mesmo relógio da respiração da pelúcia,
-         * logo abaixo — `sceneElapsedMsRef`, que já limita o passo de um quadro longo.
-         *
-         * Sem `if` de modo: quando o lançamento é pela bandeja a torre nem existe, e o `?.` cobre
-         * isso. E a bandeira balança nos DOIS modos com torre, inclusive no de enfeite — pano parado
-         * é o que faz cenário parecer maquete.
+         * Bandeira da torre tremulando, no mesmo relógio da respiração da pelúcia logo abaixo. Sem
+         * `if` de modo: quando o lançamento é pela bandeja a torre nem existe e o `?.` cobre isso, e
+         * ela balança nos dois modos com torre, inclusive no de enfeite — pano parado é o que faz
+         * cenário parecer maquete.
          */
         towerBesideRef.current?.update(sceneElapsedMsRef.current / 1000)
 
+        /**
+         * Respiração da pelúcia: sobe e desce alguns milímetros e balança um tiquinho, bem devagar,
+         * pra ela ler como bichinho apoiado na mesa e não como enfeite de resina parado. Amplitude
+         * minúscula de propósito, pra não competir com os dados pela atenção.
+         *
+         * A altura de repouso é guardada uma vez (`userData.restY`) e a respiração é um deslocamento
+         * em cima dela. Esta linha já ATRIBUIU `position.y`, jogando fora a altura da montagem e
+         * prendendo a pelúcia oscilando em torno de y=0, que é o chão da bandeja: depois que a mesa
+         * foi rebaixada, o boneco ficou pairando 0.78 acima do gramado. Foram seis reportes de "o
+         * plush está flutuando" e rodadas mexendo em altura, sombra e cor, e nada podia funcionar,
+         * porque tudo era sobrescrito no quadro seguinte.
+         */
         const plush = plushRef.current
         if (plush) {
           const breath = sceneElapsedMsRef.current / 1000
@@ -1839,16 +1468,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           plush.rotation.z = Math.sin(breath * 0.8) * 0.02
         }
 
-        // Nada mexe em `controls.target` sozinho aqui: a câmera só muda se o usuário arrastar
-        // ou usar o teclado (ver o comentário sobre a recentralização removida, no topo do
-        // arquivo, e `applyKeyboardCamera`).
+        // Nada mexe em `controls.target` sozinho aqui: a câmera só muda se o usuário arrastar ou usar
+        // o teclado (ver a recentralização removida, no topo do arquivo, e `applyKeyboardCamera`).
         applyKeyboardCamera(Math.min(deltaSeconds, 0.1))
         controls.update()
         ultimoDesenhoMs = now
         /**
-         * A sombra é refeita enquanto os dados se mexem e MAIS UMA VEZ no quadro seguinte ao último
-         * assentar — essa última é a que registra a sombra deles parados onde caíram. Fora disso, o
-         * mapa da vez anterior continua valendo, porque nada que projeta sombra mudou de lugar.
+         * A sombra é refeita enquanto os dados se mexem e mais uma vez no quadro seguinte ao último
+         * assentar, que é a que registra a sombra deles parados onde caíram.
          */
         if (rolando || estavaRolando) precisaDeSombra = true
         estavaRolando = rolando
@@ -1874,10 +1501,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         .then(() => {
           if (disposed) return
           /**
-           * Mundo IGUAL nos dois modos. `TOWER_CONFIG.gravity` (-12) e `createTowerColliders`
-           * existiam pro dado cair POR DENTRO da torre, batendo nas prateleiras; agora ele só sai
-           * pela boca e rola na bandeja de sempre, então quem manda é a gravidade da bandeja e são
-           * os colisores dela. O que muda entre os modos é só DE ONDE o dado é lançado.
+           * Mundo igual nos dois modos: `TOWER_CONFIG.gravity` e `createTowerColliders` existiam pro
+           * dado cair por dentro da torre, batendo nas prateleiras; hoje ele só sai pela boca e rola
+           * na bandeja de sempre. O que muda entre os modos é só de onde o dado é lançado.
            */
           world = createPhysicsWorld()
           worldRef.current = world
@@ -1915,10 +1541,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
                 debug
               }
               parkTowerDie(die)
-              // Só enfileira pra sair de verdade se for uma rolagem de verdade (preset, ver
-              // `autoRoll`) — troca de tipo/cor/modo/debug remonta a cena sem que o usuário tenha
-              // pedido uma rolagem, então o dado fica parqueado até o próximo clique em "Rolar"
-              // (ver o comentário grande de `armedRef` acima e `roll()` no `useImperativeHandle`).
+              // Só enfileira pra sair de verdade numa rolagem de verdade (`autoRoll`): troca de tipo,
+              // cor ou modo remonta a cena sem ninguém ter pedido rolagem nenhuma.
               if (autoRoll) die.releaseAtMs = i * MOUTH_RELEASE_INTERVAL_MS
               return die
             }
@@ -1927,9 +1551,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             if (autoRoll) {
               tossDie(body, { target: spawnSlot, sides: traySides })
             } else {
-              // Sem arremesso cosmético de intro (pedido do usuário) — o dado só aparece já
-              // parado no próprio slot, caindo uma distância mínima até assentar (nunca
-              // "entrando" de fora, então nasce direto no grupo de colisão normal).
+              // Sem arremesso de intro: o dado aparece já parado no próprio slot, caindo uma
+              // distância mínima até assentar (nunca "entrando" de fora, então nasce no grupo normal).
               const [qx, qy, qz, qw] = randomQuaternion()
               body.setTranslation({ x: spawnSlot.x, y: 1.5, z: spawnSlot.z }, true)
               body.setRotation({ x: qx, y: qy, z: qz, w: qw }, true)
@@ -1967,11 +1590,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         window.removeEventListener('blur', handleWindowBlur)
         controls.dispose()
         for (const die of diceRef.current) die.debug?.visuals.dispose()
-        // shelfMeshesRef/shelfCaseMeshRef não precisam de descarte explícito aqui — ainda
-        // presos na cena, `disposeScene(scene)` logo abaixo já percorre e libera todo mesh
-        // nela (inclusive dentro do grupo do estojo, ver `disposeScene` aceitando `Object3D`),
-        // mesma convenção já usada pro mesh de cada `die` (nunca descartado à parte aqui, só
-        // por `disposeScene`).
+        // shelfMeshesRef/shelfCaseMeshRef não precisam de descarte à parte: ainda presos na cena, o
+        // `disposeScene` logo abaixo percorre e libera todo mesh dela, inclusive dentro do grupo do
+        // estojo. Mesma convenção do mesh de cada dado.
         shelfMeshesRef.current = []
         shelfCaseMeshRef.current = null
         hud?.dispose()
@@ -1991,27 +1612,18 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     }, [])
 
     /**
-     * Resincroniza SÓ os dados (sem remontar a cena/física/renderer inteiros) quando a
-     * COMPOSIÇÃO da rolagem muda (adicionar/remover tipo, ajustar quantidade, alternar
-     * vantagem/desvantagem) — `groups` NÃO está mais no `key` de `DiceRoller3D.tsx` por causa
-     * disso. Rolagens de preset continuam remontando de verdade (ver `presetRollSeq` lá, que
-     * SEGUE no `key`): elas precisam nascer já arremessadas (`autoRoll`), e o mount original já
-     * resolve isso certinho — não vale a pena duplicar aquele fluxo aqui só pra um caso mais raro.
+     * Resincroniza só os dados, sem remontar cena, física e renderer, quando a COMPOSIÇÃO da rolagem
+     * muda (somar ou tirar tipo, ajustar quantidade, alternar vantagem). Por isso `groups` não está
+     * mais no `key` de `DiceRoller3D.tsx`. Rolagem de preset continua remontando de verdade
+     * (`presetRollSeq` segue no `key`): ela precisa nascer já arremessada (`autoRoll`), e o mount
+     * original já resolve isso.
      *
-     * Motivo de existir: medido ao vivo que CADA dado adicionado remontava a cena inteira —
-     * novo `WebGLRenderer`/contexto WebGL (compilação de shader do zero, ~200ms sozinho),
-     * mundo físico novo, prateleira decorativa inteira redesenhada. Reaproveitar o mundo/cena/
-     * renderer já existentes (só trocar os corpos+meshes dos dados) elimina de longe a maior
-     * fatia desse custo.
+     * Medido ao vivo: cada dado adicionado remontava a cena inteira — renderer e contexto WebGL
+     * novos (~200ms só de compilação de shader), mundo físico novo, prateleira redesenhada. Vale nos
+     * dois modos, já que hoje eles compartilham bandeja, mundo e colisores.
      *
-     * Vale nos DOIS modos. Só a bandeja usava isto: a torre remontava a cena inteira a cada
-     * mudança de dado, o que custava ~55ms de reconstrução mais um pico de 290ms de compilação de
-     * shader no primeiro quadro. Como hoje os dois modos compartilham bandeja, mundo e colisores, o
-     * que muda é só de onde o dado é lançado — e isso não é motivo pra jogar a cena fora.
-     *
-     * O dado novo aparece PARADO no slot dele, nos dois modos. No modo torre ele só passa pela boca
-     * quando alguém rola de verdade; nascer voando da torre porque a pessoa clicou "+1 dado" seria
-     * uma rolagem que ninguém pediu.
+     * O dado novo aparece PARADO no slot: no modo torre ele só passa pela boca quando alguém rola de
+     * verdade, senão clicar em "+1 dado" viraria uma rolagem que ninguém pediu.
      */
     const isFirstGroupsSyncRef = useRef(true)
     const groupsSignature = JSON.stringify(groups)
@@ -2077,13 +1689,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         }
       })
 
-      // Essa resincronização NÃO é uma rolagem pedida pelo usuário (só mudou a composição) —
-      // sem isso, se `armedRef` já estivesse `true` de uma rolagem anterior (ele nunca volta a
-      // `false` sozinho, ver comentário grande onde é declarado), os dados recém-colocados
-      // assentando da queda mínima disparariam `onResult` sozinhos, um resultado fantasma que o
-      // usuário nunca pediu. Antes disso nem era possível acontecer: TODA troca de composição
-      // forçava remontagem, e um mount novo sempre nasce com `armedRef` fresco (`autoRoll` é
-      // `false` nesse fluxo).
+      // Resincronizar não é uma rolagem pedida, só mudou a composição. Sem isto, com `armedRef` já
+      // `true` de uma rolagem anterior (ele nunca volta sozinho), os dados novos assentando da queda
+      // mínima disparariam um `onResult` fantasma.
       armedRef.current = false
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groupsSignature, launchMode])
@@ -2109,11 +1717,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     }, [caseOpen])
 
     /**
-     * Abrir/fechar a ponte levadiça, com a mesma coreografia da tampa: parte do estado ATUAL, pra
-     * clicar no meio do movimento inverter de onde ele está, sem salto.
-     *
-     * Não precisa da guarda de "primeira passada" que a tampa tem: a ponte nasce abaixada e não tem
-     * animação de entrada, então a primeira execução já cai no `return` de "já está no alvo".
+     * Abrir e fechar a ponte, com a coreografia da tampa: parte do estado ATUAL, pra clicar no meio
+     * do movimento inverter sem salto. Não precisa da guarda de primeira passada que a tampa tem: a
+     * ponte nasce abaixada e sem animação de entrada, então a primeira execução já cai no `return`.
      */
     useEffect(() => {
       const alvo = ponteAbaixada ? 1 : 0
@@ -2127,51 +1733,39 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
 
     const isFirstColorUpdate = useRef(true)
     useEffect(() => {
-      // Roda de novo toda vez que cor/acabamento do dado ou cor de parede/fundo mudam — mas
-      // NÃO na primeira execução (o mount acima já criou tudo com o valor certo; refazer
-      // aqui de novo seria só
-      // trabalho redundante logo após montar).
+      // Roda quando cor ou acabamento mudam, mas não na primeira execução: o mount acima já criou
+      // tudo com o valor certo.
       if (isFirstColorUpdate.current) {
         isFirstColorUpdate.current = false
         return
       }
 
       /**
-       * Antes, `bodyColor`/`numberColor` faziam parte do `key` do componente lá em
-       * `DiceRoller3D.tsx` — CADA mudança de cor (inclusive cada evento `input` disparado ao
-       * arrastar o seletor de cor nativo, dezenas de vezes por segundo) desmontava a cena
-       * inteira (física, corpos rígidos, colliders) e montava tudo de novo do zero, incluindo
-       * um arremesso novo — visivelmente lento e "os dados ficam se mexendo sozinhos" enquanto
-       * você só queria mudar uma cor. Agora a cor NÃO está mais no `key` (ver
-       * `DiceRoller3D.tsx`); só o MESH visual de cada dado é reconstruído aqui, com a física
-       * (corpo, collider, posição, velocidade, resultado já lido) inteiramente intacta.
+       * A cor não está mais no `key` do componente (ver `DiceRoller3D.tsx`). Quando estava, cada
+       * mudança — inclusive cada evento `input` do arraste no seletor nativo, dezenas por segundo —
+       * desmontava cena, física e corpos e montava tudo de novo, com arremesso incluído: era o "os
+       * dados ficam se mexendo sozinhos" enquanto você só queria mudar uma cor. Hoje só o mesh visual
+       * é reconstruído, com a física intacta.
        *
-       * Mesmo só reconstruindo o mesh, ainda dava pra sentir uma travadinha arrastando o
-       * seletor rápido: reconstruir gera uma `CanvasTexture` nova POR FACE (até 100 no d100)
-       * de cada dado na cena, e cada evento `input` do arraste chamava isso na hora, de
-       * novo — trabalho síncrono na thread principal, dezenas de vezes por segundo. Um
-       * debounce curto (só reconstrói de verdade `COLOR_UPDATE_DEBOUNCE_MS` depois do
-       * último evento) deixa o arraste em si liso (não reconstrói nada enquanto ainda está
-       * mudando) e aplica a cor final assim que para, sem perder responsividade percebida —
-       * o próprio seletor de cor já dá feedback visual instantâneo por conta própria,
-       * independente da cena 3D.
+       * O debounce é o resto: reconstruir gera uma `CanvasTexture` por face (até 100 no d100) de cada
+       * dado, trabalho síncrono na thread principal a cada evento do arraste. Reconstruindo só depois
+       * do último evento, o arraste fica liso e a cor final entra quando ele para — o próprio seletor
+       * já dá o feedback instantâneo.
        */
       const timeoutId = window.setTimeout(() => {
         const scene = sceneRef.current
         if (!scene) return
 
         /**
-         * Cor/acabamento/parede/fundo/chão mudaram de verdade (é por isso que este efeito
-         * disparou) — o cache global fica desatualizado (guarda texturas das cores ANTIGAS),
-         * então descarta tudo antes de reconstruir. Sem isso, cada cor experimentada na aba
-         * Estilo ficaria acumulada pra sempre no cache (vazamento de textura/memória).
+         * As cores mudaram de verdade (é por isso que o efeito disparou), então o cache global guarda
+         * texturas das antigas: descarta antes de reconstruir. Sem isso, cada cor experimentada na
+         * aba Estilo ficaria acumulada pra sempre.
          */
         clearDiceTextureCache()
         const rebuildTextureCache = getGlobalDiceTextureCache()
 
-        // Parede/fundo/chão são atualizados no lugar também — mesmo motivo da cor dos dados,
-        // nunca força remount da cena física por causa de uma cor. A cor da TORRE não está aqui:
-        // ela tem efeito próprio, logo abaixo, e o motivo está escrito lá.
+        // Parede, fundo e chão também no lugar, nunca por remount. A cor da TORRE não está aqui: ela
+        // tem efeito próprio, logo abaixo.
         const wall = wallColor ?? DEFAULT_WALL_COLOR
         const background = backgroundColor ?? DEFAULT_BACKGROUND_COLOR
         const floor = floorColor ?? DEFAULT_FLOOR_COLOR
@@ -2225,12 +1819,11 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           })
 
           /**
-           * O estojo só troca de COR (ver `updateColors` em `ShelfCaseHandle`). Antes ele era
-           * jogado fora e reconstruído inteiro aqui, e junto disso vinham dois remendos que agora
-           * não existem mais: reposicionar a tampa no ângulo em que já estava (senão ela "piscava"
-           * fechada) e recolocar o grupo em `TABLE_SURFACE_Y` (senão o estojo voltava pro y=0 e os
-           * dados da prateleira ficavam pendurados por baixo dele). Sem reconstrução, nada disso
-           * pode acontecer — o objeto na cena é o mesmo, do jeito que estava.
+           * O estojo só troca de COR (`updateColors`). Antes ele era jogado fora e reconstruído
+           * inteiro aqui, e com isso vinham dois remendos: recolocar a tampa no ângulo em que já
+           * estava (senão ela piscava fechada) e devolver o grupo pra `TABLE_SURFACE_Y` (senão os
+           * dados da prateleira ficavam pendurados por baixo dele). Sem reconstrução, nada disso pode
+           * acontecer.
            */
           shelfCaseMeshRef.current?.updateColors(floor, wall)
         }
@@ -2241,19 +1834,12 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     }, [diceColors, material, wallColor, backgroundColor, floorColor, backgroundImage])
 
     /**
-     * Cor da TORRE em efeito próprio.
-     *
-     * Ela morava dentro do efeito acima, que NÃO depende de `towerColors` — então mudar só a
-     * pedra não repintava nada até alguma OUTRA cor mudar junto. Não aparecia porque `towerStone`
-     * não tinha botão na tela; passou a ter, e aí é o caminho normal de quem escolhe a cor dela.
-     *
-     * Separado, e não resolvido acrescentando `towerColors` àquela lista, porque aquele efeito
-     * limpa o cache de textura e RECONSTRÓI todos os dados da cena; a torre só precisa de uma
-     * escrita em `material.color`. As dependências são os quatro campos, e não o objeto: ele é
-     * montado inline no `DiceRoller3D`, ou seja, é referência nova a cada render.
-     *
-     * Torre montando (o `.glb` carrega assíncrono) não é caso perdido: `createTowerModel` recebe
-     * `towerColorsRef.current` na criação, então quem chega depois já nasce com a cor de agora.
+     * Cor da torre em efeito próprio. Ela morava no efeito acima, que não depende de `towerColors`,
+     * então mudar só a pedra não repintava nada até alguma outra cor mudar junto. Separado, e não
+     * somado às dependências de lá, porque aquele efeito limpa o cache de textura e reconstrói todos
+     * os dados; a torre só precisa de uma escrita em `material.color`. As dependências são os quatro
+     * campos, e não o objeto: ele é montado inline no `DiceRoller3D`, ou seja, referência nova a
+     * cada render.
      */
     useEffect(() => {
       towerBesideRef.current?.updateColors(towerColorsRef.current)

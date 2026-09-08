@@ -1,8 +1,6 @@
 /**
- * Todos os parâmetros ajustáveis da simulação física ficam aqui — nenhum valor mágico
- * espalhado por scene/physics/hooks. Cada grupo tem uma explicação do efeito prático
- * na sensação do dado, porque "ajustar até parecer bom" só funciona se o parâmetro
- * estiver num lugar só.
+ * Todo parâmetro ajustável da física fica aqui; nada de número mágico espalhado por
+ * scene/physics/hooks. Cada grupo diz o efeito prático no dado.
  */
 
 import type { DiceDefinition } from '@shared/types/dice3d'
@@ -11,26 +9,18 @@ import { MAX_SIMULTANEOUS_DICE } from '@shared/diceRegistry'
 export { MAX_SIMULTANEOUS_DICE }
 
 export const WORLD_CONFIG = {
-  /**
-   * m/s². Padrão Rapier/realista é ~9.81; valores maiores fazem o dado cair e assentar mais
-   * rápido. Aumentada pra -13 a pedido do usuário ("mais gravidade, mais força, como se uma
-   * pessoa estivesse jogando os dados") — mesmo espírito do aumento já aplicado só na torre
-   * (`TOWER_CONFIG.gravity`), agora também na bandeja aberta. Reverificado com
-   * `diceEscape.test.ts` (10 d6 simultâneos, o teto atual) antes de considerar seguro.
-   */
+  /** m/s². Mais forte que os 9.81 reais: o arremesso tem que parecer mão de gente, não queda. */
   gravity: -13,
-  /** Passos fixos de física por segundo. Mais alto = mais estável em colisões rápidas, mais custo de CPU. */
+  /** Passos fixos de física por segundo. Mais alto = colisão rápida mais estável, mais CPU. */
   physicsStepsPerSecond: 60,
-  /** Iterações do solver de restrições por passo (`World.numSolverIterations`, padrão do Rapier é 4). Mais alto = contato mais rígido/realista, mais custo de CPU. */
+  /** `World.numSolverIterations` (padrão do Rapier é 4). Mais alto = contato mais rígido, mais CPU. */
   solverIterations: 4,
-  /** Limite de passos de física executados num único frame de render, pra não travar o app numa "espiral da morte" se um frame demorar demais. */
+  /** Teto de passos num frame só, pra um frame lento não virar espiral da morte. */
   maxStepsPerFrame: 5,
   /**
-   * Teto de velocidade linear (m/s) aplicado a todo dado, todo frame (ver `clampVelocity.ts`).
-   * Qualquer arremesso/queda legítimo fica bem abaixo disso (impulso horizontal máximo ~4 +
-   * queda livre de ~1s ainda dá bem menos que isso somado em módulo) — o teto existe só pra
-   * conter o caso raro de dois corpos nascerem/colidirem quase sobrepostos e o solver
-   * resolver com um impulso de separação muito maior que qualquer física de jogo normal.
+   * Teto de velocidade linear (m/s), aplicado a todo dado todo frame (`clampVelocity.ts`).
+   * Rolagem legítima fica bem abaixo; o teto existe pro caso raro de dois corpos nascerem
+   * sobrepostos e o solver separar com um impulso violento.
    */
   maxLinearSpeed: 14
 }
@@ -38,426 +28,249 @@ export const WORLD_CONFIG = {
 export const DICE_DEFAULT_PHYSICS = {
   mass: 1,
   /**
-   * "Quicância" (0 = não quica, 1 = quique perfeito sem perda de energia). Times reais de
-   * dados de mesa ficam bem abaixo de 1 — muito alto e o dado fica "pulando" sem nunca assentar.
-   * Reduzido de 0.35: com vários dados convergindo de fora da bandeja pra dentro ao mesmo
-   * tempo (ver `SPAWN_CONFIG`), a energia acumulada de colisões perto do centro é maior que
-   * no design anterior (arremesso local, cada dado perto do próprio slot) — sem reduzir
-   * quicância/amortecimento, um dado ocasionalmente ainda conseguia quicar de volta por cima
-   * da parede depois de ser atingido por outro.
+   * Quicância (0 = não quica, 1 = quique sem perda). Baixa de propósito: com vários dados
+   * convergindo pro centro ao mesmo tempo, um atingido por outro ainda quicava por cima da parede.
    */
   restitution: 0.24,
-  /** Atrito entre o dado e a superfície/outros dados. Mais alto = para de girar mais rápido, menos deslize. */
+  /** Atrito com a superfície e com os outros dados. Mais alto = para de girar mais cedo. */
   friction: 0.6,
   /**
-   * Amortecimento da velocidade linear a cada passo — simula resistência do ar/mesa, ajuda o
-   * dado a assentar. Aumentado de 0.15 junto com a redução de `restitution` acima, mesmo motivo.
-   *
-   * TENTADO E REVERTIDO (pedido "a rolagem não é natural"): baixar pra 0.12 (com angular 0.12)
-   * e subir `SPAWN_CONFIG.torqueStrengthRange` pra [5, 9]. Medido com `diceEscape.test.ts` (o
-   * teste de estresse de `MAX_SIMULTANEOUS_DICE` dados, 5 rolagens seguidas): baseline passou
-   * 3/3 execuções, amortecimento menor falhou 2/3 e só o torque maior falhou 1/3 — dados
-   * parando de assentar dentro do limite, ou seja, rolagem travada em "Rolando..." na prática.
-   * E o ganho era pequeno mesmo assim: num sweep de 30 rolagens de 1 dado, a mediana do
-   * percurso após o pouso ficou em 2.96 (contra 2.98 do baseline) e os tombos em 4 (contra 3).
-   * Ou seja, o que faz a rolagem parecer pouco natural NÃO está aqui — não vale trocar
-   * confiabilidade de assentamento por isso.
+   * Resistência do ar/mesa; é o que faz o dado assentar. Baixar pra 0.12 (com o angular em 0.12 e
+   * o torque em [5, 9]) foi tentado e revertido: `diceEscape.test.ts` falhou 2 de 3 execuções
+   * (dado sem assentar = "Rolando..." pra sempre) e o percurso após o pouso melhorou 0.02.
    */
   linearDamping: 0.24,
-  /** Amortecimento da velocidade angular — controla quanto tempo o dado continua girando depois do impacto. Ver a nota de `linearDamping` sobre baixar os dois. */
+  /** Quanto tempo o dado segue girando depois do impacto. Ver a nota de `linearDamping`. */
   angularDamping: 0.3
 } as const
 
 export const SETTLE_CONFIG = {
-  /** Abaixo disso (m/s) a velocidade linear é considerada "parada". */
+  /** Abaixo disso (m/s) a velocidade linear conta como parada. */
   linearVelocitySleepThreshold: 0.02,
-  /** Abaixo disso (rad/s) a velocidade angular é considerada "parada". */
+  /** Abaixo disso (rad/s) a velocidade angular conta como parada. */
   angularVelocitySleepThreshold: 0.02,
-  /** Tempo (ms) que o dado precisa permanecer abaixo dos limiares acima, sem interrupção, para ser considerado parado de verdade. Evita ler o resultado durante uma pausa momentânea no meio de um quique. */
+  /** Tempo (ms) abaixo dos limiares, sem interrupção, pra valer como parado. Filtra a pausa no meio do quique. */
   stableDurationMs: 400,
-  /** Tempo máximo (ms) de espera antes de considerar a rolagem travada e agir (perturbação/re-roll). */
+  /** Espera máxima (ms) antes de considerar a rolagem travada e perturbar/re-rolar. */
   maxSettleTimeMs: 8000,
   /**
-   * Margem mínima de produto escalar entre a face melhor alinhada e a segunda melhor.
-   * Se a diferença for menor que isso, não há face claramente dominante (dado equilibrado
-   * numa aresta/vértice) — ver estratégia de desempate na explicação da Fase 1.
+   * Margem mínima de produto escalar entre a face mais alinhada e a segunda. Abaixo disso não há
+   * face dominante: o dado está equilibrado numa aresta ou vértice.
    */
   ambiguousFaceDotMargin: 0.08
 }
 
 /**
- * Margem de ambiguidade a usar pra um dado específico: a maioria usa a margem
- * global acima, mas dados com muitas facetas pequenas e próximas (d100
- * esférico, ver `d100Sphere.ts`) precisam de uma margem bem menor — do
- * contrário, praticamente toda rolagem seria marcada como ambígua.
+ * A margem global, ou a do próprio dado: o d100 esférico tem facetas pequenas e vizinhas demais
+ * (`d100Sphere.ts`), e com a margem global toda rolagem dele sairia ambígua.
  */
 export function resolveAmbiguousMargin(definition: DiceDefinition): number {
   return definition.ambiguousMarginOverride ?? SETTLE_CONFIG.ambiguousFaceDotMargin
 }
 
 export const TRAY_CONFIG = {
-  /**
-   * Apótema (distância do centro até o meio de cada parede) do hexágono da bandeja — define
-   * as paredes invisíveis. Era um retângulo (`halfExtentX`/`halfExtentZ`, sempre iguais desde
-   * que a bandeja virou quadrada) até virar hexágono de verdade a pedido do usuário; o valor
-   * numérico (6.5) foi mantido igual ao último `halfExtentX/Z`, então nenhum outro raio/câmera
-   * precisou ser reescalado por essa mudança de formato.
-   */
+  /** Apótema do polígono da bandeja (centro até o meio da parede): define as paredes invisíveis. */
   apothem: 6.5,
   /**
-   * Raio CIRCUNSCRITO da bandeja — a distância do centro até a quina.
+   * Raio circunscrito: centro até a quina. O número é `6.5 / cos(30°)` com precisão cheia de
+   * propósito, pra o hexágono manter apótema exatamente 6.5, o de antes de a forma virar escolha
+   * (com 7.5 redondo o apótema caía pra 6.495, numa parede calibrada dado a dado).
    *
-   * O número é `6.5 / cos(30°)` com precisão total de ponto flutuante, de propósito: é o valor que faz o
-   * HEXÁGONO continuar com apótema exatamente 6.5, o mesmo de antes de a forma virar escolha. Com
-   * 7.5 redondo o apótema caía pra 6.495 — cinco milímetros, mas cinco milímetros numa parede cuja
-   * física foi calibrada dado a dado. Formas novas podem ser novas; a antiga não pode mudar.
-   *
-   * É ele, e não o apótema, que define o espaço que a bandeja ocupa na mesa. Trocar a forma mantendo
-   * o apótema faria o triângulo virar um monstro (com apótema 6.5 a quina dele iria a 13, quase o
-   * dobro do hexágono) e o círculo encolher. Mantendo ESTE número, todas as formas ocupam a mesma
-   * pegada e nada mais na cena precisa ser reescalado: câmera, chão em volta, estojo e o assento da
-   * torre continuam valendo.
+   * É ele, e não o apótema, que define a pegada da bandeja na mesa: mantendo ESTE número, todas
+   * as formas ocupam o mesmo espaço e câmera, chão, estojo e assento da torre continuam valendo.
    */
   circumradius: 7.505553499465134,
   /**
-   * Lados do polígono da bandeja — 6 = hexágono. Usado tanto pela parede física (`createRingWall`)
-   * quanto pelo mesh visual, pra garantir que collider e visual sejam exatamente a mesma geometria.
-   *
-   * É o PADRÃO: a forma virou preferência do personagem (triângulo, quadrado, hexágono ou círculo,
-   * pedido do usuário), e quem monta a cena passa a escolhida. Este valor continua sendo o que vale
-   * pra quem nunca escolheu e para os testes de contenção que não estão testando forma.
+   * Lados do polígono (6 = hexágono), na parede física e no mesh, pra collider e visual serem a
+   * mesma geometria. É só o PADRÃO: a forma é preferência do personagem e quem monta a cena passa
+   * a escolhida.
    */
   wallSegments: 6,
   /**
-   * Altura VISUAL das paredes (o collider físico que de fato contém os dados é bem mais alto,
-   * ver `wallColliderHeight` abaixo). Foi 3.5 → 4.5 → 5.5 (pedidos anteriores do usuário por
-   * paredes mais altas/mais "confiança visual"). Reduzida de volta pra 1.8 a pedido do usuário,
-   * com referência visual concreta (`ideias/base hexagonal.png`): uma bandeja de couro dobrável
-   * de verdade, com parede rasa — bem mais baixa que um dado deitado de lado, só o suficiente
-   * pra conter sem virar uma "caixa". O collider físico (`wallColliderHeight`) não muda —
-   * contenção real continua garantida independente da altura visual.
+   * Altura VISUAL da parede: rasa, como a bandeja de couro dobrável da referência
+   * (`ideias/base hexagonal.png`). A contenção de verdade é do collider abaixo.
    */
   wallHeight: 1.8,
   /**
-   * Altura só do COLLIDER físico da parede — bem maior que `wallHeight` (a altura visual, só
-   * usada pelo mesh em `createScene.ts`) de propósito. Dado que entra na bandeja atravessa o
-   * LUGAR da parede sem colidir com ela enquanto ainda está "entrando" (ver
-   * `collisionGroups.ts`), a altura física da parede não precisa mais ser baixa o bastante
-   * pra um arremesso "pular por cima" — ela só existe agora pra CONTER, então pode (e deve)
-   * ser bem mais alta que qualquer bounce residual depois de uma colisão entre dados já
-   * dentro da bandeja consiga alcançar, sem nenhum efeito colateral visual (o collider é
-   * invisível, só o mesh determina a altura que aparece na tela).
+   * Altura só do COLLIDER. Bem maior que a visual porque o dado atravessa o LUGAR da parede
+   * enquanto está entrando (`collisionGroups.ts`): ela não precisa mais ser baixa pro arremesso
+   * pular por cima, só alta o bastante pra conter qualquer quique de quem já está dentro.
    */
   wallColliderHeight: 20,
-  /** Espessura das paredes e do chão — mesmo valor usado no mesh visual e no collider físico. */
+  /** Espessura de parede e chão, a mesma no mesh e no collider. */
   wallThickness: 0.2,
   floorThickness: 0.2
 }
 
 export const SPAWN_CONFIG = {
   /**
-   * Altura (unidades de mundo) de onde os dados são lançados — bem ACIMA da bandeja de
-   * propósito, pra parecer alguém em pé jogando os dados de cima pra dentro da caçamba, não
-   * só "nasce logo depois da parede". Uma versão anterior desta constante era baixa
-   * (rente ao chão) porque a altura ainda determinava se o dado precisava "pular por cima"
-   * fisicamente da parede pra entrar — isso não é mais verdade: o dado atravessa o LUGAR da
-   * parede sem colidir com ela enquanto ainda está "entrando" (ver `collisionGroups.ts`), e
-   * o collider físico da parede é bem mais alto que a altura visual justamente pra conter
-   * qualquer energia de impacto extra sem deixar nada escapar (ver `wallColliderHeight` em
-   * `TRAY_CONFIG`) — então agora a altura do lançamento é só uma escolha visual.
+   * Altura de onde os dados saem, bem acima da bandeja: alguém em pé jogando de cima pra dentro.
+   * Hoje é só escolha visual (o dado atravessa o lugar da parede pra entrar, ver
+   * `collisionGroups.ts`); antes a altura decidia se ele conseguia pular a parede.
    */
   launchHeightRange: [6, 8] as const,
-  /**
-   * Distância (unidades de mundo) ALÉM da parede onde o ponto de lançamento fica, numa
-   * direção aleatória em torno do slot de destino. O dado nasce de verdade do lado de fora,
-   * não só perto da borda por dentro.
-   */
+  /** Distância ALÉM da parede onde o ponto de lançamento cai: o dado nasce fora mesmo. */
   launchOutsideDistance: 2,
   /**
-   * Variação aleatória (unidades de mundo) somada/subtraída de `launchOutsideDistance` —
-   * cada dado nasce a uma distância um pouco diferente da parede, nunca exatamente na mesma
-   * posição que outro. Sem isso, dois dados cujo ângulo de lançamento calha de ficar bem
-   * parecido (ver `launchAngleSpreadRad`) podiam nascer colididos/sobrepostos entre si — o
-   * solver de física resolve sobreposição profunda com um impulso de separação que pode ser
-   * violento o bastante pra arremessar um dos dois a uma velocidade absurda (visto na
-   * prática: um dado saindo voando a dezenas de unidades de distância, bem além de qualquer
-   * arremesso normal).
+   * Variação somada a `launchOutsideDistance`, pra dois dados com ângulo de lançamento parecido
+   * não nascerem sobrepostos: o solver desfaz sobreposição profunda com um impulso capaz de
+   * arremessar um deles a dezenas de unidades (já visto).
    */
   launchRadiusJitter: 0.8,
   /**
-   * Variação angular (radianos) do ponto de lançamento em torno do ângulo do PRÓPRIO slot
-   * de destino (visto do centro da bandeja) — como uma mão que alcança perto de onde vai
-   * soltar aquele dado específico, não de qualquer lugar aleatório da borda. Mantida
-   * relativamente estreita (bem menos que 180°) de propósito: já que os slots de vários
-   * dados simultâneos ficam espalhados numa grade (ver `computeSpawnSlots.ts`), cada um já
-   * tem um ângulo bem diferente dos outros vistos do centro — uma variação ampla por cima
-   * disso só aumentava a chance de dois ângulos sorteados calharem de ficar parecidos.
+   * Variação angular do ponto de lançamento em torno do ângulo do próprio slot de destino, como
+   * uma mão que alcança perto de onde vai soltar. Estreita de propósito: os slots já ficam bem
+   * separados (`computeSpawnSlots.ts`), e abrir mais só aproximaria ângulos sorteados.
    */
   launchAngleSpreadRad: Math.PI / 5,
-  /** Variação angular (radianos) em torno da direção "reta pro slot" — evita todo lançamento parecer geometricamente idêntico. */
+  /** Variação em torno da direção reta pro slot, pra nem todo lançamento sair idêntico. */
   throwAngleSpreadRad: 0.5,
   /**
-   * Tempo-alvo (segundos) pro arremesso cruzar horizontalmente até a posição do slot de
-   * destino — usado pra CALCULAR o impulso horizontal a partir da distância real de cada
-   * lançamento (`distância / tempo`), em vez de um impulso fixo, já que a distância varia
-   * mais agora que o ponto de lançamento é sorteado ao redor do slot em vez de ficar sempre
-   * a `throwDistance` fixa dele. `min/maxHorizontalSpeed` blindam os extremos geométricos.
-   */
-  /**
-   * `flightDurationRange` encurtado (era [0.7, 1.0]) e `min/maxHorizontalSpeed` aumentados —
-   * junto com `WORLD_CONFIG.gravity` mais forte, pedido explícito do usuário de um arremesso
-   * mais rápido/pesado, "como se uma pessoa estivesse jogando os dados" (força de verdade, não
-   * só uma queda mais rápida).
+   * Tempo-alvo (s) do voo horizontal até o slot: o impulso sai de `distância / tempo`, não de um
+   * valor fixo, porque a distância varia com o sorteio do ponto de lançamento.
+   * `min/maxHorizontalSpeed` blindam os extremos geométricos. A faixa é curta e as velocidades
+   * altas de propósito, junto com a gravidade mais forte: arremesso com força, não só queda.
    */
   flightDurationRange: [0.55, 0.85] as const,
   minHorizontalSpeed: 3.2,
   maxHorizontalSpeed: 5.5,
   /**
-   * Módulo do impulso VERTICAL (pra cima) somado ao horizontal — pequeno de propósito. A
-   * altura de lançamento já é o que dá a sensação de "vindo de cima"; isso aqui é só o
-   * empurrãozinho inicial de quem joga (não deixar o dado sair só "caindo" reto, mas também
-   * sem competir com a queda livre e criar um arco alto e artificial).
+   * Impulso vertical somado ao horizontal, pequeno de propósito: é só o empurrãozinho de quem
+   * joga. A sensação de "vindo de cima" já vem da altura de lançamento.
    */
   verticalImpulseRange: [0.3, 0.6] as const,
-  /**
-   * Módulo do torque aleatório aplicado no momento do lançamento — aumentado junto com o resto
-   * (arremesso com mais força tomba com mais violência). Subir pra [5, 9] foi tentado e
-   * revertido: ver a nota de medição em `DICE_DEFAULT_PHYSICS.linearDamping`.
-   */
+  /** Torque do lançamento. Subir pra [5, 9] foi revertido: ver a medição em `linearDamping`. */
   torqueStrengthRange: [3, 6] as const,
   /**
-   * Meia-extensão (unidades de mundo) dentro da qual os "slots" de pouso de
-   * cada dado são distribuídos (ver `computeSpawnSlots`) — sempre menor que
-   * `TRAY_CONFIG.halfExtentX/Z` de propósito, pra nenhum slot cair colado
-   * na parede. Escalado junto com o aumento da bandeja (mesma razão
-   * halfExtent novo/antigo, 6.5/5.5), pra continuar espalhando os slots
-   * proporcionalmente mais agora que a bandeja é maior.
+   * Meia-extensão em que os slots de pouso são espalhados (`computeSpawnSlots`), sempre menor que
+   * o apótema pra nenhum slot nascer colado na parede.
    */
   slotSafeHalfExtent: 4.25
 }
 
 /**
- * Torre de dados (modo de lançamento alternativo — ver `launchMode` em `SettingsContext.tsx`):
- * o dado nasce no topo de uma torre de castelo e cai por dentro dela, batendo numa série de
- * PRATELEIRAS INCLINADAS, cada uma presa numa parede e girada em relação à anterior, até sair
- * pela porta na base — mecanismo real de "dice tower" físico (chocalho de prateleiras, não uma
- * rampa em espiral contínua). Geometria em `buildTowerBaffles.ts`.
- *
- * REESCRITA COMPLETA duas vezes nesta sessão: primeiro a partir de `tower.md.txt` (a torre ERA
- * uma rampa espiral única, removida — o spec pedia "multiple alternating ramps... alternate left
- * and right... generate random bouncing before exit", um mecanismo de prateleiras, não de
- * espiral); depois a partir de `dice_tower_parametric_prompt.md` (spec CAD bem mais detalhada,
- * trazida pelo usuário em seguida), que trocou o giro fixo de 180° entre prateleiras por um
- * deslocamento angular alternado (`baffleRotationalOffsetDeg`) e o espaçamento vertical DERIVADO
- * da inclinação por um valor INDEPENDENTE (ver comentários de cada campo abaixo) — autorizado
- * pelo usuário a refazer do zero as vezes que precisasse ("redo the tower and redo the physics").
- *
- * Cada prateleira é presa numa parede (ângulo calculado por `computeAttachAngle`, ver
- * `buildTowerBaffles.ts`) e desce até a borda aberta do lado oposto — um dado que cai nela é
- * redirecionado por impacto até essa borda e cai na PRÓXIMA prateleira, presa numa parede girada,
- * criando um caminho em zig-zag espiralado (não repetitivo) ao redor do eixo da torre.
+ * Torre de dados (o outro modo de lançamento, ver `launchMode` em `SettingsContext.tsx`): o dado
+ * nasce no topo e cai por dentro batendo numa série de PRATELEIRAS inclinadas, cada uma presa
+ * numa parede e girada em relação à anterior, até sair pela porta da base. É o mecanismo de uma
+ * dice tower de verdade (chocalho de prateleiras, não rampa em espiral). Geometria em
+ * `buildTowerBaffles.ts`.
  */
-/**
- * "Mini área de aterrissagem" na saída do portão (ver `createExitLandingPlatform` em
- * `createTowerScene.ts` e o collider correspondente em `createTowerColliders.ts` — os dois
- * SEMPRE lêem daqui, nunca duplicam o número).
- */
+
+/** Plataforma de pouso na saída do portão (`createTowerScene.ts` e `createTowerColliders.ts` lêem daqui). */
 export const EXIT_PLATFORM_CONFIG = {
-  /**
-   * Raio do disco (unidades de mundo). 1.5 → 1.8 → 2.0 → 1.5 nesta rodada: reduzido de novo —
-   * o usuário pediu uma plataforma pequena/modesta ("mini"), não um disco grande; um raio menor
-   * também evita que a plataforma pareça flutuar solta na praça (mais fácil de ler como um
-   * degrau pequeno de verdade saindo da calha, não uma segunda bandeja).
-   */
+  /** Raio do disco. Pequeno: é um degrau saindo da calha, não uma segunda bandeja. */
   radius: 1.5,
-  /** Altura (degrau) da plataforma acima do chão da praça — rasa de propósito, "curta e visível" como o resto do pouso da torre, não uma queda extra. */
+  /** Altura do degrau acima do chão da praça: rasa, pra não virar uma queda extra. */
   height: 0.15
 }
 
 export const TOWER_CONFIG = {
   /**
-   * Gravidade (m/s²) SÓ da torre — negativo, mesma convenção de `WORLD_CONFIG.gravity`. Bem mais
-   * fraca que a versão antiga da rampa espiral (-40): aqui o dado fica em QUEDA LIVRE de verdade
-   * entre prateleiras (não escorregando apoiado o tempo todo), então a mesma gravidade produziria
-   * impactos bem mais violentos a cada baffle. Valor escolhido pra dar velocidade de impacto
-   * moderada (~v=√(2·|g|·baffleVerticalSpacing), ver abaixo) — rápido/visível o bastante pra "gerar
-   * quique aleatório" (pedido explícito do `tower.md.txt`), sem ficar tão violento que o dado
-   * escape saltando por cima de uma prateleira.
+   * Gravidade só da torre. Mais fraca que a da bandeja porque aqui o dado cai em queda livre
+   * entre prateleiras (não escorrega apoiado), e a mesma gravidade daria impactos violentos
+   * demais a cada baffle. O alvo é quique visível sem escapar por cima de uma prateleira.
    */
   gravity: -12,
   /**
-   * Raio (apótema) da parede cilíndrica da torre (física E visual) — também define o diâmetro
-   * interno onde as prateleiras (baffles) ficam. Escala menor que a rampa espiral antiga
-   * (3.3): o mecanismo de prateleiras não precisa de um corredor largo o bastante pra um d6
-   * tombando (~1.73 de diagonal) girar sem tocar guias — aqui o dado só precisa CABER dentro do
-   * diâmetro com folga suficiente pra não ficar preso entre a borda de uma prateleira e a parede.
+   * Raio da parede cilíndrica (física e visual), que também dá o diâmetro interno das
+   * prateleiras. O dado só precisa CABER com folga pra não prender entre borda e parede.
    */
   shellApothem: 2.2,
-  /** Segmentos do polígono que aproxima o cilindro da parede externa (física) — 24 já é indistinguível de um círculo verdadeiro na escala de um dado. */
+  /** Segmentos do polígono da parede: 24 já é indistinguível de círculo na escala de um dado. */
   shellSegments: 24,
   /**
-   * Quantas prateleiras (baffles) o mecanismo tem — `ramp_count` no `dice_tower_parametric_prompt.md`
-   * (spec CAD trazida pelo usuário, mais detalhada/precisa que o `tower.md.txt` anterior), valor
-   * padrão 5 (faixa 4-6). Cada dado precisa bater em pelo menos `minBounceCount` delas antes de
-   * sair (`min_bounce_count`, ver comentário lá) — com prateleiras alternando lado (e agora
-   * também ângulo, ver `baffleRotationalOffsetDeg`) cobrindo ~75% do diâmetro cada, um dado que
-   * nasce no centro não tem como "pular" nenhuma, então 5 prateleiras SEMPRE geram pelo menos 5
-   * quiques reais no caminho até a saída.
+   * Quantas prateleiras o mecanismo tem. Alternando lado e ângulo, cada uma cobre ~75% do
+   * diâmetro, então o dado não tem como pular nenhuma: 5 prateleiras = pelo menos 5 quiques.
    */
   baffleCount: 5,
   /**
-   * Inclinação (graus) de cada prateleira, exceto a última (ver `finalBaffleSlopeDeg`) —
-   * `ramp_slope_angle` no spec: 15° (faixa 12-18), BEM mais suave que a versão anterior desta
-   * sessão (35°, calculada pra vencer o ângulo de atrito do dado numa rampa CONTÍNUA, onde o
-   * dado precisa ESCORREGAR apoiado o tempo todo). Essa restrição não se aplica mais aqui: com
-   * `baffleVerticalSpacing` agora INDEPENDENTE da inclinação (ver comentário lá, também vindo do
-   * spec — antes era derivado geometricamente do próprio ângulo/comprimento da prateleira), o
-   * dado sempre chega em cada prateleira em QUEDA (já com velocidade real, não do repouso) e é
-   * redirecionado pro lado por um impacto/quique — mais parecido com um para-choque de pinball
-   * do que com um tobogã contínuo. Verificado com `towerContainment.test.ts` depois da mudança.
+   * Inclinação de cada prateleira, menos a última. Suave porque o dado chega em QUEDA e é
+   * redirecionado por impacto, como um para-choque de pinball; não precisa vencer o atrito de um
+   * tobogã contínuo. Conferido em `towerContainment.test.ts`.
    */
   baffleSlopeDeg: 15,
   /**
-   * Inclinação (graus) SÓ da última prateleira — `final_ramp_angle` no spec: 8° (faixa 6-10),
-   * sempre mais suave que `baffleSlopeDeg` de propósito ("act as a brake, soaking up excess
-   * velocity right before the exit"). Sem isso, o dado sairia da torre ainda com toda a
-   * velocidade acumulada nos quiques anteriores, arriscando saltar pra fora da área de
-   * aterrissagem.
+   * Inclinação só da última, sempre mais suave: é o freio antes da saída. Sem ela o dado sairia
+   * com toda a velocidade acumulada e saltaria pra fora da área de pouso.
    */
   finalBaffleSlopeDeg: 8,
   /**
-   * Deslocamento angular (graus) aplicado entre cada prateleira sucessiva, além de trocar de
-   * parede — `ramp_rotational_offset` no spec: 50° (faixa 45-60), alternando sentido
-   * (horário/anti-horário) a cada prateleira. SEM isso, as prateleiras ficariam sempre nos
-   * mesmos dois lados opostos (0°/180°) — o spec é explícito sobre o motivo: um dado de forma
-   * geométrica particular (ex.: D4 tetraédrico vs D20 icosaédrico) pode encontrar um "caminho
-   * preferido" através de baffles sempre simétricos, um problema de EQUIDADE do resultado, não só
-   * de estética. Alternar o deslocamento faz o dado percorrer um caminho em espiral irregular ao
-   * redor do eixo da torre, nunca repetindo o mesmo padrão de quique.
+   * Giro entre duas prateleiras seguidas, além da troca de parede, alternando o sentido. Sem
+   * isso elas ficariam sempre nos mesmos dois lados opostos, e uma forma específica (d4 contra
+   * d20) poderia achar um caminho preferido: é questão de equidade do resultado, não de estética.
    */
   baffleRotationalOffsetDeg: 50,
-  /**
-   * Fração do DIÂMETRO interno que cada prateleira cobre, medida da parede onde está presa até a
-   * borda aberta do lado oposto — `ramp_length_fraction` no spec: 0.75 (faixa 0.70-0.80,
-   * "extend about 70–80% across the diameter"), valor idêntico ao já usado. Sobra ~25% do
-   * diâmetro como vão aberto pro dado cair pra prateleira de baixo.
-   */
+  /** Fração do diâmetro que cada prateleira cobre; o resto é o vão por onde o dado cai pra próxima. */
   baffleSpanFraction: 0.75,
-  /**
-   * Largura (perpendicular ao comprimento) de cada prateleira, como fração do DIÂMETRO interno —
-   * cada prateleira é um retângulo simples (o spec pede um perfil levemente côncavo,
-   * `ramp_profile`, não modelado aqui — um retângulo plano já mede confiável nos testes e evita
-   * complexidade extra de geometria/collider côncavo por enquanto), mantida um pouco menor que o
-   * diâmetro cheio pra não furar visualmente a parede curva nas pontas.
-   */
+  /** Largura da prateleira como fração do diâmetro, um pouco menor pra não furar a parede curva nas pontas. */
   baffleWidthFraction: 0.55,
-  /** Espessura (unidades de mundo) da prateleira — corresponde a `ramp_thickness` no spec (proporcionalmente pequena), só o suficiente pra um collider/mesh sólido, não estrutural. */
+  /** Espessura da prateleira: só o suficiente pra um collider/mesh sólido. */
   baffleThickness: 0.2,
   /**
-   * Raio de arredondamento (unidades de mundo) da borda do COLLIDER FÍSICO da prateleira
-   * (`RAPIER.ColliderDesc.roundCuboid`, ver `createTowerColliders.ts`) — corresponde a
-   * `fillet_dice_contact` no spec ("anywhere a die can strike or slide"). BUG REAL corrigido por
-   * este parâmetro: sem arredondamento, D20/D100 (formas quase esféricas) ficavam permanentemente
-   * presos na quina reta da borda de uma prateleira (0/20 no teste headless) — a quina de 90°
-   * dava um encaixe mecanicamente estável que essas formas encontram e formas mais angulares
-   * (D4-D12) não. Precisa ficar MENOR que a metade de `baffleThickness` (senão o "núcleo" do
-   * `roundCuboid` fica com extensão negativa) — 0.08 deixa a maior parte da espessura arredondada
-   * de propósito (quase uma seção transversal em cápsula), garantindo que TODA borda da
-   * prateleira, não só as pontas, deslize suave.
+   * Arredondamento da borda do COLLIDER (`ColliderDesc.roundCuboid`). Sem ele, d20 e d100 (quase
+   * esféricos) prendiam de vez na quina reta da prateleira: 0 de 20 no teste headless. Precisa
+   * ser menor que metade de `baffleThickness`, senão o núcleo do `roundCuboid` fica negativo.
    */
   baffleEdgeRadius: 0.08,
-  /**
-   * Espaço vertical livre ACIMA da primeira prateleira, onde o dado nasce/cai antes do primeiro
-   * impacto — `entry_drop_height` no spec: "builds enough initial kinetic energy to force real
-   * tumbling instead of a die just sliding down under low speed". Aumentado (era 1.0) porque o
-   * spec pede uma queda inicial proporcionalmente maior (35mm num tubo de ~90mm de diâmetro,
-   * ~0.39× o diâmetro) do que a versão anterior desta sessão tinha.
-   */
+  /** Espaço livre acima da primeira prateleira: é a queda que dá energia pro dado tombar de verdade. */
   topClearance: 1.7,
   /**
-   * Espaçamento vertical (unidades de mundo) entre o ponto de FIXAÇÃO de duas prateleiras
-   * consecutivas — `ramp_vertical_spacing` no spec: "usable interior height / (ramp_count + 1)",
-   * um valor INDEPENDENTE escolhido diretamente (não mais derivado de
-   * `comprimento · sen(inclinação)` como na primeira versão desta sessão): com a inclinação bem
-   * mais suave agora (15°), derivar a altura geometricamente dava uma queda vertical MENOR que a
-   * exigida pela própria validação de clearance do spec ("vertical drop between successive ramps
-   * >= 1.5 × maior altura de dado ativo"). Independente, dá margem real: o dado sai da borda de
-   * uma prateleira e cai em queda livre curta antes de alcançar a próxima (o "salto" entre
-   * baffles que o spec descreve), nunca dependendo de as duas prateleiras se tocarem exatamente.
+   * Distância vertical entre os pontos de fixação de duas prateleiras. Valor escolhido direto, e
+   * não derivado de `comprimento · sen(inclinação)`: com a inclinação suave de hoje, a conta dava
+   * queda menor que a folga exigida (1.5 × a maior altura de dado). Assim o dado sempre cai um
+   * trecho livre entre uma prateleira e a outra, sem depender de as duas se tocarem.
    */
   baffleVerticalSpacing: 1.3,
-  /** Espaço vertical livre ABAIXO da última prateleira antes do dado ser considerado "fora da torre" (`exitY`) — ver comentário de `exitY`. */
+  /** Espaço livre abaixo da última prateleira antes de o dado contar como fora da torre. */
   bottomClearance: 0.6,
   /**
-   * Altura (Y) considerada "já saiu da torre" — troca a colisão de volta pro grupo normal
+   * Altura que conta como "saiu da torre": devolve a colisão ao grupo normal
    * (`exitTowerIfDescended` em `collisionGroups.ts`).
    *
-   * BUG REAL medido nesta sessão com `exitY=0.3`: um d6 (metade da altura ≈0.35 depois do
-   * `scale` reduzido em `dice-defs/`) assentado no CHÃO tem o CENTRO em y≈0.35 — ACIMA de 0.3!
-   * O dado descia certinho por todas as prateleiras, pousava no chão de verdade... e nunca
-   * cruzava `exitY`, porque seu centro em repouso já é maior que o limiar. Ficava sinalizado
-   * "travado" pra sempre (`createDescentProgressTracker`), levando um empurrão aleatório atrás
-   * do outro sem nunca sair da fase "descending" — confirmado ao vivo com um script de depuração
-   * (posição/velocidade a cada passo): o dado chegava a y≈0.35-0.43 e ficava ali, estável, sendo
-   * empurrado repetidamente sem nunca "sair" de verdade.
-   *
-   * Corrigido pra 0.5 — folga real ACIMA da altura de repouso de QUALQUER dado do app (todos
-   * ficam bem abaixo de 0.35 depois do `scale` reduzido), então o cruzamento acontece ENQUANTO o
-   * dado ainda está caindo (a poucos centímetros do chão), nunca depois de já ter assentado.
+   * Com 0.3 havia bug real: um d6 assentado no CHÃO tem o centro em y≈0.35, acima do limiar. Ele
+   * descia todas as prateleiras, pousava, e nunca "saía" — ficava marcado como travado pra
+   * sempre, levando empurrão atrás de empurrão. Em 0.5 o cruzamento acontece com o dado ainda
+   * caindo, acima da altura de repouso de qualquer dado do app.
    */
   exitY: 0.5,
-  /** Margem (unidades) acima da última prateleira que a parede alta da torre cobre. */
+  /** Margem acima da última prateleira que a parede alta cobre. */
   shellTopMargin: 1.0,
-  /** Margem (unidades) abaixo do topo da torre até o chão, antes da parede baixa (com o portão) começar. */
+  /** Margem do topo até onde começa a parede baixa, a que tem o portão. */
   shellBottomMargin: 0.8,
   /**
-   * Largura (arco, unidades de mundo na base da casca) e altura do "portão" — abertura de VERDADE
-   * recortada na casca da torre (`buildTowerShellGeometry.ts`), sempre na direção em que o dado
-   * naturalmente sai da última prateleira (ver `computeTowerExitAngle` em `buildTowerBaffles.ts`
-   * — com `baffleCount` par, a última prateleira empurra o dado pra -X; ímpar, pra +X). LIÇÃO
-   * APRENDIDA na sessão anterior: a porta precisa ficar BEM mais larga que o vão de saída do
-   * mecanismo interno (aqui, o vão de uma prateleira = `(1 - baffleSpanFraction) × diâmetro` ≈
-   * 1.1), nunca só igual/menor — por isso 2.2, folga generosa (~1.1).
+   * Largura (arco) e altura do portão recortado na casca (`buildTowerShellGeometry.ts`), sempre na
+   * direção em que o dado sai da última prateleira (`computeTowerExitAngle`). Precisa ser bem
+   * mais largo que o vão de saída do mecanismo (≈1.1), nunca igual: daí a folga de 2.2.
    */
   gateArcWidth: 2.2,
   gateHeight: 1.3,
   /**
-   * Apótema da praça HEXAGONAL da base da torre (mesmo papel que `TRAY_CONFIG.apothem` tem pra
-   * bandeja) — precisa conter a plataforma de pouso inteira com folga mesmo no pior caso (ângulo
-   * de saída podendo apontar pro meio de um LADO do hexágono, onde a distância até a borda é só o
-   * apótema em si, não o circunraio maior): borda mais distante da plataforma fica a
-   * `shellApothem + 2×EXIT_PLATFORM_CONFIG.radius` ≈ 5.2 do centro da torre.
+   * Apótema da praça hexagonal da base. Tem que conter a plataforma de pouso inteira mesmo no
+   * pior caso (saída apontando pro meio de um lado, onde a borda está só a um apótema de
+   * distância): a borda mais distante da plataforma fica a ≈5.2 do centro.
    */
   baseFloorRadius: 5.5,
   /**
-   * Quantos dados podem estar simultaneamente dentro da torre (fase "caindo entre prateleiras")
-   * ao mesmo tempo — mantido em 1 (mesma decisão já tomada e MEDIDA nesta sessão pro mecanismo
-   * antigo: mais de um dado dividindo um espaço apertado derrubava a confiabilidade de ~95% pra
-   * ~20-50%). O resto da fila espera a vez (ver fila em `DiceCanvasMulti.tsx`).
+   * Quantos dados descem a torre ao mesmo tempo. Medido: mais de um dividindo o espaço apertado
+   * derrubava a confiabilidade de ~95% pra ~20-50%. O resto da fila espera (`DiceCanvasMulti.tsx`).
    */
   maxConcurrentInTower: 1,
   /**
-   * Tempo (ms) sem progredir em altura antes de considerar um dado "travado" (equilibrado numa
-   * borda de prateleira, por exemplo) — mais generoso que o da rampa espiral antiga (800ms)
-   * porque aqui um quique legítimo entre duas prateleiras pode brevemente subir antes de
-   * continuar caindo; um valor curto demais arriscaria classificar um quique normal como trava.
+   * Tempo sem ganhar altura antes de contar como travado. Era 1200: medido que o d100 precisa de
+   * muitos ciclos de empurrão pra vencer cada prateleira (`applyTowerStuckNudge.ts`), e detectar
+   * a trava mais cedo encurta o tempo total, já que o número de ciclos é o mesmo.
    */
-  // 1200 → 500: reduzido — MEDIDO que D100 (quase esférico, atrito máximo) precisa de muitos
-  // ciclos de empurrão pra atravessar cada prateleira (ver `applyTowerStuckNudge.ts`); detectar a
-  // trava mais rápido encurta o tempo REAL total, mesmo número de ciclos precisando acontecer.
   stuckTimeoutMs: 500,
-  /** Distância mínima (Y) de progresso pra não ser considerado "sem avançar" — filtra ruído numérico. */
+  /** Progresso mínimo em Y pra não contar como parado: filtra ruído numérico. */
   progressEpsilon: 0.05,
-  /** Distância de predição do soft-CCD do Rapier, ativado enquanto o dado está dentro da torre — mitiga tunelamento nos impactos (mais rápidos que uma queda comum) contra as prateleiras finas. */
+  /** Predição do soft-CCD do Rapier dentro da torre: evita tunelar nas prateleiras finas. */
   softCcdPrediction: 0.4
 }
 
 export const NUDGE_CONFIG = {
   /**
-   * Perturbação mínima aplicada quando o dado assenta equilibrado numa
-   * aresta/vértice (resultado ambíguo) ou trava sem assentar dentro de
-   * `maxSettleTimeMs`. Pequena o bastante pra não parecer um empurrão
-   * visível, grande o bastante pra desfazer o equilíbrio instável.
+   * Perturbação pro dado que assentou equilibrado numa aresta ou travou sem assentar. Pequena o
+   * bastante pra não virar empurrão visível, grande o bastante pra desfazer o equilíbrio.
    */
   impulseStrength: 0.5,
   torqueStrength: 0.8
