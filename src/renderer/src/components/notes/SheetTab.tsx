@@ -22,57 +22,40 @@ import { IconeReroll } from '../common/IconeReroll'
 import { CampoDeCaderno } from './CampoDeCaderno'
 
 /**
- * A FICHA do personagem, em aba própria — separada das Anotações a pedido do usuário: "vamos botar
- * uma aba pra FICHA, outra para anotações".
+ * A FICHA do personagem, em aba própria ("vamos botar uma aba pra FICHA, outra para anotações").
  *
- * A divisão tem uma lógica que vale escrever, porque não é só arrumação: a ficha é o que o
- * personagem É (quem ele é, quanto tem de cada coisa, o que sabe fazer, o que carrega) e muda
- * devagar; as anotações são o que ACONTECEU, e mudam a cada sessão. Estavam na mesma tela disputando
- * altura, e o diário — que é o que se escreve durante o jogo — ficava espremido embaixo dos blocos
- * fixos.
+ * A divisão tem uma lógica que vale escrever: a ficha é o que o personagem É e muda devagar; as
+ * anotações são o que ACONTECEU, e mudam a cada sessão. Estavam na mesma tela disputando altura, e o
+ * diário ficava espremido embaixo dos blocos fixos.
  *
- * A página tem DUAS FORMAS, e qual delas aparece depende do personagem aberto:
+ * A página tem DUAS FORMAS, e qual aparece depende do personagem aberto:
  *
- * - IMPORTADO de um PDF: as seções do sistema, com os nomes que aquele sistema usa e os campos
- *   dele, editáveis um a um. Uma ficha de Ordem Paranormal mostra Identificação, Atributos e
- *   Recursos; uma de Oblivio mostra Identificação, Atributos e Corpo. Foi pedido assim depois de a
- *   primeira versão espremer a ficha inteira dentro de blocos fixos: "eu quero que se a pessoa
- *   carregue um pdf de cada sistema a página Ficha mude para exatamente os nomes das coisas de cada
- *   sistema";
- * - CRIADO À MÃO: os blocos livres de atributos e habilidades, porque aí não há sistema nenhum a
- *   seguir e o que falta é espaço pra escrever.
+ * - IMPORTADO de um PDF: as seções do sistema, com os nomes e os campos dele, editáveis um a um.
+ *   Pedido assim depois de a primeira versão espremer a ficha inteira dentro de blocos fixos: "eu
+ *   quero que se a pessoa carregue um pdf de cada sistema a página Ficha mude para exatamente os
+ *   nomes das coisas de cada sistema";
+ * - CRIADO À MÃO: os blocos livres de atributos e habilidades, porque aí não há sistema a seguir.
  *
  * Inventário, aparência e história aparecem nos dois casos: são texto de quem joga, não campo de
- * sistema, e uma ficha importada também quer ter onde escrever.
- *
- * As seções moram no `notes.json` do PERFIL, e é isso que faz a página inteira trocar junto com o
- * personagem — sem nada de especial aqui: voltar pro personagem anterior traz a ficha dele de volta
- * porque é outro arquivo.
- *
- * Rola verticalmente (`sheet-tab-body`), porque ficha de RPG não cabe em tela nenhuma sem espremer
- * todo mundo — foi o outro pedido junto: "pode fazer com que seja possível scrollar pra baixo".
+ * sistema. As seções moram no `notes.json` do PERFIL, e é isso que faz a página trocar junto com o
+ * personagem, sem nada de especial aqui.
  *
  * E ela ROLA DADO: cada número que é rolagem no sistema tem um botão de dado do lado (ver
- * `sheetRoll.ts`). Sem isso a ficha era um formulário bonito e inerte dentro de um rolador de dados
- * — ninguém consulta a ficha por consultar, consulta pra rolar.
+ * `sheetRoll.ts`). Sem isso a ficha era um formulário bonito e inerte dentro de um rolador de dados.
  */
 export interface SheetTabProps {
   /**
    * Rola o que foi clicado na ficha. Quem rola de verdade é a aba de Rolagem, que fica montada o
-   * tempo todo (ver o comentário do `display` em `App.tsx`) — daqui só sai a expressão e o nome.
-   *
-   * Opcional porque a ficha tem que continuar servindo sem rolador nenhum por trás: no modo
-   * compacto não existe cena 3D montada, e uma ficha que quebra sem ela seria pior que uma ficha
-   * sem botão.
+   * tempo todo; daqui só sai a expressão e o nome. Opcional porque a ficha tem que continuar servindo
+   * sem rolador nenhum por trás: no modo compacto não existe cena 3D montada, e uma ficha que quebra
+   * sem ela seria pior que uma ficha sem botão.
    */
   onRoll?: (expression: DiceExpression, name: string) => void
   /**
-   * Trava os botões de dado enquanto uma rolagem NA TORRE está em andamento.
-   *
-   * É a mesma condição da lista de presets (`rollDisabled` em `App.tsx`), e pelo mesmo motivo: na
-   * torre a rolagem é uma fila de dados, e cortar no meio deixa dados presos em espera — então
-   * `rollGroups` recusa o pedido. Sem esta trava o botão aceitaria o clique e não aconteceria nada,
-   * que é a pior forma de dizer não.
+   * Trava os botões de dado enquanto uma rolagem NA TORRE está em andamento. É a mesma condição da
+   * lista de presets, e pelo mesmo motivo: na torre a rolagem é uma fila, cortar no meio deixa dados
+   * presos, e `rollGroups` recusa o pedido. Sem esta trava o botão aceitaria o clique e não
+   * aconteceria nada, que é a pior forma de dizer não.
    */
   rollDisabled?: boolean
 }
@@ -116,10 +99,8 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }, [loadedFor, importacao.feito])
   /**
    * Ficha vinda de PDF. É o que decide a forma da página: com seções, ela mostra a ficha DAQUELE
-   * sistema; sem, mostra os blocos livres.
-   *
-   * Como as seções moram no `notes.json` do perfil, trocar de personagem troca a página inteira — e
-   * voltar pro anterior traz a ficha dele de volta, sem nada a mais pra fazer aqui.
+   * sistema; sem, mostra os blocos livres. Como as seções moram no `notes.json` do perfil, trocar de
+   * personagem troca a página inteira, sem nada a mais pra fazer aqui.
    */
   const temSecoes = notes.sections.length > 0
   /**
@@ -137,13 +118,10 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }, [profiles.activeId])
   const nomeRef = useRef<HTMLInputElement>(null)
   /**
-   * A escolha da FOTO pode falhar — imagem grande demais, formato que o app não abre, arquivo numa
-   * pasta de rede que caiu (ver `escolherImagem.ts` no processo principal).
-   *
-   * Antes daqui, esse `void profiles.pickPhoto(...)` engolia a falha como promessa rejeitada sem
-   * ninguém pra pegar: o clique não fazia NADA, sem foto, sem erro, sem explicação. É o mesmo defeito
-   * que o `PdfEscolhido` já tinha consertado no botão de importar ficha, um andar acima nesta mesma
-   * tela.
+   * A escolha da FOTO pode falhar: imagem grande demais, formato que o app não abre, pasta de rede que
+   * caiu. Antes daqui, o `void profiles.pickPhoto(...)` engolia a falha como promessa rejeitada sem
+   * ninguém pra pegar, e o clique não fazia NADA — sem foto, sem erro, sem explicação. É o mesmo
+   * defeito que o `PdfEscolhido` consertou no botão de importar ficha, um andar acima nesta tela.
    */
   const [erroDaFoto, setErroDaFoto] = useState(false)
 
@@ -165,11 +143,9 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }
 
   /**
-   * Blocos que uma SEÇÃO já cobre — esses não aparecem duas vezes.
-   *
-   * A ficha do Matais mostrava a seção "Atributos" (em caixas, vinda do PDF) e, logo abaixo, um bloco
-   * de texto VAZIO também chamado "Atributos". Dois lugares com o mesmo nome pedindo a mesma coisa é
-   * exatamente o tipo de tela que faz a pessoa não saber onde escrever.
+   * Blocos que uma SEÇÃO já cobre: esses não aparecem duas vezes. A ficha do Matais mostrava a seção
+   * "Atributos" (em caixas, vinda do PDF) e, logo abaixo, um bloco de texto vazio também chamado
+   * "Atributos" — dois lugares com o mesmo nome pedindo a mesma coisa.
    */
   const cobertosPorSecao = new Set<SheetBlockKey>()
   for (const secao of notes.sections) {
@@ -181,12 +157,10 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }
 
   /**
-   * Personagem SEM NOME recém-aberto: o cursor vai direto pro campo de nome.
-   *
-   * É o "agiliza a criação" pedido pelo usuário. Criar um personagem é sempre seguido de nomeá-lo,
-   * e sem isto o gesto era clicar em "Novo personagem", procurar o campo com o mouse e só então
-   * digitar. A condição é estreita — só quando o nome está vazio —, então abrir um personagem já
-   * nomeado não rouba o foco de quem estava escrevendo noutro lugar.
+   * Personagem SEM NOME recém-aberto: o cursor vai direto pro campo de nome. É o "agiliza a criação"
+   * que ele pediu — criar um personagem é sempre seguido de nomeá-lo, e sem isto o gesto era clicar em
+   * "Novo personagem", procurar o campo com o mouse e só então digitar. A condição é estreita, só com
+   * o nome vazio, então abrir um personagem já nomeado não rouba o foco de ninguém.
    */
   useEffect(() => {
     if (profiles.active.name) return
@@ -198,11 +172,9 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
 
   /**
    * Adota UMA VEZ o nome que estava em `notes.characterName`, de quem já usava o app antes de
-   * existirem perfis. Sem isso a pessoa abriria a ficha e veria o campo de nome vazio, com o nome
-   * antigo preso dentro do arquivo de anotações e sem nenhum caminho até ele.
-   *
-   * A condição é estreita de propósito — só quando o perfil ainda não tem nome nenhum —, então isto
-   * nunca sobrescreve um nome escrito de verdade.
+   * existirem perfis: sem isso a pessoa abriria a ficha e veria o campo vazio, com o nome antigo preso
+   * dentro do arquivo de anotações e nenhum caminho até ele. A condição é estreita de propósito — só
+   * quando o perfil ainda não tem nome —, então isto nunca sobrescreve um nome escrito de verdade.
    */
   useEffect(() => {
     /**
@@ -220,11 +192,10 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }, [loadedFor, notes.characterName, profiles.active.name, profiles.activeId])
 
   /**
-   * O TETO DE PERSONAGENS respondido com AVISO, não com botão mudo — a regra do dono (30/08/2026):
-   * no cliente dele o teto é o do disco, nos testadores é três, "eles são bloqueados e recebem um
-   * aviso: máximo de personagens atingido". O botão continua clicável no teto de propósito: cinza
-   * com tooltip era fácil de não ver, e o tester ficava sem saber por que não criava. Quem trava de
-   * verdade continua sendo `ProfilesContext.create` (e o canal de importação, no processo main).
+   * O TETO DE PERSONAGENS respondido com AVISO, não com botão mudo: "eles são bloqueados e recebem um
+   * aviso: máximo de personagens atingido". O botão continua clicável no teto de propósito — cinza com
+   * tooltip era fácil de não ver, e o tester ficava sem saber por que não criava. Quem trava de
+   * verdade continua sendo `ProfilesContext.create` e o canal de importação.
    */
   function handleCreateProfile(): void {
     if (!profiles.podeCriar) {
@@ -272,12 +243,10 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }
 
   /**
-   * A seção é um QUADRO DE VALORES (rótulo pequeno, número grande) ou uma lista de campos?
-   *
-   * A regra é o tamanho do CONTEÚDO, não o nome da seção — assim ela vale pra qualquer sistema sem
-   * ninguém cadastrar nada. Atributos ("1", "3"), recursos ("45", "9m/6q") e partes do corpo ("0/5")
-   * são todos curtos e ficam ótimos em caixa; identificação ("Agente de Saúde") é texto e ficaria
-   * espremido numa.
+   * A seção é um QUADRO DE VALORES (rótulo pequeno, número grande) ou uma lista de campos? A regra é o
+   * tamanho do CONTEÚDO, não o nome da seção, e assim ela vale pra qualquer sistema sem ninguém
+   * cadastrar nada: atributos ("1", "3"), recursos ("45") e partes do corpo ("0/5") são curtos e ficam
+   * ótimos em caixa, enquanto identificação ("Agente de Saúde") é texto e ficaria espremido numa.
    */
   function secaoDeValores(secao: SheetSection): boolean {
     return secao.fields.length > 1 && secao.fields.every((campo) => campo.value.trim().length <= 8)
@@ -295,12 +264,10 @@ export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   }
 
   /**
-   * O botão de dado de um campo, ou nada.
-   *
-   * Ele só existe onde há rolagem de verdade — o `null` de `rolagemDoCampo` é o que impede um dado
-   * ao lado de "Classe de Armadura" ou de "Agente de Saúde". E o nome que vai junto é o RÓTULO da
-   * ficha ("Percepção", "Agilidade"), porque é ele que aparece no histórico depois: sem isso, três
-   * rolagens de 1d20+3 na lista ficam indistinguíveis.
+   * O botão de dado de um campo, ou nada. Ele só existe onde há rolagem de verdade — o `null` de
+   * `rolagemDoCampo` é o que impede um dado ao lado de "Classe de Armadura". E o nome que vai junto é
+   * o RÓTULO da ficha ("Percepção", "Agilidade"), porque é ele que aparece no histórico depois: sem
+   * isso, três rolagens de 1d20+3 na lista ficam indistinguíveis.
    */
   function botaoDeRolar(secao: SheetSection, campo: SheetSectionField) {
     if (!onRoll) return null

@@ -22,25 +22,19 @@ import { IMPORTACAO_DE_FICHA_LIGADA } from '@shared/recursos'
 
 /**
  * Identidade do app pro Windows. Tem que ser LITERALMENTE o mesmo texto do `appId` em
- * `electron-builder.yml` — é ele que o instalador carimba em cada atalho criado
- * (`WinShell::SetLnkAUMI "$newDesktopLink" "${APP_ID}"`, ver o template do NSIS).
- *
- * Sem esta declaração o app não tinha AppUserModelID nenhum, então o Windows inventava um a partir
- * do caminho do executável — e esse ID inventado não batia com o dos atalhos. É esse desencontro
- * que quebrava fixar na barra de tarefas: o item fixado e a janela aberta viravam DUAS coisas
- * diferentes pro Windows, então o ícone fixado abria uma segunda entrada em vez de virar a janela
- * em execução, e o "Fixar" some/não gruda quando pedido a partir da janela aberta.
+ * `electron-builder.yml`, que é o que o instalador carimba em cada atalho criado. Sem esta declaração
+ * o app não tinha AppUserModelID nenhum, então o Windows inventava um a partir do caminho do
+ * executável — e o ID inventado não batia com o dos atalhos. Era esse desencontro que quebrava fixar
+ * na barra de tarefas: o item fixado e a janela aberta viravam duas coisas diferentes pro Windows.
  */
 const APP_USER_MODEL_ID = 'com.renato.reroll'
 
 /**
- * A janela de agora, pra quem precisa dela DEPOIS de ela existir.
- *
- * Os handlers de IPC (controles da janela, progresso do update) são registrados UMA vez, na abertura
- * do app, e perguntam por ela na hora em que são chamados — em vez de nascerem grudados na janela
- * que existia no momento do registro. Sem isso, `createWindow` chamado uma segunda vez (o caminho do
- * `activate`, e qualquer janela nova que se escreva um dia) registrava os mesmos canais de novo, e
- * `ipcMain.handle` derruba o processo nisso: "Attempted to register a second handler for...".
+ * A janela de agora, pra quem precisa dela DEPOIS de ela existir. Os handlers de IPC são registrados
+ * UMA vez, na abertura do app, e perguntam por ela na hora em que são chamados, em vez de nascerem
+ * grudados na janela que existia no registro. Sem isso, `createWindow` chamado uma segunda vez
+ * registrava os mesmos canais de novo, e `ipcMain.handle` derruba o processo nisso: "Attempted to
+ * register a second handler for...".
  */
 let janelaPrincipal: BrowserWindow | null = null
 
@@ -64,19 +58,17 @@ function createWindow(initialIconPath: string): void {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       /**
-       * As quatro travas escritas À MÃO, mesmo sendo o padrão do Electron desde a versão 20.
+       * As quatro travas escritas À MÃO, mesmo sendo o padrão do Electron desde a versão 20. O padrão
+       * protege quem não sabe que elas existem; escrevê-las protege de outra coisa — de alguém (eu,
+       * daqui a seis meses) desligar uma pra resolver rápido um problema, sem topar com o motivo.
        *
-       * O padrão protege quem não sabe que elas existem; escrevê-las protege de OUTRA coisa — de
-       * alguém (eu, daqui a seis meses) desligar uma delas pra "resolver rápido" um problema, sem
-       * topar com o motivo. Aqui a linha está na cara, com o porquê ao lado.
-       *
-       * - `sandbox`: o renderizador roda numa caixa do sistema operacional. Se um dia rodar código
-       *   hostil ali, ele não fala com o disco nem com a rede direto — só pelas pontes de IPC.
+       * - `sandbox`: o renderizador roda numa caixa do sistema. Se um dia rodar código hostil ali,
+       *   ele não fala com disco nem rede direto, só pelas pontes de IPC;
        * - `contextIsolation`: o preload vive num mundo separado do JavaScript da página, então a
-       *   página não consegue reescrever a ponte pra fazê-la chamar outra coisa.
-       * - `nodeIntegration`: a página NÃO tem `require`. É o que separa "app" de "shell".
-       * - `webSecurity`: mantém a origem valendo. Desligar isso é o atalho clássico pra carregar
-       *   arquivo local numa página, e abre tudo de uma vez.
+       *   página não consegue reescrever a ponte;
+       * - `nodeIntegration`: a página não tem `require`. É o que separa "app" de "shell";
+       * - `webSecurity`: mantém a origem valendo. Desligar é o atalho clássico pra carregar arquivo
+       *   local numa página, e abre tudo de uma vez.
        */
       sandbox: true,
       contextIsolation: true,
@@ -96,21 +88,16 @@ function createWindow(initialIconPath: string): void {
   window.on('ready-to-show', () => window.show())
 
   /**
-   * As travas de navegação NÃO estão mais aqui.
-   *
-   * Elas viviam neste bloco (`will-navigate`, `will-attach-webview`, `setWindowOpenHandler`), e o
-   * problema não era o que faziam, era o alcance: valiam pra ESTA janela. Foram pra
-   * `seguranca.ts`, penduradas em `app.on('web-contents-created')`, onde alcançam também a janela
-   * que ainda não foi escrita. Ver o cabeçalho de lá.
+   * As travas de navegação não estão mais aqui: elas viviam neste bloco, e o problema não era o que
+   * faziam, era o alcance — valiam pra ESTA janela. Foram pra `seguranca.ts`, penduradas em
+   * `app.on('web-contents-created')`, onde alcançam também a janela que ainda não foi escrita.
    */
 
   /**
    * O carregamento é uma PROMESSA, e a falha dela é o pior desfecho possível: uma janela cinza,
    * aberta, sem nada dentro e sem erro nenhum. Acontece se o bundle do renderer não estiver onde se
-   * espera (empacotamento torto) ou se o servidor de desenvolvimento não estiver de pé.
-   *
-   * Não há interface pra mostrar o recado — ela é justamente o que não carregou —, então o console é
-   * o único lugar. Mas ele é infinitamente melhor que o silêncio de antes.
+   * espera, ou se o servidor de desenvolvimento não estiver de pé. Não há interface pra mostrar o
+   * recado — ela é justamente o que não carregou —, então o console é o único lugar.
    */
   const carregando = process.env.ELECTRON_RENDERER_URL
     ? window.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -128,16 +115,13 @@ function createWindow(initialIconPath: string): void {
 app.setAppUserModelId(APP_USER_MODEL_ID)
 
 /**
- * Uma instância só. Sem isto, clicar no ícone fixado com o app já aberto abre um SEGUNDO Reroll —
- * duas janelas, dois botões na barra, e as preferências das duas brigando pelo mesmo arquivo. Com
- * o bloqueio, o segundo processo morre na hora e manda a janela que já existe pra frente, que é o
- * que se espera de um ícone fixado.
+ * Uma instância só: sem isto, clicar no ícone fixado com o app já aberto abre um SEGUNDO Reroll, com
+ * duas janelas e as preferências das duas brigando pelo mesmo arquivo. Com o bloqueio, o segundo
+ * processo morre na hora e manda pra frente a janela que já existe.
  *
- * Só no app EMPACOTADO. O bloqueio é por pasta de dados, e `npm run dev` usa a mesma que o app
- * instalado — então com ele valendo sempre, rodar o dev com o app instalado aberto fazia o dev
- * morrer no arranque (saída 0, sem janela e sem erro nenhum, parecendo que a compilação falhou) e
- * ainda roubava o foco pra janela do app instalado. Testar uma mudança enquanto se usa o app é
- * exatamente o que se faz o dia inteiro aqui.
+ * Só no app EMPACOTADO: o bloqueio é por pasta de dados, e `npm run dev` usa a mesma que o app
+ * instalado, então com ele valendo sempre o dev morria no arranque (saída 0, sem janela e sem erro,
+ * parecendo falha de compilação) e ainda roubava o foco pra janela do app instalado.
  */
 if (app.isPackaged && !app.requestSingleInstanceLock()) {
   // Sai sem registrar mais nada: o `else` não é estilo, é necessário — `app.quit()` só encerra
@@ -153,16 +137,12 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
   })
 
   /**
-   * O ARRANQUE INTEIRO, com o `catch` que faltava.
-   *
-   * Tudo que abre o app está aqui dentro e tudo é assíncrono: ler os perfis do disco, migrar o
-   * formato antigo, ler as preferências. Sem o `catch`, uma falha em qualquer um desses passos —
-   * `profiles.json` ilegível, `%APPDATA%` sem permissão, disco cheio — virava uma rejeição sem dono:
-   * o processo continuava vivo, nenhuma janela era criada, e da parte de quem clicou no ícone o app
-   * simplesmente não abriu.
-   *
-   * O diálogo nativo é o único recado possível aqui: a interface é justamente o que não chegou a
-   * existir. Depois dele o app SAI, em vez de ficar num processo vivo sem janela nenhuma.
+   * O ARRANQUE INTEIRO, com o `catch` que faltava. Tudo que abre o app está aqui dentro e tudo é
+   * assíncrono: ler os perfis, migrar o formato antigo, ler as preferências. Sem o `catch`, uma falha
+   * em qualquer um desses passos — `profiles.json` ilegível, `%APPDATA%` sem permissão, disco cheio —
+   * virava uma rejeição sem dono: o processo continuava vivo, nenhuma janela era criada, e da parte
+   * de quem clicou no ícone o app simplesmente não abriu. O diálogo nativo é o único recado possível
+   * aqui, e depois dele o app SAI.
    */
   const arranque = async (): Promise<void> => {
     /**
@@ -172,15 +152,14 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     aplicarTravasDeSeguranca()
 
     /**
-     * Os perfis vêm PRIMEIRO e com `await`: são eles que dizem de qual pasta saem anotações e
-     * presets (ver `ProfilesRepository.activeDirectory`). Sem o `init` concluído, a primeira leitura
-     * de anotações cairia na pasta do perfil padrão mesmo que o usuário tenha outro aberto — e o
-     * `init` é também quem migra o `notes.json`/`presets.json` soltos de quem já usava o app.
+     * Os perfis vêm PRIMEIRO e com `await`: são eles que dizem de qual pasta saem anotações e presets.
+     * Sem o `init` concluído, a primeira leitura de anotações cairia na pasta do perfil padrão mesmo
+     * com outro aberto — e o `init` é também quem migra o `notes.json` solto de quem já usava o app.
      */
     /**
      * ANTES de ler qualquer dado: a primeira abertura de uma versão nova copia a pasta inteira pra
-     * `backups/` (spec §8.1; ver `backupsDeDados.ts`). Falha de backup é aviso, não parada: o app
-     * abrir sem backup é ruim, o app não abrir é pior.
+     * `backups/`. Falha de backup é aviso, não parada — o app abrir sem backup é ruim, o app não
+     * abrir é pior.
      */
     try {
       const backup = await fazerBackupSeMudouDeVersao(app.getPath('userData'), app.getVersion())
@@ -231,16 +210,15 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     registerUpdateHandlers(obterJanelaPrincipal)
 
     /**
-     * Aqui rodava um `applyIconToShortcuts` a cada abertura, pra reescrever o ícone dos atalhos e
-     * fazer a escolha do usuário valer na barra de tarefas. Ele foi REMOVIDO, e o motivo importa
-     * mais que o efeito: aquilo chamava `powershell.exe -EncodedCommand <base64>` toda vez que o
-     * app abria. Executável sem assinatura digital disparando PowerShell com comando em base64 é
-     * comportamento de malware pra qualquer antivírus — na máquina de um tester o app entrou em
-     * looping de abrir e fechar, e outro só conseguiu usar desligando a proteção.
+     * Aqui rodava um `applyIconToShortcuts` a cada abertura, pra fazer o ícone escolhido valer na
+     * barra de tarefas. Ele foi REMOVIDO, e o motivo importa mais que o efeito: aquilo chamava
+     * `powershell.exe -EncodedCommand <base64>` toda vez que o app abria, e executável sem assinatura
+     * digital disparando PowerShell com comando em base64 é comportamento de malware pra qualquer
+     * antivírus — na máquina de um tester o app entrou em looping de abrir e fechar, e outro só
+     * conseguiu usar desligando a proteção.
      *
-     * O app agora não executa NENHUM processo externo. Se um dia o ícone da barra de tarefas voltar
-     * a incomodar, o caminho não é PowerShell: é assinar o executável, ou abrir mão do
-     * AppUserModelID (que é quem faz o Windows preferir o ícone do atalho ao da janela).
+     * O app agora não executa NENHUM processo externo. Se o ícone da barra voltar a incomodar, o
+     * caminho é assinar o executável, ou abrir mão do AppUserModelID.
      */
     createWindow(initialIconPath)
 

@@ -11,10 +11,8 @@
 }
 
 /*
- * O corpo ROLA, e é ele que rola — não a janela.
- *
- * Com o perfil mais cinco blocos, nenhuma altura de tela comporta tudo sem espremer todo mundo até
- * o texto não caber em nenhum. A alternativa (deixar cada bloco encolher) foi o que a tela antiga
+ * O corpo ROLA, e é ele que rola, não a janela: com o perfil mais cinco blocos, nenhuma altura de
+ * tela comporta tudo sem espremer todo mundo. Deixar cada bloco encolher foi o que a tela antiga
  * fazia, e é o que faz uma ficha virar cinco fendas de três linhas.
  */
 .sheet-tab-body {
@@ -53,10 +51,9 @@
 .sheet-textarea {
   width: 100%;
   /*
-   * Cresce com o CONTEÚDO (`field-sizing: content`), a partir de ~9 linhas: pedido do usuário —
-   * "precisa ter espaço suficiente pra ler tudo que está escrito na caixa". Esta altura já foi fixa
-   * em 150px, porque um `textarea` com `flex: 1` dentro de um contêiner que rola colapsava; com o
-   * tamanho vindo do conteúdo, e não do flex, ele não tem contra o que colapsar.
+   * Cresce com o CONTEÚDO a partir de ~9 linhas ("precisa ter espaço suficiente pra ler tudo que está
+   * escrito na caixa"). Esta altura já foi fixa em 150px, porque um `textarea` com `flex: 1` dentro de
+   * um contêiner que rola colapsava; com o tamanho vindo do conteúdo, ele não tem contra o que colapsar.
    */
   field-sizing: content;
   min-height: 150px;
@@ -82,10 +79,9 @@
 }
 
 /*
- * Foto do personagem QUADRADA (112×112), como avatar da Steam — pedido do usuário ("mais quadrada,
- * tipo um zoom no rosto"). Já foi um quadrado de 52px e depois 3×4 de foto de documento (84×112),
- * porque o quadrado cortava a cabeça de qualquer retrato. A volta ao quadrado vem com o remédio pra
- * isso: `object-position: center 20%` na imagem puxa o recorte pra cima, onde o rosto está.
+ * Foto do personagem QUADRADA (112×112), como avatar da Steam ("mais quadrada, tipo um zoom no
+ * rosto"). Já foi 3×4 de foto de documento, porque o quadrado cortava a cabeça de qualquer retrato; a
+ * volta ao quadrado vem com o remédio: `object-position: center 20%` puxa o recorte pra cima.
  */
 .sheet-profile-photo {
   flex: 0 0 auto;
@@ -275,21 +271,14 @@
 }
 
 /*
- * As linhas "rótulo + valor" fluem e CRESCEM com o que está escrito, em vez da grade de colunas
- * iguais: pedido do usuário ("campos poderiam ser maiores para caber as palavras"). Uma linha ocupa
- * no mínimo 240px e o que o valor precisar além disso; a que não cabe ao lado desce.
- */
-/*
- * A GRADE ÚNICA de toda seção — pedido dele (06/09/2026): "fica muito feio um maior que outro,
- * vamos deixar padrão todos na mesma fileira, alinhados, que toda ficha scrapada fique assim".
+ * A GRADE ÚNICA de toda seção, pedido dele: "fica muito feio um maior que outro, vamos deixar padrão
+ * todos na mesma fileira, alinhados, que toda ficha scrapada fique assim".
  *
  * Colunas iguais de 150px de piso (`auto-fill`), as mesmas em toda seção, porque toda seção tem a
- * mesma largura: as caixas da Identificação ficam na vertical das caixas do Combate e das Perícias.
- * Cada campo é uma célula (rótulo em cima, caixa embaixo ocupando a célula); o valor comprido ocupa
- * duas ou três (`.sheet-celula-2/3`, decidido pelo tamanho do texto em `larguraDaCelula`).
- *
- * Isto substitui a fileira de linhas "rótulo: caixa" que abraçavam o conteúdo (`field-sizing:
- * content`): aquela regra deixava cada caixa do tamanho do valor e a fileira dançava.
+ * mesma largura: as caixas da Identificação ficam na vertical das do Combate e das Perícias. Cada
+ * campo é uma célula (rótulo em cima, caixa embaixo); valor comprido ocupa duas ou três, decidido em
+ * `larguraDaCelula`. Isto substitui a fileira de linhas que abraçavam o conteúdo com `field-sizing`,
+ * onde cada caixa ficava do tamanho do valor e a fileira dançava.
  */
 .sheet-section-fields {
   display: grid;
@@ -315,15 +304,12 @@
 }
 
 /*
- * O rótulo aparece INTEIRO — "Talentos e habilidades de classe" não vira "Talentos e ha…". Só um
- * rótulo absurdo (mais de 260px) corta, e o `title` no elemento mostra o nome inteiro ao passar o
- * mouse. Esta regra já foi "108px fixos com reticências", quando a linha vivia numa grade de
- * colunas iguais e um rótulo comprido empurrava o valor pra fora dela.
+ * O rótulo aparece INTEIRO: "Talentos e habilidades de classe" não vira "Talentos e ha…". Só um
+ * rótulo absurdo (mais de 260px) corta, e o `title` mostra o nome inteiro ao passar o mouse.
  *
- * SÓ o rótulo: o embrulho do valor (`.sheet-field-value`) também é um `span`, e esta regra o
- * pegava junto — teto de 260px e reticências no VALOR, que era exatamente o corte da linha de ataque
- * do Rilver que sobrou depois de tudo o mais crescer. Medido: o embrulho vinha com `flex: 0 0 auto`
- * e 260px de largura, herdados daqui.
+ * SÓ o rótulo: o embrulho do valor (`.sheet-field-value`) também é um `span` e esta regra o pegava
+ * junto — teto de 260px e reticências no VALOR, que era o corte da linha de ataque do Rilver que
+ * sobrou depois de tudo o mais crescer. Medido: o embrulho vinha com 260px herdados daqui.
  */
 .sheet-section-field > span:not(.sheet-field-value) {
   flex: 0 0 auto;
@@ -336,9 +322,8 @@
 
 /*
  * O valor é do tamanho do que está escrito (`field-sizing`), com um piso pequeno: "3" ocupa o de um
- * "3", e o campo cresce DEBAIXO DO DEDO conforme se digita — é o `field-sizing: content` que
- * garante o "aberto o suficiente pra ler" pedido pelo usuário, não um piso largo que engordava
- * todo número da ficha. 8ch cabe um "12/15" e dá alvo de clique num campo vazio.
+ * "3", e o campo cresce debaixo do dedo conforme se digita. 8ch cabe um "12/15" e dá alvo de clique
+ * num campo vazio, sem engordar todo número da ficha.
  */
 .sheet-section-field input {
   width: 100%;
@@ -359,10 +344,9 @@
 }
 
 /*
- * Mesma régua do campo sem botão (`.sheet-section-field input`): a largura vem do conteúdo. Esta
- * regra vem DEPOIS daquela e tem a mesma especificidade, então era ela que valia — com `flex: 1` e
- * `min-width: 0`, a linha de ataque do Rilver ("+7 · 1d8 P — 10 arrows. 60 ft. Deadly d10.") continuava
- * cortada mesmo depois de a fileira crescer. Medido na ficha dele.
+ * Mesma régua do campo sem botão: a largura vem do conteúdo. Esta regra vem DEPOIS daquela e tem a
+ * mesma especificidade, então era ela que valia — com `flex: 1` e `min-width: 0`, a linha de ataque do
+ * Rilver continuava cortada mesmo depois de a fileira crescer. Medido na ficha dele.
  */
 .sheet-field-value input {
   flex: 1 1 0;
@@ -410,24 +394,13 @@
 }
 
 /*
- * QUADRO DE VALORES — atributos, recursos, partes do corpo.
+ * QUADRO DE VALORES — atributos, recursos, partes do corpo. É o desenho que faz a tela ler como ficha
+ * de RPG e não como formulário: rótulo pequeno em cima, número grande embaixo, cada um na sua caixa.
+ * Uma ficha impressa mostra atributo assim em todo sistema, e era o que mais destoava aqui.
  *
- * É o desenho que faz a tela ler como ficha de RPG e não como formulário: rótulo pequeno em cima,
- * número grande embaixo, cada um na sua caixa. Uma ficha impressa mostra atributo assim em todo
- * sistema, e era o que mais destoava aqui — os valores vinham numa lista de texto.
- *
- * A grade se ajusta sozinha ao espaço (`auto-fill`), então cinco atributos de Ordem Paranormal e dez
- * de Oblivio se organizam sem ninguém dizer quantas colunas usar.
- */
-/*
- * Cada caixa é do tamanho do que tem dentro — o rótulo ("Conhecimento (Warfare)", "Percepção
- * passiva") e o valor ("9m/6q", "5d10+2d6") aparecem INTEIROS. Pedido do usuário: "campos poderiam
- * ser maiores para caber as palavras". Era uma grade de colunas iguais de 96px que cortava o rótulo
- * com reticências; agora as caixas fluem, com 96px de piso e o conteúdo como medida.
- */
-/*
- * O quadro de valores é a MESMA grade das outras seções (ver `.sheet-section-fields`); o que ele
- * acrescenta é o desenho do número: rótulo centralizado, número grande e monoespaçado.
+ * É a MESMA grade das outras seções (ver `.sheet-section-fields`), então cinco atributos de Ordem
+ * Paranormal e dez de Oblivio se organizam sem ninguém dizer quantas colunas usar; o que ela
+ * acrescenta é o desenho do número, centralizado e monoespaçado.
  */
 .sheet-stat span {
   font-size: 10px;

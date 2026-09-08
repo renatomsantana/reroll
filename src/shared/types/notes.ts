@@ -12,13 +12,11 @@ import { normalizarHistorico, type ItemDoHistorico } from './historico'
 export interface NotesPage {
   id: string
   /**
-   * QUANDO A SESSÃO FOI CRIADA, em milissegundos do epoch. Vai pra lista lateral, embaixo do nome
-   * (ver `NotesTab.tsx`) — pedido do usuário: "poder escolher e dizer qual dia foi criada".
-   *
-   * ZERO significa NÃO SEI, e é um valor legítimo, não um defeito: as sessões escritas antes desta
-   * versão não têm essa data gravada em canto nenhum, e o arquivo não guarda histórico. A tela diz
-   * "sem data" nesses casos. Carimbar a data da migração seria pior que não ter: uma sessão de três
-   * meses atrás passaria a dizer que nasceu hoje, e ninguém teria como desconfiar.
+   * QUANDO A SESSÃO FOI CRIADA, em milissegundos do epoch; vai pra lista lateral, embaixo do nome
+   * ("poder escolher e dizer qual dia foi criada"). ZERO significa NÃO SEI, e é valor legítimo: as
+   * sessões escritas antes desta versão não têm essa data em canto nenhum, e a tela diz "sem data".
+   * Carimbar a data da migração seria pior — uma sessão de três meses atrás passaria a dizer que
+   * nasceu hoje, sem ninguém ter como desconfiar.
    */
   createdAt: number
   /**
@@ -32,26 +30,18 @@ export interface NotesPage {
 
 /**
  * Os três primeiros campos são FIXOS (um de cada, valem pro personagem inteiro) e o `pages` é o
- * diário. A divisão é a que o usuário pediu — "um bloco para cada coisa: inventário, backstory,
- * aparência, bloco" — e ela tem uma lógica: inventário/aparência/backstory não mudam por dia, o
- * bloco muda.
+ * diário — a divisão que ele pediu ("um bloco para cada coisa: inventário, backstory, aparência,
+ * bloco"), e ela tem lógica: inventário, aparência e backstory não mudam por dia, o bloco muda. A
+ * ficha chegou a ter classe, nível, raça, os seis atributos e os números de combate, e tudo isso SAIU
+ * a pedido dele ("tira atributos, combate, deixa só nome, bloco, inventário, aparência, backstory").
  */
 /**
- * A ficha chegou a ter classe, nível, raça, antecedente, alinhamento, os seis atributos (com
- * modificador calculado) e os números de combate. Tudo isso SAIU a pedido do usuário — "tira
- * atributos, combate, deixa só nome, bloco, inventário, aparência, backstory". O que ficou é o que
- * ele usa: um nome e quatro blocos de texto.
- */
-/**
- * Uma SEÇÃO da ficha, com o nome que o sistema de RPG dá a ela.
+ * Uma SEÇÃO da ficha, com o nome que o sistema de RPG dá a ela. É o que faz a aba Ficha assumir a
+ * forma do sistema em vez de ter cinco blocos fixos pra todo mundo: uma ficha de Ordem Paranormal
+ * mostra Identificação, Atributos e Recursos; uma de Oblivio mostra Identificação, Atributos e Corpo.
+ * Os nomes não são inventados aqui, são os que o leitor daquele sistema devolveu.
  *
- * É o que faz a aba Ficha assumir a forma do sistema em vez de ter cinco blocos fixos pra todo
- * mundo: uma ficha de Ordem Paranormal importada mostra Identificação, Atributos e Recursos; uma de
- * Oblivio mostra Identificação, Atributos e Corpo. Os nomes não são inventados aqui — são os que o
- * leitor daquele sistema devolveu (ver `SheetImportField.group`).
- *
- * Mora dentro do `notes.json` do PERFIL, e é por isso que trocar de personagem troca a ficha
- * inteira: cada um tem as seções do sistema dele, e voltar pro anterior traz de volta as dele.
+ * Mora dentro do `notes.json` do PERFIL, e é por isso que trocar de personagem troca a ficha inteira.
  */
 export interface SheetSection {
   id: string
@@ -76,13 +66,10 @@ export interface SheetSectionField {
 export interface NotesData {
   characterName: string
   /**
-   * ATRIBUTOS e HABILIDADES, pedidos pelo usuário quando a ficha virou aba própria ("coloca
-   * backstory, inventário, atributos, habilidades, deixa mais organizado para uma ficha").
-   *
-   * São texto livre, e não campos estruturados com número por atributo — a ficha já teve isso
-   * (Força/Destreza/... com modificador calculado) e foi MANDADA TIRAR. O que muda agora é que
-   * existe um lugar pra escrever, não que o app volte a entender de sistema: cada RPG tem os seus
-   * atributos, e o importador de ficha já traz os de quem tem (ver `SheetImportField.group`).
+   * ATRIBUTOS e HABILIDADES, pedidos quando a ficha virou aba própria ("coloca backstory, inventário,
+   * atributos, habilidades, deixa mais organizado para uma ficha"). São texto livre, e não campos
+   * estruturados com número por atributo — a ficha já teve isso e foi mandada tirar. O que muda é que
+   * existe um lugar pra escrever, não que o app volte a entender de sistema.
    */
   attributes: string
   abilities: string
@@ -161,14 +148,13 @@ export function createNotesPage(text = ''): NotesPage {
 }
 
 /**
- * TETO de caracteres de UMA sessão de anotações — pedido do usuário ("vamos colocar um limite de
- * 2000 caracteres em anotações, agora que vi que não tinha").
+ * TETO de caracteres de UMA sessão de anotações ("vamos colocar um limite de 2000 caracteres em
+ * anotações, agora que vi que não tinha").
  *
- * Vale pro que se DIGITA: o campo para no teto, e o que se cola entra cortado nele, com o contador
- * ao lado do campo dizendo onde se está. O que JÁ ESTÁ gravado acima do teto não é cortado na
- * leitura — a mesma regra do teto de personagens: arquivo antigo não perde conteúdo por causa de um
- * número novo; ele só não cresce mais. (O teto total do arquivo, 16 MB na gravação, continua sendo
- * a última linha de defesa — ver `NotesRepository.save`.)
+ * Vale pro que se DIGITA: o campo para no teto, o que se cola entra cortado nele, e o contador ao
+ * lado diz onde se está. O que JÁ ESTÁ gravado acima do teto não é cortado na leitura, pela mesma
+ * regra do teto de personagens — arquivo antigo não perde conteúdo por causa de um número novo, só
+ * não cresce mais. O teto total do arquivo, na gravação, continua sendo a última linha de defesa.
  */
 export const TAMANHO_MAXIMO_DA_ANOTACAO = 2_000
 
