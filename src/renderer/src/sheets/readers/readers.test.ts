@@ -161,18 +161,14 @@ describe('leitor genérico — a ficha que ninguém previu', () => {
 
   describe('a ficha que é ARTE com anotação por cima', () => {
     /**
-     * O terceiro tipo de ficha, e o que o usuário trouxe em Kids on Bikes: o desenho inteiro é
-     * imagem, inclusive os nomes dos campos, e quem preenche digita por cima num anotador de PDF.
+     * O terceiro tipo de ficha, o que ele trouxe em Kids on Bikes: o desenho inteiro é imagem, inclusive
+     * os nomes dos campos, e quem preenche digita por cima num anotador de PDF. Não existe rótulo pra
+     * casar, então a leitura não é "campo = valor", é recuperar o que foi escrito sem inventar nome.
      *
-     * Não existe rótulo pra casar — "Força" é pixel —, então a leitura aqui não é "campo = valor" e
-     * sim recuperar o que foi escrito sem inventar nome pra nada. Os números (densidade, posições)
-     * saíram do arquivo real.
-     */
-    /**
-     * A ALTURA da fonte é 12 e não o padrão do `texto()` daqui, e isso é o que faz o fixture valer:
-     * a remontagem de parágrafo mede o espaço entre linhas em múltiplos da altura da fonte, e o
-     * arquivo real tem corpo 12,2 com 16 pontos de entrelinha. Com uma altura inventada menor, duas
-     * linhas do mesmo parágrafo pareceriam distantes e o teste passaria a testar outra coisa.
+     * A ALTURA da fonte é 12, e não o padrão do `texto()` daqui, e é isso que faz o fixture valer: a
+     * remontagem de parágrafo mede o espaço entre linhas em múltiplos da altura da fonte, e o arquivo
+     * real tem corpo 12,2 com 16 pontos de entrelinha. Com uma altura menor, duas linhas do mesmo
+     * parágrafo pareceriam distantes e o teste passaria a testar outra coisa.
      */
     function arteAnotada(itens: [string, number, number][], paginas = 2) {
       const texts: PdfText[] = itens.map(([t, x, y]) => ({
@@ -555,19 +551,14 @@ describe('leitor de Ordem Paranormal', () => {
 
   it('a perícia NÃO treinada vem como LACUNA — a linha existe, o zero não', () => {
     /**
-     * Esta regra já foi o contrário, e as duas versões vieram do usuário.
+     * Esta regra já foi o contrário, e as duas versões vieram dele. Antes, perícia zerada ficava de fora:
+     * a ficha tem 29 linhas, quem não treinou nada fica com 29 zeros, e a importação "fica uma bagunça,
+     * não dá para entender". Depois veio o outro lado, e é de mesa: "coloca lacunas para TUDO que é
+     * preenchível... porque é um item novo na sessão" — perícia que ninguém treinou passa a estar
+     * treinada no meio da sessão, e sem a linha não há onde escrever.
      *
-     * Antes, perícia zerada ficava de fora: a ficha tem 29 linhas, quem não treinou nada fica com 29
-     * zeros, e ele tinha reclamado que a importação "fica uma bagunça, não dá para entender". Zero
-     * ali não é informação, é a ausência dela.
-     *
-     * Depois veio o outro lado, e é de mesa: "coloca lacunas para TUDO que é preenchível, porque às
-     * vezes precisamos preencher no app também mesmo que não tenha, porque é um item novo na
-     * sessão". Perícia que ninguém treinou passa a estar treinada no meio da sessão, e sem a linha
-     * não há onde escrever.
-     *
-     * O que reconcilia os dois é o VALOR: a linha vem, o zero não. Lacuna é espaço pra preencher;
-     * "0" escrito seria uma afirmação que ninguém fez.
+     * O que reconcilia os dois é o VALOR: a linha vem, o zero não. Lacuna é espaço pra preencher; "0"
+     * escrito seria uma afirmação que ninguém fez.
      */
     const lidoComZeros = readSheet(
       fichaComPericias([

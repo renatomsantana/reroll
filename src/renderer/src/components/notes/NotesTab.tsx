@@ -49,22 +49,15 @@ function formatarCriacao(createdAt: number, idioma: Language): string {
 /**
  * ANOTAÇÕES: o diário do personagem, uma sessão por dia de jogo.
  *
- * A NAVEGAÇÃO É UMA LISTA, e não mais as setas ◀ ▶ com um contador e um seletor de salto ao lado.
- * Pedido do usuário: "ajeita as anotações para ser uma lista com as sessões e poder escolher e dizer
- * qual dia foi criada, e deixa mais organizado algo como o Obsidian".
+ * A NAVEGAÇÃO É UMA LISTA, e não mais as setas ◀ ▶ com um contador e um seletor de salto ao lado:
+ * "ajeita as anotações para ser uma lista com as sessões e poder escolher e dizer qual dia foi criada,
+ * e deixa mais organizado algo como o Obsidian". Em concreto, chegar na terceira de vinte sessões era
+ * escolher entre dezessete cliques na seta ou abrir um `<select>` que mostra um nome por vez; agora
+ * elas estão todas na tela, com o nome e o dia em que nasceram, e escolher é um clique.
  *
- * O que isso troca, em concreto: antes, chegar na terceira de vinte sessões era escolher entre
- * dezessete cliques na seta ou abrir um `<select>` que só mostra um nome por vez. Agora as sessões
- * estão TODAS na tela ao mesmo tempo, com o nome e o dia em que nasceram, e escolher é um clique.
- * Os três controles antigos saíram porque a lista faz o que os três faziam — manter os quatro seria
- * o contrário de "mais organizado".
- *
- * O "como o Obsidian" é a FORMA (coluna de arquivos à esquerda, texto à direita), não a aparência:
- * a moldura continua Windows 98, com a seleção em azul cheio e as bordas de dois tons. Um painel
- * moderno aqui dentro brigaria com o resto do app.
- *
- * A barra de formatação (fonte, negrito, itálico, sublinhado, cor) fica no alto, valendo pro diário
- * inteiro — é a caneta com que se escreve, e ela não pertence a nenhuma sessão em particular.
+ * O "como o Obsidian" é a FORMA (coluna de arquivos à esquerda, texto à direita), não a aparência: a
+ * moldura continua Windows 98. A barra de formatação fica no alto, valendo pro diário inteiro — é a
+ * caneta com que se escreve, e não pertence a nenhuma sessão em particular.
  */
 export function NotesTab() {
   const t = useTranslation()

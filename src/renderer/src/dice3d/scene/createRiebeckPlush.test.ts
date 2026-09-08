@@ -3,18 +3,13 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { PART_NAMES, createRiebeckPlush } from './createRiebeckPlush'
 
 /**
- * A pelúcia é decorativa: não tem colisor, não entra na física e nenhum resultado de rolagem
- * depende dela. O que ela TEM é um monte de peça posicionada por conta em relação às outras — e
- * foi exatamente aí que ela quebrou duas vezes, das duas só visível abrindo o app e olhando:
+ * A pelúcia é decorativa: não tem colisor e nenhum resultado depende dela. O que ela tem é um monte de
+ * peça posicionada em relação às outras, e foi aí que ela quebrou duas vezes, das duas só visível
+ * abrindo o app e olhando: o tanque de oxigênio subiu até a altura da cabeça e as duas calotas claras
+ * viraram ORELHAS; e a lanterna nasceu com o vidro aceso inteiramente dentro do próprio corpo dela.
  *
- * 1. o tanque de oxigênio subiu até a altura da cabeça e as duas calotas claras apareceram uma de
- *    cada lado da cúpula amarela, dando ORELHAS ao boneco;
- * 2. a lanterna nasceu com o vidro aceso inteiramente DENTRO do próprio corpo dela, invisível de
- *    qualquer ângulo.
- *
- * Nenhuma das duas é pegável por typecheck nem por "renderizou sem erro": as duas versões
- * montavam a cena perfeitamente. São relações geométricas entre peças, e é isso que este arquivo
- * fixa — em vez de deixar a conferência dependendo de alguém lembrar de ampliar um print.
+ * Nenhuma das duas é pegável por typecheck nem por "renderizou sem erro" — as duas versões montavam a
+ * cena perfeitamente. São relações geométricas entre peças, e é isso que este arquivo fixa.
  */
 
 /**
@@ -88,21 +83,15 @@ describe('createRiebeckPlush', () => {
 
   it('apoia o boneco no chão, sem vão embaixo das botas', () => {
     /**
-     * A regressão que gerou este caso: o corpo é uma esfera achatada cuja barriga termina em 0.085,
-     * e só as duas botas (pequenas, lá na frente) chegavam ao chão. De qualquer ângulo que não
-     * fosse bem de frente, a bola do corpo aparecia PAIRANDO com um vão embaixo — o usuário
-     * reportou como "o plush está flutuando" três vezes, e as duas primeiras tentativas de conserto
-     * (altura do grupo, sombra de contato) erraram o alvo porque o problema não era onde o grupo
-     * estava, era o boneco não encostar no chão DENTRO do próprio grupo.
+     * A regressão que gerou este caso: o corpo é uma esfera achatada cuja barriga termina em 0.085, e só
+     * as duas botas chegavam ao chão — de qualquer ângulo que não fosse bem de frente, a bola do corpo
+     * aparecia pairando com um vão embaixo ("o plush está flutuando", três vezes). As duas primeiras
+     * tentativas de conserto erraram o alvo porque o problema não era onde o grupo estava, era o boneco
+     * não encostar no chão dentro do próprio grupo.
      *
-     * O que este caso exigia ANTES: que a BARRIGA afundasse (`body.min.y < 0`), via `SIT_DEPTH`
-     * 0.14. Isso deixou de valer porque o usuário pediu explicitamente pra subir o boneco, e a
-     * barriga enterrada era justamente todo o curso disponível — ver `SIT_DEPTH`, hoje em 0. A
-     * escolha foi dele, com o motivo na mão; se o "flutuando" voltar, é aqui e lá que se desfaz.
-     *
-     * O que continua garantido, e é o que impede a regressão de verdade: as BOTAS encostam no
-     * chão. Um boneco apoiado nos pés não tem vão embaixo — o defeito original era o grupo inteiro
-     * pairando, não a barriga sem contato.
+     * O caso exigia antes que a BARRIGA afundasse, via `SIT_DEPTH` 0.14; isso deixou de valer porque ele
+     * pediu pra subir o boneco, e a barriga enterrada era todo o curso disponível. O que continua
+     * garantido, e é o que impede a regressão, é que as BOTAS encostam no chão.
      */
     const boots = boxOfParts(plush, PART_NAMES.boot)
     expect(boots.min.y).toBeLessThanOrEqual(0)
@@ -150,18 +139,14 @@ describe('createRiebeckPlush', () => {
 
   it('mantém o vidro da lanterna na PONTA DA FRENTE, iluminando pra fora', () => {
     /**
-     * A outra regressão real: o vidro aceso nasceu com raio MENOR que o corpo da lanterna e ficou
-     * lacrado dentro dele, invisível de qualquer ângulo.
+     * A outra regressão real: o vidro aceso nasceu com raio menor que o corpo da lanterna e ficou lacrado
+     * dentro dele, invisível de qualquer ângulo.
      *
-     * A versão anterior deste caso comparava RAIOS, porque a lanterna era um cilindro EM PÉ com o
-     * vidro numa faixa no meio — lá, aparecer significava ser mais largo que o casco. Essa forma
-     * era um lampião, e o usuário mandou trocar por uma lanterna deitada apontada pra frente. Na
-     * forma nova o vidro é a TAMPA DA FRENTE, e o que garante que ele apareça deixou de ser
-     * largura e passou a ser posição: ele tem que estar à frente de todas as peças do casco.
-     *
-     * Medido no eixo Z do próprio grupo da lanterna e não do boneco: ela é montada inclinada de
-     * propósito (acompanha a curva do ombro), e no espaço do boneco "a frente" deixa de ser um
-     * eixo só.
+     * A versão anterior deste caso comparava RAIOS, porque a lanterna era um cilindro em pé com o vidro
+     * numa faixa no meio; essa forma era um lampião, e ele mandou trocar por uma lanterna deitada. Na
+     * forma nova o vidro é a TAMPA DA FRENTE, e o que garante que ele apareça deixou de ser largura e
+     * passou a ser posição. Medido no eixo Z do próprio grupo da lanterna, e não do boneco: ela é montada
+     * inclinada de propósito, e no espaço do boneco "a frente" deixa de ser um eixo só.
      */
     const localZ = (name: string): number[] => {
       const values: number[] = []

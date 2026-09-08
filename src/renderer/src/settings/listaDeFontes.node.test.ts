@@ -5,19 +5,16 @@ import { sanearPreferencias } from './sanearSettings'
 /**
  * A LISTA DE FONTES tem uma regra que já virou bug relatado, e nada a cobrava.
  *
- * O relato foi este: "você errou no Papyrus, ela ficou com a fonte Comic Sans". Não era troca de
- * nome — a Papyrus não vem com o Windows, e a cadeia de reserva dela terminava justamente na Comic
- * Sans, que também era item do menu. Escolher uma dava visivelmente a outra, e da tela isso lê como
- * o app ignorando o clique.
+ * O relato: "você errou no Papyrus, ela ficou com a fonte Comic Sans". Não era troca de nome — a
+ * Papyrus não vem com o Windows, e a cadeia de reserva dela terminava justamente na Comic Sans, que
+ * também era item do menu, então escolher uma dava visivelmente a outra.
  *
- * A regra ficou escrita em três comentários diferentes no arquivo da lista. Comentário não é
- * verificação: a lista mudou várias vezes desde então (dezoito fontes, depois doze) e cada mudança
- * era uma chance de reintroduzir o mesmo defeito sem ninguém perceber, porque só aparece na máquina
- * de quem NÃO tem a fonte instalada.
+ * A regra ficou escrita em três comentários no arquivo da lista, e comentário não é verificação: a
+ * lista mudou várias vezes desde então, e cada mudança era uma chance de reintroduzir o mesmo defeito
+ * sem ninguém perceber, porque ele só aparece na máquina de quem NÃO tem a fonte instalada.
  *
- * `.node.test.ts` porque o último teste daqui LÊ O DISCO — ele confere que todo `.woff2` prometido
- * pelo `global.css` existe de verdade na pasta. É a convenção do projeto pros testes que precisam
- * dos tipos do Node, que o renderer não pode ter (ver o comentário em `tsconfig.web.json`).
+ * `.node.test.ts` porque o último caso LÊ O DISCO: ele confere que todo `.woff2` prometido pelo
+ * `global.css` existe de verdade na pasta.
  */
 
 /** Só o primeiro nome da cadeia é a fonte pedida; o resto é reserva. */
@@ -36,19 +33,14 @@ const GENERICAS = new Set(['sans-serif', 'serif', 'monospace', 'cursive', 'fanta
 
 describe('lista de fontes', () => {
   /**
-   * As fontes que PODEM NÃO EXISTIR na máquina de quem instalou.
+   * As fontes que PODEM NÃO EXISTIR na máquina de quem instalou, e a distinção é o coração da regra:
+   * quase toda a lista é garantida, ou porque vem com o Windows ou porque é empacotada pelo app. Nessas,
+   * o reserva é teoria — ele nunca chega a ser usado, e apontar pra outra opção do menu é escolha
+   * deliberada de cair em algo do mesmo peso visual se o empacotamento um dia falhar.
    *
-   * A distinção é o coração da regra, e sem ela o teste vira ruído. Quase toda a lista é garantida:
-   * ou vem com o Windows (Tahoma, Arial, Times, Comic Sans) ou é
-   * empacotada pelo próprio app (Montserrat, JetBrains Mono, Lora, Nunito, ver os `@font-face` em
-   * `global.css`). Nessas, o reserva é teoria — ele nunca chega a ser usado, e apontar pra outra
-   * opção do menu é escolha deliberada de "cair em algo do mesmo peso visual" se o empacotamento um
-   * dia falhar.
-   *
-   * As quatro abaixo são diferentes: elas de fato faltam em máquina limpa, então o reserva delas é
-   * o que a pessoa VÊ. É aí que cair noutra opção do menu vira o bug relatado. Três delas estão
-   * nessa situação pelo mesmo motivo — licença gratuita só pra uso pessoal, que não deixa
-   * redistribuir o arquivo dentro de um app publicado.
+   * As quatro abaixo de fato faltam em máquina limpa, então o reserva delas é o que a pessoa VÊ, e é aí
+   * que cair noutra opção do menu vira o bug relatado. Três estão nessa situação pelo mesmo motivo:
+   * licença gratuita só pra uso pessoal, que não deixa redistribuir o arquivo num app publicado.
    */
   const PODEM_FALTAR = new Map<string, string>([
     ['papyrus', 'não vem com o Windows — vem com o Office/macOS. Foi este o bug relatado.'],

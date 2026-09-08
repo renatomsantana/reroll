@@ -1,23 +1,18 @@
 /**
- * O sistema de arquivos virtual da versão web.
+ * O sistema de arquivos virtual da versão web, e com ele a decisão de arquitetura da ponte inteira: em
+ * vez de REESCREVER os repositórios e handlers do processo principal pra IndexedDB (uma segunda
+ * implementação que ia divergir da primeira a cada mudança), a versão web RODA os módulos do main como
+ * estão, e este arquivo responde pelas chamadas de `fs` deles. A fila de gravação atômica do
+ * `JsonFileStore`, o tudo-ou-nada da importação, os backups: tudo roda idêntico, porque é o MESMO
+ * código.
  *
- * A decisão de arquitetura da ponte web inteira está aqui: em vez de REESCREVER os repositórios e
- * handlers do processo principal pra IndexedDB (uma segunda implementação que ia divergir da
- * primeira a cada mudança), a versão web RODA os módulos do main como estão, e este arquivo
- * responde pelas chamadas de `fs` deles. A fila de gravação atômica do `JsonFileStore`, o
- * tudo-ou-nada da importação de ficha, os backups do §8.1/§9.1: tudo roda idêntico, porque é o
- * MESMO código.
+ * O "disco" é um armazém de chave-valor: IndexedDB no navegador, um Map em memória nos testes. Cada
+ * arquivo é uma chave `arquivo:<caminho>`, e cada pasta um marcador `pasta:<caminho>` — o marcador
+ * existe porque pasta recém-criada e ainda vazia precisa responder a `readdir`.
  *
- * O "disco" é um armazém de chave-valor (`ArmazemDeArquivos`): IndexedDB no navegador (ver
- * `armazemDoNavegador.ts`), um Map em memória nos testes. Cada arquivo é uma chave
- * `arquivo:<caminho>` com os bytes; cada pasta é um marcador `pasta:<caminho>` (o marcador existe
- * porque pasta recém-criada e ainda vazia precisa responder a `readdir` — ver
- * `PaginasRepository.gravar`, que cria a pasta e lista antes de escrever).
- *
- * Só o que o código do main chama existe aqui (mesma régua dos outros shims): readFile, writeFile,
- * stat, access, mkdir, readdir, rename, rm e cp. As faltas conhecidas em relação ao Node: `rename`
- * e `cp` de pasta não são atômicos (movem chave a chave), o que não aparece na prática porque cada
- * arquivo tem um escritor só (a fila do `JsonFileStore`).
+ * Só o que o código do main chama existe aqui, mesma régua dos outros shims. As faltas conhecidas:
+ * `rename` e `cp` de pasta não são atômicos (movem chave a chave), o que não aparece na prática porque
+ * cada arquivo tem um escritor só.
  */
 
 export interface ArmazemDeArquivos {

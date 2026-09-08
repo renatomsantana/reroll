@@ -6,29 +6,21 @@ import { describe, expect, it } from 'vitest'
 /**
  * O PACOTE QUE VAI PRO AR está coerente consigo mesmo?
  *
- * Este é o pedaço testável do caminho de atualização. O ciclo completo — publicar uma release,
- * o app instalado achar, baixar, conferir e instalar — exige o GitHub e uma máquina com uma versão
- * antiga instalada; isso continua sendo um passo manual (ver `CONTRIBUTING.md`). Mas a parte que já
- * QUEBROU DE VERDADE neste projeto dá pra conferir aqui, e é a mais idiota de todas:
+ * Este é o pedaço testável do caminho de atualização: o ciclo completo exige o GitHub e uma máquina
+ * com versão antiga instalada, e continua manual. Mas a parte que já QUEBROU DE VERDADE dá pra
+ * conferir aqui, e é a mais idiota de todas — o `latest.yml` apontava pra `Reroll-Setup-<versão>.exe`
+ * com hífens enquanto o electron-builder gerava "Reroll Setup <versão>.exe" com espaços, e o GitHub
+ * ainda troca espaço por ponto ao subir o anexo. Todo mundo com o app instalado passou a procurar um
+ * arquivo que não existia, com 404 e nenhuma pista do motivo.
  *
- * o `latest.yml` apontava pra `Reroll-Setup-<versão>.exe` com hífens enquanto o electron-builder
- * gerava "Reroll Setup <versão>.exe" com espaços, e o GitHub ainda troca espaço por ponto ao subir o
- * anexo. Resultado: todo mundo que tinha o app instalado passou a procurar um arquivo que não
- * existia na release. Update quebrado com 404 e nenhuma pista do motivo.
+ * O que se confere: que o arquivo nomeado pelo `latest.yml` EXISTE; que o `sha512` declarado bate com
+ * ele (é essa conferência que o `electron-updater` faz antes de executar o instalador baixado); que a
+ * versão do `latest.yml` é a do `package.json`, porque publicar com a versão errada faz o app achar
+ * que já está atualizado; e que o nome segue o `artifactName`, sem espaço nenhum.
  *
- * O que se confere aqui:
- *
- * 1. o arquivo que o `latest.yml` nomeia EXISTE na pasta de release;
- * 2. o `sha512` que ele declara bate com o arquivo de verdade — é exatamente essa conferência que o
- *    `electron-updater` faz antes de executar o instalador baixado, e é o que a spec chama de
- *    "nunca execute código baixado sem verificar" (seção 4);
- * 3. a versão do `latest.yml` é a do `package.json` — publicar com a versão errada faz o app
- *    instalado achar que já está atualizado e nunca mais oferecer nada;
- * 4. o nome segue o `artifactName` do `electron-builder.yml`, sem espaço nenhum.
- *
- * PULA quando não há build. Rodar `npm test` sem ter empacotado é o caso normal do dia a dia, e um
- * teste vermelho por isso viraria ruído que se aprende a ignorar. No CI de release ele roda depois
- * do empacotamento, que é onde ele importa (ver `.github/workflows/release.yml`).
+ * PULA quando não há build: rodar `npm test` sem ter empacotado é o caso normal do dia a dia, e um
+ * vermelho por isso viraria ruído que se aprende a ignorar. No CI de release ele roda depois do
+ * empacotamento, que é onde importa.
  */
 
 const PASTA = join(process.cwd(), 'release')

@@ -28,38 +28,32 @@ import { DICE_REGISTRY, AVAILABLE_DICE_TYPES } from '../dice-defs/registry'
 /**
  * O RESULTADO continua honesto com a BANDEJA CHEIA?
  *
- * `d6.statistical.test.ts` mede viés de UM dado sozinho numa bandeja vazia — ali o que está sob
- * julgamento é a geometria do dado. Aqui a pergunta é outra, e é a que interessa a quem joga: com
- * vinte dados caindo juntos, metade deles assenta APOIADA em outro dado, encostada na parede ou
- * empilhada numa quina. Repouso apoiado é o candidato natural a viés — se uma face for mais
- * "estável" nesse tipo de apoio, ela sai mais vezes, e nenhum teste de dado solto veria isso.
+ * `d6.statistical.test.ts` mede viés de UM dado sozinho numa bandeja vazia, onde o que está sob
+ * julgamento é a geometria do dado. Aqui a pergunta é a que interessa a quem joga: com vinte dados
+ * caindo juntos, metade assenta APOIADA em outro dado, na parede ou empilhada numa quina — repouso
+ * apoiado é o candidato natural a viés, e nenhum teste de dado solto veria isso.
  *
- * Os dois lançamentos entram, porque partem de situações opostas: pela bandeja os vinte caem ao
- * mesmo tempo de ângulos diferentes; pela boca da torre saem em fila, todos do MESMO ponto e na
- * MESMA direção. Se algum dos dois enviesa, é o da boca — e era exatamente o que precisava ser
- * medido, não suposto.
+ * Os dois lançamentos entram porque partem de situações opostas: pela bandeja os vinte caem ao mesmo
+ * tempo de ângulos diferentes, e pela boca da torre saem em fila, todos do MESMO ponto e na MESMA
+ * direção. Se algum enviesa, é o da boca — e era isso que precisava ser medido, não suposto.
  *
- * ALEATORIEDADE INTACTA: nada semeado, nada preso. É uma amostra de física real, com a variância
- * que ela tem — por isso o corte é frouxo de propósito (ver `CRITICO`).
+ * Nada semeado, nada preso: é uma amostra de física real, com a variância que ela tem, e por isso o
+ * corte é frouxo de propósito.
  */
 
 /**
- * O CORTE do qui-quadrado: seis desvios-padrão acima da média DA PRÓPRIA distribuição qui-quadrado
- * (média = graus de liberdade, variância = 2 × graus). Sem tabela de alpha, e por um motivo medido.
+ * O CORTE do qui-quadrado: seis desvios-padrão acima da média da própria distribuição qui-quadrado
+ * (média = graus de liberdade, variância = 2 × graus), e não a tabela de alpha, por um motivo medido.
  *
- * A primeira versão usava a tabela de alpha = 0,001 (16,3 pro d4, 148,2 pro d100), o mesmo corte do
- * teste de d6 sozinho que já existia. Com quatorze casos por rodada, isso dá 1,4% de chance de um
- * vermelho por rodada mesmo com todo dado honesto — e foi o que apareceu: o d4 falhou em uma de
- * quatro rodadas.
+ * A primeira versão usava alpha = 0,001, o mesmo corte do teste de d6 sozinho. Com quatorze casos por
+ * rodada isso dá 1,4% de chance de um vermelho por rodada mesmo com todo dado honesto, e foi o que
+ * apareceu: o d4 falhou em uma de quatro rodadas.
  *
- * Antes de afrouxar o corte, medi o d4, que é o que separa "corte apertado" de "dado torto de
- * verdade": 6 mil amostras deram qui 9,5; TRINTA mil deram qui 10,1. Viés fixo faz o qui-quadrado
- * crescer proporcional à amostra — de 9,5 com 6 mil, trinta mil dariam uns 47. Ele não cresceu, e a
- * face "favorecida" mudou de uma medição pra outra. Ou seja: o dado é honesto e o corte é que estava
- * curto. (O d4 sozinho, 6 mil rolagens: qui 1,1.)
- *
- * Seis sigmas deixam o falso vermelho em uma parte por milhão por caso, e continuam pegando com
- * folga o que este teste existe pra pegar: o d100 antigo dava 590 contra um corte de 183.
+ * Antes de afrouxar, medi o d4, que é o que separa "corte apertado" de "dado torto": 6 mil amostras
+ * deram qui 9,5 e TRINTA mil deram 10,1. Viés fixo faz o qui-quadrado crescer proporcional à amostra —
+ * de 9,5 com 6 mil, trinta mil dariam uns 47 —, ele não cresceu, e a face favorecida mudou de uma
+ * medição pra outra. Seis sigmas deixam o falso vermelho em uma parte por milhão por caso e continuam
+ * pegando o que este teste existe pra pegar: o d100 antigo dava 590 contra um corte de 183.
  */
 function corteDoQuiQuadrado(graus: number): number {
   return graus + 6 * Math.sqrt(2 * graus)
@@ -222,21 +216,14 @@ describe(`distribuição com a bandeja cheia (${MAX_SIMULTANEOUS_DICE} dados, ${
 })
 
 /**
- * O D100 JÁ FOI ENVIESADO, e este bloco guarda a medição — é o histórico que explica por que a
- * geometria dele é do jeito que é (ver `d100Sphere.ts` e `antipodalDirections.ts`).
+ * O D100 JÁ FOI ENVIESADO, e este bloco guarda a medição, que é o que explica por que a geometria dele
+ * é do jeito que é (ver `d100Sphere.ts` e `antipodalDirections.ts`).
  *
- * ANTES (casco convexo de 52 pontos de Fibonacci com jitter — 3000 rolagens de física real):
- * qui-quadrado 2887 contra 148,2 de corte; TREZE das cem faces nunca saíram uma única vez; a face
- * mais comum saía 4,13%, quatro vezes o 1% esperado; 367 cutucadas por leitura ambígua.
+ * ANTES (casco convexo de 52 pontos de Fibonacci com jitter, 3000 rolagens de física real):
+ * qui-quadrado 2887 contra 148,2 de corte, TREZE das cem faces nunca saindo, a mais comum em 4,13% e
+ * 367 cutucadas por leitura ambígua. DEPOIS (50 pares antipodais relaxados, faces construídas pelas
+ * normais): qui-quadrado 122, zero faces zeradas, 55 cutucadas.
  *
- * DEPOIS (50 pares antipodais relaxados, faces construídas pelas normais — mesma medição):
- * qui-quadrado 122, ZERO faces zeradas, 55 cutucadas, e o dado assentando em 530 passos em vez de
- * ficar rolando.
- *
- * O que consertou não foi igualar as áreas — foi a SIMETRIA. Com as áreas já ótimas (0,94x a 1,06x)
- * mas sem pares antipodais, só 92 das 100 faces eram alcançáveis pelo mapa "face de apoio → face
- * lida", e a física confirmava com 12 zeradas. O raciocínio inteiro está em `antipodalDirections.ts`.
- *
- * O d100 agora corre junto com os outros seis no bloco de cima. Este comentário fica porque a
- * próxima pessoa que mexer na geometria dele precisa saber o que já custou caro.
+ * O que consertou não foi igualar as áreas, foi a SIMETRIA: com as áreas já ótimas mas sem pares
+ * antipodais, só 92 das 100 faces eram alcançáveis pelo mapa "face de apoio → face lida".
  */

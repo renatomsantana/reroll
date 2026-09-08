@@ -4,26 +4,19 @@ import { acesosEm, ancorasPresentes, camposEm, linhasDe, marcadasEm, r, textoEm,
 import type { SheetReader } from './types'
 
 /**
- * Leitor da ficha de TENEBRA (Luz Negra Editora): o pós-pós-apocalipse de "glitter, sangue e
- * sucata". Não há atributo com número: há quatro DISPOSIÇÕES (Fôlego, Equilíbrio, Raciocínio,
- * Lucidez) alimentadas de 1 a 5 por GOTAS DE SUOR, que se gastam e se recuperam; a Barra de
- * Feridas tem seis caixas; e o resto é prosa e lista (bolsos, biosucatas, contatos, armas com a
- * sua Sina, habilidades e traços).
+ * Leitor da ficha de TENEBRA (Luz Negra Editora), o pós-pós-apocalipse de "glitter, sangue e sucata".
+ * Não há atributo com número: há quatro DISPOSIÇÕES alimentadas de 1 a 5 por GOTAS DE SUOR, que se
+ * gastam e se recuperam; a Barra de Feridas tem seis caixas; e o resto é prosa e lista.
  *
- * A ficha editável oficial (`Ficha de Personagem Editável - Tenebra`, 02/09/2026) é arte com
- * formulário por cima, sem texto impresso, com nomes de campo automáticos (`Campo de Texto12`,
- * `Caixa de Seleção58`). Cada caixa foi medida na arte (ver `porPosicao.ts`). Duas coisas dela
- * decidem a forma deste leitor:
+ * A ficha editável oficial é arte com formulário por cima, sem texto impresso e com nomes de campo
+ * automáticos, então cada caixa foi medida na arte (ver `porPosicao.ts`). Duas coisas dela decidem a
+ * forma deste leitor:
  *
- * 1. as GOTAS, a FADIGA, as FERIDAS, a PROTEÇÃO e o ÓLEO são BOTÕES de imagem que nascem
- *    ocultos (`fo0`…`fo19`, `fad0`…`fad3`, `fr0`…`fr5`, `tr6`…`tr8`, `Oil0`…`Oil19`) e que os
- *    botões visíveis da página MOSTRAM ou ESCONDEM por script: não há valor gravado, a gota está
- *    acesa quando o botão dela não está oculto (ver `acesosEm`). O extrator entrega esses botões
- *    no fim da lista, com a marca `PdfField.oculto`, e é a ausência da marca que conta: gotas
- *    acesas de cinco, feridas acesas de seis;
- * 2. os Bolsos são UMA caixa de texto de várias linhas ao lado de dezesseis fileiras de cinco
- *    caixinhas de Estragos. A linha N do texto é o item da fileira N: é assim que a ficha se
- *    preenche, e é assim que os estragos de cada item são lidos.
+ * 1. as GOTAS, a FADIGA, as FERIDAS, a PROTEÇÃO e o ÓLEO são BOTÕES de imagem que nascem ocultos e que
+ *    os botões visíveis da página mostram ou escondem por script: não há valor gravado, a gota está
+ *    acesa quando o botão dela não está oculto (ver `acesosEm`);
+ * 2. os Bolsos são UMA caixa de texto de várias linhas ao lado de dezesseis fileiras de cinco caixinhas
+ *    de Estragos, e a linha N do texto é o item da fileira N — é assim que a ficha se preenche.
  */
 const P1 = {
   nome: r(1, 74, 710, 168, 60),

@@ -9,25 +9,22 @@ export interface DualPolyhedron {
 }
 
 /**
- * Constrói o poliedro cujas FACES olham exatamente pras direções dadas — o dual polar do casco
- * convexo dessas direções.
+ * Constrói o poliedro cujas FACES olham exatamente pras direções dadas: o dual polar do casco convexo
+ * dessas direções.
  *
- * Por que isto existe, e por que é diferente de "casco convexo de pontos": as duas construções
- * partem de uma nuvem de direções, mas escolhem coisas opostas. No casco, as direções viram
- * VÉRTICES e as faces saem de brinde — quantas, com que forma e olhando pra onde é consequência, e
- * não escolha. Aqui as direções viram as NORMAIS das faces: o sólido é a interseção dos semi-espaços
- * `n·x ≤ 1`, ou seja, um plano por direção, encostado na esfera no ponto `n`.
+ * Por que é diferente de "casco convexo de pontos": as duas construções partem de uma nuvem de
+ * direções e escolhem coisas opostas. No casco, as direções viram VÉRTICES e as faces saem de brinde —
+ * quantas, com que forma e olhando pra onde é consequência, não escolha. Aqui elas viram as NORMAIS
+ * das faces, e o sólido é a interseção dos semi-espaços `n·x ≤ 1`.
  *
- * A diferença importa quando o sólido é um DADO, e ela foi medida no d100 antigo (casco de 52
- * pontos com jitter): facetas irregulares deixam bacias de equilíbrio desiguais e algumas VAZIAS —
- * treze das cem faces nunca saíram em 3000 rolagens de física real, e uma saía quatro vezes mais
- * que a média. Com as normais escolhidas de propósito, cada face é a célula de Voronoi da sua
- * direção: o pé da perpendicular do centro cai SEMPRE dentro da própria face, então toda face
+ * A diferença importa quando o sólido é um DADO, e foi medida no d100 antigo (casco de 52 pontos com
+ * jitter): facetas irregulares deixam bacias de equilíbrio desiguais e algumas VAZIAS, com treze das
+ * cem faces nunca saindo em 3000 rolagens. Com as normais escolhidas, cada face é a célula de Voronoi
+ * da sua direção — o pé da perpendicular do centro cai sempre dentro da própria face, então toda face
  * apoia, e as áreas ficam parecidas porque as direções estão bem espalhadas.
  *
- * O que sai daqui, com direções de Fibonacci, é um sólido da família Goldberg: quase todas as faces
- * hexagonais, com doze pentágonos — o mesmo motivo pelo qual uma bola de futebol tem pentágonos, e
- * não uma escolha de estilo (topologia não permite cobrir a esfera só de hexágonos).
+ * Com direções de Fibonacci, o que sai é um sólido da família Goldberg: quase todas as faces
+ * hexagonais, com doze pentágonos — o mesmo motivo pelo qual uma bola de futebol tem pentágonos.
  */
 export function buildDualFromNormals(normals: Vector3Tuple[]): DualPolyhedron {
   const facesDoCasco = buildConvexHullFaceTopology(normals)

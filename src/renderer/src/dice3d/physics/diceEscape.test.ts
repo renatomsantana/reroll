@@ -16,32 +16,21 @@ import { createD6Body } from '../dice-defs/buildD6Body'
 import { D6_DEFINITION } from '../dice-defs/d6'
 
 /**
- * Regressão pro bug relatado: com muitos dados colidindo entre si, a energia
- * acumulada das colisões podia jogar um dado alto o bastante pra passar por
- * cima de uma parede baixa demais — acima da parede não existe collider
- * nenhum (ver `createBoundaryColliders.ts`), então o dado "escapava" e caía
- * pra sempre, fora da bandeja e fora de vista. Roda a física de verdade
- * (mesmo `world.step()`, mesmo `tossDie`, mesma lógica de settle/nudge usada
- * em produção) com o número MÁXIMO de dados simultâneos que o app permite —
- * o pior caso real, não um cenário artificial.
+ * Regressão pro bug relatado: com muitos dados colidindo entre si, a energia acumulada podia jogar um
+ * dado alto o bastante pra passar por cima de uma parede baixa demais — acima da parede não existe
+ * collider nenhum, então o dado escapava e caía pra sempre, fora da bandeja e fora de vista. Roda a
+ * física de verdade (mesmo `world.step()`, mesmo `tossDie`, mesma lógica de settle e nudge) com o
+ * número MÁXIMO de dados simultâneos que o app permite: o pior caso real, não um cenário artificial.
  *
- * NOTA HONESTA (arremesso de fora E DE CIMA da bandeja, ver `tossDie.ts`/`SPAWN_CONFIG`):
- * a pedido do usuário, o arremesso agora nasce bem mais alto (parecendo alguém em pé
- * jogando os dados pra dentro), o que aumenta o tempo que cada dado passa "entrando"
- * (ignorando a parede, ver `collisionGroups.ts`) e, por consequência, a chance de colisão
- * no meio do ar com outro dado simultâneo antes de cruzar pra dentro. Testado
- * exaustivamente (sweep de contagens 1-16, 20 rolagens cada): 1-10 dados simultâneos
- * ficam ~90%+ confiáveis neste teste de estresse (5 rolagens seguidas reaproveitando os
- * mesmos corpos — mais dura que o uso real), 12+ degrada visivelmente. Por isso
- * `MAX_SIMULTANEOUS_DICE` foi reduzido de 24 pra 10 — preferiu-se manter o arremesso
- * dramático pedido e reduzir o teto de dados simultâneos, a suavizar o arremesso pra caber
- * mais dados de uma vez. A bandeja também foi aumentada depois (halfExtent 5.5→6.5, a
- * pedido do usuário) na esperança de espalhar mais os slots de pouso e reduzir ainda mais a
- * densidade de colisão durante a entrada — resultado empírico misto (~80-90% neste teste de
- * estresse, dentro do ruído estatístico da amostra pequena de execuções, sem melhora nem
- * piora clara). Ainda assim este teste não é 100% garantido mesmo em 10 — é sinal
- * real de uma cauda estatística inerente a simular vários corpos rígidos convergindo ao
- * mesmo tempo, não algo a esconder enfraquecendo a asserção ou pulando o teste.
+ * NOTA HONESTA: com o arremesso de fora e de cima, cada dado passa mais tempo "entrando" (ignorando a
+ * parede), e com isso cresce a chance de colisão no ar antes de cruzar pra dentro. Medido num sweep de
+ * 1 a 16 dados, 20 rolagens cada: até 10 simultâneos o teste fica ~90% confiável na forma de estresse
+ * usada aqui (5 rolagens seguidas reaproveitando os mesmos corpos, mais dura que o uso real), e de 12
+ * pra cima degrada visivelmente. Foi por isso que o teto caiu de 24 pra 10 na época — preferiu-se
+ * manter o arremesso dramático a suavizá-lo pra caber mais dados.
+ *
+ * Ainda assim este teste não é 100% garantido: é a cauda estatística inerente a simular vários corpos
+ * rígidos convergindo ao mesmo tempo, e não algo a esconder enfraquecendo a asserção.
  */
 function simulateAllUntilSettled(
   world: RAPIER.World,

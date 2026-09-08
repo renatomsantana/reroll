@@ -14,26 +14,20 @@ import { WORLD_CONFIG, resolveAmbiguousMargin } from '../config/physicsConfig'
 import { AVAILABLE_DICE_TYPES, DICE_REGISTRY } from './registry'
 
 /**
- * CADA DADO SOZINHO, na bandeja vazia, mil vezes: a face que cai sai na mesma proporção?
+ * CADA DADO SOZINHO, na bandeja vazia: a face que cai sai na mesma proporção?
  *
- * Pedido dele (03/09/2026): "deixar a rolagem de dados o mais aleatória possível". A cena 3D não
- * sorteia número nenhum — o resultado é a física, e o acaso entra pelas condições iniciais do
- * arremesso (`tossDie`, agora sobre `crypto.getRandomValues`, ver `utils/random.ts`). Então a
- * pergunta certa não é "o gerador é bom?", é "a GEOMETRIA de cada dado é honesta quando cai de
- * um arremesso aleatório?". `d6.statistical.test.ts` responde pro d6; este responde pros sete,
- * com a mesma simulação de produção (mesmo `world.step()`, mesmo `readTopFace`, mesmo nudge).
- *
- * É teste de VIÉS GROSSEIRO, como o do d6: qui-quadrado com alfa 0,001, folgado de propósito pra
- * nunca falhar por flutuação — rolagem física tem mais variância que sorteio puro — e ainda assim
- * pegar centro de massa deslocado, face que nunca sai, numeração torta. A distribuição de cada
- * dado sai no console: é o número que se olha quando alguém perguntar se o d20 é honesto.
+ * Pedido dele: "deixar a rolagem de dados o mais aleatória possível". A cena 3D não sorteia número
+ * nenhum — o resultado é a física, e o acaso entra pelas condições iniciais do arremesso, hoje sobre
+ * `crypto.getRandomValues`. Então a pergunta certa não é "o gerador é bom?", é "a GEOMETRIA de cada
+ * dado é honesta quando ele cai de um arremesso aleatório?". É teste de viés grosseiro, com
+ * qui-quadrado folgado de propósito pra nunca falhar por flutuação e ainda assim pegar centro de massa
+ * deslocado, face que nunca sai ou numeração torta.
  */
 /**
- * Trezentas por dado na suíte (uns oito segundos no total: a suíte inteira roda a cada commit, e
- * os testes de disco já caem por timeout quando a máquina está ocupada). Pra MEDIR de verdade,
- * suba o número: `ROLAGENS_ESTATISTICAS=5000 npx vitest run todosOsDados`. Medido em 03/09/2026
- * com 1000 e depois 5000 por dado: nenhum viés (o d10 deu 19,8 em 1000 e 4,9 em 5000, ou seja,
- * flutuação; o d20, 15,3 e 13,5).
+ * Trezentas por dado na suíte, uns oito segundos: ela roda a cada commit, e os testes de disco já caem
+ * por timeout com a máquina ocupada. Pra medir de verdade, suba o número:
+ * `ROLAGENS_ESTATISTICAS=5000 npx vitest run todosOsDados`. Medido com 1000 e depois 5000 por dado,
+ * nenhum viés — o d10 deu 19,8 em 1000 e 4,9 em 5000, ou seja flutuação; o d20, 15,3 e 13,5.
  */
 const ROLAGENS = Number((globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.ROLAGENS_ESTATISTICAS ?? 300)
 const MAXIMO_DE_PASSOS = 8000
