@@ -99,3 +99,88 @@ describe('ficha datilografada, sem campos de formulário', () => {
     expect(lido.warnings.length).toBeGreaterThan(0)
   })
 })
+
+/**
+ * O MODELO IMPRESSO EM BRANCO salvo sem formulário — a ficha oficial que a pessoa baixa do site,
+ * abre, não preenche e manda assim mesmo.
+ *
+ * Medido na oficial de Pathfinder 2e (`RemasterPlayerCoreCharacterSheet.pdf`): 668 fragmentos de
+ * rótulo e instrução em quatro páginas, nenhum par "Rótulo: valor" e nenhuma rolagem. O app criava
+ * um personagem chamado "RemasterPlayerCoreCharacterSheet" com 2.792 caracteres do formulário vazio
+ * dentro do bloco de história — e a pessoa só descobria depois de confirmar.
+ *
+ * O que separa este arquivo da ficha datilografada acima é a DENSIDADE: quem escreve a ficha no Word
+ * põe poucas linhas na página, um modelo impresso enche a página e não rende nada.
+ */
+describe('modelo impresso em branco, sem formulário', () => {
+  /** Uma página cheia de rótulo e instrução, como a ficha oficial: nada que uma pessoa escreveu. */
+  const IMPRESSO = [
+    'PATHFINDER SECOND EDITION',
+    'CHARACTER NAME',
+    'PLAYER NAME',
+    'ANCESTRY AND HERITAGE',
+    'BACKGROUND',
+    'CLASS AND LEVEL',
+    'Write your character name here',
+    'Choose an ancestry from the list',
+    'Choose a background from the list',
+    'Choose a class from the list',
+    'Your key ability score is listed here',
+    'Record your total hit points here',
+    'STRENGTH',
+    'DEXTERITY',
+    'CONSTITUTION',
+    'INTELLIGENCE',
+    'WISDOM',
+    'CHARISMA',
+    'Note any conditions affecting you',
+    'Trained Expert Master Legendary',
+    'Untrained proficiency has no bonus',
+    'Add your level when trained or better',
+    'ARMOR CLASS',
+    'FORTITUDE',
+    'REFLEX',
+    'WILL',
+    'PERCEPTION',
+    'SPEED',
+    'MELEE STRIKES',
+    'RANGED STRIKES',
+    'SKILLS',
+    'LANGUAGES',
+    'ANCESTRY FEATS AND ABILITIES',
+    'CLASS FEATS AND ABILITIES',
+    'SKILL FEATS',
+    'GENERAL FEATS',
+    'EQUIPMENT',
+    'WORN ITEMS AND INVESTED ITEMS',
+    'BULK AND ENCUMBRANCE',
+    'MONEY AND VALUABLES',
+    'Consult the rules for the details',
+    'Mark the boxes as you spend them',
+    'ACTIONS AND ACTIVITIES',
+    'SPELL ATTACK AND SPELL DC'
+  ]
+
+  async function importarModelo(nomeDoArquivo = 'RemasterPlayerCoreCharacterSheet.pdf') {
+    const bytes = pdfDeUmaPagina({
+      linhas: IMPRESSO.map((texto, i) => ({ texto, x: 40 + (i % 3) * 180, y: 760 - Math.floor(i / 3) * 18 }))
+    })
+    return readSheet(await abrirPdfDeBytes(nomeDoArquivo, bytes))
+  }
+
+  it('não propõe o nome do ARQUIVO como personagem', async () => {
+    expect((await importarModelo()).characterName).toBe('')
+  })
+
+  it('não joga o formulário em branco dentro do bloco de história', async () => {
+    const lido = await importarModelo()
+    expect(lido.rawText ?? '').toBe('')
+    expect(lido.fields).toEqual([])
+    expect(lido.presets).toEqual([])
+  })
+
+  /** A régua é a densidade, não o nome do arquivo: o mesmo modelo com outro nome também não passa. */
+  it('vale pelo conteúdo, e não pelo nome do arquivo', async () => {
+    expect((await importarModelo('Elias - ficha.pdf')).characterName).toBe('')
+  })
+})

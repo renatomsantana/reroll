@@ -8,9 +8,24 @@ describe('o personagem que nasce da ficha importada', () => {
     expect(escolherDestino({ nomeLido: '  Aurora ', fileName: 'ficha.pdf' })).toEqual({ characterName: 'Aurora' })
   })
 
-  it('PDF sem nome: o nome do arquivo entra (nunca um personagem sem nome)', () => {
+  /**
+   * O leitor DECIDE o nome, e o vazio dele é uma decisão: no modelo em branco baixado do site, o
+   * nome do arquivo é o título da ficha. Isto aqui punha o nome do arquivo de volta, e nasciam
+   * personagens chamados "Ficha Oblivio - Colorida" e "RemasterPlayerCoreCharacterSheet".
+   */
+  it('PDF sem nome nasce SEM nome — o arquivo não vira personagem', () => {
     expect(escolherDestino({ nomeLido: '  ', fileName: 'Ficha_Oblivio - Colorida.pdf' })).toEqual({
-      characterName: 'Ficha Oblivio - Colorida'
+      characterName: ''
+    })
+    expect(
+      escolherDestino({ nomeLido: '', fileName: 'Ordem Paranormal - Ficha de Personagem Editável.pdf' })
+    ).toEqual({ characterName: '' })
+  })
+
+  /** O palpite pelo nome do arquivo continua existindo — no leitor, que sabe quando ele vale. */
+  it('o palpite que o leitor fez pelo nome do arquivo atravessa inteiro', () => {
+    expect(escolherDestino({ nomeLido: 'Elias - ficha', fileName: 'Elias - ficha.pdf' })).toEqual({
+      characterName: 'Elias - ficha'
     })
   })
 

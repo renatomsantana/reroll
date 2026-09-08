@@ -15,7 +15,7 @@ import { ehRotuloPlausivel } from './camposDoTexto'
  * fichas de referência: Oblivio tem 68 fragmentos por página, Kids on Bikes preenchida tem 20,5.
  * (Por página e não no total: ficha longa não é ficha densa.)
  */
-const TEXTOS_POR_PAGINA = 40
+export const TEXTOS_POR_PAGINA = 40
 
 /** Menos que isto não é nem anotação: é PDF de imagem pura, e não há o que importar. */
 export const TEXTO_MINIMO = 3
