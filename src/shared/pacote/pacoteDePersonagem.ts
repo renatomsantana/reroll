@@ -79,13 +79,13 @@ export function montarPacote(dados: {
   }
 }
 
-/**
- * O JSON que fica dentro do HTML. `<` vira `<` porque um nome de preset com `</script>`
- * dentro fecharia o bloco no meio e o navegador tentaria executar o resto como página — é a
- * mesma escapada que todo mundo faz ao embutir JSON em HTML, e o `JSON.parse` a desfaz sozinho.
- */
 export const ID_DO_BLOCO_JSON = 'reroll-personagem'
 
+/**
+ * O JSON que fica dentro do HTML. Todo `<` vira a escapada `\u003c` porque um nome de preset com
+ * `</script>` dentro fecharia o bloco no meio, e o navegador tentaria executar o resto da linha como
+ * página. O `JSON.parse` desfaz a escapada sozinho na volta.
+ */
 export function serializarPacote(pacote: PacoteDePersonagem): string {
   return JSON.stringify(pacote).replace(/</g, '\\u003c')
 }
