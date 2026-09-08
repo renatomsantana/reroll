@@ -125,15 +125,14 @@ const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
 const ADVANTAGE_MAX_COUNT = Math.floor(MAX_SIMULTANEOUS_DICE / 2)
 
 /**
- * Atraso (ms) entre clicar em "Rolar" e o som de rolagem tocar, pra soar junto do impacto dos dados
- * na bandeja em vez do instante do clique.
+ * Atraso (ms) entre clicar em "Rolar" e o som tocar, pra soar junto do impacto dos dados na bandeja
+ * em vez do instante do clique.
  *
- * É menor pela torre porque são dois tempos de voo diferentes: de lá o dado nasce na boca, logo
- * acima da borda, e cai direto no hexágono; no arremesso de cima ele nasce entre 6 e 8 de altura e
- * ainda cruza a bandeja inteira antes de bater. O valor da torre foi por ouvido, em duas rodadas
- * (800ms ainda soou tarde), e fica um pouco ANTES do primeiro impacto de propósito: o dado sai sem
- * impulso vertical e leva ~0.54s até encostar, e o ruído de uma torre de dados começa antes de o
- * dado tocar a bandeja. Abaixo de ~540ms o som antecede qualquer coisa acontecendo na tela.
+ * É menor pela torre porque são dois tempos de voo: de lá o dado nasce na boca, logo acima da borda,
+ * e cai direto no hexágono; no arremesso de cima ele nasce entre 6 e 8 de altura e cruza a bandeja
+ * antes de bater. O da torre saiu por ouvido, em duas rodadas (800ms ainda soou tarde), e fica um
+ * pouco ANTES do primeiro impacto de propósito — o ruído de uma torre começa antes de o dado tocar a
+ * bandeja. Abaixo de ~540ms o som antecede qualquer coisa na tela.
  */
 const ROLL_SOUND_DELAY_MS = 1200
 const TOWER_ROLL_SOUND_DELAY_MS = 400
@@ -288,14 +287,13 @@ export function comContagemAjustada(
 }
 
 /**
- * O roller 3D de verdade, no lugar da rolagem instantânea por RNG no modo completo. Ele sempre
- * produz um `RollResult` no mesmo formato de antes, então Histórico e Presets continuam funcionando
- * sem mudar nada: só troca COMO o número é gerado, não o formato do que fica guardado.
+ * O roller 3D de verdade, no lugar da rolagem instantânea por RNG no modo completo. Ele sempre produz
+ * um `RollResult` no mesmo formato de antes, então Histórico e Presets continuam funcionando: só
+ * muda COMO o número é gerado.
  *
  * O d100 é só mais um tipo de dado aqui (100 faces, ver `d100Sphere.ts`), sem caso especial de dois
- * d10, então ganha contador e vantagem de graça. O modo compacto da janela continua com o roller
- * antigo, instantâneo: uma cena 3D precisa de espaço de verdade pra fazer sentido, e a janela
- * compacta foi desenhada pra ser minúscula.
+ * d10, então ganha contador e vantagem de graça. O modo compacto continua com o roller instantâneo:
+ * uma cena 3D precisa de espaço pra fazer sentido.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
   { onRoll, onRollingChange, shortcutsEnabled = true, onOpenHistory, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
@@ -362,14 +360,13 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
 
   const [groups, setGroups] = useState<DiceGroup[]>(DEFAULT_GROUPS)
   /**
-   * Incrementado a cada rolagem de preset, nos dois modos. Na torre ele continua no `key` de
-   * `DiceCanvasMulti` (ela tem fila e parqueamento próprios); na BANDEJA saiu do `key` a pedido dele,
-   * porque remontar a cena a cada preset reconstruía física, texturas e dados e, o que incomodava de
-   * verdade, jogava a CÂMERA de volta pro enquadramento padrão.
+   * Incrementado a cada rolagem de preset. Na torre ele continua no `key` de `DiceCanvasMulti` (ela
+   * tem fila e parqueamento próprios); na BANDEJA saiu do `key` a pedido dele, porque remontar a cena
+   * a cada preset reconstruía física, texturas e dados e jogava a CÂMERA de volta pro padrão.
    *
-   * Na bandeja ele virou o gatilho do efeito que dispara a rolagem, e tem que ser um contador, e não
+   * Na bandeja ele virou o gatilho do efeito que dispara a rolagem, e tem que ser um CONTADOR, e não
    * a referência de `groups`: clicando o mesmo preset duas vezes, `setGroups` recebe uma referência
-   * igual, o React descarta a atualização, nenhum efeito roda e a interface trava em "Rolando...".
+   * igual, o React descarta a atualização e a interface trava em "Rolando...".
    */
   const [presetRollSeq, setPresetRollSeq] = useState(0)
   /**
