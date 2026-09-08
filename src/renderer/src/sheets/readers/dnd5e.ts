@@ -451,9 +451,11 @@ export const dnd5eReader: SheetReader = {
  *
  * 1. tem VALOR (3 a 30, a faixa do sistema): mostra o valor e rola o modificador CALCULADO a partir
  *    dele — é o número que o jogador reconhece, e o modificador escrito é o campo que envelhece;
- * 2. só tem MODIFICADOR: mostra ele e rola somando;
- * 3. valor fora da faixa ou COM SINAL: é o modificador digitado na caixa errada, porque ninguém
- *    escreve "+16" como valor de Força.
+ * 2. as DUAS CAIXAS TROCADAS (ver `ehPontuacao`): o valor veio assinado, que é marca de modificador,
+ *    e o modificador veio como número de atributo. Vale o mesmo da regra 1, lendo a caixa trocada;
+ * 3. só tem MODIFICADOR: mostra ele e rola somando;
+ * 4. valor fora da faixa ou COM SINAL, sem modificador: é o modificador na caixa errada, porque
+ *    ninguém escreve "+16" como valor de Força.
  */
 function atributos(
   valor: (nome: string) => string | null,
@@ -467,10 +469,11 @@ function atributos(
     // O sinal explícito é a marca do modificador, e vem ANTES da faixa: "+3" é um número entre 3 e
     // 30 e passaria por valor de atributo sem esta pergunta.
     const assinado = pontos !== null && /^[+-]/.test(pontos.trim())
-    const numero = pontos === null || assinado ? null : Number(pontos.replace(/[^\d-]/g, ''))
 
-    if (numero !== null && Number.isFinite(numero) && numero >= 3 && numero <= 30) {
+    if (!assinado && ehPontuacao(pontos)) {
       campos.push({ label: nesteIdioma(atributo), value: pontos as string, group: grupo, roll: 'd20-valor' })
+    } else if (assinado && ehPontuacao(modificador)) {
+      campos.push({ label: nesteIdioma(atributo), value: modificador as string, group: grupo, roll: 'd20-valor' })
     } else if (modificador) {
       campos.push({ label: nesteIdioma(atributo), value: modificador, group: grupo, roll: 'd20' })
     } else if (pontos) {
@@ -478,6 +481,22 @@ function atributos(
     }
   }
   return campos
+}
+
+/**
+ * O texto é uma PONTUAÇÃO de atributo — número sem sinal, de 3 a 30, a faixa que o sistema permite?
+ *
+ * A pergunta serve às duas caixas porque elas chegam TROCADAS, e não raramente: na ficha do Go, as
+ * seis linhas vieram assim (`STR` = "-2" e `STRmod` = "6"), e o app mostrava Força 6 rolando 1d20+6
+ * onde a regra manda 1d20-2 — errado por oito em todos os seis atributos, com cara de certo.
+ *
+ * Dá pra confiar na troca porque os dois números se CONFIRMAM: 6 dá -2, 16 dá +3, 12 dá +1, 13 dá +1,
+ * 9 dá -1, e é exatamente o que o jogador escreveu na outra caixa nas seis linhas.
+ */
+function ehPontuacao(texto: string | null): boolean {
+  if (texto === null || /^[+-]/.test(texto.trim())) return false
+  const numero = Number(texto.replace(/[^\d-]/g, ''))
+  return Number.isFinite(numero) && numero >= 3 && numero <= 30
 }
 
 /**

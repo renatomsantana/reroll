@@ -3,6 +3,7 @@ import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 import { readSheet } from './readers/index'
 import { montarFicha } from '@shared/types/montarFicha'
+import { rolagemDoCampo } from '@shared/types/sheetRoll'
 import { abrirPdfNoNode } from './testes/abrirPdfNoNode'
 
 /**
@@ -404,6 +405,32 @@ describe.skipIf(!existsSync(GO))('ficha real de D&D 5e traduzida', () => {
     expect(lido.characterName).toBe('Go')
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Destreza', value: '16', group: 'Atributos' }))
     expect(lido.fields).toContainEqual(expect.objectContaining({ label: 'Furtividade', value: '+3', group: 'Perícias' }))
+  }, 60_000)
+
+  /**
+   * NESTE ARQUIVO AS DUAS CAIXAS DE CADA ATRIBUTO VÊM TROCADAS: `STR` guarda "-2" (o modificador) e
+   * `STRmod` guarda "6" (a pontuação), nas seis linhas. O app mostrava 6 e rolava 1d20+6 onde a regra
+   * manda 1d20-2 — errado por oito, no sistema mais jogado do mundo, e com cara de certo.
+   *
+   * Os seis pares se confirmam (6 dá -2, 16 dá +3, 12 dá +1, 13 dá +1, 9 dá -1), que é o que torna a
+   * troca reconhecível em vez de palpite.
+   */
+  it('os seis atributos rolam pela PONTUAÇÃO, mesmo com as caixas trocadas no arquivo', async () => {
+    const lido = readSheet(await abrirPdfNoNode(GO))
+    const atributos = new Map(
+      lido.fields.filter((c) => c.group === 'Atributos').map((c) => [c.label, `${c.value}|${c.roll}`])
+    )
+    expect(Object.fromEntries(atributos)).toEqual({
+      Força: '6|d20-valor',
+      Destreza: '16|d20-valor',
+      Constituição: '12|d20-valor',
+      Inteligência: '16|d20-valor',
+      Sabedoria: '13|d20-valor',
+      Carisma: '9|d20-valor'
+    })
+    // A conta que o botão faz: pontuação 6 é 1d20-2, e não 1d20+6.
+    expect(rolagemDoCampo('6', 'd20-valor')?.modifiers).toEqual([{ type: 'flat', value: -2 }])
+    expect(rolagemDoCampo('16', 'd20-valor')?.modifiers).toEqual([{ type: 'flat', value: 3 }])
   }, 60_000)
 })
 
