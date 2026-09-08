@@ -2,16 +2,13 @@ import type { DiceDefinition, Vector3Tuple } from '@shared/types/dice3d'
 import type { Quaternion } from './readTopFace'
 
 /**
- * A orientação que faz um dado MOSTRAR um valor — o caminho inverso do `readTopFace`, que descobre
- * o valor a partir da orientação.
+ * A orientação que faz um dado MOSTRAR um valor: o caminho inverso do `readTopFace`, que descobre o
+ * valor a partir da orientação.
  *
  * Serve pros dados parados do estojo, que não vêm da física: eles são posicionados na prateleira e
- * ficavam na orientação de repouso do modelo, ou seja, cada tipo mostrando a face que calhasse. O
- * pedido do usuário é que todos exibam o maior número — d4 com 4, d6 com 6, d20 com 20, d100 com
- * 100 —, que é como se arruma um estojo de verdade.
- *
- * Nada aqui importa Three.js, pelo mesmo motivo do `readTopFace` ao lado: assim o teste confere a
- * conta chamando o LEITOR de verdade do app, sem WebGL e sem abrir janela.
+ * ficavam na orientação de repouso do modelo, cada tipo mostrando a face que calhasse. O pedido é que
+ * todos exibam o maior número, que é como se arruma um estojo de verdade. Nada aqui importa Three.js,
+ * pelo mesmo motivo do `readTopFace`: o teste confere a conta chamando o leitor de verdade do app.
  */
 
 const WORLD_UP: Vector3Tuple = [0, 1, 0]
@@ -31,15 +28,12 @@ function normalizar(q: Quaternion): Quaternion {
 }
 
 /**
- * O giro de MENOR ARCO que leva `de` em `para` (os dois unitários).
- *
- * Menor arco e não um qualquer: sobra uma família inteira de rotações que alinham a face (todas as
- * que giram em torno da própria direção de destino depois de alinhar), e escolher uma à toa deixaria
- * cada dado do estojo torto num ângulo diferente. O giro mínimo mantém o resto da pose como o modelo
- * foi desenhado, então os sete continuam alinhados entre si.
+ * O giro de MENOR ARCO que leva `de` em `para` (os dois unitários). Menor arco e não um qualquer:
+ * sobra uma família inteira de rotações que alinham a face, e escolher uma à toa deixaria cada dado do
+ * estojo torto num ângulo diferente. O giro mínimo mantém o resto da pose como o modelo foi desenhado.
  *
  * Mora aqui, e não no `quaternionTestHelpers` onde nasceu, porque deixou de ser coisa só de teste
- * quando o estojo passou a precisar dela. Aquele arquivo agora reexporta esta função: duas cópias da
+ * quando o estojo passou a precisar dela; aquele arquivo reexporta esta função, porque duas cópias da
  * mesma conta é a receita pra uma ser consertada e a outra não.
  */
 export function giroDeMenorArco(de: Vector3Tuple, para: Vector3Tuple): Quaternion {
@@ -73,12 +67,11 @@ export function giroDeMenorArco(de: Vector3Tuple, para: Vector3Tuple): Quaternio
  * A orientação em que `definition` mostra `valor`.
  *
  * Qual direção a face precisa apontar depende do `resultMode`, e é a mesma regra que o `readTopFace`
- * usa pra ler: num d6 o número lido é o da face voltada PRA CIMA, então a face do valor pedido vai
- * pra cima; num d4 o número é o do vértice de cima, guardado na face que fica ENCOSTADA NA MESA (ver
- * `FaceResultMode`), então a face do valor pedido vai pra baixo. Ignorar isso deixaria o d4 do
- * estojo mostrando 1 com a cara de quem mostra 4.
+ * usa pra ler: num d6 o número é o da face voltada pra cima, então ela vai pra cima; num d4 o número é
+ * o do vértice de cima, guardado na face que fica ENCOSTADA NA MESA, então ela vai pra baixo. Ignorar
+ * isso deixaria o d4 do estojo mostrando 1 com a cara de quem mostra 4.
  *
- * Devolve a identidade se o valor não existir no dado — não é situação alcançável pelos dados do
+ * Devolve a identidade se o valor não existir no dado: não é situação alcançável pelos dados do
  * registro, e um dado torto no estojo é melhor que uma exceção subindo do meio da montagem da cena.
  */
 export function orientacaoParaMostrar(definition: DiceDefinition, valor: number): Quaternion {
@@ -116,15 +109,11 @@ export function rotacionarVetor(v: Vector3Tuple, q: Quaternion): Vector3Tuple {
 }
 
 /**
- * O giro em torno do eixo VERTICAL que leva a direção `de` na direção `para`, olhando só pra
- * componente horizontal das duas.
- *
- * Girar só em torno do Y é o ponto: o alinhamento da face já foi feito, e qualquer outro eixo
- * desfaria ele. Sobra exatamente um grau de liberdade — pra que lado o dado está "virado" —, e é
- * esse que decide se o número aparece de frente pra quem olha ou de lado.
- *
- * Direção horizontal quase nula (uma face olhando pro teto) não tem "pra que lado": devolve giro
- * nenhum, em vez de amplificar ruído numérico até virar um dado torto.
+ * O giro em torno do eixo VERTICAL que leva a direção `de` na `para`, olhando só pra componente
+ * horizontal das duas. Girar só em torno do Y é o ponto: o alinhamento da face já foi feito, e qualquer
+ * outro eixo desfaria ele. Sobra um grau de liberdade — pra que lado o dado está virado —, e é ele que
+ * decide se o número aparece de frente pra quem olha. Direção horizontal quase nula (uma face olhando
+ * pro teto) devolve giro nenhum, em vez de amplificar ruído numérico até virar um dado torto.
  */
 export function giroVerticalEntre(de: Vector3Tuple, para: Vector3Tuple): Quaternion {
   const ax = de[0]

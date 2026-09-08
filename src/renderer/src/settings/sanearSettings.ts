@@ -4,22 +4,19 @@ import { volumeValido } from '@renderer/audio/volume'
 /**
  * Higiene do que veio do `localStorage`.
  *
- * As preferências são gravadas e lidas como JSON solto, e a leitura era um `as Settings` — uma
- * promessa ao compilador que ninguém verifica em tempo de execução. Funciona enquanto o arquivo
- * tiver sido escrito por ESTA versão do app, e é justamente isso que não se pode supor: quem tem o
- * Reroll instalado há meses tem preferências gravadas por versões em que a lista de opções era
- * outra.
+ * As preferências são gravadas e lidas como JSON solto, e a leitura era um `as Settings` — uma promessa
+ * ao compilador que ninguém verifica em tempo de execução. Funciona enquanto o arquivo tiver sido
+ * escrito por ESTA versão, e é justamente isso que não se pode supor.
  *
- * O app já fazia essa higiene em dois campos — `appIconId` (o ícone branco foi removido) e `fontId`
- * (a lista caiu de catorze pra nove) — cada um consertado depois de aparecer. Os campos que vieram
- * depois ficaram de fora, e o pior deles é a FORMA DA BANDEJA: um valor desconhecido ali não dá erro
- * nenhum, vira `undefined` no mapa de lados, e daí em diante é NaN. Medido: apótema NaN, rotação
- * NaN, e as posições de nascimento dos dados viram `{x: null, z: null}`. Os dados nascem em lugar
- * nenhum, a página de rolagem morre, e não há botão no app que conserte — a pessoa teria que limpar
- * o `localStorage` por fora.
+ * O app já fazia essa higiene em dois campos, `appIconId` e `fontId`, cada um consertado depois de
+ * aparecer. Os que vieram depois ficaram de fora, e o pior deles é a FORMA DA BANDEJA: um valor
+ * desconhecido ali não dá erro nenhum, vira `undefined` no mapa de lados, e daí em diante é NaN.
+ * Medido: apótema NaN, rotação NaN, e as posições de nascimento dos dados viram `{x: null, z: null}` —
+ * a página de rolagem morre e não há botão no app que conserte, a pessoa teria que limpar o
+ * `localStorage` por fora.
  *
- * Por isso a régua aqui é: campo de VALOR FECHADO que não bate com a lista volta pro padrão. Cor,
- * texto e booleano continuam passando direto — errar neles é feio, não é fatal.
+ * Por isso a régua é: campo de VALOR FECHADO que não bate com a lista volta pro padrão. Cor, texto e
+ * booleano continuam passando direto, porque errar neles é feio e não é fatal.
  */
 
 const VALORES_FECHADOS = {
@@ -59,14 +56,10 @@ export function sanearPreferencias<T extends Record<string, unknown>>(bruto: T):
 
 /**
  * As MIGRAÇÕES de formato das preferências: campo que mudou de nome ou de forma entre versões.
- *
- * Separada de `sanearPreferencias` porque as duas respondem perguntas diferentes. Aquela pergunta
- * "este valor ainda existe?" e joga fora o que não; esta pergunta "onde isto morava antes?" e
- * TRAZ pra cá. Misturar as duas faria a higiene apagar dado que a migração ainda ia usar.
- *
- * Recebe o objeto CRU do `localStorage`, e não o já saneado, porque o campo velho não está na lista
- * de campos conhecidos — depois da higiene ele ainda estaria lá, mas depender disso seria depender
- * de um detalhe de outra função.
+ * Separada de `sanearPreferencias` porque as duas respondem perguntas diferentes — aquela pergunta
+ * "este valor ainda existe?" e joga fora o que não, esta pergunta "onde isto morava antes?" e traz pra
+ * cá. Recebe o objeto CRU do `localStorage`, e não o já saneado, porque o campo velho não está na
+ * lista de campos conhecidos.
  */
 export function migrarPreferencias(bruto: unknown): Record<string, unknown> {
   if (typeof bruto !== 'object' || bruto === null) return {}
@@ -74,14 +67,10 @@ export function migrarPreferencias(bruto: unknown): Record<string, unknown> {
   const migrado: Record<string, unknown> = {}
 
   /**
-   * `theme` ('day' | 'night') virou `themeSource` ('day' | 'night' | 'system') quando o tema ganhou
-   * a opção de acompanhar o Windows.
-   *
-   * A escolha de quem já usava o app TEM que atravessar: sem isto, todo mundo que estava no tema
-   * noturno reabriria no claro depois de atualizar. Não é perda de dado grave, é daquelas que fazem
-   * a pessoa desconfiar do resto — "se ele esqueceu isso, o que mais ele esqueceu?".
-   *
-   * Só quando `themeSource` ainda NÃO existe: quem já gravou no formato novo manda nele, senão toda
+   * `theme` ('day' | 'night') virou `themeSource` ('day' | 'night' | 'system') quando o tema ganhou a
+   * opção de acompanhar o Windows. A escolha de quem já usava o app TEM que atravessar: sem isto, todo
+   * mundo que estava no noturno reabriria no claro depois de atualizar — não é perda grave, é daquelas
+   * que fazem a pessoa desconfiar do resto. Só quando `themeSource` ainda não existe, senão toda
    * abertura desfaria a escolha mais recente.
    */
   if (!('themeSource' in entrada)) {

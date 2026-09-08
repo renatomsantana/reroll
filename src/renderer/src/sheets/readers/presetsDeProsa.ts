@@ -2,25 +2,22 @@ import type { SheetImportField, SheetImportPreset } from '@shared/types/sheetImp
 import { parseDiceExpression } from '@shared/dice/parseDiceExpression'
 
 /**
- * GOLPE ESCRITO EM PROSA VIRA PRESET — em QUALQUER ficha.
+ * GOLPE ESCRITO EM PROSA VIRA PRESET, em qualquer ficha.
  *
  * Nasceu no leitor de Oblívio (reporte de tester: "golpes que tinham o nome do golpe e um teste no
- * golpe, e não foi criado preset") e o usuário mandou valer pra todas: "esse jeito do Oblívio, vamos
- * deixar pra TODAS as fichas". Por isso mora aqui, fora de qualquer leitor, e roda no `readSheet`
- * sobre os campos FINAIS que o leitor escolhido devolveu — o "Características" de D&D, o
- * "Habilidades" de Ordem, o talento de classe de Pathfinder, o campo sem sistema do genérico.
+ * golpe, e não foi criado preset") e ele mandou valer pra todas: "esse jeito do Oblívio, vamos deixar
+ * pra TODAS as fichas". Por isso mora fora de qualquer leitor e roda no `readSheet` sobre os campos
+ * FINAIS que o leitor escolhido devolveu.
  *
  * A regra é a mesma que foi segura no Oblívio, que traz as regras impressas junto e ainda assim não
- * rendeu lixo: o dado tem que vir logo depois de uma ÂNCORA — Teste, Dano, Ataque, Attack, Damage,
- * Hit, Cura… — na MESMA frase, a até 60 caracteres. É a âncora que separa "Teste de Combate com
- * 2D6+1" (rolagem do personagem) de "permanentemente reduzido em 1D4 pontos" (prosa de regra), que
- * foi o que proibiu preset de texto solto no genérico (ver `presetsDoTexto`).
+ * rendeu lixo: o dado tem que vir logo depois de uma ÂNCORA (Teste, Dano, Ataque, Damage, Cura…) na
+ * MESMA frase, a até 60 caracteres. É a âncora que separa "Teste de Combate com 2D6+1", que é rolagem
+ * do personagem, de "permanentemente reduzido em 1D4 pontos", que é prosa de regra.
  *
- * O NOME do botão é o que a pessoa procura na lista no meio da mesa: o "Nome:" que abre a frase
- * ("Corte Cruel: Teste de…"), ou, sem ele, o rótulo do campo — que é o nome do golpe quando a ficha
- * já veio "Rótulo: valor" (Oblívio), e o nome do bloco quando é um campo grande de formulário
- * ("Features & Traits"). No segundo caso duas rolagens do mesmo bloco ganham o dado no nome pra não
- * virarem dois botões iguais.
+ * O NOME do botão é o que a pessoa procura na lista no meio da mesa: o "Nome:" que abre a frase, ou,
+ * sem ele, o rótulo do campo — que é o nome do golpe quando a ficha já veio "Rótulo: valor" e o nome
+ * do bloco quando é um campo grande de formulário. No segundo caso duas rolagens do mesmo bloco ganham
+ * o dado no nome pra não virarem dois botões iguais.
  */
 
 const DADO = /\d*[dD]\d+(?:\s*[+-]\s*\d+)?/

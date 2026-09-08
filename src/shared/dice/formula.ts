@@ -1,9 +1,5 @@
 /**
- * A GRAMÁTICA DE ROLAGEM — uma notação só pra tudo o que rola no app.
- *
- * É o Stage 4 do spec de importação (`AGENT_SPEC_pdf-import.md`), e o spec manda construir isto
- * PRIMEIRO: "one internal roll formula grammar used everywhere in the app (rolling screen, presets,
- * editor)". Lê-se assim:
+ * A GRAMÁTICA DE ROLAGEM: uma notação só pra tudo o que rola no app. Lê-se assim:
  *
  *   1d20+5            dado e bônus                     4d6kh3     fica com os 3 maiores
  *   2d20kl1           fica com o menor (desvantagem)   4d6dl1     descarta o menor
@@ -11,30 +7,27 @@
  *   6d6#>=5           CONTA os dados que deram >= 5    d%         d100
  *   (1d8+2)*2         aritmética com parênteses        -1d4       dado negativo
  *   1d20+@STR.mod+@prof >= 15
- *                     referências à ficha e um alvo no fim: a rolagem inteira vira sucesso/fracasso
+ *                     referências à ficha e um alvo no fim: a rolagem vira sucesso/fracasso
  *
  * É um módulo PURO, em duas metades: `analisarFormula` lê o texto e devolve uma árvore, e
- * `avaliarFormula` calcula a árvore com uma FONTE DE DADOS injetada — a bandeja 3D, um gerador, ou
- * um teste com a lista de faces pronta. Nada aqui sabe de tela nem de física, e é isso que permite
- * testar a gramática à exaustão ("unit-test the grammar parser exhaustively — it is the heart of
- * the app").
+ * `avaliarFormula` calcula a árvore com uma FONTE DE DADOS injetada — a bandeja 3D, um gerador, ou um
+ * teste com as faces prontas. Nada aqui sabe de tela nem de física, e é isso que permite testar a
+ * gramática à exaustão.
  *
  * O que ela RECUSA, de propósito, com a posição do erro pra tela poder apontar:
  *
- * - quantidade zero, dado de um lado só, e números absurdos (101 dados num termo, d1001, uma
- *   fórmula de mil caracteres, vinte parênteses aninhados): fórmula vinda de um preset importado
- *   é entrada de fora, e o que não tem teto vira app travado;
- * - duas regras da mesma família no mesmo dado (`kh1kl1`, `r<2r<3`, `!!`): a segunda contradiz
- *   ou repete a primeira, e escolher em silêncio seria rolar diferente do que está escrito;
- * - manter mais dados do que rola (`2d6kh3`) e descartar todos (`1d6dl1`): não têm resultado que
- *   faça sentido;
- * - divisão: nenhum dos sistemas do spec divide, e "metade do dano, arredonda pra baixo" é regra
- *   de cada sistema, não da notação. Entra no dia em que for pedida, com o arredondamento escrito.
+ * - quantidade zero, dado de um lado só, e números absurdos (101 dados num termo, d1001, mil
+ *   caracteres, vinte parênteses aninhados): fórmula de preset importado é entrada de fora, e o que
+ *   não tem teto vira app travado;
+ * - duas regras da mesma família no mesmo dado (`kh1kl1`, `r<2r<3`, `!!`): a segunda contradiz ou
+ *   repete a primeira, e escolher em silêncio seria rolar diferente do que está escrito;
+ * - manter mais dados do que rola e descartar todos, que não têm resultado que faça sentido;
+ * - divisão: nenhum dos sistemas do spec divide, e "metade do dano, arredonda pra baixo" é regra de
+ *   cada sistema, não da notação.
  *
- * A avaliação é a que os sistemas usam: reroll acontece ANTES da explosão (rerola-se a face que
- * caiu; a explosão é sobre a face que ficou), manter/descartar olham o valor final de cada dado
- * (um d6 explodido em 6+4 vale 10 pra regra, e é UM dado — a mesma leitura de `ExplodeRule`), e
- * `#` conta entre os dados mantidos.
+ * A avaliação é a que os sistemas usam: reroll acontece ANTES da explosão (a explosão é sobre a face
+ * que ficou), manter e descartar olham o valor final de cada dado (um d6 explodido em 6+4 vale 10 e é
+ * UM dado), e `#` conta entre os dados mantidos.
  */
 
 import { MAX_EXPLOSOES_POR_DADO } from '../diceRegistry'

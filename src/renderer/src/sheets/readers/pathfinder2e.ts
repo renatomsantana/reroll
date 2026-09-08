@@ -6,32 +6,28 @@ import { extrairGenerico, valorDeFicha } from './generic'
 import type { SheetReader } from './types'
 
 /**
- * O leitor de PATHFINDER 2e (Remaster) — pra família de fichas preenchíveis "Ficha Editável com
- * Cálculos", a que circula em português e que o usuário trouxe em quatro exemplares (uma preenchida,
- * o Rilver do Kauan, e três modelos em branco).
+ * O leitor de PATHFINDER 2e (Remaster), pra família de fichas preenchíveis "Ficha Editável com
+ * Cálculos", a que circula em português e que ele trouxe em quatro exemplares.
  *
- * O que a torna legível é o que a ficha oficial da Paizo NÃO tem: nomes de campo com significado.
- * A oficial (`RemasterPlayerCoreCharacterSheet Form Fillable.pdf`) nomeia os 517 campos como
- * `text_15gujr` e `checkbox_5xofc` — nada a mapear, e ela fica com o leitor genérico e os rótulos
- * impressos. Esta família nomeia `Character Name`, `STRENGTH STAT`, `FORTITUDE`, `MELEE STRIKE 1
- * DAMAGE`, e é isso que este leitor lê.
+ * O que a torna legível é o que a ficha oficial da Paizo NÃO tem: nomes de campo com significado. A
+ * oficial nomeia os 517 campos como `text_15gujr` e `checkbox_5xofc` — nada a mapear, e ela fica com o
+ * leitor genérico e os rótulos impressos. Esta família nomeia `Character Name`, `STRENGTH STAT`,
+ * `MELEE STRIKE 1 DAMAGE`, e é isso que este leitor lê.
  *
- * Duas coisas MEDIDAS na ficha do Rilver que decidem a forma do leitor:
+ * Duas coisas MEDIDAS na ficha do Rilver decidem a forma do leitor:
  *
  * 1. os TOTAIS são calculados por JavaScript dentro do PDF, e o arquivo guarda o total só quando
- *    alguém o tocou: `STEALTH = 7` está lá, `ACROBATICS` está vazio — mas os componentes estão
- *    sempre (`ACROBATICS DEXTERITY = 4`, `ACROBATICS PROFICIENCY = 3`). Total vazio se refaz da
- *    soma dos componentes, que é exatamente a conta que o PDF faria (7 = 4 + 3, conferido em
- *    Furtividade, Atletismo, Arcanismo, Fortitude e Reflexos);
- * 2. a grade de ataques à distância tem numeração TORTA no modelo: o nome e o dano moram em
- *    `RANGED STRIKE 4`/`5`/`6`, o bônus de ataque em `RANGED STRIKE 1`/`2`/`3` — a linha k usa
- *    `k + 3` num par de campos e `k` no outro. O leitor tenta as duas numerações, então uma versão
- *    do modelo que conserte isso continua lendo.
+ *    alguém o tocou (`STEALTH = 7` está lá, `ACROBATICS` está vazio), mas os componentes estão
+ *    sempre. Total vazio se refaz da soma deles, que é a conta que o PDF faria — conferido em
+ *    Furtividade, Atletismo, Arcanismo, Fortitude e Reflexos;
+ * 2. a grade de ataques à distância tem numeração TORTA no modelo: o nome e o dano moram em `RANGED
+ *    STRIKE 4/5/6` e o bônus de ataque em `1/2/3`, ou seja a linha k usa `k + 3` num par de campos e
+ *    `k` no outro. O leitor tenta as duas numerações, então uma versão que conserte isso continua
+ *    lendo.
  *
- * Como o de D&D, o leitor genérico é a base (rótulos impressos, campos soltos, avisos) e este
- * SUBSTITUI campos, presets, nome e sistema pelo que sabe. E como em Ordem Paranormal e D&D, ficha
- * COM DONO traz o esqueleto de lacunas — cada perícia, salvaguarda e recurso, mesmo vazio —, e o
- * modelo em branco não traz nada além do que está escrito nele.
+ * Como o de D&D, o genérico é a base e este SUBSTITUI campos, presets, nome e sistema pelo que sabe; e
+ * ficha COM DONO traz o esqueleto de lacunas, enquanto o modelo em branco não traz nada além do que
+ * está escrito nele.
  */
 
 interface Rotulo {
