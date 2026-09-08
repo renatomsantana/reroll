@@ -12,15 +12,14 @@ import {
 /**
  * A pose de VITRINE de um dado parado: o maior número pra cima E virado pra quem olha.
  *
- * `orientacaoDeExibicao` resolve metade — qual face fica pra cima. Sobra um grau de liberdade, o
- * giro em torno do eixo vertical, e ele decide se o número aparece de frente ou deitado de lado.
- * Deixar esse giro no que o modelo trouxe de fábrica dava sete dados apontando cada um pra um lado,
- * que foi o que o usuário viu no estojo.
+ * `orientacaoDeExibicao` resolve metade, qual face fica pra cima; sobra o giro em torno do eixo
+ * vertical, que decide se o número aparece de frente ou deitado de lado — deixá-lo como o modelo
+ * trouxe de fábrica dava sete dados apontando cada um pra um lado no estojo.
  *
- * A direção do número NÃO é adivinhada por tipo de dado: ela é lida da própria malha, pelo UV. Os
- * três construtores de visual (d4, d6 e o genérico dos poliedros) escrevem UV com contas diferentes,
- * e qualquer tabela escrita à mão aqui envelheceria calada no dia em que um deles mudasse. O UV é o
- * que a textura de verdade usa pra colar o número na face — logo, é a resposta certa por construção.
+ * A direção do número NÃO é adivinhada por tipo de dado: é lida da própria malha, pelo UV. Os três
+ * construtores de visual escrevem UV com contas diferentes, e qualquer tabela escrita à mão aqui
+ * envelheceria calada no dia em que um deles mudasse; o UV é o que a textura usa pra colar o número na
+ * face, logo é a resposta certa por construção.
  */
 
 /** De onde se olha a cena (`CAMERA_CONFIG.position`): o observador está no +Z, à frente do estojo. */
@@ -50,16 +49,13 @@ function produtoVetorial(a: Vector3Tuple, b: Vector3Tuple): Vector3Tuple {
 }
 
 /**
- * A direção, no espaço do modelo, pra onde aponta o TOPO DAS LETRAS do número impresso na face de
- * normal `normalDaFace`.
+ * A direção, no espaço do modelo, pra onde aponta o TOPO DAS LETRAS do número impresso na face.
  *
- * Sai da relação entre posição e UV dentro de um triângulo da face: se andar `dv` no eixo V da
- * textura corresponde a andar tanto no espaço do modelo, então a direção de V crescente é o topo do
- * glifo — a textura é desenhada num canvas e entregue ao Three.js com `flipY`, que é o que faz o
- * topo do desenho cair em V alto.
- *
- * Devolve `null` quando a face não é achada ou quando o triângulo é degenerado no UV (área zero),
- * e aí quem chama fica com o alinhamento sem giro em vez de um giro inventado.
+ * Sai da relação entre posição e UV dentro de um triângulo: se andar `dv` no eixo V da textura
+ * corresponde a andar tanto no espaço do modelo, então a direção de V crescente é o topo do glifo — a
+ * textura é desenhada num canvas e entregue com `flipY`, que é o que faz o topo do desenho cair em V
+ * alto. Devolve `null` na face não achada ou no triângulo degenerado no UV, e aí quem chama fica com o
+ * alinhamento sem giro em vez de um giro inventado.
  */
 export function topoDasLetrasNaFace(
   geometry: THREE.BufferGeometry,
@@ -115,13 +111,10 @@ export function topoDasLetrasNaFace(
 }
 
 /**
- * A orientação de vitrine: o maior número do dado pra cima e legível de frente.
- *
- * O d4 é o de sempre a exceção, e por um motivo de dado e não de código: nele o resultado é o número
- * do VÉRTICE de cima, impresso nos cantos das três faces laterais (ver `FaceResultMode`). Não existe
- * "face de cima" pra endireitar — o que faz o 4 aparecer de frente é uma das laterais estar virada
- * pra quem olha. Então, pros dados de `bottomFace`, o giro alinha a lateral mais próxima da frente
- * em vez do topo das letras.
+ * A orientação de vitrine: o maior número pra cima e legível de frente. O d4 é a exceção, por um motivo
+ * de dado e não de código — nele o resultado é o número do VÉRTICE de cima, impresso nos cantos das
+ * três faces laterais, e não existe "face de cima" pra endireitar. Pros dados de `bottomFace`, o giro
+ * alinha a lateral mais próxima da frente em vez do topo das letras.
  */
 export function orientacaoDeVitrine(
   definition: DiceDefinition,

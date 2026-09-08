@@ -1,19 +1,17 @@
 /**
- * O CAMPO DO MODIFICADOR — o "+2" e o "-1" que se soma ao resultado da rolagem.
+ * O CAMPO DO MODIFICADOR: o "+2" e o "-1" que se soma ao resultado da rolagem.
  *
- * Isto mora em `shared` porque o campo existe em TRÊS lugares: a barra de rolagem 3D, o editor de
- * presets e o roller do modo compacto. E existir em três lugares foi exatamente o problema: os três
- * tinham a mesma linha copiada, com o mesmo defeito.
+ * Mora em `shared` porque o campo existe em TRÊS lugares — a barra de rolagem 3D, o editor de presets
+ * e o roller compacto —, e existir em três lugares foi o problema: os três tinham a mesma linha
+ * copiada, com o mesmo defeito.
  *
- * O DEFEITO, relatado pelo usuário: não dava para digitar modificador NEGATIVO. Os campos eram
- * `<input type="number">` guardando `Number(valor) || 0`, e digitar o sinal de menos dava
- * `Number('-')` = `NaN`, que virava zero na mesma tecla — o traço sumia antes de dar tempo de
- * escrever o algarismo. Num app de RPG isso é meio caminho perdido: metade das rolagens de ficha tem
- * penalidade.
+ * O DEFEITO, relatado: não dava pra digitar modificador NEGATIVO. Os campos eram `<input
+ * type="number">` guardando `Number(valor) || 0`, e digitar o sinal dava `NaN`, que virava zero na
+ * mesma tecla — o traço sumia antes de dar tempo de escrever o algarismo. Num app de RPG isso é meio
+ * caminho perdido: metade das rolagens de ficha tem penalidade.
  *
  * A causa é conceitual, e é por isso que a correção não é um `if`: o estado guardava o NÚMERO, e
  * número não tem como representar "a pessoa digitou o sinal e ainda não digitou o resto". Texto tem.
- * Por isso o estado dos três campos passou a ser texto, e o número é derivado.
  */
 
 /**

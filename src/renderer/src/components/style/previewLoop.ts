@@ -25,17 +25,13 @@ export function previewPixelRatio(): number {
 }
 
 /**
- * Laço de animação das prévias. `render` recebe o tempo decorrido em segundos desde o quadro
- * anterior DESENHADO (não desde o último `requestAnimationFrame`), então a velocidade de rotação
- * não depende da taxa do monitor nem do limite acima.
+ * Laço de animação das prévias. `render` recebe o tempo desde o quadro anterior DESENHADO, e não desde
+ * o último `requestAnimationFrame`, então a velocidade de rotação não depende da taxa do monitor nem
+ * do limite acima.
  *
- * Quando a janela está oculta (minimizada, ou outra janela por cima em tela cheia) nada é
- * desenhado: `document.hidden` já pausa o `requestAnimationFrame` na maioria dos casos, mas o
- * Electron mantém o laço rodando em algumas situações, e desenhar uma prévia que ninguém está
- * vendo é trabalho jogado fora. O relógio é reiniciado ao voltar pra não dar um salto de rotação
- * proporcional ao tempo em que ficou escondida.
- *
- * Retorna a função que para o laço — chamar no cleanup do efeito.
+ * Com a janela oculta nada é desenhado: `document.hidden` já pausa o rAF na maioria dos casos, mas o
+ * Electron mantém o laço rodando em algumas situações. O relógio é reiniciado ao voltar, pra não dar
+ * um salto de rotação proporcional ao tempo escondida. Devolve a função que para o laço.
  */
 export function startPreviewLoop(render: (deltaSeconds: number) => void): () => void {
   let frameId = 0
@@ -61,12 +57,11 @@ export function startPreviewLoop(render: (deltaSeconds: number) => void): () => 
 }
 
 /**
- * Descarte do renderer da prévia. O `forceContextLoss()` é o ponto que não é óbvio: `dispose()`
- * sozinho libera os recursos do three, mas o CONTEXTO WebGL em si só é recolhido quando o
- * navegador resolve coletar o canvas. Estas prévias montam e desmontam a cada troca de seção
- * ("Dados" ↔ "Mesa e bandeja") e de aba, e o Chromium mantém um limite pequeno de contextos vivos
- * — passando dele, ele derruba os mais antigos, o que aparece como engasgo ou canvas preto. Pedir
- * a perda na hora mantém a conta sempre em zero fora da aba Estilo.
+ * Descarte do renderer da prévia. O `forceContextLoss()` é o ponto que não é óbvio: `dispose()` sozinho
+ * libera os recursos do three, mas o CONTEXTO WebGL só é recolhido quando o navegador resolve coletar o
+ * canvas. Estas prévias montam e desmontam a cada troca de seção e de aba, e o Chromium mantém um
+ * limite pequeno de contextos vivos — passando dele, ele derruba os mais antigos, o que aparece como
+ * engasgo ou canvas preto.
  */
 export function disposePreviewRenderer(
   renderer: THREE.WebGLRenderer,

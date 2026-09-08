@@ -9,14 +9,10 @@ export interface Modifier {
 }
 
 /**
- * "Fique com os N melhores (ou piores) dados desta rolagem."
- *
- * É a regra de Ordem Paranormal — teste com Agilidade 3 é "role 3d20 e use o MAIOR", não a soma — e
- * de vários outros sistemas. Sem ela, o preset importado de uma ficha real dava um total que parecia
- * certo e não era. Ver `manterDados.ts`, onde a conta mora.
- *
- * É OPCIONAL, e a ausência dela quer dizer "some tudo", que é o comportamento de sempre: nenhum
- * preset gravado antes disto muda de resultado.
+ * "Fique com os N melhores (ou piores) dados desta rolagem": a regra de Ordem Paranormal — teste com
+ * Agilidade 3 é "role 3d20 e use o MAIOR", não a soma — e de vários outros sistemas. Sem ela, o preset
+ * importado de uma ficha real dava um total que parecia certo e não era; a conta mora em
+ * `manterDados.ts`. É opcional, e a ausência quer dizer "some tudo", o comportamento de sempre.
  */
 export interface KeepRule {
   mode: 'highest' | 'lowest'
@@ -25,16 +21,13 @@ export interface KeepRule {
 }
 
 /**
- * "Tirou o máximo? Rola de novo e soma."
+ * "Tirou o máximo? Rola de novo e soma." Cada sistema usa a sua variação (Savage Worlds explode todo
+ * dado de traço, Shadowrun explode o 6, Feng Shui explode nas duas pontas), e o que todos têm em comum
+ * é a face máxima concedendo outro lançamento — é essa a forma implementada.
  *
- * A mecânica explosiva, pedida pela spec porque cada sistema de RPG usa a sua: Savage Worlds explode
- * todo dado de traço, Shadowrun explode o 6, Feng Shui explode nas duas pontas. O que TODOS têm em
- * comum é a face máxima concedendo outro lançamento — é essa a forma implementada, e as variações
- * cabem aqui dentro no dia em que forem pedidas, sem mexer em quem chama.
- *
- * O dado explodido continua sendo UM DADO pra regra de manter: um d20 que tirou 20 e depois 7 vale
- * 27, e não "um 20 e um 7". A diferença aparece em "role 3d20 e use o maior", onde a leitura errada
- * faria a cauda de uma explosão competir com os outros dados como se fosse um dado próprio.
+ * O dado explodido continua sendo UM DADO pra regra de manter: um d20 que tirou 20 e depois 7 vale 27,
+ * e não "um 20 e um 7". A diferença aparece em "role 3d20 e use o maior", onde a leitura errada faria
+ * a cauda de uma explosão competir com os outros dados como se fosse um dado próprio.
  */
 export interface ExplodeRule {
   /**
@@ -55,12 +48,10 @@ export interface DiceExpression {
 export interface DiceGroupResult {
   sides: number
   /**
-   * UM VALOR POR DADO. Sem explosão é a face que caiu; com explosão é a SOMA da cadeia daquele dado
-   * (ver `ExplodeRule`).
-   *
-   * Manter "um por dado" é o que faz a regra de manter, o subtotal e toda a tela continuarem certos
-   * sem saber que explosão existe — a alternativa, jogar as faces extras aqui como se fossem dados
-   * novos, quebraria as três de uma vez.
+   * UM VALOR POR DADO: sem explosão é a face que caiu, com explosão é a SOMA da cadeia daquele dado.
+   * Manter "um por dado" é o que faz a regra de manter, o subtotal e toda a tela continuarem certos sem
+   * saber que explosão existe — jogar as faces extras aqui como se fossem dados novos quebraria as três
+   * de uma vez.
    */
   rolls: number[]
   subtotal: number
@@ -79,12 +70,9 @@ export interface RollResult {
   id: string
   label: string
   /**
-   * Nome do PRESET que disparou a rolagem ("Bola de fogo"), quando ela veio de um. Ausente numa
-   * rolagem montada à mão nos botões de tipo/quantidade, que não tem nome nenhum.
-   *
-   * Existe pro histórico: `label` é a expressão ("2d20 + 2d6"), e o usuário pediu pra ver "o nome
-   * do golpe" ali. Sem isto, duas magias diferentes com os mesmos dados ficam indistinguíveis na
-   * lista.
+   * Nome do PRESET que disparou a rolagem ("Bola de fogo"), quando ela veio de um; ausente numa rolagem
+   * montada à mão. Existe pro histórico: `label` é a expressão ("2d20 + 2d6"), e ele pediu pra ver "o
+   * nome do golpe" ali — sem isto, duas magias diferentes com os mesmos dados ficam indistinguíveis.
    */
   sourceName?: string
   groups: DiceGroupResult[]
@@ -93,13 +81,9 @@ export interface RollResult {
   timestamp: number
   advantageMode?: AdvantageMode
   /**
-   * A TENTATIVA QUE PERDEU numa rolagem com vantagem/desvantagem — os dados da outra jogada, na
-   * forma de `groups`. Só existe com `advantageMode`.
-   *
-   * Existe pela linha do chat (spec §3.5: "ambos os dados, o mantido em negrito"): a mesa quer ver
-   * o 4 que ficou de fora do 18, senão "vantagem" é só uma palavra. Antes disto as duas rolagens
-   * calculavam as duas tentativas e jogavam a perdida fora. Opcional porque rolagem antiga no
-   * histórico não tem — e aí a linha mostra só o que ficou.
+   * A TENTATIVA QUE PERDEU numa rolagem com vantagem ou desvantagem, na forma de `groups`. Existe pela
+   * linha do chat ("ambos os dados, o mantido em negrito"): a mesa quer ver o 4 que ficou de fora do
+   * 18, senão "vantagem" é só uma palavra. Opcional porque rolagem antiga no histórico não tem.
    */
   descartados?: DiceGroupResult[]
   /**

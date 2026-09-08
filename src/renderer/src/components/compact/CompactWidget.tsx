@@ -14,20 +14,16 @@ import { useSettings } from '@renderer/settings/SettingsContext'
 import './CompactWidget.css'
 
 /**
- * O modo compacto: janelinha de canto de monitor, sempre por cima das outras (ver `windowSetCompact`
- * em `registerWindowHandlers.ts`, que liga o `setAlwaysOnTop` junto).
+ * O modo compacto: janelinha de canto de monitor, sempre por cima das outras.
  *
- * O ARRANJO é o do rolador do Google ("jogar os dados"), levado como referência pelo usuário: um
- * dado grande girando no meio de um painel, o total grande no canto de baixo, e embaixo a fileira de
- * seletores. A diferença é o que está na fileira — no Google são os tipos de dado, aqui são os SEUS
- * presets, que é o ponto do app.
+ * O ARRANJO é o do rolador do Google ("jogar os dados"), levado como referência por ele: um dado grande
+ * girando no meio de um painel, o total grande no canto de baixo, e embaixo a fileira de seletores. A
+ * diferença é o que está na fileira — no Google são os tipos de dado, aqui são os SEUS presets, que é o
+ * ponto do app.
  *
- * O movimento é o `TumblingDie`, que já existia: o dado entra de cima girando, chacoalha valores
- * aleatórios e assenta no número real. O `key` por rolagem força o remount, senão repetir o mesmo
- * número não tocaria a animação de novo.
- *
- * Sem botão de "novo preset" de propósito: criar preset é o `PresetEditorModal`, que não cabe aqui —
- * um botão que abre um modal cortado é defeito, não recurso. Quem não tem preset lê o aviso do vazio.
+ * O movimento é o `TumblingDie`, que já existia; o `key` por rolagem força o remount, senão repetir o
+ * mesmo número não tocaria a animação de novo. Sem botão de "novo preset" de propósito: criar preset é
+ * o `PresetEditorModal`, que não cabe aqui, e um botão que abre um modal cortado é defeito.
  */
 interface CompactWidgetProps {
   presets: Preset[]
