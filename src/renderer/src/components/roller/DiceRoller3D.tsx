@@ -90,18 +90,16 @@ interface DiceRoller3DProps {
    */
   shortcutsEnabled?: boolean
   /**
-   * Abre o histórico de rolagens direto daqui — pedido do usuário ("um botão de histórico... pra
-   * pessoa não ter que ir nas configs"), depois ajustado de lugar: "pequeno, do lado do resultado
-   * ali na soma". O modal é do `App` (o mesmo que as Preferências abrem); a bandeja só ganha o
-   * atalho, desenhado na linha do resultado.
+   * Abre o histórico de rolagens direto daqui ("um botão de histórico... pra pessoa não ter que ir
+   * nas configs", e depois "pequeno, do lado do resultado ali na soma"). O modal é do `App`; a
+   * bandeja só ganha o atalho, desenhado na linha do resultado.
    */
   onOpenHistory?: () => void
   /**
    * O botão Explode aparece? Quem decide é o `App`, pelo SISTEMA do personagem ativo (ver
-   * `explodeDoSistema.ts`) — pedido do usuário: o interruptor só aparece com perfil de D&D.
-   * Ausente é visível, que é o comportamento de sempre. Esconder também DESLIGA o interruptor
-   * (efeito abaixo): um explode ligado atrás de um botão invisível rolaria diferente do que a
-   * tela mostra. Preset com regra explosiva continua explodindo em qualquer sistema.
+   * `explodeDoSistema.ts`); ausente é visível. Esconder também DESLIGA o interruptor (efeito
+   * abaixo): explode ligado atrás de um botão invisível rolaria diferente do que a tela mostra.
+   * Preset com regra explosiva continua explodindo em qualquer sistema.
    */
   explodeVisivel?: boolean
   /**
@@ -127,23 +125,15 @@ const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
 const ADVANTAGE_MAX_COUNT = Math.floor(MAX_SIMULTANEOUS_DICE / 2)
 
 /**
- * Atraso (ms) entre clicar em "Rolar"/preset e o som de rolagem tocar — pedido do usuário, pra soar
- * junto do impacto dos dados na bandeja, em vez do instante do clique.
+ * Atraso (ms) entre clicar em "Rolar" e o som de rolagem tocar, pra soar junto do impacto dos dados
+ * na bandeja em vez do instante do clique.
  *
- * É MENOR pela torre, a pedido: de lá o dado nasce na boca, a 0.35 acima da borda, e cai direto
- * dentro do hexágono; no arremesso de cima ele nasce entre 6 e 8 de altura e ainda cruza a bandeja
- * inteira antes de bater. São dois tempos de voo diferentes, e um atraso único deixava o som atrasado
- * num dos dois casos.
- *
- * O valor da torre foi por OUVIDO, em duas rodadas: 800ms ainda soou tarde e o usuário pediu 400.
- * Fica um pouco ANTES do primeiro impacto, e isso é escolha dele, não coincidência com a física: o
- * dado sai da boca sem impulso vertical e cai de 2.15 até ~0.27 sob gravidade 13, o que dá ~0.54s
- * até encostar. A 400ms o som começa com o primeiro dado ainda no ar — o que faz sentido, porque o
- * ruído de uma torre de dados começa ANTES de o dado tocar a bandeja, e porque atrás dele vêm os
- * outros da fila, um a cada 140ms.
- *
- * Se um dia parecer cedo demais, o piso natural é ~540ms (o impacto de verdade); abaixo disso o som
- * antecede qualquer coisa acontecendo na tela.
+ * É menor pela torre porque são dois tempos de voo diferentes: de lá o dado nasce na boca, logo
+ * acima da borda, e cai direto no hexágono; no arremesso de cima ele nasce entre 6 e 8 de altura e
+ * ainda cruza a bandeja inteira antes de bater. O valor da torre foi por ouvido, em duas rodadas
+ * (800ms ainda soou tarde), e fica um pouco ANTES do primeiro impacto de propósito: o dado sai sem
+ * impulso vertical e leva ~0.54s até encostar, e o ruído de uma torre de dados começa antes de o
+ * dado tocar a bandeja. Abaixo de ~540ms o som antecede qualquer coisa acontecendo na tela.
  */
 const ROLL_SOUND_DELAY_MS = 1200
 const TOWER_ROLL_SOUND_DELAY_MS = 400
@@ -170,12 +160,12 @@ function groupRollsBySides(rolls: { sides: number; value: number }[]): DiceGroup
 }
 
 /**
- * Um dado da rolagem e as faces que ele já mostrou. Sem explosão a lista tem um elemento só.
+ * Um dado da rolagem e as faces que ele já mostrou; sem explosão a lista tem um elemento só.
  *
- * A cena 3D não sabe explodir sozinha: ela lança um punhado de dados e diz onde cada um parou. A
- * explosão é ENCENADA por cima disso, em ondas — assentou, algum tirou o máximo? então os que
- * tiraram voltam pra bandeja e caem de novo. É o mesmo gesto de quem joga na mesa, e o preço é este
- * acumulador aqui, que amarra a segunda queda de um dado à primeira.
+ * A cena 3D não sabe explodir: ela lança um punhado de dados e diz onde cada um parou. A explosão é
+ * ENCENADA por cima disso, em ondas — assentou, algum tirou o máximo? então os que tiraram voltam
+ * pra bandeja e caem de novo. O preço é este acumulador, que amarra a segunda queda de um dado à
+ * primeira.
  */
 export interface DadoEmCadeia {
   sides: number
@@ -199,22 +189,17 @@ export function gruposDaProximaOnda(cadeias: DadoEmCadeia[], regra: ExplodeRule 
 }
 
 /**
- * Encaixa o resultado de uma onda nas cadeias que a pediram.
- *
- * O casamento é POR TIPO DE DADO, e não por posição: a cena monta os dados agrupados por tipo e não
- * promete devolver na mesma ordem em que os dados estavam antes. Casar por posição funcionaria hoje
- * e quebraria calado no dia em que a ordem mudasse — e "quebrar calado" aqui é um d6 herdando a
- * segunda queda de um d20.
+ * Encaixa o resultado de uma onda nas cadeias que a pediram. O casamento é POR TIPO DE DADO, e não
+ * por posição: a cena monta os dados agrupados por tipo e não promete devolver na mesma ordem em que
+ * estavam. Casar por posição funcionaria hoje e quebraria calado no dia em que a ordem mudasse, com
+ * um d6 herdando a segunda queda de um d20.
  */
 export function encaixarOnda(cadeias: DadoEmCadeia[], onda: { sides: number; value: number }[], regra: ExplodeRule | undefined): void {
   /**
-   * UMA QUEDA POR DADO NESTA ONDA — e este conjunto é o que garante isso.
-   *
-   * Sem ele há um defeito que o teste pegou e que não daria erro nenhum em produção: um dado que
-   * recebe a face máxima de novo CONTINUA elegível, então o segundo dado da mesma onda encontrava o
-   * primeiro de novo e empilhava tudo nele. Com 3d6 explodindo dois, um dado ficava com a cadeia
-   * inteira e o outro com nada — total certo por acaso na maioria das vezes, e errado assim que a
-   * regra de manter entrasse na conta.
+   * UMA QUEDA POR DADO NESTA ONDA. Sem este conjunto há um defeito que o teste pegou e que não daria
+   * erro nenhum em produção: um dado que recebe a face máxima de novo continua elegível, então o
+   * segundo dado da mesma onda encontrava o primeiro e empilhava tudo nele — com 3d6 explodindo dois,
+   * um ficava com a cadeia inteira e o outro com nada.
    */
   const jaRecebeu = new Set<DadoEmCadeia>()
   for (const queda of onda) {
@@ -260,16 +245,13 @@ export function totalDeDados(grupos: DiceGroup[]): number {
 }
 
 /**
- * ACRESCENTAR um dado de `sides`, respeitando o teto. Devolve a MESMA lista quando não cabe.
+ * ACRESCENTAR um dado de `sides`, respeitando o teto; devolve a MESMA lista quando não cabe.
  *
- * Pura e exportada por causa de um defeito medido no app rodando: o teto era conferido ANTES do
- * `setGroups`, lendo a lista do render anterior. Cliques rápidos no "+" são agrupados pelo React
- * num lote só — todos enxergam o mesmo valor velho, a conta nunca alcança o teto, e a rolagem
- * chega a 31 dados num app cujo limite é 20. Medido exatamente assim: trinta cliques seguidos.
- *
- * Conferindo aqui dentro, quem manda é a lista que o React entrega (`prev`), que é sempre a mais
- * recente — inclusive no meio de um lote. E devolver `prev` sem tocar mantém a função pura, que é o
- * contrato de quem é passado pro `setState` (o React pode chamá-la mais de uma vez).
+ * Pura e exportada por causa de um defeito medido no app rodando: o teto era conferido antes do
+ * `setGroups`, lendo a lista do render anterior. Cliques rápidos no "+" são agrupados pelo React num
+ * lote só, todos enxergam o mesmo valor velho, e a rolagem chegou a 31 dados num app cujo limite é
+ * 20 (medido com trinta cliques seguidos). Conferindo aqui dentro, quem manda é a lista que o React
+ * entrega, sempre a mais recente, mesmo no meio de um lote.
  */
 export function comDadoAcrescentado(grupos: DiceGroup[], sides: number, teto: number): DiceGroup[] {
   if (totalDeDados(grupos) >= teto) return grupos
@@ -282,14 +264,11 @@ export function comDadoAcrescentado(grupos: DiceGroup[], sides: number, teto: nu
 /**
  * AJUSTAR a contagem de um grupo. Zero REMOVE o grupo, inclusive quando é o último.
  *
- * O último grupo era intocável — "a tela ficaria sem nada pra rolar" —, e o usuário pediu o
- * contrário: "vamos deixar a opção de remover todos os dados, mas aí o botão de Rolar não
- * funciona. Que seja fácil retirar e trocar de dados". A trava resolvia o problema errado: ficar
- * sem dados não é um estado inválido, é o caminho normal pra trocar 3d6 por 1d20 sem ter que
- * decrementar até 1 e só então poder mexer. Quem impede a rolagem vazia é o botão de Rolar, que
- * desliga sozinho — ver `semDados` no componente.
- *
- * Mesmo motivo de `comDadoAcrescentado` pro teto ser conferido aqui dentro.
+ * O último grupo era intocável, e ele pediu o contrário: "vamos deixar a opção de remover todos os
+ * dados, mas aí o botão de Rolar não funciona. Que seja fácil retirar e trocar de dados". A trava
+ * resolvia o problema errado — ficar sem dados é o caminho normal pra trocar 3d6 por 1d20. Quem
+ * impede a rolagem vazia é o botão de Rolar, que desliga sozinho (ver `semDados`). O teto é
+ * conferido aqui dentro pelo mesmo motivo de `comDadoAcrescentado`.
  */
 export function comContagemAjustada(
   grupos: DiceGroup[],
@@ -309,21 +288,14 @@ export function comContagemAjustada(
 }
 
 /**
- * O roller 3D "de verdade" (Fase 10) — substitui a rolagem instantânea por
- * RNG no modo completo do app. Sempre produz um `RollResult` no mesmo
- * formato que o sistema antigo já usava, então Histórico e Presets
- * continuam funcionando sem precisar mudar nada neles: só troca COMO o
- * resultado é gerado (física real em vez de `Math.random`), não o formato
- * dos dados guardados.
+ * O roller 3D de verdade, no lugar da rolagem instantânea por RNG no modo completo. Ele sempre
+ * produz um `RollResult` no mesmo formato de antes, então Histórico e Presets continuam funcionando
+ * sem mudar nada: só troca COMO o número é gerado, não o formato do que fica guardado.
  *
- * O d100 é só mais um tipo de dado aqui (100 faces, ver `d100Sphere.ts`) —
- * não há mais um caso especial de "dois d10" com sua própria cena/UI; ele
- * passa pelo mesmo `DiceCanvasMulti` que qualquer outro dado, então ganha
- * contador de quantidade e vantagem/desvantagem de graça.
- *
- * O modo compacto da janela continua usando o roller antigo (2D, instantâneo)
- * — uma cena 3D precisa de espaço de verdade pra fazer sentido, e a janela
- * compacta (300×230) foi desenhada de propósito pra ser minúscula.
+ * O d100 é só mais um tipo de dado aqui (100 faces, ver `d100Sphere.ts`), sem caso especial de dois
+ * d10, então ganha contador e vantagem de graça. O modo compacto da janela continua com o roller
+ * antigo, instantâneo: uma cena 3D precisa de espaço de verdade pra fazer sentido, e a janela
+ * compacta foi desenhada pra ser minúscula.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
   { onRoll, onRollingChange, shortcutsEnabled = true, onOpenHistory, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
@@ -390,25 +362,21 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
 
   const [groups, setGroups] = useState<DiceGroup[]>(DEFAULT_GROUPS)
   /**
-   * Incrementado a CADA rolagem de preset, nos dois modos. Na torre ele continua entrando no `key`
-   * de `DiceCanvasMulti` (a torre tem fila/parqueamento próprios e remonta de qualquer jeito
-   * quando os grupos mudam); na BANDEJA ele saiu do `key` a pedido do usuário — remontar a cena a
-   * cada preset reconstruía física, texturas e dados e, o que incomodava de verdade, jogava a
-   * CÂMERA de volta pro enquadramento padrão.
+   * Incrementado a cada rolagem de preset, nos dois modos. Na torre ele continua no `key` de
+   * `DiceCanvasMulti` (ela tem fila e parqueamento próprios); na BANDEJA saiu do `key` a pedido dele,
+   * porque remontar a cena a cada preset reconstruía física, texturas e dados e, o que incomodava de
+   * verdade, jogava a CÂMERA de volta pro enquadramento padrão.
    *
-   * Na bandeja ele virou o GATILHO do efeito que dispara a rolagem. Tem que ser um contador, e não
-   * a referência de `groups`: se o preset entrega o mesmo array de grupos de sempre (é o caso de
-   * clicar o mesmo preset duas vezes), `setGroups` recebe uma referência igual, o React descarta a
-   * atualização, nenhum efeito roda e a rolagem simplesmente não acontece — deixando a interface
-   * travada em "Rolando..." pra sempre. Contador sempre muda.
+   * Na bandeja ele virou o gatilho do efeito que dispara a rolagem, e tem que ser um contador, e não
+   * a referência de `groups`: clicando o mesmo preset duas vezes, `setGroups` recebe uma referência
+   * igual, o React descarta a atualização, nenhum efeito roda e a interface trava em "Rolando...".
    */
   const [presetRollSeq, setPresetRollSeq] = useState(0)
   /**
    * Rolagem de preset pendente na BANDEJA. Não dá pra chamar `roll()` direto no handler: o
    * `setGroups` desta mesma função ainda não passou pelo React, então `roll()` arremessaria o
-   * conjunto de dados ANTIGO e a resincronização trocaria os dados no meio do arremesso. O efeito
-   * abaixo dispara depois que o resync do filho já rodou — efeitos de componente-filho rodam antes
-   * dos do pai, e é exatamente essa ordem que garante que os dados certos já estão na cena.
+   * conjunto ANTIGO. O efeito abaixo dispara depois que o resync do filho rodou — efeitos de filho
+   * rodam antes dos do pai, e é essa ordem que garante os dados certos na cena.
    */
   const pendingPresetRollRef = useRef(false)
   /**
@@ -420,14 +388,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const [textoDoModificador, setTextoDoModificador] = useState('0')
   const modifier = modificadorDoTexto(textoDoModificador)
   /**
-   * Estojo de dados atrás da bandeja aberto/fechado. A ÚNICA forma de mexer nisso é clicando no
-   * próprio estojo dentro da cena 3D (`onCaseClick` abaixo) — existia um botão "Abrir/Fechar
-   * estojo" nesta barra e o usuário pediu pra tirar: clicar na caixinha é a interação que ele
-   * quer, e um botão a mais na barra do roller só competia com o "Rolar".
+   * Estojo de dados atrás da bandeja aberto ou fechado. A única forma de mexer nisso é clicando no
+   * próprio estojo dentro da cena (`onCaseClick` abaixo): existia um botão na barra e ele pediu pra
+   * tirar, porque um botão a mais só competia com o "Rolar".
    *
-   * Estado do componente e não das Preferências: é uma brincadeira da cena, não uma configuração
-   * que valha a pena persistir. Fica FORA do `key` de `DiceCanvasMulti` de propósito —
-   * abrir/fechar anima na cena existente, sem remontar nada.
+   * Estado do componente e não das Preferências (é brincadeira da cena, não configuração), e fora do
+   * `key` de `DiceCanvasMulti`: abrir e fechar anima na cena existente, sem remontar nada.
    */
   const [caseOpen, setCaseOpen] = useState(true)
   /**
@@ -447,11 +413,9 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   /** Regra de manter do preset em curso — ver `rollGroups` e `handleMultiResult`. */
   const keepRef = useRef<KeepRule | undefined>(undefined)
   /**
-   * DADOS EXPLOSIVOS: liga/desliga por rolagem, do lado do botão de vantagem/desvantagem.
-   *
-   * Fica no componente e não nas Preferências porque é escolha DA ROLAGEM, não do app — a spec pede
-   * "configurável por rolagem" justamente porque cada sistema de RPG usa a sua, e quem joga dois
-   * sistemas na mesma semana troca o tempo todo.
+   * DADOS EXPLOSIVOS: liga e desliga por rolagem, do lado do botão de vantagem. Fica no componente e
+   * não nas Preferências porque é escolha DA ROLAGEM, não do app — cada sistema de RPG usa a sua, e
+   * quem joga dois na mesma semana troca o tempo todo.
    */
   const [explode, setExplode] = useState(false)
   /** A regra da rolagem EM CURSO — mesma razão do `keepRef`: ela é lida quando os dados assentam. */
@@ -466,20 +430,17 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     if (explodeVisivel === false) setExplode(false)
   }, [explodeVisivel])
   /**
-   * A onda de explosão que está na cena AGORA, ou `null` quando é a queda normal.
-   *
-   * Ela substitui os grupos que vão pra bandeja sem tocar em `groups` — e essa separação é o ponto:
-   * `groups` é a ESCOLHA da pessoa, mostrada nos contadores da barra. Se a onda mexesse nele, a
-   * seleção de dados dela mudaria sozinha no meio da rolagem.
+   * A onda de explosão que está na cena agora, ou `null` na queda normal. Ela substitui os grupos que
+   * vão pra bandeja sem tocar em `groups`, e essa separação é o ponto: `groups` é a ESCOLHA da
+   * pessoa, mostrada nos contadores da barra, e mexer nele mudaria a seleção dela no meio da rolagem.
    */
   const [ondaDeExplosao, setOndaDeExplosao] = useState<DiceGroup[] | null>(null)
   /** O que cada dado desta rolagem já mostrou, entre uma onda e outra. Ver `DadoEmCadeia`. */
   const cadeiasRef = useRef<DadoEmCadeia[]>([])
   /**
-   * A rolagem de FÓRMULA em curso: a fórmula e o diário de faces já colhidas (ver
-   * `rolagemPorEtapas.ts`). Num ref pelas mesmas razões do `keepRef` — quem a lê é o
-   * `handleMultiResult`, segundos depois, quando os dados assentam. `null` fora de uma rolagem de
-   * fórmula, e é o `null` que devolve o assentamento ao caminho de sempre.
+   * A rolagem de FÓRMULA em curso: a fórmula e o diário de faces já colhidas (`rolagemPorEtapas.ts`).
+   * Num ref pelas mesmas razões do `keepRef` — quem a lê é o `handleMultiResult`, segundos depois. O
+   * `null` fora dela é o que devolve o assentamento ao caminho de sempre.
    */
   const sessaoDeFormulaRef = useRef<{ formula: Formula; faces: FaceColhida[] } | null>(null)
 
@@ -490,12 +451,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }
 
   /**
-   * A máquina desenha a bandeja? Perguntado UMA vez, no primeiro render.
-   *
-   * Quando não desenha, o app cai no modo rápido SEM PERGUNTAR e diz por quê na tela. É a
-   * degradação graciosa da spec (5.8): antes disto, um notebook com driver de vídeo velho abria o
-   * app, tentava montar a cena, falhava, e a pessoa ficava com um programa de rolar dados no qual
-   * não dava pra rolar dado.
+   * A máquina desenha a bandeja? Perguntado UMA vez, no primeiro render. Quando não desenha, o app
+   * cai no modo rápido sem perguntar e diz por quê na tela: antes disso, um notebook com driver de
+   * vídeo velho abria o app, tentava montar a cena, falhava, e a pessoa ficava com um programa de
+   * rolar dados no qual não dava pra rolar dado.
    */
   const [temWebgl] = useState(webglDisponivel)
   /** O modo QUE ESTÁ VALENDO: a escolha da pessoa, ou o rápido à força quando não há 3D possível. */
@@ -503,12 +462,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const semFisica = modoEfetivo === 'quick'
 
   /**
-   * A rolagem SEM FÍSICA — o mesmo cálculo da bandeja, resolvido na hora.
-   *
-   * É o `rollExpression` de sempre, que é também o que o modo compacto já usava (ver
-   * `handleCompactPresetRoll` em `App.tsx`). O que muda no modo rápido é só de onde vem o número:
-   * de `crypto.getRandomValues` em vez das faces que os dados mostraram na bandeja. Vantagem,
-   * manter e explosão continuam valendo, porque quem sabe fazer as três é o motor.
+   * A rolagem SEM FÍSICA: o mesmo cálculo da bandeja, resolvido na hora. É o `rollExpression` de
+   * sempre, o mesmo que o modo compacto já usava. O que muda no modo rápido é só de onde vem o
+   * número — de `crypto.getRandomValues` em vez das faces que os dados mostraram. Vantagem, manter e
+   * explosão continuam valendo, porque quem sabe fazer as três é o motor.
    */
   function rolarSemFisica(
     gruposDaVez: DiceGroup[],
@@ -537,19 +494,17 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   /** Popup do total sobre a bandeja/torre ao assentar os dados — some sozinho no fim da animação CSS (`onAnimationEnd`), não precisa de timer em JS. `key` força reinício da animação mesmo se o total se repetir entre uma rolagem e outra. */
   const [resultPopup, setResultPopup] = useState<{ key: string; total: number } | null>(null)
 
-  // Avisa o pai (`App.tsx`) sempre que `isRolling` muda — usado pra desabilitar as ações de
-  // preset (editar/excluir/rolar outro) enquanto qualquer rolagem está em andamento. Um efeito
-  // separado em vez de chamar `onRollingChange` em cada `setIsRolling(...)` espalhado pelo
-  // arquivo, pra ter um único lugar responsável por essa notificação.
+  // Avisa o pai sempre que `isRolling` muda, pra ele desabilitar as ações de preset enquanto uma
+  // rolagem está em andamento. Num efeito separado, e não em cada `setIsRolling` espalhado pelo
+  // arquivo, pra ter um lugar só responsável por essa notificação.
   useEffect(() => {
     onRollingChange?.(isRolling)
   }, [isRolling, onRollingChange])
   /**
-   * Clicar num preset É a própria ação de rolar (não tem um segundo clique em "Rolar"
-   * depois) — essa flag avisa o PRÓXIMO mount de `DiceCanvasMulti` (forçado pela troca de
-   * `groups`/`key` logo abaixo) que o arremesso automático dele já conta como rolagem de
-   * verdade. Se autozera logo depois (efeito abaixo) pra não "vazar" pro mount seguinte de
-   * uma troca manual de tipo/cor/modo, que não deve auto-rolar.
+   * Clicar num preset É a própria ação de rolar, sem um segundo clique em "Rolar": esta flag avisa o
+   * próximo mount de `DiceCanvasMulti` que o arremesso automático dele já conta como rolagem de
+   * verdade. Autozera logo depois pra não vazar pro mount seguinte de uma troca manual de tipo, cor
+   * ou modo, que não deve rolar nada.
    */
   const [autoRollArm, setAutoRollArm] = useState(false)
 
@@ -560,14 +515,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   useImperativeHandle(ref, () => ({
     rollGroups: (newGroups, newModifier, sourceName, keep, explodeDoPreset) => {
       /**
-       * A BANDEJA aceita preset a qualquer momento, inclusive por cima de uma rolagem em
-       * andamento — pedido do usuário ("que aconteça a qualquer momento"). Antes havia um
-       * `if (isRolling) return` aqui, e ele existia por causa do remount: trocar de preset no meio
-       * da rolagem destruía a cena, a rolagem em curso nunca reportava resultado e a UI travava em
-       * "Rolando..." pra sempre. Sem remount, arremessar por cima é só arremessar de novo.
-       *
-       * A TORRE continua recusando: lá a rolagem é uma FILA (um dado de cada vez, com
-       * parqueamento), e cortá-la no meio deixa dados presos no estado de espera.
+       * A BANDEJA aceita preset a qualquer momento, inclusive por cima de uma rolagem em andamento
+       * ("que aconteça a qualquer momento"). Havia um `if (isRolling) return` aqui, por causa do
+       * remount: trocar de preset no meio da rolagem destruía a cena, a rolagem em curso nunca
+       * reportava resultado e a interface travava em "Rolando..." pra sempre. Sem remount, arremessar
+       * por cima é só arremessar de novo. A TORRE continua recusando: lá a rolagem é uma FILA, e
+       * cortá-la no meio deixa dados presos no estado de espera.
        */
       if (isRolling && launchMode === 'tower') return
       /**
@@ -686,14 +639,11 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }))
 
   /**
-   * Dispara a rolagem de preset DEPOIS que os dados novos já estão na cena — nos dois modos.
-   *
-   * Efeitos de componente-filho rodam antes dos do pai, então quando este aqui executa o resync de
-   * `DiceCanvasMulti` já trocou os dados — que é justamente por que a chamada não pode ficar
-   * dentro de `rollGroups` (lá o `setGroups` ainda nem passou pelo React, e `roll()` arremessaria
-   * o conjunto antigo).
-   *
-   * O gatilho é `presetRollSeq`, e não `groups`, pelo motivo no comentário daquele contador.
+   * Dispara a rolagem de preset DEPOIS que os dados novos já estão na cena, nos dois modos. Efeitos
+   * de componente-filho rodam antes dos do pai, então quando este executa o resync de
+   * `DiceCanvasMulti` já trocou os dados — que é por que a chamada não pode ficar dentro de
+   * `rollGroups`, onde o `setGroups` ainda nem passou pelo React. O gatilho é `presetRollSeq`, e não
+   * `groups`, pelo motivo no comentário daquele contador.
    */
   useEffect(() => {
     if (!pendingPresetRollRef.current) return
@@ -703,20 +653,19 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
 
   const isSingleGroup = groups.length === 1
   const singleCount = isSingleGroup ? groups[0].count : 1
-  /** Em vantagem/desvantagem a cena lança o grupo duas vezes; ver `handleMultiResult`. */
   /**
-   * O que está NA BANDEJA. Durante uma onda de explosão são só os dados que voltaram pra cair de
-   * novo; fora dela, a escolha da pessoa (dobrada em vantagem/desvantagem).
+   * O que está NA BANDEJA: durante uma onda de explosão, só os dados que voltaram pra cair de novo;
+   * fora dela, a escolha da pessoa, dobrada em vantagem/desvantagem (a cena lança o grupo duas vezes,
+   * ver `handleMultiResult`).
    */
   const canvasGroups = ondaDeExplosao ?? (mode === 'normal' ? groups : [...groups, ...groups])
 
   /**
-   * Clicar num tipo de dado ADICIONA um dado desse tipo à rolagem (em vez de substituir a
-   * seleção atual por ele) — é assim que dá pra montar uma rolagem com tipos diferentes
-   * (ex.: 1d6 + 1d20) direto pela UI manual, sem precisar passar por um preset. Se o tipo já
-   * está presente, só incrementa a contagem dele.
+   * Clicar num tipo de dado ADICIONA um dado desse tipo, em vez de trocar a seleção: é assim que se
+   * monta 1d6 + 1d20 pela interface manual, sem passar por um preset. Este é o teto efetivo pra
+   * adicionar, com a mesma regra de volta ao modo normal que o `addDie` usa, e decide tanto se o
+   * clique funciona quanto se o botão aparece apagado.
    */
-  /** Cap efetivo pra ADICIONAR um dado do tipo `sides` — reflete a mesma regra de troca automática pra modo normal usada dentro de `addDie` (ver comentário lá), pra decidir tanto se o clique deve funcionar quanto se o botão deve aparecer desabilitado. */
   function capForAddingSides(sides: number): number {
     const distinctSidesAfter = new Set([...groups.map((g) => g.sides), sides]).size
     const nextMode: RollMode = distinctSidesAfter > 1 ? 'normal' : mode
@@ -725,11 +674,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
 
   const currentDiceTotal = groups.reduce((sum, g) => sum + g.count, 0)
   /**
-   * Rolagem VAZIA: dá pra tirar todos os dados (ver `comContagemAjustada`), e nesse estado o botão
-   * de Rolar desliga em vez de rolar coisa nenhuma.
-   *
-   * O ref existe porque o atalho de teclado (Enter/Espaço) é instalado uma vez e enxerga o render
-   * em que nasceu — sem ele, tirar o último dado e apertar Espaço ainda rolaria a lista velha.
+   * Rolagem VAZIA: dá pra tirar todos os dados (ver `comContagemAjustada`), e nesse estado o botão de
+   * Rolar desliga em vez de rolar coisa nenhuma. O ref existe porque o atalho de teclado é instalado
+   * uma vez e enxerga o render em que nasceu — sem ele, tirar o último dado e apertar Espaço ainda
+   * rolaria a lista velha.
    */
   const semDados = currentDiceTotal === 0
   const semDadosRef = useRef(semDados)
@@ -771,16 +719,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       setGroups([{ sides: groups[0].sides, count: ADVANTAGE_MAX_COUNT }])
     }
     /**
-     * VANTAGEM E EXPLOSÃO NÃO ANDAM JUNTAS, e o desligamento é automático dos dois lados.
-     *
-     * Não é limitação técnica escondida: são duas regras que dizem coisas diferentes sobre a MESMA
-     * rolagem. Vantagem é "role tudo duas vezes e fique com a melhor tentativa"; explosão é "este
-     * dado continua caindo". Juntas, a pergunta "a tentativa descartada também explode?" não tem
-     * resposta que os sistemas concordem — e inventar uma seria o app decidir uma regra de RPG por
-     * conta própria.
-     *
-     * Desligar sozinho é a mesma escolha que o app já faz quando a rolagem passa a ter mais de um
-     * tipo de dado (ver `addDie`): a opção some em vez de ficar ligada sem efeito.
+     * Vantagem e explosão não andam juntas, e o desligamento é automático dos dois lados. Não é
+     * limitação técnica escondida: são duas regras que dizem coisas diferentes sobre a MESMA rolagem
+     * — vantagem é "role tudo duas vezes e fique com a melhor tentativa", explosão é "este dado
+     * continua caindo". Juntas, a pergunta "a tentativa descartada também explode?" não tem resposta
+     * que os sistemas concordem, e inventar uma seria o app decidir uma regra de RPG por conta
+     * própria. Desligar sozinho é o que ele já faz quando a rolagem passa a ter mais de um tipo.
      */
     if (newMode !== 'normal') setExplode(false)
     setLastResult(null)
@@ -828,10 +772,9 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       return
     }
     /**
-     * ROLAGEM DE FÓRMULA: o assentamento alimenta o diário e a avaliação diz o que vem — outra
-     * onda (um reroll, um elo de explosão, o próximo termo) ou o resultado pronto. Vem ANTES do
-     * caminho de sempre porque a sessão é dona da rolagem inteira: as cadeias de explosão da cena
-     * não valem aqui (a explosão da fórmula é da gramática, onda a onda).
+     * ROLAGEM DE FÓRMULA: o assentamento alimenta o diário, e a avaliação diz o que vem — outra onda
+     * ou o resultado pronto. Vem antes do caminho de sempre porque a sessão é dona da rolagem
+     * inteira: as cadeias de explosão da cena não valem aqui, a da fórmula é da gramática.
      */
     const sessao = sessaoDeFormulaRef.current
     if (sessao) {
@@ -875,12 +818,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
 
     if (mode === 'normal') {
       /**
-       * A EXPLOSÃO ACONTECE AQUI, entre uma queda e a próxima.
-       *
-       * Primeira queda: cada dado da bandeja começa uma cadeia. Quedas seguintes: o que caiu se
-       * encaixa nas cadeias que pediram outra chance (ver `encaixarOnda`). Enquanto sobrar dado no
-       * máximo, a rolagem NÃO termina — os dados voltam pra bandeja e caem de novo, que é o gesto
-       * que a mecânica descreve.
+       * A EXPLOSÃO ACONTECE AQUI, entre uma queda e a próxima. Na primeira, cada dado da bandeja
+       * começa uma cadeia; nas seguintes, o que caiu se encaixa nas cadeias que pediram outra chance
+       * (ver `encaixarOnda`). Enquanto sobrar dado no máximo a rolagem não termina: os dados voltam
+       * pra bandeja e caem de novo, que é o gesto que a mecânica descreve.
        */
       if (cadeiasRef.current.length === 0) {
         cadeiasRef.current = result.rolls.map((queda) => ({ sides: queda.sides, faces: [queda.value] }))
@@ -891,12 +832,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       const proximaOnda = gruposDaProximaOnda(cadeiasRef.current, regraExplosiva)
       if (proximaOnda.length > 0) {
         /**
-         * Mesmo caminho da rolagem de preset: troca os dados da cena e só arremessa DEPOIS que o
-         * resync do filho rodou (ver `pendingPresetRollRef`). Chamar `roll()` aqui arremessaria os
-         * dados da onda anterior.
-         *
-         * `isRolling` continua ligado o tempo todo: pra quem está olhando isto é UMA rolagem, e
-         * apagar o "Rolando..." entre as ondas piscaria a interface a cada explosão.
+         * Mesmo caminho da rolagem de preset: troca os dados da cena e só arremessa depois que o
+         * resync do filho rodou (ver `pendingPresetRollRef`); chamar `roll()` aqui arremessaria os
+         * dados da onda anterior. `isRolling` fica ligado o tempo todo — pra quem está olhando isto é
+         * UMA rolagem, e apagar o "Rolando..." entre as ondas piscaria a interface a cada explosão.
          */
         setOndaDeExplosao(proximaOnda)
         pendingPresetRollRef.current = true
@@ -912,11 +851,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       const porSides = cadeiasParaGrupos(cadeiasRef.current)
       limparCadeias()
       /**
-       * O total sai dos dados MANTIDOS quando o preset tem essa regra — "role 3d20 e use o maior",
-       * de Ordem Paranormal. Sem regra, `totalMantido` soma tudo e o resultado é o de sempre.
-       *
-       * `result.total` da cena não serve aqui porque ele já vem somado; a conta precisa ver dado por
-       * dado. E `porSides` continua com TODOS os dados: eles estão na bandeja, à vista.
+       * O total sai dos dados MANTIDOS quando o preset tem essa regra ("role 3d20 e use o maior", de
+       * Ordem Paranormal); sem regra, soma tudo. O `result.total` da cena não serve porque já vem
+       * somado, e a conta precisa ver dado por dado. `porSides` continua com TODOS os dados: eles
+       * estão na bandeja, à vista.
        */
       finalizeResult({
         id: crypto.randomUUID(),
@@ -988,14 +926,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       /**
-       * DUAS guardas que faltavam, e que juntas explicam o relato "não consigo digitar em nada".
+       * Duas guardas que faltavam, e que juntas explicam o relato "não consigo digitar em nada":
        *
-       * 1. `shortcutsEnabled`: a aba de rolagem fica MONTADA e escondida ao trocar de aba (pra não
-       *    reconstruir a cena 3D), então este ouvinte continuava na janela inteira e rolava os dados
-       *    de dentro das Anotações;
+       * 1. `shortcutsEnabled`: a aba de rolagem fica montada e escondida ao trocar de aba, então este
+       *    ouvinte continuava na janela inteira e rolava os dados de dentro das Anotações;
        * 2. foco em campo de texto: Espaço e Enter são digitação lá dentro, e o `preventDefault`
-       *    abaixo os engolia — a pessoa apertava espaço e não saía nada, só um dado rolando numa aba
-       *    que ela nem estava vendo.
+       *    abaixo os engolia — a pessoa apertava espaço e não saía nada.
        */
       if (!shortcutsEnabled) return
       if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return
@@ -1012,10 +948,9 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
     // `handleRollClick` é recriado a cada render (ele lê grupos, modo, modificador e explosão do
-    // render atual), e listá-lo aqui significaria remover e reinstalar o ouvinte de teclado a cada
-    // clique num contador de dados. O ouvinte é instalado uma vez e sempre chama a versão do render
-    // em que foi criado — o que basta porque as duas coisas que decidem se ele AGE (`isRolling` e
-    // `shortcutsEnabled`) estão na lista.
+    // render atual), e listá-lo aqui reinstalaria o ouvinte de teclado a cada clique num contador. Ele
+    // é instalado uma vez e chama a versão do render em que nasceu, o que basta porque as duas coisas
+    // que decidem se ele AGE (`isRolling` e `shortcutsEnabled`) estão na lista.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRolling, shortcutsEnabled])
 
@@ -1239,28 +1174,20 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       ) : (
       <div className="dice-roller-3d-canvas">
         <DiceCanvasMulti
-          // `groups`/`canvasGroups` NÃO entram mais aqui pro modo bandeja — trocar tipo/
-          // quantidade manualmente resincroniza os dados no lugar (ver o efeito de resync em
-          // `DiceCanvasMulti.tsx`), sem remontar a cena/física/renderer inteiros a cada clique.
+          // `groups`/`canvasGroups` não entram no `key` no modo bandeja: trocar tipo ou quantidade
+          // resincroniza os dados no lugar (ver o efeito de resync em `DiceCanvasMulti.tsx`).
           /**
-           * SÓ modo de debug e modo de lançamento remontam a cena — nem os grupos, nem o contador de
-           * preset, em modo nenhum.
+           * Só o modo de debug, o de lançamento e a FORMA remontam a cena. A forma entra porque
+           * parede física, chão e plataforma são construídos na montagem: trocar de hexágono pra
+           * círculo sem remontar deixaria o collider antigo contendo dados dentro de outro desenho.
            *
-           * A torre remontava por completo a cada dado adicionado e a cada preset, porque quando ela
-           * era o mecanismo antigo (cena própria, fila de queda por dentro) adaptar a
-           * ressincronização parecia arriscado. Isso deixou de valer: hoje os dois modos usam a mesma
-           * bandeja, o mesmo mundo físico e os mesmos colisores — só muda de onde o dado é lançado.
-           *
-           * E o custo era alto. Medido: remontar refaz a cena da bandeja (20ms), a torre inteira com
-           * as texturas de tijolo (20ms) e um `WebGLRenderer` novo (15ms), e o primeiro quadro depois
-           * disso recompila os shaders — um pico de 290ms num quadro só. É o "fica meio lagado quando
-           * bota mais dados" que o usuário reportou.
+           * A torre remontava por completo a cada dado adicionado e a cada preset, de quando ela era
+           * o mecanismo antigo, com cena própria e fila de queda por dentro. Hoje os dois modos usam a
+           * mesma bandeja, o mesmo mundo físico e os mesmos colisores. E o custo era alto: medido,
+           * remontar refaz a cena da bandeja (20ms), a torre com as texturas de tijolo (20ms) e um
+           * `WebGLRenderer` novo (15ms), e o primeiro quadro depois disso recompila os shaders, num
+           * pico de 290ms. É o "fica meio lagado quando bota mais dados" que ele reportou.
            */
-          /*
-            A FORMA entra no `key`: parede física, chão e plataforma são construídos na montagem da
-            cena, e trocar de hexágono pra círculo sem remontar deixaria o collider antigo contendo
-            dados dentro de uma bandeja com outro desenho.
-          */
           key={`${debugMode}-${launchMode}-${trayShape}`}
           ref={multiRef}
           groups={canvasGroups as { sides: PhysicalDiceSides; count: number }[]}

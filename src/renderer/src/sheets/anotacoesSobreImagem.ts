@@ -4,21 +4,18 @@ import { ehRotuloPlausivel } from './camposDoTexto'
 /**
  * A ficha que é uma IMAGEM com texto escrito por cima.
  *
- * É o terceiro tipo de ficha que apareceu, e ele não se parece com nenhum dos outros dois. A de
- * Ordem Paranormal é formulário; a de Oblivio é documento de texto; a de Kids on Bikes é uma ARTE —
- * o desenho inteiro, incluindo os nomes dos campos, é pixel. Quem preenche abre num anotador de PDF
- * e digita por cima. O arquivo em branco tem UM fragmento de texto; o preenchido tem 41, e os 41 são
+ * É o terceiro tipo de ficha que apareceu, e não se parece com os outros dois: a de Ordem Paranormal
+ * é formulário, a de Oblivio é documento de texto, e a de Kids on Bikes é uma ARTE, onde o desenho
+ * inteiro — incluindo os nomes dos campos — é pixel. Quem preenche abre num anotador de PDF e digita
+ * por cima: o arquivo em branco tem UM fragmento de texto, o preenchido tem 41, e os 41 são
  * exatamente o que a pessoa escreveu.
  *
- * O que isso significa, e é a limitação central deste módulo: NÃO EXISTE RÓTULO PRA CASAR. Os nomes
- * dos campos não estão no arquivo em lugar nenhum. Dá pra saber que a pessoa escreveu "d20" na
+ * A limitação central: NÃO EXISTE RÓTULO PRA CASAR. Dá pra saber que a pessoa escreveu "d20" na
  * metade direita da primeira página; não dá pra saber que aquilo é o dado de Força, porque a palavra
- * "Força" é desenho. Chutar pela posição — "o primeiro dado da grade é sempre o primeiro atributo" —
- * funcionaria nesta ficha e mentiria com cara de certeza em qualquer outra arte.
- *
- * Então o que este módulo faz é o que dá pra fazer sem inventar: RECONSTRUIR o que foi escrito, na
- * ordem em que está na página, e entregar isso pro usuário organizar. Nada se perde, e nada é
- * apresentado como se o app soubesse o que é.
+ * "Força" é desenho. Chutar pela posição funcionaria nesta ficha e mentiria com cara de certeza em
+ * qualquer outra arte. Então o que este módulo faz é RECONSTRUIR o que foi escrito, na ordem da
+ * página, e entregar pro usuário organizar: nada se perde, e nada é apresentado como se o app
+ * soubesse o que é.
  */
 
 /**
@@ -88,14 +85,12 @@ export function pareceAnotacaoSobreImagem(sheet: PdfSheet): boolean {
 /**
  * O que foi escrito na ficha, remontado em parágrafos e em ordem de leitura.
  *
- * O extrator de PDF devolve fragmentos, não frases: "Heróico: Você não precisa da", "permissão do
- * Mestre para", "gastar Fichas de Adversidade". Sem remontar, cada pedaço vira uma linha solta e o
- * texto chega picado na ficha do app — que foi o que aconteceu na primeira leitura deste arquivo.
+ * O extrator devolve fragmentos, não frases: "Heróico: Você não precisa da", "permissão do Mestre
+ * para". Sem remontar, cada pedaço vira uma linha solta e o texto chega picado na ficha do app.
  *
  * A remontagem é em dois passos, e o segundo respeita COLUNA: a página 2 desta ficha tem dois blocos
- * de texto lado a lado, com as mesmas alturas. Juntar por altura só, sem olhar a margem esquerda,
- * intercala os dois e produz "Heróico: Você não precisa da Pegs Apoio nas rodas Você pode permissão
- * do Mestre para levar um passageiro em pé" — frase que não existe em lugar nenhum.
+ * lado a lado, nas mesmas alturas, e juntar por altura sem olhar a margem esquerda intercala os dois
+ * produzindo frase que não existe em lugar nenhum.
  */
 export function paragrafosDaFicha(sheet: PdfSheet): string[] {
   return regioesDaFicha(sheet).flat()
@@ -104,12 +99,10 @@ export function paragrafosDaFicha(sheet: PdfSheet): string[] {
 /** Os parágrafos com posição, antes de virar texto. Ver `paragrafosDaFicha` e `regioesDaFicha`. */
 function paragrafosCrus(sheet: PdfSheet): Paragrafo[] {
   /**
-   * Ordem de leitura: página, depois de cima pra baixo, depois da esquerda pra direita.
-   *
-   * O Y entra ARREDONDADO em faixas do tamanho de uma linha, e não cru, porque dois fragmentos da
-   * mesma linha quase nunca têm o Y idêntico — nesta ficha, "d4" está em 543 e "d8" em 544. Com o Y
-   * cru, "d8" vinha antes de "d4" e o passo seguinte os via como vizinhos com folga negativa,
-   * grudando os dados de dois atributos numa coisa só ("d8 d4").
+   * Ordem de leitura: página, depois de cima pra baixo, depois da esquerda pra direita. O Y entra
+   * ARREDONDADO em faixas do tamanho de uma linha porque dois fragmentos da mesma linha quase nunca
+   * têm o Y idêntico — nesta ficha, "d4" está em 543 e "d8" em 544, e com o Y cru o passo seguinte os
+   * via como vizinhos, grudando os dados de dois atributos numa coisa só.
    */
   const faixa = (item: PdfText): number => Math.round(item.y / MESMA_LINHA)
   const ordenado = [...sheet.texts].sort(
@@ -155,21 +148,15 @@ function paragrafosCrus(sheet: PdfSheet): Paragrafo[] {
     const texto = linha.partes.join(' ').trim()
     if (!texto) continue
     /**
-     * A busca é de trás pra frente, e não só no último parágrafo: em página de duas colunas as
-     * linhas chegam alternadas (esquerda, direita, esquerda…), e olhar apenas o anterior faria toda
-     * linha começar um parágrafo novo.
+     * A busca é de trás pra frente, e não só no último parágrafo: em página de duas colunas as linhas
+     * chegam alternadas, e olhar apenas o anterior faria toda linha começar um parágrafo novo.
      */
     /**
      * Linha que é ela mesma um "Rótulo: valor" COMEÇA parágrafo, nunca continua o de cima.
-     *
-     * `camposDoTexto` já tinha essa regra (ver `linhasSeguintes` lá) e aqui faltava — e o efeito
-     * apareceu no corpus fabricado: uma ficha datilografada de poucas linhas, que cai neste caminho
-     * por ter texto esparso, virava UM campo só com a ficha inteira dentro ("Nome = Otávio Lins
-     * Ocupacao: Fotógrafo Idade: 29 Sanidade: 58"). Quatro campos viravam um, e o nome do
-     * personagem saía com a ficha grudada nele.
-     *
-     * Não atrapalha a arte anotada, que é o que este caminho existe pra ler: ali a continuação é
-     * pedaço de frase ("rolagem de combate, adicione +3"), e pedaço de frase não tem rótulo.
+     * `camposDoTexto` já tinha essa regra e aqui faltava: no corpus fabricado, uma ficha
+     * datilografada de poucas linhas, que cai neste caminho por ter texto esparso, virava UM campo só
+     * com a ficha inteira dentro ("Nome = Otávio Lins Ocupacao: Fotógrafo Idade: 29"). Não atrapalha
+     * a arte anotada: ali a continuação é pedaço de frase, e pedaço de frase não tem rótulo.
      */
     const comecaCampoNovo = ehRotuloDaPessoa(texto)
 
@@ -199,15 +186,11 @@ function paragrafosCrus(sheet: PdfSheet): Paragrafo[] {
 /**
  * Os parágrafos agrupados por REGIÃO da página, cada região na ordem em que se lê.
  *
- * É o conserto da bagunça que sobrava no Kids on Bikes. A ficha tem duas colunas bem separadas — a
- * identidade à esquerda (x entre 32 e 198) e os dados dos atributos à direita (x entre 415 e 533) —,
- * e ordenar tudo por altura INTERCALA as duas: "rodrigo barreto / 11 / Novo Aluno Misterioso / +1 /
- * d20 / xxxxx / supersticioso / d6". Nada disso está errado, e mesmo assim não dá pra ler, porque a
- * pessoa não escreveu naquela ordem.
- *
- * Agrupar por região é honesto de um jeito que adivinhar significado não é: não afirma que o "d20" é
- * o dado de Força — só devolve junto o que foi escrito junto. E numa ficha de uma coluna só ela
- * degrada sozinha pra um grupo, sem mudar nada.
+ * É o conserto da bagunça do Kids on Bikes: a ficha tem duas colunas bem separadas — identidade à
+ * esquerda, dados dos atributos à direita — e ordenar tudo por altura INTERCALA as duas ("rodrigo
+ * barreto / 11 / Novo Aluno Misterioso / +1 / d20"). Nada errado, e ilegível, porque a pessoa não
+ * escreveu naquela ordem. Agrupar por região é honesto de um jeito que adivinhar significado não é:
+ * não afirma que o "d20" é o dado de Força, só devolve junto o que foi escrito junto.
  */
 export function regioesDaFicha(sheet: PdfSheet): string[][] {
   return porRegiao(paragrafosCrus(sheet)).map((regiao) =>
@@ -318,12 +301,10 @@ export function camposDeAnotacao(paragrafos: string[]): {
     if (rotulado) {
       const { label, value } = rotulado
       /**
-       * Parágrafo nomeado pela própria pessoa é HABILIDADE, e vai pro bloco de habilidades.
-       *
-       * Numa arte anotada, o que ela nomeia e descreve por extenso é a vantagem/talento que escolheu
-       * — "Durão: Se você perder uma rolagem de combate…". Sem grupo, esses campos caíam numa seção
-       * genérica, e o usuário viu o resultado: uma seção chamada só "FICHA", que não diz nada. É a
-       * mesma régua que o leitor de Oblivio já usava pros talentos dele, agora valendo pros dois.
+       * Parágrafo nomeado pela própria pessoa é HABILIDADE, e vai pro bloco de habilidades: numa arte
+       * anotada, o que ela nomeia e descreve por extenso é a vantagem que escolheu. Sem grupo, esses
+       * campos caíam numa seção genérica chamada só "FICHA", que não diz nada. É a mesma régua que o
+       * leitor de Oblivio já usava pros talentos dele.
        */
       fields.push(
         value.length > TAMANHO_DE_HABILIDADE ? { label, value, group: 'Habilidades' } : { label, value }
@@ -364,16 +345,14 @@ function ehSoMarca(paragrafo: string): boolean {
 const MARCAS = /^[xX✓✔☑][\s✓✔☑xX]*$/
 
 /**
- * Tira o campo que repete o MESMO VALOR sob um rótulo menos específico.
+ * Tira o campo que repete o MESMO VALOR sob um rótulo menos específico. Quem preenche uma arte
+ * anotada escreve a mesma coisa em mais de um lugar: na Kids on Bikes, "Você ganha +1 em testes de
+ * Luta." aparece nas duas páginas, uma vez como "preta intensa" e outra como "bike preta intensa",
+ * porque na página 1 a palavra "bike" faz parte do DESENHO.
  *
- * Quem preenche uma arte anotada escreve a mesma coisa em mais de um lugar da ficha — na Kids on
- * Bikes, "Você ganha +1 em testes de Luta." aparece nas duas páginas, uma vez como "preta intensa" e
- * outra como "bike preta intensa", porque na página 1 a palavra "bike" faz parte do DESENHO e na 2
- * não. São a mesma anotação, e importar as duas é a bagunça que o usuário já apontou.
- *
- * O corte exige as duas coisas: valor idêntico E um rótulo contido no outro. Só o valor não bastaria
- * — duas vantagens podem ter a mesma descrição curta —, e só o rótulo muito menos. Quando os rótulos
- * não se contêm, os dois ficam: aí são nomes diferentes de verdade, e escolher um seria chute.
+ * O corte exige as duas coisas, valor idêntico E um rótulo contido no outro: só o valor não bastaria
+ * (duas vantagens podem ter a mesma descrição curta) e só o rótulo muito menos. Quando os rótulos
+ * não se contêm, os dois ficam — aí são nomes diferentes de verdade.
  */
 function semRepetirOMesmoTexto(fields: SheetImportField[]): SheetImportField[] {
   const mantidos: SheetImportField[] = []
@@ -400,12 +379,10 @@ function contem(maior: string, menor: string): boolean {
 }
 
 /**
- * Palpite de NOME do personagem: o primeiro texto da página 1.
- *
- * Em ficha de RPG o nome fica no alto e à esquerda de tudo — é a primeira coisa que se lê e a
- * primeira que se preenche. É palpite, e é assumido como tal: a alternativa que existia era o nome
- * do ARQUIVO, que nesta ficha daria "Ficha Kids on Bikes - Preenchida" como nome do personagem. O
- * campo é editável na tela de conferência, então errar custa uma correção e acertar poupa digitação.
+ * Palpite de NOME do personagem: o primeiro texto da página 1. Em ficha de RPG o nome fica no alto e
+ * à esquerda de tudo. É palpite e é assumido como tal — a alternativa era o nome do ARQUIVO, que
+ * nesta ficha daria "Ficha Kids on Bikes - Preenchida" como nome do personagem —, e o campo é
+ * editável na conferência, então errar custa uma correção e acertar poupa digitação.
  */
 export function palpiteDeNome(paragrafos: string[]): string {
   const primeiro = paragrafos[0]?.trim() ?? ''
