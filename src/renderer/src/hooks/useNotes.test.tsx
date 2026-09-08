@@ -170,6 +170,47 @@ describe('escrever no diário chega ao disco', () => {
     await waitFor(() => expect(salvos.at(-1)?.bold).toBe(true))
   })
 
+  /**
+   * A RELEITURA pedida por `recarregar()` (a importação de ficha em cima do personagem aberto) não
+   * troca o `activeId`, então a guarda `loadedFor === activeId` continua aberta enquanto o disco está
+   * sendo lido. Uma tecla nesse intervalo gravava as anotações de ANTES da importação por cima da
+   * ficha nova, que é a perda que a guarda existe pra impedir.
+   */
+  it('digitar durante a releitura não grava a ficha velha por cima da nova', async () => {
+    await montar()
+
+    // O disco já tem a ficha importada; a leitura fica presa até o teste soltar.
+    notesNoDisco.valor = { ...DEFAULT_NOTES, backstory: 'A ficha importada.' }
+    let soltarLeitura: () => void = () => {}
+    const presa = new Promise<void>((resolve) => {
+      soltarLeitura = resolve
+    })
+    const api = (globalThis as unknown as { api: { notes: { get: unknown } } }).api
+    api.notes.get = vi.fn(() => presa.then(() => structuredClone(notesNoDisco.valor)))
+
+    await act(async () => {
+      controle?.recarregar()
+    })
+    const gravadas = salvos.length
+    await act(async () => {
+      controle?.updatePage({ text: 'Tecla no meio da releitura.' })
+    })
+    expect(salvos.length).toBe(gravadas)
+
+    await act(async () => {
+      soltarLeitura()
+      await presa
+    })
+    await waitFor(() => expect(screen.getByTestId('pronto').textContent).toBe(ID_DO_PERSONAGEM))
+    // E depois de a leitura voltar, a edição funciona de novo, agora em cima da ficha nova.
+    await act(async () => {
+      controle?.updatePage({ text: 'Agora sim.' })
+    })
+    await waitFor(() => expect(salvos.length).toBeGreaterThan(gravadas))
+    expect(salvos.at(-1)?.backstory).toBe('A ficha importada.')
+    expect(salvos.at(-1)?.pages[0].text).toBe('Agora sim.')
+  })
+
   it('apagar o último dia deixa um vazio, e não zero — a tela precisa de página', async () => {
     await montar()
 
