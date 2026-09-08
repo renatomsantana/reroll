@@ -84,18 +84,16 @@ const COLUNA_EXTRA = 3
 /**
  * Campos com nome estável, e o rótulo com que aparecem na conferência.
  *
- * O `rotulo` é o desempate, e existe por um fato medido no arquivo: os nomes de campo se repetem.
- * `INT` aparece 11 vezes, `PRE` 10, `AGI` 8 — o primeiro é o atributo e os outros são a coluna de
- * atributo de cada PERÍCIA, que a ficha batizou igual. Com a ficha em branco ninguém via (tudo "0"),
- * e no primeiro teste com valores os cinco atributos SUMIRAM, porque o índice por nome ficava com a
- * última ocorrência. O que separa os dois é o rótulo impresso: o atributo tem a palavra inteira
- * ("AGILIDADE"), a coluna de perícia tem a abreviação ("AGI").
+ * O `rotulo` é o desempate, e existe por um fato medido: os nomes de campo se repetem. `INT` aparece
+ * 11 vezes, `PRE` 10, `AGI` 8 — o primeiro é o atributo e os outros são a coluna de atributo de cada
+ * PERÍCIA. Com a ficha em branco ninguém via (tudo "0"), e no primeiro teste com valores os cinco
+ * atributos SUMIRAM, porque o índice por nome ficava com a última ocorrência. O que separa os dois é
+ * o rótulo impresso: o atributo tem a palavra inteira ("AGILIDADE"), a perícia tem a abreviação.
  */
 /**
- * O `roll` é o que faz o número virar dado rolável (ver `sheetRoll.ts`), e está só nos ATRIBUTOS de
- * propósito: um teste de perícia em Ordem é a soma dos dados do atributo mais o bônus de
- * treinamento, e o campo da perícia guarda só o bônus. Os atributos são a regra inteira num número
- * só: Agilidade 3 é "role 3d20 e fique com o maior".
+ * O `roll` é o que faz o número virar dado rolável (ver `sheetRoll.ts`), e está só nos ATRIBUTOS: um
+ * teste de perícia em Ordem é a soma dos dados do atributo mais o bônus de treinamento, e o campo da
+ * perícia guarda só o bônus. O atributo é a regra inteira num número só.
  */
 const CAMPOS_CONHECIDOS: {
   name: string
@@ -400,8 +398,7 @@ function campoDeNex(campo: PdfField | undefined): SheetImportField | null {
  * x≈447, campo em x≈476 —, então pegar o vizinho mais próximo QUE NÃO SEJA abreviação acerta as 29
  * linhas sem fixar uma faixa de x que quebraria em outra diagramação.
  *
- * Só entram as perícias com número diferente de zero: quem não treinou nada fica com 29 zeros, e
- * zero aqui não é informação, é a ausência dela.
+ * Só entram as com número diferente de zero: quem não treinou nada fica com 29 zeros.
  */
 function periciasTreinadas(sheet: PdfSheet, comLacunas: boolean): SheetImportField[] {
   const campos: SheetImportField[] = []
@@ -515,13 +512,11 @@ function apresentarPericia(bruto: string): string | null {
  *
  * - os atributos são `atr_agi`…`atr_vig`, e não `AGI`…`VIG`;
  * - cada perícia tem TRÊS campos: `t_` (treinamento), `o_` (outros) e `b_` (o total, calculado por
- *   JavaScript dentro do PDF). Como na família "Editável com Cálculos" de Pathfinder, o total só fica
- *   gravado quando alguém tocou o campo; vazio, ele se refaz da soma (conferido três vezes na ficha
- *   real: atletismo 10+2=12, medicina 10+5=15, diplomacia 10+0=10);
+ *   JavaScript dentro do PDF). O total só fica gravado quando alguém tocou o campo; vazio, ele se
+ *   refaz da soma (conferido: atletismo 10+2=12, medicina 10+5=15, diplomacia 10+0=10);
  * - a grade de armas é `atq_name<i>` / `dano_arma<i>` / `critico_arma<i>` / `alcance_arma<i>`, seis
  *   linhas, SEM coluna de teste (o teste é a perícia de Pontaria ou Luta);
- * - Classe, Origem e Trilha são LISTAS que exportam índice ("2"); o rótulo legível vem das opções do
- *   próprio campo (ver `rotuloDaOpcao`);
+ * - Classe, Origem e Trilha são LISTAS que exportam índice ("2"); o rótulo vem das opções do campo;
  * - os itens têm OS MESMOS nomes da ficha oficial, então `lacunasNumeradas` serve às duas.
  */
 const ATRIBUTOS_B: { name: string; label: string }[] = [

@@ -17,19 +17,14 @@ import type { PhysicalDiceSides } from '@shared/types/dice3d'
 /**
  * Lançamento pela BANDEJA (sem torre) para TODOS os sete tipos de dado.
  *
- * Existia um buraco de cobertura que só apareceu ao revisar a suíte antes de fechar uma versão: o
- * modo TORRE tinha teste dos sete tipos (`towerMouthSpawn.test.ts`), e o modo bandeja — que é o
- * padrão do app, o que quase todo mundo usa — só tinha teste de d6 (`diceEscape.test.ts`). Ou seja,
- * o caminho mais percorrido era o menos verificado.
+ * Existia um buraco de cobertura: o modo TORRE tinha teste dos sete tipos
+ * (`towerMouthSpawn.test.ts`), e o modo bandeja — que é o padrão do app — só tinha teste de d6
+ * (`diceEscape.test.ts`). O caminho mais percorrido era o menos verificado.
  *
- * O que este teste garante, por tipo: todo dado ASSENTA, todo dado acaba DENTRO do hexágono, e a
- * face lida é um valor válido daquele dado. Os três juntos são o que separa "a cena parece certa" de
- * "a rolagem funciona".
+ * Por tipo: todo dado ASSENTA, todo dado acaba DENTRO do hexágono, e a face lida é um valor válido.
  *
  * Poucos dados por tipo (4, não 15) de propósito: o estresse de quantidade máxima já é o assunto de
- * `diceEscape.test.ts`, e repeti-lo sete vezes só deixaria a suíte lenta sem cobrir nada novo. O que
- * muda de tipo pra tipo é a GEOMETRIA — tamanho, número de faces, como quica e como assenta —, e
- * isso aparece com quatro dados igual aparece com quinze.
+ * `diceEscape.test.ts`. O que muda de tipo pra tipo é a GEOMETRIA, e isso aparece com quatro dados.
  */
 
 const DADOS_POR_TIPO = 4
@@ -72,13 +67,11 @@ describe('lançamento pela BANDEJA — os sete tipos assentam dentro do hexágon
         if (die.assentado) continue
       /**
        * Contabiliza o tempo em fase de ENTRADA, exatamente como o app faz (ver `DiceCanvasMulti`).
-       *
        * Sem isto o teste passava `0` e o resgate de `ENTRY_FORCE_PUSH_TIMEOUT_MS` NUNCA disparava —
-       * um dado que sai da boca e não cruza pra dentro fica com os grupos de "entrando", que não
-       * colidem com a parede, e cai pelo vazio. Foi o que o diagnóstico encontrou: dado em y = -4672
-       * depois de 41 cutucadas, e o teste acusando "14 de 15 assentaram".
+       * um dado que sai e não cruza pra dentro fica com os grupos de "entrando", que não colidem com
+       * a parede, e cai pelo vazio (dado em y = -4672 depois de 41 cutucadas).
        *
-       * Ou seja: a instabilidade destes testes desde 18/08 não era física indeterminada, era o teste
+       * A instabilidade destes testes desde 18/08 não era física indeterminada, era o teste
        * desligando a rede de segurança que a produção tem.
        */
         clampLinearVelocity(die.body, WORLD_CONFIG.maxLinearSpeed)
