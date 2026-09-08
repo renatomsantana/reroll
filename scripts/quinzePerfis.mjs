@@ -1,29 +1,26 @@
 /**
  * QUINZE PERSONAGENS, cada um com uma ficha DIFERENTE — o teto do app (`MAX_PROFILES`) em forma de
- * dado de verdade.
+ * dado de verdade. Serve a duas coisas, e é por isso que mora aqui e não dentro de um teste:
  *
- * Serve a duas coisas ao mesmo tempo, e é por isso que mora aqui e não dentro de um teste:
+ * 1. `storage/quinzeFichas.test.ts` grava os quinze pelos repositórios de verdade e confere que cada
+ *    um volta com a ficha DELE — isolamento no teto, que é onde ele quebraria;
+ * 2. `node scripts/quinzePerfis.mjs <pasta>` escreve a mesma coisa em disco, no formato do
+ *    `userData`, pra ter quinze personagens prontos sem preencher nada à mão.
  *
- * 1. `storage/quinzeFichas.test.ts` grava estes quinze pelos repositórios de verdade e confere que
- *    cada um volta com a ficha DELE — isolamento no teto, que é onde ele quebraria;
- * 2. `node scripts/quinzePerfis.mjs <pasta>` escreve a mesma coisa em disco, no formato exato do
- *    `userData`, pra ter quinze personagens prontos pra usar sem preencher nada à mão.
- *
- * As fichas não são quinze cópias com o nome trocado. Cada uma tem as SEÇÕES do sistema dela (é
- * assim que a aba Ficha funciona — ver `SheetSection`), com os nomes que aquele sistema usa, campos
- * que rolam onde o sistema rola, presets do que aquele personagem faz e um diário com o tom da mesa.
- * Ficha de teste toda igual esconde exatamente o defeito que este material existe pra encontrar.
+ * As fichas não são quinze cópias com o nome trocado: cada uma tem as SEÇÕES do sistema dela, campos
+ * que rolam onde o sistema rola, presets e um diário com o tom da mesa. Ficha de teste toda igual
+ * esconde exatamente o defeito que este material existe pra encontrar.
  */
 
 /**
  * Os três tipos de rolagem que a ficha entende (ver `sheetRoll.ts`) — o TIPO, nunca a expressão:
  *
- * - `d20`: o valor é um BÔNUS ("+9" vira 1d20+9), que é como perícia e salvaguarda se escrevem;
+ * - `d20`: o valor é um BÔNUS ("+9" vira 1d20+9), como perícia e salvaguarda se escrevem;
  * - `d20-valor`: o valor é um ATRIBUTO de D&D (16 rola 1d20+3, o modificador calculado);
- * - `pool-d20`: o valor é QUANTOS dados rolar ficando com o melhor — a regra de Ordem Paranormal.
+ * - `pool-d20`: o valor é QUANTOS dados rolar ficando com o melhor, a regra de Ordem Paranormal.
  *
- * Escrever um tipo fora dessa lista não quebra nada e é PIOR do que quebrar: `normalizarTipoDeRolagem`
- * descarta o desconhecido na leitura, e o campo volta do disco sem botão de rolar, calado.
+ * Tipo fora dessa lista não quebra nada, e é PIOR do que quebrar: `normalizarTipoDeRolagem` descarta
+ * o desconhecido na leitura, e o campo volta do disco sem botão de rolar, calado.
  */
 export const ATRIBUTO_DND = 'd20-valor'
 export const POOL = 'pool-d20'
@@ -62,12 +59,10 @@ export function preset(id, name, icon, groups, modificador = 0, extras = {}) {
 /**
  * Os quinze. A ordem é a de criação: quem abrir o app encontra o primeiro deles aberto.
  *
- * Os dois primeiros são CÓPIA FIEL do que o importador extrai dos PDFs da pasta de fichas do
- * projeto (Ordem Paranormal e Oblivio) — conferido campo a campo contra o arquivo, e não de
- * memória. A primeira versão deste material tinha valor INVENTADO nesses dois (PV 16 onde a ficha
- * diz 45, Vigor 1 onde diz 2), e isso é pior do que não ter exemplo: quem compara a importação de
- * verdade com o "exemplo oficial" conclui que o importador está errado. Os outros treze são de
- * sistemas variados, escritos à mão, e não têm PDF com que bater.
+ * Os dois primeiros são CÓPIA FIEL do que o importador extrai dos PDFs da pasta de fichas (Ordem
+ * Paranormal e Oblivio), conferido campo a campo contra o arquivo. A primeira versão tinha valor
+ * INVENTADO nesses dois (PV 16 onde a ficha diz 45), e isso é pior que não ter exemplo: quem compara
+ * a importação de verdade com o "exemplo oficial" conclui que o importador está errado.
  */
 export const QUINZE_PERFIS = [
   {

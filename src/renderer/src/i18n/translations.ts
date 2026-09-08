@@ -442,14 +442,12 @@ export interface TranslationDict {
     loadError: string
   }
   /**
-   * A IMPORTAÇÃO DE FICHA — a janela de confirmação, os erros do caminho e os avisos dos leitores.
+   * A IMPORTAÇÃO DE FICHA: o "tem certeza?", a lista de sistemas, os erros do caminho e os avisos dos
+   * leitores. Não há janela de conferência — a importação grava tudo e a revisão é na aba Ficha, onde
+   * tudo é editável; o que aparece depois é o resumo do que foi lido.
    *
-   * A janela deixou de ser conferência campo a campo (pedido do usuário, 30/08/2026: "apenas aperte
-   * o PDF e diga ok importaremos"): agora ela resume o que foi lido, importa tudo, e a revisão é na
-   * aba Ficha, onde tudo é editável.
-   *
-   * `warnings` é `Record<SheetWarningId, string>` de propósito: um aviso novo sem tradução não
-   * compila. Ver `shared/types/sheetWarning.ts`.
+   * `warnings` é `Record<SheetWarningId, string>` de propósito: um aviso novo sem tradução não compila.
+   * Ver `shared/types/sheetWarning.ts`.
    */
   sheetImport: {
     /**

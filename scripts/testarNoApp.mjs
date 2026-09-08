@@ -2,22 +2,14 @@
  * TESTAR NO APP: o renderer COMPILADO, numa janela oculta, com um processo principal falso em
  * memória, exercitado como uma pessoa faria — clicando, rolando, importando, arrastando.
  *
- * A suíte do vitest prova cada peça; isto prova o CAMINHO INTEIRO no bundle de produção, que é onde as
- * peças se encontram (o worker do pdf.js, a cena WebGL, o HUD por cima do canvas, a área de
- * transferência pelo IPC). Pedido dele: "vamos continuar testando os tipos de hud, os d20, os tipos
- * diferentes de dados, os uploads, os scrapings".
+ * A suíte do vitest prova cada peça; isto prova o CAMINHO INTEIRO no bundle de produção, que é onde
+ * elas se encontram (o worker do pdf.js, a cena WebGL, o HUD por cima do canvas, o IPC da área de
+ * transferência).
  *
  *     npx electron-vite build && npx electron scripts/testarNoApp.mjs [dados] [hud] [fichas]
  *
  * Sem argumento roda as três fases. Capturas em `out/testar-no-app/`, e sai com código 1 se alguma
  * checagem falhar — cada uma é impressa como OK/ERR com o que foi medido.
- *
- * - `dados`: cada tipo de dado no modo rápido, vários dados, modificador, vantagem e desvantagem, a
- *   marca de crítico (rola até sair), a linha copiada pro chat, e UMA rolagem na cena 3D de verdade;
- * - `hud`: cheio, mini e escondido em cada canto, com nome longo, doze barras e vinte condições, na
- *   janela padrão e na mínima (o cartão tem que ficar DENTRO da cena), mais o arrasto de verdade;
- * - `fichas`: cada PDF de `Fichas RPG/` importado pelo caminho da tela — a Ficha diz o leitor
- *   reconhecido e quanto leu, e o resultado é capturado.
  */
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs'
