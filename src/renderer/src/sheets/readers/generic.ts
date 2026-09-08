@@ -10,6 +10,7 @@ import { parseDiceExpression } from '@shared/dice/parseDiceExpression'
 import { labelFromFieldName, rotulosExclusivos } from '../labelForField'
 import { lerCamposDoTexto } from '../camposDoTexto'
 import {
+  TEXTOS_POR_PAGINA,
   TEXTO_MINIMO,
   camposDeAnotacao,
   ehTituloDeFicha,
@@ -218,7 +219,7 @@ export function extrairGenerico(
      * impresso do digitado; o genérico não conhece, então traz tudo. Ficam de fora o título da ficha
      * e o rótulo impresso sem valor ("Nome:"), que são o modelo falando.
      */
-    if (readerId === 'generico') {
+    if (readerId === 'generico' && !ehModeloImpressoEmBranco(sheet, fields, presets)) {
       const sobra = sheet.texts
         .filter((texto) => !lidoDoTexto.usados.has(texto))
         .map((texto) => texto.text.trim())
@@ -429,14 +430,34 @@ const PALAVRAS_MINIMAS = 4
 
 function leuAlgumaCoisa(sheet: PdfSheet, fields: SheetImportField[], presets: SheetImportPreset[]): boolean {
   if (fields.length > 0 || presets.length > 0) return true
-  /**
-   * Formulário com todos os campos vazios é o MODELO EM BRANCO, por mais texto impresso que tenha —
-   * a ficha oficial de Pathfinder 2e traz instruções de quatro palavras em toda caixa, e ganhava
-   * "RemasterPlayerCoreCharacterSheet Form Fillable" como nome de personagem. O texto só conta como
-   * conteúdo em documento SEM formulário, que é a ficha datilografada.
-   */
-  if (sheet.fields.length > 0) return false
+  if (ehModeloImpressoEmBranco(sheet, fields, presets)) return false
   return sheet.texts.some((texto) => ehLinhaDeConteudo(texto.text))
+}
+
+/**
+ * O documento é um MODELO IMPRESSO em branco, e não a ficha de alguém?
+ *
+ * Duas formas, e as duas custaram um personagem fantasma:
+ *
+ * - FORMULÁRIO com todos os campos vazios, por mais texto impresso que tenha: a ficha oficial de
+ *   Pathfinder 2e traz instruções de quatro palavras em toda caixa, e ganhava
+ *   "RemasterPlayerCoreCharacterSheet Form Fillable" como nome de personagem;
+ * - o MESMO modelo salvo SEM formulário: 668 fragmentos em quatro páginas de rótulos e instruções,
+ *   nenhum par "Rótulo: valor" e nenhuma rolagem. O app criava "RemasterPlayerCoreCharacterSheet"
+ *   com 2.792 caracteres do formulário em branco no bloco de história.
+ *
+ * A régua do segundo caso é a DENSIDADE, a mesma de `pareceAnotacaoSobreImagem`: quem escreve a
+ * ficha no Word põe poucas linhas na página e merece o palpite pelo nome do arquivo ("Elias -
+ * ficha.pdf"); um modelo impresso enche a página e não rende nada.
+ */
+function ehModeloImpressoEmBranco(
+  sheet: PdfSheet,
+  fields: SheetImportField[],
+  presets: SheetImportPreset[]
+): boolean {
+  if (fields.length > 0 || presets.length > 0) return false
+  if (sheet.fields.length > 0) return true
+  return sheet.texts.length / Math.max(1, sheet.pageCount) >= TEXTOS_POR_PAGINA
 }
 
 /** Uma linha de CONTEÚDO escrito: quatro palavras ou mais, e não o título impresso da ficha. */

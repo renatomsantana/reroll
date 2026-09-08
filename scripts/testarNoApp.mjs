@@ -1131,6 +1131,18 @@ async function faseCaderno() {
 /* ------------------------------------------------------------------------------------------ */
 /* Fase FICHAS.                                                                                */
 /* ------------------------------------------------------------------------------------------ */
+
+/**
+ * Os arquivos da pasta que são o MODELO EM BRANCO baixado do site, e não a ficha de alguém. Eles
+ * importam (têm os rótulos impressos), mas nascem SEM NOME de personagem — ver a checagem lá embaixo.
+ */
+const MODELOS_EM_BRANCO = [
+  'Ficha Oblivio - Colorida.pdf',
+  'Ordem Paranormal - Ficha de Personagem Editável.pdf',
+  'fichaeditavelcomcalculos.pdf',
+  'fichapersonagemptbr.pdf'
+]
+
 async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(core|remaster ficha|player core|gm core)).*\.pdf$/i, esperaRetrato = {}) {
   console.log(`\n=== FICHAS (importação sem janela): ${pasta} ===`)
   if (!existsSync(pasta)) {
@@ -1176,8 +1188,18 @@ async function faseFichas(pasta = join(RAIZ, 'Fichas RPG'), filtro = /^(?!.*(cor
     // A Ficha diz quanto leu, no lugar da janela que existia.
     checar(/\d+ campos e \d+ rolagens/.test(conf.resumo), `      ${nome}: a Ficha diz o que importou ("${conf.resumo.slice(0, 60)}...")`)
     const resumo = `${apply.notes.sections.length} seções, ${apply.presets.length} presets, barras [${(apply.recursos ?? []).map((r) => `${r.nome} ${r.atual}/${r.maximo}`).join(', ')}], retrato ${apply.photo ? `${Math.round(apply.photo.length / 1024)} KB` : 'não'}`
-    // Modelo em branco não traz nome: o nome do arquivo entra no lugar (nunca um personagem sem nome).
-    checar(apply.characterName.trim() !== '', `${nome}\n      ${conf.leitor || 'sem leitor'} · nome "${apply.characterName}" · ${conf.avisos} avisos\n      gravou: ${resumo}`)
+    /**
+     * O NOME é o que o LEITOR decidiu, e nas duas direções.
+     *
+     * Ficha de alguém traz o nome escrito. MODELO EM BRANCO baixado do site nasce SEM nome, e é o que
+     * se cobra aqui: o nome do arquivo é o TÍTULO da ficha, e nasciam personagens chamados "Ordem
+     * Paranormal - Ficha de Personagem Editável" e "RemasterPlayerCoreCharacterSheet". A lista é
+     * escrita à mão porque "é o modelo em branco" é fato sobre o ARQUIVO, não sobre a leitura.
+     */
+    const semDono = MODELOS_EM_BRANCO.includes(nome)
+    const nomeCerto = semDono ? apply.characterName.trim() === '' : apply.characterName.trim() !== ''
+    const comoSaiu = apply.characterName || (semDono ? '(sem nome, e é o certo: modelo em branco)' : '(vazio)')
+    checar(nomeCerto, `${nome}\n      ${conf.leitor || 'sem leitor'} · nome "${comoSaiu}" · ${conf.avisos} avisos\n      gravou: ${resumo}`)
     /**
      * O RETRATO esperado deste arquivo: `null` = nenhum; `'retrato'` = a foto (proporção 3:4 no
      * arquivo fabricado — o logo é quadrado). Decodificado na página, porque é lá que há canvas.
