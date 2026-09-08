@@ -1181,12 +1181,11 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
            * parede física, chão e plataforma são construídos na montagem: trocar de hexágono pra
            * círculo sem remontar deixaria o collider antigo contendo dados dentro de outro desenho.
            *
-           * A torre remontava por completo a cada dado adicionado e a cada preset, de quando ela era
-           * o mecanismo antigo, com cena própria e fila de queda por dentro. Hoje os dois modos usam a
-           * mesma bandeja, o mesmo mundo físico e os mesmos colisores. E o custo era alto: medido,
-           * remontar refaz a cena da bandeja (20ms), a torre com as texturas de tijolo (20ms) e um
-           * `WebGLRenderer` novo (15ms), e o primeiro quadro depois disso recompila os shaders, num
-           * pico de 290ms. É o "fica meio lagado quando bota mais dados" que ele reportou.
+           * A torre remontava por completo a cada dado e a cada preset, de quando ela era o mecanismo
+           * antigo, com cena própria. Hoje os dois modos usam a mesma bandeja e o mesmo mundo físico,
+           * e o custo era alto: remontar refaz a cena (20ms), a torre com as texturas (20ms) e um
+           * `WebGLRenderer` novo (15ms), e o primeiro quadro recompila os shaders, num pico de 290ms.
+           * É o "fica meio lagado quando bota mais dados" que ele reportou.
            */
           key={`${debugMode}-${launchMode}-${trayShape}`}
           ref={multiRef}
