@@ -11,18 +11,16 @@ import { JsonFileStore } from './JsonFileStore'
 import { guardarPersonagemApagado } from './backupsDeDados'
 
 /**
- * Lista de perfis de personagem e qual está aberto (ver `shared/types/profile.ts`). Além de guardar a
- * lista, é ela que diz ONDE ficam os dados de cada personagem: cada perfil tem uma pasta própria em
- * `userData/profiles/<id>/`, e é dali que `NotesRepository` e `PresetsRepository` leem. Trocar de
- * perfil não move arquivo nenhum, muda o diretório que os dois consultam.
+ * Lista de perfis e qual está aberto (ver `shared/types/profile.ts`). Além da lista, é ela que diz
+ * ONDE ficam os dados de cada personagem: cada perfil tem uma pasta em `userData/profiles/<id>/`, e é
+ * dali que `NotesRepository` e `PresetsRepository` leem. Trocar de perfil não move arquivo nenhum.
  */
 export class ProfilesRepository {
   private readonly store: JsonFileStore<ProfilesState>
   private readonly userData: string
   /**
-   * Estado em memória. Existe porque `NotesRepository`/`PresetsRepository` precisam do id do perfil
-   * ativo a CADA leitura e gravação: ir ao disco em toda tecla digitada nas anotações seria uma
-   * leitura de arquivo por caractere.
+   * Estado em memória: `NotesRepository`/`PresetsRepository` precisam do id do perfil ativo a CADA
+   * leitura e gravação, e ir ao disco em toda tecla seria um arquivo lido por caractere.
    */
   private state: ProfilesState | null = null
 
@@ -40,12 +38,10 @@ export class ProfilesRepository {
     this.state = normalizeProfiles(bruto)
 
     /**
-     * Se a normalização precisou TROCAR ALGUM ID, o conserto tem que ir pro disco agora. Sem gravar de
-     * volta, o id novo vale só pra esta execução: na abertura seguinte o arquivo ainda traz o
-     * defeituoso e sorteia-se OUTRO, ou seja, o personagem estreia numa pasta vazia toda vez que o app
-     * abre e o que ele escreveu antes fica órfão. O conserto instável é pior que o defeito, porque o
-     * defeito ao menos era estável. Só grava quando de fato mudou: abrir o app não pode reescrever
-     * `profiles.json` à toa.
+     * Se a normalização precisou TROCAR ALGUM ID, o conserto vai pro disco agora: sem gravar de
+     * volta, o id novo vale só pra esta execução, e na abertura seguinte sorteia-se outro — o
+     * personagem estrearia numa pasta vazia toda vez. Conserto instável é pior que o defeito, que ao
+     * menos era estável. Só grava quando de fato mudou.
      */
     if (this.idsForamRemendados(bruto)) await this.store.write(this.state)
 
@@ -67,23 +63,20 @@ export class ProfilesRepository {
   }
 
   /**
-   * Grava a lista, recusando a gravação que faria ela CRESCER além do teto (`MAX_PROFILES`).
+   * Grava a lista, recusando a gravação que a faria CRESCER além do teto. A regra é sobre CRESCER e
+   * não sobre o tamanho: uma lista que já veio do disco com vinte personagens (backup restaurado,
+   * versão com outro teto) continua editável e apagável, enquanto um teto por tamanho travaria o app
+   * de quem tem mais, com a única saída sendo editar JSON à mão.
    *
-   * A regra é sobre CRESCER, e não sobre o tamanho, e a diferença é o que a torna segura: uma lista que
-   * já veio do disco com vinte personagens — backup restaurado, arquivo de uma versão em que o teto era
-   * outro — continua editável, apagável e gravável. Um teto que olhasse só o tamanho travaria o app de
-   * quem tem mais, com a única saída sendo editar JSON na mão.
-   *
-   * A trava vive AQUI, e não só no botão da tela, porque o canal `profiles:save` grava o estado inteiro
-   * de uma vez. Medido no app rodando: a interface parava em quinze e o canal aceitava o décimo sexto.
+   * A trava vive AQUI, e não só no botão, porque `profiles:save` grava o estado inteiro de uma vez.
+   * Medido no app rodando: a interface parava em quinze e o canal aceitava o décimo sexto.
    */
   async save(next: ProfilesState): Promise<ProfilesState> {
     const limpo = normalizeProfiles(next)
     const atual = this.state?.profiles.length ?? 0
     /**
-     * O teto do DISCO (quinze). Hoje o teto de criação é o mesmo número, mas os dois continuam
-     * separados: este é a rede de segurança do arquivo, o outro é regra de criação, cobrada onde
-     * personagem NASCE (`ProfilesContext.create` e o canal de importação).
+     * O teto do DISCO (quinze). Hoje o de criação é o mesmo número, mas seguem separados: este é a
+     * rede de segurança do arquivo, o outro é cobrado onde personagem NASCE.
      */
     if (limpo.profiles.length > TETO_DE_PERSONAGENS_NO_DISCO && limpo.profiles.length > atual) {
       throw new Error(
@@ -95,9 +88,8 @@ export class ProfilesRepository {
     await this.store.write(this.state)
 
     /**
-     * Personagem que SAIU da lista: a pasta dele vai pra `backups/personagens-apagados/` (spec
-     * §9.1; ver `backupsDeDados.ts`). Antes ela ficava órfã em `profiles/`, onde ninguém acha.
-     * DEPOIS de gravar a lista, e sem derrubar a gravação: a lista nova já está no disco, e uma
+     * Personagem que SAIU da lista: a pasta dele vai pra `backups/personagens-apagados/` (spec §9.1),
+     * onde antes ficava órfã em `profiles/`. DEPOIS de gravar a lista e sem derrubar a gravação: uma
      * pasta que não deu pra mover continua onde estava, sem prejuízo.
      */
     const idsDeAgora = new Set(limpo.profiles.map((p) => p.id))
@@ -113,15 +105,12 @@ export class ProfilesRepository {
   }
 
   /**
-   * Pasta do perfil aberto, criada sob demanda porque perfil recém-criado ainda não tem nada gravado.
+   * Pasta do perfil aberto, criada sob demanda porque perfil recém-criado ainda não gravou nada.
    *
-   * O id é SANEADO antes de virar nome de pasta, e isso é defesa, não capricho: ele chega do renderer e
-   * também é lido de `profiles.json`, um arquivo que qualquer coisa rodando na máquina pode editar. Um
-   * id como `..\..\Startup` sairia de `userData` e faria o app escrever a ficha numa pasta arbitrária
-   * do sistema.
-   *
-   * A lista branca é a forma certa aqui porque o id de verdade é um UUID: letras, números, hífen e
-   * underline cobrem 100% do que o app gera. O que não passa vira `_`, então o perfil ainda abre.
+   * O id é SANEADO antes de virar nome de pasta: ele chega do renderer e também é lido de
+   * `profiles.json`, que qualquer coisa na máquina pode editar, e um id como `..\..\Startup` sairia de
+   * `userData`. A lista branca serve porque o id de verdade é um UUID; o que não passa vira `_`, então
+   * o perfil ainda abre.
    */
   activeDirectory(): string {
     const activeId = this.state?.activeId ?? DEFAULT_PROFILE_ID
@@ -130,9 +119,8 @@ export class ProfilesRepository {
 
   /**
    * Quem já usava o app tem `notes.json` e `presets.json` soltos em `userData`, o formato de antes dos
-   * perfis: eles viram o conteúdo do perfil padrão em vez de sumir. MOVE, não copia, e só quando o
-   * destino ainda não existe — copiar deixaria duas cópias divergindo a partir da primeira edição, e
-   * sobrescrever apagaria dados de um perfil já em uso se o arquivo antigo reaparecesse.
+   * perfis: eles viram o conteúdo do perfil padrão. MOVE, não copia, e só com o destino livre — copiar
+   * deixaria duas cópias divergindo, e sobrescrever apagaria dados de um perfil em uso.
    */
   private async migrateLegacyFiles(): Promise<void> {
     const destino = join(this.userData, 'profiles', DEFAULT_PROFILE_ID)
@@ -163,9 +151,8 @@ export class ProfilesRepository {
 export function sanearIdDePasta(id: string): string {
   const limpo = id.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64)
   /**
-   * Só o VAZIO precisa de rede: `.` e `..` não sobrevivem à lista branca (o ponto não está nela, e
-   * vira `_` como qualquer outro caractere de fora). Eu tinha escrito uma guarda contra `^\.+$`
-   * aqui, e o teste provou que ela era inalcançável.
+   * Só o VAZIO precisa de rede: `.` e `..` não sobrevivem à lista branca, porque o ponto não está
+   * nela. Uma guarda contra `^\.+$` escrita aqui era inalcançável, e o teste provou.
    */
   return limpo || '_'
 }

@@ -22,19 +22,17 @@ import { IMPORTACAO_DE_FICHA_LIGADA } from '@shared/recursos'
 
 /**
  * Identidade do app pro Windows. Tem que ser LITERALMENTE o mesmo texto do `appId` em
- * `electron-builder.yml`, que é o que o instalador carimba em cada atalho criado. Sem esta declaração
- * o app não tinha AppUserModelID nenhum, então o Windows inventava um a partir do caminho do
- * executável — e o ID inventado não batia com o dos atalhos. Era esse desencontro que quebrava fixar
- * na barra de tarefas: o item fixado e a janela aberta viravam duas coisas diferentes pro Windows.
+ * `electron-builder.yml`, que é o que o instalador carimba em cada atalho: sem esta declaração o
+ * Windows inventava um ID a partir do caminho do executável, e o inventado não batia com o dos
+ * atalhos — era esse desencontro que quebrava fixar na barra de tarefas.
  */
 const APP_USER_MODEL_ID = 'com.renato.reroll'
 
 /**
  * A janela de agora, pra quem precisa dela DEPOIS de ela existir. Os handlers de IPC são registrados
- * UMA vez, na abertura do app, e perguntam por ela na hora em que são chamados, em vez de nascerem
- * grudados na janela que existia no registro. Sem isso, `createWindow` chamado uma segunda vez
- * registrava os mesmos canais de novo, e `ipcMain.handle` derruba o processo nisso: "Attempted to
- * register a second handler for...".
+ * UMA vez, na abertura, e perguntam por ela na hora da chamada: nascendo grudados na janela do
+ * registro, um segundo `createWindow` registraria os mesmos canais de novo, e `ipcMain.handle` derruba
+ * o processo nisso ("Attempted to register a second handler for...").
  */
 let janelaPrincipal: BrowserWindow | null = null
 
@@ -58,14 +56,12 @@ function createWindow(initialIconPath: string): void {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       /**
-       * As quatro travas escritas À MÃO, mesmo sendo o padrão do Electron desde a versão 20. O padrão
-       * protege quem não sabe que elas existem; escrevê-las protege de outra coisa — de alguém (eu,
-       * daqui a seis meses) desligar uma pra resolver rápido um problema, sem topar com o motivo.
+       * As quatro travas escritas À MÃO, mesmo sendo o padrão do Electron desde a versão 20: o padrão
+       * protege quem não sabe que elas existem, escrevê-las protege de alguém desligar uma pra
+       * resolver rápido um problema, sem topar com o motivo.
        *
-       * - `sandbox`: o renderizador roda numa caixa do sistema. Se um dia rodar código hostil ali,
-       *   ele não fala com disco nem rede direto, só pelas pontes de IPC;
-       * - `contextIsolation`: o preload vive num mundo separado do JavaScript da página, então a
-       *   página não consegue reescrever a ponte;
+       * - `sandbox`: o renderizador roda numa caixa do sistema, e só fala com disco e rede por IPC;
+       * - `contextIsolation`: o preload vive num mundo separado, então a página não reescreve a ponte;
        * - `nodeIntegration`: a página não tem `require`. É o que separa "app" de "shell";
        * - `webSecurity`: mantém a origem valendo. Desligar é o atalho clássico pra carregar arquivo
        *   local numa página, e abre tudo de uma vez.
@@ -94,10 +90,9 @@ function createWindow(initialIconPath: string): void {
    */
 
   /**
-   * O carregamento é uma PROMESSA, e a falha dela é o pior desfecho possível: uma janela cinza,
-   * aberta, sem nada dentro e sem erro nenhum. Acontece se o bundle do renderer não estiver onde se
-   * espera, ou se o servidor de desenvolvimento não estiver de pé. Não há interface pra mostrar o
-   * recado — ela é justamente o que não carregou —, então o console é o único lugar.
+   * O carregamento é uma PROMESSA, e a falha dela é o pior desfecho: uma janela cinza, aberta, sem
+   * nada dentro e sem erro. Acontece com o bundle do renderer fora do lugar, ou com o servidor de
+   * desenvolvimento no chão. Não há interface pra dar o recado — ela é o que não carregou.
    */
   const carregando = process.env.ELECTRON_RENDERER_URL
     ? window.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -115,13 +110,11 @@ function createWindow(initialIconPath: string): void {
 app.setAppUserModelId(APP_USER_MODEL_ID)
 
 /**
- * Uma instância só: sem isto, clicar no ícone fixado com o app já aberto abre um SEGUNDO Reroll, com
- * duas janelas e as preferências das duas brigando pelo mesmo arquivo. Com o bloqueio, o segundo
- * processo morre na hora e manda pra frente a janela que já existe.
+ * Uma instância só: sem isto, clicar no ícone fixado com o app aberto abre um SEGUNDO Reroll, com as
+ * preferências das duas janelas brigando pelo mesmo arquivo.
  *
- * Só no app EMPACOTADO: o bloqueio é por pasta de dados, e `npm run dev` usa a mesma que o app
- * instalado, então com ele valendo sempre o dev morria no arranque (saída 0, sem janela e sem erro,
- * parecendo falha de compilação) e ainda roubava o foco pra janela do app instalado.
+ * Só no app EMPACOTADO: o bloqueio é por pasta de dados, e `npm run dev` usa a mesma do app
+ * instalado, então o dev morria no arranque (saída 0, sem janela e sem erro) e ainda roubava o foco.
  */
 if (app.isPackaged && !app.requestSingleInstanceLock()) {
   // Sai sem registrar mais nada: o `else` não é estilo, é necessário — `app.quit()` só encerra
@@ -137,12 +130,10 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
   })
 
   /**
-   * O ARRANQUE INTEIRO, com o `catch` que faltava. Tudo que abre o app está aqui dentro e tudo é
-   * assíncrono: ler os perfis, migrar o formato antigo, ler as preferências. Sem o `catch`, uma falha
-   * em qualquer um desses passos — `profiles.json` ilegível, `%APPDATA%` sem permissão, disco cheio —
-   * virava uma rejeição sem dono: o processo continuava vivo, nenhuma janela era criada, e da parte
-   * de quem clicou no ícone o app simplesmente não abriu. O diálogo nativo é o único recado possível
-   * aqui, e depois dele o app SAI.
+   * O ARRANQUE INTEIRO, com o `catch` que faltava: tudo que abre o app está aqui dentro e é
+   * assíncrono. Sem o `catch`, uma falha em qualquer passo (`profiles.json` ilegível, `%APPDATA%` sem
+   * permissão, disco cheio) virava rejeição sem dono — processo vivo, nenhuma janela, e da parte de
+   * quem clicou no ícone o app simplesmente não abriu.
    */
   const arranque = async (): Promise<void> => {
     /**
@@ -151,11 +142,6 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
      */
     aplicarTravasDeSeguranca()
 
-    /**
-     * Os perfis vêm PRIMEIRO e com `await`: são eles que dizem de qual pasta saem anotações e presets.
-     * Sem o `init` concluído, a primeira leitura de anotações cairia na pasta do perfil padrão mesmo
-     * com outro aberto — e o `init` é também quem migra o `notes.json` solto de quem já usava o app.
-     */
     /**
      * ANTES de ler qualquer dado: a primeira abertura de uma versão nova copia a pasta inteira pra
      * `backups/`. Falha de backup é aviso, não parada — o app abrir sem backup é ruim, o app não
@@ -168,6 +154,11 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
       console.error('Não deu pra fazer o backup dos dados antes desta versão:', causa)
     }
 
+    /**
+     * Os perfis vêm PRIMEIRO e com `await`: são eles que dizem de qual pasta saem anotações e presets,
+     * e sem o `init` concluído a primeira leitura cairia na pasta do perfil padrão mesmo com outro
+     * aberto. É o `init` também que migra o `notes.json` solto de quem já usava o app.
+     */
     const profilesRepository = new ProfilesRepository()
     await profilesRepository.init()
     registerProfilesHandlers(profilesRepository)
@@ -181,10 +172,9 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     registerSceneBackgroundHandlers()
     registerClipboardHandlers()
     /**
-     * Os canais da importação de ficha só existem quando o recurso está ligado (ver
-     * `IMPORTACAO_DE_FICHA_LIGADA`). Não é redundância com o botão escondido na tela: com o canal
-     * fora do ar, o app instalado não tem POR ONDE abrir um PDF, nem por um caminho que alguém
-     * escreva sem querer amanhã. O que está desligado deve estar desligado dos dois lados.
+     * Os canais da importação de ficha só existem com o recurso ligado (ver
+     * `IMPORTACAO_DE_FICHA_LIGADA`), e isso não é redundância com o botão escondido: com o canal fora
+     * do ar, o app instalado não tem POR ONDE abrir um PDF.
      */
     const paginasRepository = new PaginasRepository(profilesRepository)
     if (IMPORTACAO_DE_FICHA_LIGADA) {
@@ -203,19 +193,16 @@ if (app.isPackaged && !app.requestSingleInstanceLock()) {
     /**
      * Os handlers da janela e do update ficam AQUI, e não dentro do `createWindow`, mesmo precisando
      * dela: `ipcMain.handle` recusa registrar o mesmo canal duas vezes, e recusa derrubando o
-     * processo. Registrando uma vez só e perguntando pela janela na hora da chamada, abrir uma
-     * segunda janela deixa de ser um jeito de o app não abrir.
+     * processo. Ver `obterJanelaPrincipal`.
      */
     registerWindowHandlers(obterJanelaPrincipal, settingsRepository)
     registerUpdateHandlers(obterJanelaPrincipal)
 
     /**
-     * Aqui rodava um `applyIconToShortcuts` a cada abertura, pra fazer o ícone escolhido valer na
-     * barra de tarefas. Ele foi REMOVIDO, e o motivo importa mais que o efeito: aquilo chamava
-     * `powershell.exe -EncodedCommand <base64>` toda vez que o app abria, e executável sem assinatura
-     * digital disparando PowerShell com comando em base64 é comportamento de malware pra qualquer
-     * antivírus — na máquina de um tester o app entrou em looping de abrir e fechar, e outro só
-     * conseguiu usar desligando a proteção.
+     * Aqui rodava um `applyIconToShortcuts` a cada abertura, e ele foi REMOVIDO: aquilo chamava
+     * `powershell.exe -EncodedCommand <base64>` toda vez, e executável sem assinatura digital
+     * disparando PowerShell em base64 é comportamento de malware pra qualquer antivírus — na máquina
+     * de um tester o app entrou em looping de abrir e fechar.
      *
      * O app agora não executa NENHUM processo externo. Se o ícone da barra voltar a incomodar, o
      * caminho é assinar o executável, ou abrir mão do AppUserModelID.
