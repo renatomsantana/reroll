@@ -9,11 +9,10 @@ import type { ProfilesRepository } from './ProfilesRepository'
  */
 export class NotesRepository {
   /**
-   * Um `JsonFileStore` POR PERFIL, criado sob demanda e guardado — o caminho do arquivo depende de
-   * qual personagem está aberto (ver `ProfilesRepository.activeDirectory`), e trocar de perfil não
-   * pode reaproveitar o store do anterior. O cache existe porque o `JsonFileStore` guarda a fila de
-   * gravações dele: recriá-lo a cada chamada jogaria fora essa fila, que é justamente o que impede
-   * duas gravações concorrentes de se atropelarem.
+   * Um `JsonFileStore` POR PERFIL, criado sob demanda e guardado: o caminho depende de qual
+   * personagem está aberto, e trocar de perfil não pode reaproveitar o store do anterior. O cache
+   * existe porque o store guarda a FILA de gravações dele — recriá-lo a cada chamada jogaria fora
+   * justamente o que impede duas gravações concorrentes de se atropelarem.
    */
   private readonly stores = new Map<string, JsonFileStore<NotesData>>()
 

@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NotesData } from '@shared/types/notes'
 import { DEFAULT_NOTES } from '@shared/types/notes'
+import type { RecursoVital } from '@shared/types/recursoVital'
 import type { ProfilesState } from '@shared/types/profile'
 import { ProfilesProvider } from '@renderer/settings/ProfilesContext'
 import { SettingsProvider } from '@renderer/settings/SettingsContext'
@@ -178,6 +180,68 @@ describe('as barras de recurso', () => {
     expect(sanEl.style.getPropertyValue('--recurso-cor')).toBe('#800080')
     // A cor escolhida continua sendo a da barra; o preenchimento de agora é amarelo.
     expect(sanEl.style.getPropertyValue('--recurso-preenchido')).toBe('#ffff00')
+  })
+
+  /**
+   * SEGURAR o botão anda de 5 em 5, e o clique que o navegador dispara ao soltar em cima dele é
+   * engolido — senão soltar somaria 1 por cima dos 5 que já foram. O segundo caso é o outro lado
+   * disso, e era um defeito: soltar FORA do botão (o pointer sai de cima ainda apertado, que é o
+   * que acontece quando a mão escorrega) não dispara clique nenhum, então a marca ficava armada e
+   * era o CLIQUE SEGUINTE, de verdade, que sumia.
+   */
+  describe('segurar o botão', () => {
+    function BarrasControladas() {
+      const [recursos, setRecursos] = useState<RecursoVital[]>([{ id: 'pv', nome: 'PV', atual: 30, maximo: 45 }])
+      return <BarrasDeRecurso recursos={recursos} onChange={setRecursos} />
+    }
+
+    function montarControlada(): HTMLElement {
+      ;(globalThis as unknown as { api: unknown }).api = apiFalsa()
+      render(
+        <ProfilesProvider>
+          <SettingsProvider>
+            <BarrasControladas />
+          </SettingsProvider>
+        </ProfilesProvider>
+      )
+      return screen.getByLabelText('Tirar de PV')
+    }
+
+    const valor = (): number => Number(screen.getByRole('progressbar', { name: 'PV' }).getAttribute('aria-valuenow'))
+
+    /** Aperta e segura até o passo grande sair. */
+    function segurar(botao: HTMLElement): void {
+      fireEvent.pointerDown(botao, { button: 0 })
+      act(() => {
+        vi.advanceTimersByTime(500)
+      })
+    }
+
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('anda de 5 em 5 e o clique de soltar em cima não soma por cima', () => {
+      const menos = montarControlada()
+      segurar(menos)
+      expect(valor()).toBe(25)
+      fireEvent.pointerUp(menos)
+      fireEvent.click(menos)
+      expect(valor()).toBe(25)
+    })
+
+    it('soltar fora do botão não engole o clique seguinte', () => {
+      const menos = montarControlada()
+      segurar(menos)
+      expect(valor()).toBe(25)
+      // A mão escorregou pra fora ainda apertada e soltou lá: o navegador não dispara clique nenhum.
+      fireEvent.pointerLeave(menos)
+      fireEvent.pointerUp(document.body)
+      // O próximo é um clique de verdade — com o aperto que todo clique tem —, e vale 1.
+      fireEvent.pointerDown(menos, { button: 0 })
+      fireEvent.pointerUp(menos)
+      fireEvent.click(menos)
+      expect(valor()).toBe(24)
+    })
   })
 
   it('uma linha fina por barra, e nada na tela quando não há recurso', async () => {

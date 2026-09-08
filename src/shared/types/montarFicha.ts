@@ -58,7 +58,7 @@ export function montarFicha(campos: SheetImportField[], textoSolto?: string): Fi
       porBloco.set(bloco, linhas)
       continue
     }
-    // "Ficha" é honesto e não inventa um sistema que ninguém reconheceu.
+    // Sem grupo, a seção é "Outros" (ver `SEM_GRUPO`): diz a verdade e não inventa um sistema.
     const titulo = grupo || SEM_GRUPO
     const lista = porTitulo.get(titulo) ?? []
     // O campo de seção vive num `<input>` de uma linha, que engole quebra de linha: "comun\nFey"

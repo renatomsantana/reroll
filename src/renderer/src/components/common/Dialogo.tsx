@@ -9,17 +9,15 @@ import './Dialogo.css'
  * OS DIÁLOGOS DO APP — "tem certeza?" e "não deu" — como janela do próprio app, e não o
  * `confirm()`/`alert()` do sistema.
  *
- * O motivo é um defeito do Electron no Windows, relatado pelo usuário como dois bugs: "criamos um
- * preset, apagamos, e não conseguimos criar outro" e "importamos uma ficha, apagamos um preset, e a
- * ficha não deixa editar mais nada". Os dois começam num `confirm()` nativo (o de apagar preset):
- * depois que o diálogo do sistema fecha, o Chromium do Electron deixa a janela sem foco de teclado
- * — os campos de texto param de receber tecla até a janela perder e ganhar foco de novo. O nome do
- * preset novo não digita; a ficha não digita. Um diálogo desenhado pelo app não tem esse efeito,
- * e ainda fica na cara do 98 em vez da caixa cinza do sistema.
+ * O motivo é um defeito do Electron no Windows, relatado como dois bugs: "criamos um preset,
+ * apagamos, e não conseguimos criar outro" e "importamos uma ficha, apagamos um preset, e a ficha
+ * não deixa editar mais nada". Os dois começam num `confirm()` nativo: depois que o diálogo do
+ * sistema fecha, o Chromium do Electron deixa a janela sem foco de teclado, e os campos param de
+ * receber tecla até a janela perder e ganhar foco de novo.
  *
- * `useDialogo()` devolve `confirmar(texto)`, `avisar(texto)` e `escolher(texto, opções, …)`, como
- * promessas. FORA do provedor (um teste que monta a aba sozinha) ele cai nos nativos — o
- * comportamento de antes, que nos testes não tem o defeito porque não há janela.
+ * `useDialogo()` devolve `confirmar`, `avisar` e `escolher` como promessas. FORA do provedor (um
+ * teste que monta a aba sozinha) cai nos nativos, que nos testes não têm o defeito porque não há
+ * janela.
  */
 export interface OpcaoDoDialogo {
   id: string
