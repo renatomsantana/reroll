@@ -1,4 +1,4 @@
-import { corDaEscalaDeEstresse, corPadraoDoRecurso, ehCorHex } from './cor'
+import { VERDE_DE_VIDA_CHEIA, corDaEscalaDeEstresse, ehCorHex } from './cor'
 
 /**
  * RECURSO VITAL: o que o personagem gasta e recupera durante a sessão — PV, PE, Sanidade em Ordem
@@ -20,10 +20,9 @@ export interface RecursoVital {
   atual: number
   maximo: number
   /**
-   * Cor da barra escolhida pela pessoa, `#rrggbb`. AUSENTE é o normal, e aí a cor sai do NOME
-   * (`corPadraoDoRecurso`: PV bordô, PE marinho, Sanidade roxo) — "para cada atributo atribuir cor
-   * também; a pessoa decide a cor também". A cor já foi a do ESTADO, que continua sendo mostrado,
-   * agora no NÚMERO da barra, pra cor da barra poder ser da barra.
+   * Cor da barra escolhida pela pessoa, `#rrggbb` — "a pessoa decide a cor também". AUSENTE é o
+   * normal, e aí vale o verde de vida cheia (`VERDE_DE_VIDA_CHEIA`). Escolhida ou padrão, é a cor de
+   * CHEIA: a barra cai pro amarelo e pro vermelho por cima dela.
    */
   cor?: string
   /**
@@ -45,9 +44,9 @@ export function recursoSobePorPadrao(nome: string): boolean {
   return NOME_QUE_SOBE.test(nome.trim())
 }
 
-/** A cor com que a barra aparece: a escolhida, ou a que o nome sugere. */
-export function corDoRecurso(recurso: Pick<RecursoVital, 'nome' | 'cor'>): string {
-  return recurso.cor ?? corPadraoDoRecurso(recurso.nome)
+/** A cor de VIDA CHEIA desta barra: a que a pessoa escolheu, ou o verde padrão. */
+export function corDoRecurso(recurso: Pick<RecursoVital, 'cor'>): string {
+  return recurso.cor ?? VERDE_DE_VIDA_CHEIA
 }
 
 /**
@@ -186,12 +185,14 @@ export function estadoDoRecurso(recurso: Pick<RecursoVital, 'atual' | 'maximo' |
 }
 
 /**
- * A cor com que o PREENCHIMENTO da barra é pintado agora, pelo estado ("mantém o básico de vida cheia
- * e depois vai descendo e também vai mudando de cor"). A cor da barra, escolhida ou pelo nome, é a de
- * vida cheia; no aviso o preenchimento fica AMARELO e no perigo VERMELHO, os dois da paleta de 16 do
- * Windows. A barra que SOBE não tem cor de repouso: cada nível é um degrau do amarelo ao vermelho.
+ * A cor com que o PREENCHIMENTO da barra é pintado agora: VERDE cheia, AMARELO nos 40%, VERMELHO nos
+ * 15% — as três da paleta de 16 do Windows. É a escala de qualquer jogo, e é a que se lê de relance.
+ *
+ * O verde é só o PADRÃO: barra com cor escolhida no editor usa a cor dela como "vida cheia", e cai
+ * pro amarelo e pro vermelho do mesmo jeito. A barra que SOBE não tem cor de repouso — cada nível é
+ * um degrau do amarelo ao vermelho (ver `corDaEscalaDeEstresse`).
  */
-export function corDoPreenchimento(recurso: Pick<RecursoVital, 'nome' | 'cor' | 'atual' | 'maximo' | 'sobe'>): string {
+export function corDoPreenchimento(recurso: Pick<RecursoVital, 'cor' | 'atual' | 'maximo' | 'sobe'>): string {
   if (recurso.sobe) {
     if (recurso.maximo <= 1 || recurso.atual <= 1) return corDaEscalaDeEstresse(recurso.atual >= recurso.maximo && recurso.maximo > 0 ? 1 : 0)
     return corDaEscalaDeEstresse((recurso.atual - 1) / (recurso.maximo - 1))

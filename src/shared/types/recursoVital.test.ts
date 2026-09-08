@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   MAXIMO_DE_RECURSOS,
   corDoPreenchimento,
+  corDoRecurso,
   criarRecurso,
   estadoDoRecurso,
   recursoSobePorPadrao,
@@ -154,7 +155,7 @@ describe('a barra que sobe (estresse, dano por região)', () => {
   })
 
   it('o preenchimento sobe do amarelo ao vermelho, um degrau por ponto: 1 amarelo, 3 laranja, 5 vermelho', () => {
-    const torso = (atual: number) => corDoPreenchimento({ nome: 'Torso', atual, maximo: 5, sobe: true })
+    const torso = (atual: number) => corDoPreenchimento({ atual, maximo: 5, sobe: true })
     expect(torso(1)).toBe('#ffff00')
     expect(torso(2)).toBe('#ffbf00')
     expect(torso(3)).toBe('#ff8000')
@@ -162,17 +163,30 @@ describe('a barra que sobe (estresse, dano por região)', () => {
     expect(torso(5)).toBe('#ff0000')
     // Vazia ainda é amarela (não aparece: largura zero), e mais níveis dão mais degraus.
     expect(torso(0)).toBe('#ffff00')
-    expect(corDoPreenchimento({ nome: 'Estresse', atual: 15, maximo: 30, sobe: true })).toBe('#ff8400')
+    expect(corDoPreenchimento({ atual: 15, maximo: 30, sobe: true })).toBe('#ff8400')
   })
 
-  it('a barra que desce mantém a cor dela cheia, amarela nos 40% e vermelha nos 15%', () => {
-    expect(corDoPreenchimento({ nome: 'PV', atual: 45, maximo: 45 })).toBe('#800000')
-    expect(corDoPreenchimento({ nome: 'PV', atual: 41, maximo: 100 })).toBe('#800000')
-    expect(corDoPreenchimento({ nome: 'PV', atual: 40, maximo: 100 })).toBe('#ffff00')
-    expect(corDoPreenchimento({ nome: 'PV', atual: 15, maximo: 100 })).toBe('#ff0000')
-    // A cor escolhida é a de cheia; o estado continua mandando embaixo dos 40%.
-    expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 90, maximo: 100 })).toBe('#0000ff')
-    expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 10, maximo: 100 })).toBe('#ff0000')
+  it('a barra que desce é VERDE cheia, AMARELA nos 40% e VERMELHA nos 15%', () => {
+    expect(corDoPreenchimento({ atual: 45, maximo: 45 })).toBe('#008000')
+    expect(corDoPreenchimento({ atual: 41, maximo: 100 })).toBe('#008000')
+    expect(corDoPreenchimento({ atual: 40, maximo: 100 })).toBe('#ffff00')
+    expect(corDoPreenchimento({ atual: 16, maximo: 100 })).toBe('#ffff00')
+    expect(corDoPreenchimento({ atual: 15, maximo: 100 })).toBe('#ff0000')
+    expect(corDoPreenchimento({ atual: 0, maximo: 100 })).toBe('#ff0000')
+    // O verde é o PADRÃO: a cor escolhida no editor é a de cheia, e daí desce igual.
+    expect(corDoPreenchimento({ cor: '#0000ff', atual: 90, maximo: 100 })).toBe('#0000ff')
+    expect(corDoPreenchimento({ cor: '#0000ff', atual: 30, maximo: 100 })).toBe('#ffff00')
+    expect(corDoPreenchimento({ cor: '#0000ff', atual: 10, maximo: 100 })).toBe('#ff0000')
+  })
+
+  /**
+   * A cor de cheia não sai mais do NOME. Havia um padrão por nome (PV bordô, PE marinho, Sanidade
+   * roxo) e ele deixava toda barra cheia com cara de perigo; o pedido de 08/09/2026 é a escala de
+   * jogo, verde → amarelo → vermelho, e o nome não entra nela.
+   */
+  it('a cor de cheia é o verde padrão, ou a que a pessoa escolheu', () => {
+    expect(corDoRecurso({})).toBe('#008000')
+    expect(corDoRecurso({ cor: '#800080' })).toBe('#800080')
   })
 })
 
