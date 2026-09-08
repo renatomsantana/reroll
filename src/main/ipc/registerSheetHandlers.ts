@@ -66,18 +66,14 @@ export async function lerPdfEscolhido(caminho: string): Promise<PdfEscolhido> {
   try {
     const buffer = await fs.readFile(caminho)
     /**
-     * A ASSINATURA do formato, e não só a extensão: pedido do spec da importação (Stage 0). Um
-     * `.pdf` que não começa com `%PDF-` é outra coisa renomeada: um vídeo, um executável, um zip.
-     * O pdf.js recusaria de qualquer jeito, mas recusaria DEPOIS de os bytes atravessarem o IPC e
-     * chegarem ao renderer; aqui a recusa é antes, com o motivo certo na tela ("ilegível") em vez
-     * de um erro de análise.
-     */
-    /**
-     * ARQUIVO ERRADO — pedido dele: "se uploadarem o arquivo errado, aparecer uma mensagem". O erro
-     * mais provável é o cruzamento dos dois botões da Ficha: o `.html` exportado pelo Reroll aqui,
-     * a ficha em PDF lá. Cada um ganha o próprio motivo, e a mensagem diz qual botão usar; o resto
-     * (um .docx, uma imagem) é só "não é PDF". Antes tudo isso era "ilegível", e a tela dizia
-     * "protegido por senha ou danificado", que não era o caso.
+     * A ASSINATURA do formato, e não só a extensão: um `.pdf` que não começa com `%PDF-` é outra
+     * coisa renomeada. O pdf.js recusaria de qualquer jeito, mas depois de os bytes atravessarem o
+     * IPC; aqui a recusa é antes, com o motivo certo na tela.
+     *
+     * ARQUIVO ERRADO é pedido dele ("se uploadarem o arquivo errado, aparecer uma mensagem"). O erro
+     * mais provável é o cruzamento dos dois botões da Ficha: o `.html` exportado pelo Reroll aqui, o
+     * PDF lá. Cada um ganha o próprio motivo, e a mensagem diz qual botão usar; antes tudo isso era
+     * "ilegível", e a tela dizia "protegido por senha ou danificado", que não era o caso.
      */
     if (!ehPdf(buffer)) {
       if (parecePacoteDoReroll(buffer)) return { ok: false, motivo: 'pacote-do-reroll' }
@@ -115,13 +111,11 @@ export function parecePacoteDoReroll(bytes: Uint8Array): boolean {
 }
 
 /**
- * Os limites do que uma ficha pode trazer. Folgados de propósito: a maior ficha de referência (Ordem
- * Paranormal) tem 458 campos, e nenhuma delas chega perto de qualquer número daqui.
- *
- * Eles não existem contra ficha grande, existem contra ficha ABSURDA: um PDF gerado com dez mil
- * campos, ou um defeito num leitor futuro que multiplique seções em laço. O `notes.json` é lido
- * inteiro toda vez que o personagem abre; um arquivo de 300 MB não dá erro, dá um app que demora
- * cinco segundos pra trocar de personagem e ninguém sabe por quê.
+ * Os limites do que uma ficha pode trazer, folgados de propósito: a maior ficha de referência (Ordem
+ * Paranormal) tem 458 campos. Eles não existem contra ficha grande, existem contra ficha ABSURDA —
+ * um PDF gerado com dez mil campos, ou um defeito num leitor futuro que multiplique seções em laço.
+ * O `notes.json` é lido inteiro toda vez que o personagem abre, e um arquivo de 300 MB não dá erro:
+ * dá um app que demora cinco segundos pra trocar de personagem, sem ninguém saber por quê.
  */
 export const LIMITES_DA_FICHA = {
   nome: 200,
@@ -146,23 +140,16 @@ function texto(valor: unknown, limite: number, onde: string): string {
 /**
  * O payload da importação, conferido ANTES de qualquer gravação.
  *
- * O motivo de existir não é desconfiar do renderer: ele é código nosso. É que este canal é o ÚNICO
- * que grava três coisas em sequência (perfil, ficha, presets), e sem a conferência aqui um payload
- * torto só estourava no meio: `payload.characterName.trim()` num valor que não é texto derruba o
- * handler DEPOIS de o perfil já ter sido criado e ativado. O resultado é um personagem vazio,
- * aberto, que ninguém pediu: e a ficha, que era o ponto, perdida. Conferir na porta é o que torna a
- * importação tudo-ou-nada.
+ * Não é desconfiança do renderer, que é código nosso: é que este canal é o único que grava três
+ * coisas em sequência (perfil, ficha, presets), e sem a conferência aqui um payload torto só
+ * estourava no meio — `characterName.trim()` num valor que não é texto derruba o handler DEPOIS de o
+ * perfil já ter sido criado e ativado, deixando um personagem vazio e a ficha perdida. Conferir na
+ * porta é o que torna a importação tudo-ou-nada.
  *
- * A régua tem dois pesos, e é de propósito:
- *
- * - ESTRUTURA errada (não é objeto, `notes` ausente, `sections` que não é lista) ESTOURA. Não é
- *   ficha estranha, é contrato quebrado: bug meu, ou versão de renderer que não bate com a do main.
- *   A tela mostra o erro de gravação e nada foi tocado.
- * - TAMANHO e tipo de campo solto são CORRIGIDOS: corta no limite, descarta o item torto e segue com
- *   o resto. É a mesma escolha que os presets já fazem logo abaixo ("perder o personagem inteiro por
- *   causa de uma linha de ataque torta seria pior que perder a linha"), e pela mesma razão: o que
- *   chega aqui é o palpite de um leitor sobre um PDF de terceiro, e palpite erra em um campo, não no
- *   documento todo.
+ * A régua tem dois pesos, de propósito: ESTRUTURA errada (não é objeto, `sections` que não é lista)
+ * ESTOURA, porque é contrato quebrado, bug meu ou versão de renderer que não bate; TAMANHO e tipo de
+ * campo solto são CORRIGIDOS, cortando no limite e descartando o item torto. O que chega aqui é o
+ * palpite de um leitor sobre um PDF de terceiro, e palpite erra em um campo, não no documento todo.
  */
 export function validarSheetApplyPayload(bruto: unknown): SheetApplyPayload {
   if (typeof bruto !== 'object' || bruto === null) throw new Error('Ficha inválida: payload vazio.')
@@ -285,14 +272,12 @@ export function registerSheetHandlers(
 
   /**
    * Cria o personagem e grava anotações e presets DENTRO dele, aqui no processo principal e em
-   * ordem: e é por isso que existe como um canal só em vez de três chamadas do renderer.
+   * ordem, e é por isso que existe como um canal só em vez de três chamadas do renderer.
    *
    * O motivo é onde os dados moram: `NotesRepository` e `PresetsRepository` escrevem na pasta do
-   * perfil ATIVO (ver `ProfilesRepository.activeDirectory`), que só passa a ser o novo depois que a
-   * lista de perfis é gravada. Do renderer, cada passo é uma promessa separada e a troca de perfil
-   * ainda passa pelo React: a ficha importada tinha chance real de cair na pasta do personagem
-   * ANTERIOR, sobrescrevendo os presets dele. Aqui é `await` atrás de `await`, sem interface no
-   * meio.
+   * perfil ATIVO, que só passa a ser o novo depois que a lista de perfis é gravada. Do renderer,
+   * cada passo é uma promessa separada e a troca de perfil ainda passa pelo React: a ficha importada
+   * tinha chance real de cair na pasta do personagem ANTERIOR, sobrescrevendo os presets dele.
    */
   ipcMain.handle(
     IpcChannels.sheetsApply,
@@ -309,15 +294,12 @@ export function registerSheetHandlers(
         : undefined
 
       /**
-       * O TETO DE PERSONAGENS (ver `MAX_PROFILES`), cobrado ANTES de qualquer gravação.
+       * O TETO DE PERSONAGENS (ver `MAX_PROFILES`), cobrado ANTES de qualquer gravação, e só quando
+       * a importação vai CRIAR um: atualizar quem já existe não aumenta a lista, e recusar aí seria
+       * travar o caso mais comum, o jogador que subiu de nível e está reimportando a ficha.
        *
-       * Só quando a importação vai CRIAR um: atualizar um personagem que já existe não aumenta a
-       * lista, e recusar aí seria travar justamente o caso mais comum: o jogador subiu de nível e
-       * está reimportando a ficha dele.
-       *
-       * O erro sobe pra tela como falha da importação, com o texto de `sheetImport.errors.save`.
-       * Não é o recado mais preciso do mundo, mas é honesto (nada foi gravado) e a alternativa —
-       * criar o personagem dezesseis calado: seria o app decidindo ignorar o próprio limite.
+       * O erro sobe pra tela como falha da importação. Não é o recado mais preciso do mundo, mas é
+       * honesto — nada foi gravado —, e a alternativa seria o app ignorar calado o próprio limite.
        */
       if (!existente && estado.profiles.length >= MAX_PROFILES) {
         throw new Error(
@@ -345,17 +327,14 @@ export function registerSheetHandlers(
       await profiles.save({ profiles: lista, activeId: novo.id })
 
       /**
-       * TUDO OU NADA, de verdade: a revisão de código pegou o buraco: a conferência na porta
-       * garante a FORMA do payload, mas a gravação das anotações passou a ter um teto de tamanho
-       * (ver `NotesRepository.save`), e `LIMITES_DA_FICHA` admite mais do que ele. Uma ficha dentro
-       * dos limites de campo e acima do teto total criava o personagem, ativava, e estourava na
-       * ficha: a pessoa ficava num personagem novo e vazio, com um erro na tela. É exatamente o
-       * desfecho que a conferência existe pra impedir.
+       * TUDO OU NADA, de verdade: a revisão de código pegou o buraco. A conferência na porta garante
+       * a FORMA do payload, mas a gravação das anotações tem um teto de tamanho próprio (ver
+       * `NotesRepository.save`) e `LIMITES_DA_FICHA` admite mais que ele — uma ficha dentro dos
+       * limites de campo e acima do teto total criava o personagem, ativava, e estourava na ficha.
        *
-       * Por isso o que vem depois do perfil roda dentro de um `try`, e a falha DESFAZ o perfil:
-       * a lista volta a ser a de antes (personagem novo some; nome e sistema de um atualizado
-       * voltam), e o erro sobe pra tela como sempre. O que pode sobrar é uma pasta órfã com
-       * presets já gravados, que nenhum personagem aponta: melhor que um personagem fantasma.
+       * Por isso o que vem depois do perfil roda dentro de um `try`, e a falha DESFAZ o perfil: a
+       * lista volta a ser a de antes e o erro sobe pra tela. O que pode sobrar é uma pasta órfã com
+       * presets já gravados, que nenhum personagem aponta — melhor que um personagem fantasma.
        */
       try {
         await gravarFichaEPresets()
@@ -374,26 +353,17 @@ export function registerSheetHandlers(
         // Em branco = o recém-criado que recebeu a importação; pra crítico conta como novo.
         const emBranco = !!existente && !existente.name.trim() && fichaEstaVazia(atuais)
         /**
-         * As seções vão pra FICHA do personagem, e nada vai pro diário: o diário é por sessão de
-         * jogo (ver `NotesPage`) e a ficha é o que o personagem É, não o que aconteceu num dia.
+         * As seções vão pra FICHA do personagem, e nada vai pro diário: o diário é por sessão de jogo
+         * e a ficha é o que o personagem É, não o que aconteceu num dia.
          *
-         * ACRESCENTA às que já existem em vez de substituir. Hoje este canal só é chamado logo
-         * depois de criar um perfil vazio, então na prática não há o que preservar: mas ele não tem
-         * como saber disso, e apagar a ficha de alguém seria irreversível.
-         */
-        /**
-         * Cada bloco recebe o texto do grupo correspondente, ACRESCENTADO ao que houver. Hoje o
-         * perfil acaba de nascer e não há o que preservar, mas este canal não tem como saber disso
-         *: e apagar a ficha de alguém seria irreversível.
-         */
-        /**
-         * O texto novo entra DEPOIS do que já estava, e não por cima: acrescentar deixa uma linha
-         * repetida, que se apaga; substituir apaga a história que a pessoa escreveu à mão, que não
-         * se recupera.
+         * Cada bloco ACRESCENTA ao que já existe, em vez de substituir. Hoje este canal só é chamado
+         * logo depois de criar um perfil vazio, então na prática não há o que preservar — mas ele não
+         * tem como saber disso, e apagar a ficha de alguém seria irreversível: acrescentar deixa uma
+         * linha repetida, que se apaga, enquanto substituir apaga a história escrita à mão.
          *
-         * A exceção é o texto que JÁ ESTÁ LÁ, palavra por palavra — é o caso de reimportar a mesma
-         * ficha depois de subir de nível, e sem esta pergunta o bloco de inventário ganharia uma
-         * cópia do equipamento a cada importação.
+         * A exceção é o texto que JÁ ESTÁ LÁ, palavra por palavra, que é o caso de reimportar a mesma
+         * ficha depois de subir de nível: sem essa pergunta, o bloco de inventário ganharia uma cópia
+         * do equipamento a cada importação.
          */
         const juntar = (atual: string, novoTexto: string | undefined): string => {
           if (!novoTexto?.trim()) return atual
@@ -433,15 +403,11 @@ ${novoTexto}` : novoTexto
           /** As CONDIÇÕES do HUD (spec §3.6) pela mesma regra: só quando ainda não há nenhuma. */
           condicoes: existente && atuais.condicoes.length > 0 ? atuais.condicoes : condicoesPadrao(payload.system),
           /**
-           * Seção com o MESMO TÍTULO é substituída, e não duplicada.
-           *
-           * A seção é o retrato de um pedaço da ficha naquele sistema — "Atributos", "Perícias" —, e
-           * numa reimportação o que veio do PDF é a versão nova dela. Acrescentar produzia duas
-           * seções "Atributos" na tela, uma com os números velhos e outra com os novos, sem nada
-           * dizendo qual é qual.
-           *
-           * O que NÃO tem correspondente novo fica como está: uma seção de outra ficha importada no
-           * mesmo personagem não é apagada por esta importação.
+           * Seção com o MESMO TÍTULO é substituída, e não duplicada: ela é o retrato de um pedaço da
+           * ficha naquele sistema, e numa reimportação o que veio do PDF é a versão nova dela.
+           * Acrescentar produzia duas seções "Atributos" na tela, uma com os números velhos e outra
+           * com os novos, sem nada dizendo qual é qual. O que não tem correspondente novo fica como
+           * está: uma seção de outra ficha importada no mesmo personagem não é apagada por esta.
            */
           sections: [
             ...atuais.sections.filter(
@@ -468,29 +434,21 @@ ${novoTexto}` : novoTexto
 
       /**
        * Os presets da ficha passam pela MESMA validação do canal de presets (`isValidPresetInput`).
-       *
-       * Não é conserto de defeito observado: os leitores derivam toda expressão de
-       * `parseDiceExpression`, que já recusa tipo de dado que o app não rola e quantidade acima de
-       * `MAX_SIMULTANEOUS_DICE`. É o fechamento de um DESVIO: este caminho gravava direto no
-       * repositório, então a garantia dependia de todo leitor futuro se lembrar do limite. Um preset
-       * com 40 dados ou com `d30` não quebra aqui: quebra depois, na cena 3D, longe de onde entrou.
-       *
-       * Preset recusado é PULADO, e o resto da importação segue: perder o personagem inteiro por
-       * causa de uma linha de ataque torta seria pior que perder a linha.
+       * Não é conserto de defeito observado — os leitores derivam toda expressão de
+       * `parseDiceExpression`, que já recusa tipo de dado que o app não rola —, é o fechamento de um
+       * DESVIO: este caminho gravava direto no repositório, então a garantia dependia de todo leitor
+       * futuro se lembrar do limite. Preset recusado é PULADO e o resto segue: perder o personagem
+       * inteiro por causa de uma linha de ataque torta seria pior que perder a linha.
        */
       /**
-       * Preset que já existe COM O MESMO NOME não é criado de novo: senão reimportar a ficha
-       * encheria a lista de "Adaga (ataque)" repetidos. Pelo nome, e não pela expressão: o dano da
-       * arma muda quando o personagem sobe de nível, e é a mesma arma.
-       *
-       * O que já está lá fica como está, inclusive se a expressão mudou. Mexer nele seria desfazer
-       * o ajuste que a pessoa possa ter feito no editor de presets: e a ficha nova continua ali
-       * pra ela conferir.
+       * Preset que já existe COM O MESMO NOME não é criado de novo, senão reimportar a ficha encheria
+       * a lista de "Adaga (ataque)" repetidos. Pelo nome, e não pela expressão: o dano da arma muda
+       * quando o personagem sobe de nível, e é a mesma arma. O que já está lá fica como está, mesmo
+       * com a expressão diferente — mexer nele seria desfazer o ajuste que a pessoa fez no editor.
        */
       /**
-       * As PÁGINAS do PDF vão pra pasta do personagem (ver `PaginasRepository`), NO LUGAR das que
-       * havia: reimportar a ficha nova traz as páginas novas. Sem página no payload (renderer
-       * anterior, ou PDF que não desenhou), as de antes ficam.
+       * As PÁGINAS do PDF vão pra pasta do personagem, NO LUGAR das que havia: reimportar a ficha
+       * nova traz as páginas novas. Sem página no payload, as de antes ficam.
        */
       if (paginas && (payload.paginas?.length ?? 0) > 0) await paginas.gravar(payload.paginas ?? [])
 

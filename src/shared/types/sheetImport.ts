@@ -45,12 +45,11 @@ export interface PdfField {
   /** Retângulo do campo na página, em pontos: `[x0, y0, x1, y1]`, origem embaixo à esquerda. */
   rect: [number, number, number, number]
   /**
-   * Campo que a pessoa NÃO VÊ (bandeiras HIDDEN/NOVIEW do PDF). O leitor genérico o ignora por
-   * inteiro: é como formulário calculado esconde total interno, e um "TOTAL_INTERNO = 999" na
-   * ficha tem cara de dado lido. Mas o leitor DEDICADO precisa dele: na ficha editável de Tenebra
-   * as Gotas de Suor e a Barra de Feridas moram em caixas ocultas que os botões da página ligam
-   * e desligam, e na de Tormenta20 o modificador de cada perícia é um campo oculto. Vêm no FIM da
-   * lista, depois de todos os visíveis, pra um mapa "primeiro nome ganha" preferir o visível.
+   * Campo que a pessoa NÃO VÊ (bandeiras HIDDEN/NOVIEW do PDF). O genérico o ignora por inteiro: é
+   * como formulário calculado esconde total interno, e um "TOTAL_INTERNO = 999" tem cara de dado
+   * lido. O leitor DEDICADO precisa dele — em Tenebra as Gotas de Suor moram em caixas ocultas que os
+   * botões da página ligam, e em Tormenta20 o modificador de cada perícia é oculto. Vêm no FIM da
+   * lista, depois dos visíveis, pra um mapa "primeiro nome ganha" preferir o visível.
    */
   oculto?: boolean
 }
@@ -153,54 +152,45 @@ export interface SheetImportPreset {
 }
 
 /**
- * Limite de tamanho do PDF que o app aceita abrir, em bytes.
+ * Limite de tamanho do PDF que o app aceita abrir, em bytes. Não é desconfiança do arquivo, é o custo
+ * real do caminho: os bytes são lidos no processo principal, CLONADOS pelo IPC pra chegar ao renderer
+ * e clonados de novo pelo pdf.js ao abrir, então um arquivo de centenas de megabytes vira mais de um
+ * gigabyte de memória viva antes de qualquer leitura, e o app morre sem dizer nada.
  *
- * Não é desconfiança do arquivo, é o custo real do caminho: os bytes são lidos no processo
- * principal, CLONADOS pelo IPC pra chegar ao renderer e clonados de novo pelo pdf.js ao abrir. Um
- * arquivo de centenas de megabytes vira mais de um gigabyte de memória viva antes de qualquer
- * leitura, e o app morre sem dizer nada — que é o pior desfecho possível pra quem só arrastou um
- * arquivo.
- *
- * 80 MB é folgado de propósito: a maior das fichas de referência tem 4.5 MB, e uma ficha
- * DIGITALIZADA em alta resolução chega perto de 50 MB. Acima disso deixa de ser ficha de personagem.
+ * 80 MB é folgado de propósito: a maior ficha de referência tem 4.5 MB, e uma DIGITALIZADA em alta
+ * resolução chega perto de 50 MB. Acima disso deixa de ser ficha de personagem.
  */
 export const TAMANHO_MAXIMO_DA_FICHA = 80 * 1024 * 1024
 
 /**
- * Quantas páginas do PDF são varridas. A partir daí o arquivo é ignorado, com um aviso no console.
+ * Quantas páginas do PDF são varridas; daí pra cima o arquivo é ignorado, com um aviso no console.
  *
- * O limite de BYTES acima não cobre este caso, e é por isso que existem os dois: página de PDF quase
- * não custa espaço, então um arquivo de poucos megabytes pode declarar dezenas de milhares delas. Só
- * que a varredura custa por PÁGINA (duas chamadas assíncronas ao pdf.js em cada uma), e uma ficha
- * dessas deixa a importação rodando por minutos com uma ampulheta que não tem botão de cancelar —
- * pra quem está olhando, o app pendurou.
- *
- * 100 é muito acima do real: a maior ficha de referência tem 5 páginas, e um livro de personagem
- * inteiro não passa de algumas dezenas. Acima disso não é ficha de personagem.
+ * O limite de BYTES não cobre este caso, e é por isso que existem os dois: página de PDF quase não
+ * custa espaço, então um arquivo de poucos megabytes pode declarar dezenas de milhares delas. Só que
+ * a varredura custa por PÁGINA (duas chamadas assíncronas ao pdf.js em cada), e uma ficha dessas
+ * deixa a importação rodando por minutos com uma ampulheta sem botão de cancelar. 100 é muito acima
+ * do real: a maior ficha de referência tem 5 páginas.
  */
 export const MAXIMO_DE_PAGINAS_DA_FICHA = 100
 
 /**
  * Quantos CAMPOS de formulário e quantos FRAGMENTOS de texto a varredura guarda, no total.
  *
- * Os dois tetos acima (bytes e páginas) não cobrem este caso, e ele é o que custa caro: os leitores
- * fazem conta de distância entre cada campo e cada texto da página (`labelForField`,
- * `rotulosExclusivos`, `nomeDaPericia`), ou seja, campos × textos. Um PDF de UMA página com cinco
- * mil campos e duzentos mil fragmentos — cabe em poucos megabytes — são um bilhão de comparações
- * dentro do renderer, e a janela inteira congela sem botão de cancelar. Medido nas fichas reais:
- * a maior tem 458 campos e 886 fragmentos. Os tetos são dez e cinquenta vezes isso.
+ * Os dois tetos acima não cobrem este caso, e ele é o que custa caro: os leitores fazem conta de
+ * distância entre cada campo e cada texto da página, ou seja, campos × textos. Um PDF de uma página
+ * com cinco mil campos e duzentos mil fragmentos cabe em poucos megabytes e dá um bilhão de
+ * comparações dentro do renderer, congelando a janela. Medido nas fichas reais: a maior tem 458
+ * campos e 886 fragmentos, e os tetos são dez e cinquenta vezes isso.
  */
 export const MAXIMO_DE_CAMPOS_DA_FICHA = 5_000
 export const MAXIMO_DE_TEXTOS_DA_FICHA = 50_000
 
 /**
- * O resultado de escolher um PDF, com o MOTIVO quando não deu.
- *
- * Era `PickedPdf | null`, e o `null` significava só "o usuário fechou o diálogo" — então tudo o que
- * dava errado ANTES da leitura (arquivo removido entre escolher e abrir, pasta de rede que caiu,
- * permissão negada, arquivo grande demais) virava uma promessa rejeitada. E a chamada no renderer
- * está fora do `try` que trata falha de leitura, ou seja, esses casos não viravam mensagem nenhuma:
- * o botão simplesmente não fazia nada.
+ * O resultado de escolher um PDF, com o MOTIVO quando não deu. Era `PickedPdf | null`, e o `null`
+ * significava só "o usuário fechou o diálogo": tudo o que dava errado ANTES da leitura (arquivo
+ * removido entre escolher e abrir, pasta de rede que caiu, permissão negada) virava uma promessa
+ * rejeitada, e como a chamada no renderer está fora do `try` que trata falha de leitura, o botão
+ * simplesmente não fazia nada.
  */
 export type PdfEscolhido =
   | { ok: true; fileName: string; bytes: Uint8Array }
@@ -214,29 +204,23 @@ export type PdfEscolhido =
 
 export interface SheetApplyPayload {
   /**
-   * Personagem de destino, quando a importação for pra ATUALIZAR um que já existe. Ausente = criar
-   * um novo, que é o padrão.
+   * Personagem de destino, quando a importação for pra ATUALIZAR um que já existe; ausente = criar um
+   * novo, que é o padrão.
    *
    * Existe por um caso que acontece toda sessão de campanha: o jogador sobe de nível, salva o PDF de
    * novo e importa. Sem isto o app criava um SEGUNDO personagem com o mesmo nome, e recuperar o
-   * anterior significava apagar um dos dois — levando junto o diário e as anotações dele, que não
-   * estão em PDF nenhum.
-   *
-   * Id que não existe mais (personagem apagado com a janela de conferência aberta) cai no caminho de
-   * criar novo: perder a importação inteira por causa disso seria pior.
+   * anterior significava apagar um dos dois, levando junto o diário e as anotações dele. Id que não
+   * existe mais cai no caminho de criar novo: perder a importação inteira seria pior.
    */
   targetProfileId?: string
   characterName: string
   system: string
   /**
-   * As SEÇÕES da ficha, com os nomes que o sistema de RPG dá a elas, e só o que o usuário deixou
-   * marcado na conferência.
-   *
-   * Isto já foi uma string só (tudo ia pra história do personagem) e depois três (atributos,
-   * habilidades, história). As duas versões tinham o mesmo defeito, que o usuário apontou: espremiam
-   * uma ficha de RPG inteira dentro de blocos fixos que o app inventou. Agora quem manda na forma da
-   * ficha é o SISTEMA — Ordem Paranormal traz Identificação/Atributos/Recursos, Oblivio traz
-   * Identificação/Atributos/Corpo — e a aba Ficha desenha o que veio.
+   * As SEÇÕES da ficha, com os nomes que o sistema de RPG dá a elas, e só o que ficou marcado na
+   * conferência. Isto já foi uma string só e depois três (atributos, habilidades, história), e as
+   * duas versões tinham o mesmo defeito, que ele apontou: espremiam uma ficha de RPG inteira dentro
+   * de blocos fixos que o app inventou. Agora quem manda na forma da ficha é o SISTEMA, e a aba Ficha
+   * desenha o que veio.
    */
   notes: {
     /** Texto pros blocos livres da ficha (atributos, habilidades, inventário, aparência, história). */

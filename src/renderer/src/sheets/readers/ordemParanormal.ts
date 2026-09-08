@@ -12,21 +12,19 @@ import { labelForField } from '../labelForField'
 import type { SheetReader } from './types'
 
 /**
- * Leitor da ficha oficial de ORDEM PARANORMAL (Jambô).
- *
- * O que ele sabe, e o genérico não tem como saber:
+ * Leitor da ficha oficial de ORDEM PARANORMAL (Jambô). O que ele sabe, e o genérico não tem como
+ * saber:
  *
  * - os ataques vivem numa GRADE de nome previsível, `Atq<bloco>.<i>.<j>.<linha>.<coluna>`, com as
- *   colunas 0..3 sendo nome, teste, dano e "crítico/alcance/especial". Isso foi lido do arquivo e
- *   conferido contra os rótulos impressos (a coluna 1 fica embaixo de "TESTE", a 2 de "DANO");
- * - a coluna TESTE traz só o BÔNUS ("+7"), porque o d20 é implícito no sistema. É exatamente o caso
- *   pra que `parseTestBonus` existe;
- * - os atributos têm nome curto e fixo (`AGI`, `FOR`, `INT`, `PRE`, `VIG`), e `Personagem`,
- *   `Jogador`, `Classe`, `Trilha`, `PV`, `PE`, `SAN` são nomes de campo estáveis.
+ *   colunas 0..3 sendo nome, teste, dano e "crítico/alcance/especial" — lido do arquivo e conferido
+ *   contra os rótulos impressos;
+ * - a coluna TESTE traz só o BÔNUS ("+7"), porque o d20 é implícito no sistema. É o caso pra que
+ *   `parseTestBonus` existe;
+ * - os atributos têm nome curto e fixo, e `Personagem`, `Classe`, `PV`, `PE`, `SAN` são estáveis.
  *
- * Por isso cada linha de ataque vira ATÉ DOIS presets — o teste de acerto e o dano —, que é o que o
- * usuário autorizou ("pode criar dois tipos de presets diferentes"). Um preset guarda uma expressão
- * só (ver `Preset`), então um ataque não cabe num preset só sem perder metade.
+ * Por isso cada linha de ataque vira ATÉ DOIS presets, o teste de acerto e o dano ("pode criar dois
+ * tipos de presets diferentes"): um preset guarda uma expressão só, então um ataque não cabe num
+ * preset sem perder metade.
  */
 
 /**
@@ -51,13 +49,11 @@ const CAMPO_DE_PERICIA = /^Pericias\.(\d+)\.(\d+)$/
 const COLUNA_DA_PERICIA = 1
 
 /**
- * A outra grade da mesma tabela de perícias: `Bns1.<linha>`, a coluna de BÔNUS.
- *
- * Ela sai inteira, pelo mesmo motivo que a de perícias: sem o nome da perícia ao lado, um número
- * solto não é informação. E ela produzia uma linha com cara de verdadeira — a célula `Bns1.0` fica
- * embaixo do cabeçalho impresso "TREINO", então a importação da ficha do Matais trazia
- * "Treino = 0" como se fosse um atributo do personagem. Não é: é a primeira célula de uma tabela
- * vazia, rotulada com o título da coluna.
+ * A outra grade da mesma tabela de perícias: `Bns1.<linha>`, a coluna de BÔNUS. Sai inteira, pelo
+ * mesmo motivo da grade de perícias — sem o nome da perícia ao lado, um número solto não é
+ * informação. E ela produzia uma linha com cara de verdadeira: a célula `Bns1.0` fica embaixo do
+ * cabeçalho impresso "TREINO", então a ficha do Matais trazia "Treino = 0" como se fosse atributo do
+ * personagem.
  */
 const CAMPO_DE_BONUS = /^Bns\d*\./
 
@@ -66,13 +62,10 @@ const CAMPO_DE_RITUAL = /^RITUAIS \d+$/
 const CAMPO_DE_ITEM = /^ITEM \d+(_2)?$/
 
 /**
- * `NEXPE` — o menu que a ficha usa pro NEX. O valor dele traz DOIS números na mesma string, com um
- * punhado de espaços entre eles ("5         1"): o NEX em porcentagem e o limite de PE por turno,
- * que em Ordem Paranormal é derivado dele. É a diagramação do menu virando conteúdo.
- *
- * Sem tratamento a ficha importava um campo chamado "NEX" valendo "5 1", que não quer dizer nada em
- * lugar nenhum. O NEX é uma das primeiras coisas que se olha numa ficha de agente, então vale
- * escrever a regra.
+ * `NEXPE` — o menu que a ficha usa pro NEX. O valor traz DOIS números na mesma string, com um punhado
+ * de espaços entre eles ("5         1"): o NEX em porcentagem e o limite de PE por turno, que é
+ * derivado dele. É a diagramação do menu virando conteúdo. Sem tratamento a ficha importava um campo
+ * "NEX" valendo "5 1", que não quer dizer nada.
  */
 const CAMPO_DE_NEX = 'NEXPE'
 
@@ -94,27 +87,20 @@ const COLUNA_EXTRA = 3
 /**
  * Campos com nome estável, e o rótulo com que eles aparecem na conferência.
  *
- * O `rotulo` é o desempate, e ele existe por um fato MEDIDO no arquivo: os nomes de campo se
- * repetem. `INT` aparece 11 vezes, `PRE` 10, `AGI` 8, `FOR` 3, `VIG` 2, e até `Personagem` 2 — o
- * primeiro é o atributo de verdade e os outros são a coluna de atributo de cada PERÍCIA, que a ficha
- * batizou com o mesmo nome.
- *
- * Isso passou despercebido enquanto eu só tinha a ficha em branco (todos valiam "0", então tanto
- * fazia qual fosse lido) e apareceu no primeiro teste com valores: os cinco atributos SUMIRAM da
- * importação, porque o índice por nome ficava com a última ocorrência, que é sempre uma perícia.
- *
- * O que separa os dois é o rótulo IMPRESSO ao lado: o atributo tem a palavra inteira ("AGILIDADE"),
- * a coluna de perícia tem a abreviação ("AGI").
+ * O `rotulo` é o desempate, e existe por um fato medido no arquivo: os nomes de campo se repetem.
+ * `INT` aparece 11 vezes, `PRE` 10, `AGI` 8, e até `Personagem` 2 — o primeiro é o atributo de
+ * verdade e os outros são a coluna de atributo de cada PERÍCIA, que a ficha batizou igual. Isso
+ * passou despercebido enquanto só existia a ficha em branco (todos valiam "0") e apareceu no
+ * primeiro teste com valores: os cinco atributos SUMIRAM, porque o índice por nome ficava com a
+ * última ocorrência, que é sempre uma perícia. O que separa os dois é o rótulo impresso ao lado: o
+ * atributo tem a palavra inteira ("AGILIDADE"), a coluna de perícia tem a abreviação ("AGI").
  */
 /**
- * O `roll` é o que faz o número na ficha virar dado rolável (ver `sheetRoll.ts`), e aqui ele está só
- * nos ATRIBUTOS de propósito.
- *
- * Um teste de PERÍCIA em Ordem Paranormal é a soma de duas coisas — os dados do atributo mais o
- * bônus de treinamento —, e o campo da perícia guarda só o bônus. Rolar "1d20 + 5" ali seria uma
- * regra de outro sistema com cara de certa; rolar o atributo e somar de cabeça é o que o jogador já
- * faz na mesa. Os atributos, esses, são a regra inteira num número só: Agilidade 3 é "role 3d20 e
- * fique com o maior".
+ * O `roll` é o que faz o número virar dado rolável (ver `sheetRoll.ts`), e está só nos ATRIBUTOS de
+ * propósito. Um teste de perícia em Ordem é a soma de duas coisas — os dados do atributo mais o
+ * bônus de treinamento — e o campo da perícia guarda só o bônus: rolar "1d20 + 5" ali seria uma regra
+ * de outro sistema com cara de certa. Os atributos são a regra inteira num número só: Agilidade 3 é
+ * "role 3d20 e fique com o maior".
  */
 const CAMPOS_CONHECIDOS: {
   name: string
@@ -123,14 +109,11 @@ const CAMPOS_CONHECIDOS: {
   rotulo?: RegExp
   roll?: SheetImportField['roll']
   /**
-   * Vem MESMO VAZIO — ver `ESQUELETO_DOS_RECURSOS`.
-   *
-   * Campo vazio normalmente é descartado (é o que impede uma ficha em branco de importar duzentas
-   * linhas em branco), mas há um punhado deles que a ficha PRECISA ter mesmo sem valor: PV, PE e
-   * Sanidade têm um par atual/máximo cada, e na ficha do Matias só os máximos estão preenchidos.
-   * Trazer só metade do par deixa a ficha importada dizendo "PV máximo 45" sem lugar nenhum pra
-   * anotar quanto ele tem AGORA — que é o número que muda toda sessão e o motivo de se olhar a
-   * ficha. Foi o que o usuário reportou: "ficou faltando, coloca o máximo e atuais de tudo".
+   * Vem MESMO VAZIO (ver `ESQUELETO_DOS_RECURSOS`). Campo vazio normalmente é descartado, mas PV, PE
+   * e Sanidade têm um par atual/máximo cada, e na ficha do Matias só os máximos estão preenchidos:
+   * trazer metade do par deixa a ficha dizendo "PV máximo 45" sem lugar nenhum pra anotar quanto ele
+   * tem AGORA, que é o número que muda toda sessão. Foi o que ele reportou: "ficou faltando, coloca o
+   * máximo e atuais de tudo".
    */
   sempre?: boolean
 }[] = [
@@ -158,12 +141,10 @@ const CAMPOS_CONHECIDOS: {
 ]
 
 /**
- * Campos que a ficha tem, mas que não são do PERSONAGEM.
- *
- * `DEZ` é o "10" impresso da fórmula da defesa — "DEFESA = 10 + AGI + Equip. + Outros". É um número
- * fixo do papel, e ele saía na importação como "AGI = 10", porque o texto impresso mais próximo dele
- * é o "AGI" da mesma fórmula. Duas mentiras numa linha só: nem o rótulo nem o valor são do agente,
- * que tem Agilidade 1 e Defesa 11 — as duas já importadas por `CAMPOS_CONHECIDOS`.
+ * Campos que a ficha tem, mas que não são do PERSONAGEM. `DEZ` é o "10" impresso da fórmula da defesa
+ * ("DEFESA = 10 + AGI + Equip. + Outros"), e saía na importação como "AGI = 10", porque o texto
+ * impresso mais próximo dele é o "AGI" da mesma fórmula: duas mentiras numa linha só, já que o agente
+ * tem Agilidade 1 e Defesa 11.
  */
 const CAMPOS_IGNORADOS = new Set(['DEZ'])
 
@@ -178,12 +159,10 @@ export const ordemParanormalReader: SheetReader = {
   label: 'Ordem Paranormal',
 
   /**
-   * Reconhece pelos NOMES DE CAMPO, não pelo texto impresso.
-   *
-   * É a marca mais confiável que esta ficha tem: o texto pode mudar de edição, de idioma ou de
-   * diagramação, e alguém pode escrever "Ordem Paranormal" à mão numa ficha de outro sistema. Já a
-   * combinação `Atq...` + os cinco atributos abreviados é estrutura, e estrutura não se digita por
-   * acidente.
+   * Reconhece pelos NOMES DE CAMPO, não pelo texto impresso: é a marca mais confiável que esta ficha
+   * tem. O texto pode mudar de edição, de idioma ou de diagramação, e alguém pode escrever "Ordem
+   * Paranormal" à mão numa ficha de outro sistema; já a combinação `Atq...` mais os cinco atributos
+   * abreviados é estrutura, e estrutura não se digita por acidente.
    */
   detect: (sheet) => {
     if (sheet.fields.length === 0) return 0
@@ -227,19 +206,16 @@ function extrairFichaOficial(sheet: PdfSheet): SheetImport {
     const consumidos = new Set<PdfField>()
 
     /**
-     * Os campos conhecidos entram NA FRENTE e agrupados, substituindo o que o genérico tinha achado
-     * por proximidade pros mesmos nomes. O genérico acerta o rótulo na maioria deles, mas erra em
-     * alguns por diagramação — `peat` sai como "DE ESFORÇO" e `Origem` como "o", porque o rótulo
-     * impresso mais próximo é um pedaço de outra frase.
+     * Os campos conhecidos entram NA FRENTE e agrupados, substituindo o que o genérico achou por
+     * proximidade: ele acerta o rótulo na maioria, mas erra em alguns por diagramação — `peat` sai
+     * como "DE ESFORÇO" porque o rótulo impresso mais próximo é pedaço de outra frase.
      */
     /**
-     * A ficha é DE ALGUÉM, ou é o modelo em branco baixado do site?
-     *
-     * O nome do personagem é o corte: ninguém preenche o nome de uma ficha que não vai usar, e a
-     * ficha em branco de Ordem Paranormal vem com 76 campos já preenchidos de fábrica (zeros,
-     * "Escolha uma Classe", defesa 10) mas nunca com nome. É o que decide se os pares atual/máximo
-     * entram vazios: numa ficha de verdade eles são espaço pra anotar, num modelo em branco seriam
-     * seis linhas vazias a mais na tela de quem só quer ver o que o arquivo tinha.
+     * A ficha é DE ALGUÉM, ou é o modelo em branco baixado do site? O nome do personagem é o corte:
+     * ninguém preenche o nome de uma ficha que não vai usar, e a em branco vem com 76 campos
+     * preenchidos de fábrica mas nunca com nome. É o que decide se os pares atual/máximo entram
+     * vazios: numa ficha de verdade eles são espaço pra anotar, num modelo em branco seriam seis
+     * linhas vazias a mais.
      */
     const temDono = Boolean(valorDeFicha(acharCampo('Personagem', /^PERSONAGEM/i)?.value))
 
@@ -263,11 +239,10 @@ function extrairFichaOficial(sheet: PdfSheet): SheetImport {
     const nomesRepetidos = new Set(CAMPOS_CONHECIDOS.filter((c) => c.rotulo).map((c) => c.name))
 
     /**
-     * O que o genérico achou e este leitor NÃO tratou. O corte é pelo nome do campo do PDF
-     * (`fieldName`), que é exato — casar por valor juntaria dois atributos que valem "2".
-     *
-     * Os campos da grade de ataque também saem: eles viraram PRESETS, e repetir "1d12+2" como
-     * anotação seria dizer duas vezes a mesma coisa.
+     * O que o genérico achou e este leitor NÃO tratou. O corte é pelo nome do campo do PDF, que é
+     * exato — casar por valor juntaria dois atributos que valem "2". Os campos da grade de ataque
+     * também saem: eles viraram PRESETS, e repetir "1d12+2" como anotação seria dizer duas vezes a
+     * mesma coisa.
      */
     const jaTratados = new Set(CAMPOS_CONHECIDOS.map((campo) => campo.name))
     const foraDaLista = (nome: string | undefined): boolean =>
@@ -289,11 +264,9 @@ function extrairFichaOficial(sheet: PdfSheet): SheetImport {
     const restantes = base.fields.filter((campo) => foraDaLista(campo.fieldName))
 
     /**
-     * PERÍCIAS: importadas por `periciasTreinadas`, e o aviso que existia aqui saiu junto.
-     *
-     * Elas ficaram de fora numa primeira versão porque o nome de cada uma é texto impresso e o
-     * vizinho mais próximo do campo é a abreviação do atributo. Com a ficha preenchida em mãos deu
-     * pra MEDIR onde o nome fica e casar as 29 linhas — ver o comentário da função.
+     * PERÍCIAS, importadas por `periciasTreinadas`. Elas ficaram de fora numa primeira versão porque
+     * o nome de cada uma é texto impresso e o vizinho mais próximo do campo é a abreviação do
+     * atributo; com a ficha preenchida em mãos deu pra MEDIR onde o nome fica e casar as 29 linhas.
      */
     const pericias = periciasTreinadas(sheet, temDono)
     const lacunas = temDono ? lacunasNumeradas(sheet) : []
@@ -318,14 +291,11 @@ function extrairFichaOficial(sheet: PdfSheet): SheetImport {
       warnings: avisos,
       fields: [...conhecidos, ...(nex ? [nex] : []), ...pericias, ...restantes, ...lacunas],
       /**
-       * Os presets dos ATAQUES entram na frente e os do genérico continuam atrás: aqueles são
-       * dirigidos (sei que aquela coluna é dano), estes são o que sobrou de varrer a ficha atrás de
-       * notação de dado, e podem pescar um ritual ou uma anotação de margem que vale como rolagem.
-       */
-      /**
        * Os presets dos ATAQUES entram na frente, e os do genérico só entram se vierem de FORA da
-       * grade. Sem esse corte, cada célula de dano virava preset duas vezes: uma como
-       * "Pistola .38 (dano)", dirigida, e outra como "DANO", que é o rótulo impresso da coluna.
+       * grade. Aqueles são dirigidos (sei que aquela coluna é dano), estes são o que sobrou de varrer
+       * a ficha atrás de notação de dado, e podem pescar um ritual que vale como rolagem. Sem o corte,
+       * cada célula de dano virava preset duas vezes: uma como "Pistola .38 (dano)" e outra como
+       * "DANO", que é o rótulo impresso da coluna.
        */
       presets: [...presets, ...base.presets.filter((preset) => foraDaLista(preset.fieldName))]
     }
@@ -335,17 +305,15 @@ function extrairFichaOficial(sheet: PdfSheet): SheetImport {
 /**
  * A regra de TESTE de Ordem Paranormal: role N dados e use o MAIOR.
  *
- * A coluna TESTE da ficha traz quantos dados se rola — "2d20" quer dizer dois d20, dos quais vale o
- * melhor, e não a soma dos dois. Somar dá em média 21 onde a regra dá 13,8. Enquanto o app não sabia
- * fazer isso, o importador criava o preset somando e avisava a pessoa pra fazer a conta de cabeça
- * olhando a bandeja; agora a regra vai gravada no preset (ver `KeepRule`).
+ * A coluna TESTE traz quantos dados se rola — "2d20" quer dizer dois d20, dos quais vale o melhor, e
+ * não a soma dos dois (somar dá em média 21 onde a regra dá 13,8). Enquanto o app não sabia fazer
+ * isso, o importador criava o preset somando e pedia a conta de cabeça; agora a regra vai gravada no
+ * preset (ver `KeepRule`). Um dado só não ganha regra: não há o que escolher.
  *
- * Um dado só não ganha regra nenhuma: não há o que escolher, e uma regra ali só encheria o rótulo.
- *
- * O que NÃO dá pra deduzir da ficha é o atributo ZERO, que em Ordem rola 2d20 e fica com o PIOR. Ele
- * se escreve na coluna exatamente igual a um atributo 2, e a ficha não diz qual atributo cada ataque
- * usa. Fica no caso comum — o maior — e quem tiver um atributo zero troca no editor de presets, que
- * é uma escolha de dois cliques contra um palpite que erraria calado.
+ * O que NÃO dá pra deduzir da ficha é o atributo ZERO, que rola 2d20 e fica com o PIOR: ele se
+ * escreve na coluna igual a um atributo 2, e a ficha não diz qual atributo cada ataque usa. Fica no
+ * caso comum, e quem tiver um atributo zero troca no editor de presets — dois cliques contra um
+ * palpite que erraria calado.
  */
 function comRegraDoMaior(expressao: DiceExpression): DiceExpression {
   const dados = expressao.groups.reduce((soma, grupo) => soma + grupo.count, 0)
@@ -438,16 +406,14 @@ function campoDeNex(campo: PdfField | undefined): SheetImportField | null {
 /**
  * As perícias TREINADAS, lidas da grade `Pericias.<linha>.<coluna>`.
  *
- * O nome da perícia não é campo: é parte do desenho da ficha. Ele sai então do TEXTO IMPRESSO na
- * mesma linha do campo, à esquerda, pulando a abreviação do atributo. Foi medido no arquivo real:
- * o nome fica numa coluna fixa (x≈349), a abreviação em outra (x≈447) e o campo em x≈476 — pegar o
- * vizinho mais próximo QUE NÃO SEJA abreviação acerta as 29 linhas. Outros textos da página caem na
- * mesma altura ("ATRIBUTOS", "ORIGEM", "FICHA DE AGENTE"), mas todos bem mais à esquerda, e por isso
- * "o mais próximo" já resolve sem precisar fixar uma faixa de x — que quebraria em outra diagramação.
+ * O nome da perícia não é campo, é parte do desenho da ficha: ele sai do TEXTO IMPRESSO na mesma
+ * linha, à esquerda, pulando a abreviação do atributo. Medido no arquivo real — o nome fica numa
+ * coluna fixa (x≈349), a abreviação em outra (x≈447) e o campo em x≈476 —, então pegar o vizinho
+ * mais próximo QUE NÃO SEJA abreviação acerta as 29 linhas, sem precisar fixar uma faixa de x que
+ * quebraria em outra diagramação.
  *
- * Só entram as perícias com número DIFERENTE DE ZERO. A ficha tem 29 linhas e quem não treinou nada
- * fica com 29 zeros; importar isso repetiria exatamente o que o usuário já apontou uma vez ("fica
- * uma bagunça, não dá para entender"). Zero aqui não é informação, é a ausência dela.
+ * Só entram as perícias com número diferente de zero: a ficha tem 29 linhas, e quem não treinou nada
+ * fica com 29 zeros. Zero aqui não é informação, é a ausência dela.
  */
 function periciasTreinadas(sheet: PdfSheet, comLacunas: boolean): SheetImportField[] {
   const campos: SheetImportField[] = []
@@ -457,12 +423,10 @@ function periciasTreinadas(sheet: PdfSheet, comLacunas: boolean): SheetImportFie
     const valor = valorDeFicha(campo.value, campo.type)
     const treinada = valor && Number(valor) !== 0
     /**
-     * SEM `comLacunas`, só as treinadas entram — é o que uma ficha "de leitura" quer.
-     *
-     * COM ele, as 29 entram, inclusive zeradas: pedido do usuário, e a razão é de mesa — perícia
-     * que não estava treinada passa a estar no meio da sessão, e sem a linha não há onde escrever.
-     * O zero fica de fora do valor de propósito: linha vazia é lacuna pra preencher, e "0" escrito
-     * é afirmação de que a perícia foi conferida.
+     * Sem `comLacunas`, só as treinadas entram, que é o que uma ficha de leitura quer. Com ele, as 29
+     * entram, inclusive zeradas: a razão é de mesa — perícia que não estava treinada passa a estar no
+     * meio da sessão, e sem a linha não há onde escrever. O zero fica de fora do valor de propósito:
+     * linha vazia é lacuna pra preencher, "0" escrito é afirmação de que a perícia foi conferida.
      */
     if (!treinada && !comLacunas) continue
     const nome = nomeDaPericia(sheet, campo)
@@ -478,16 +442,14 @@ function periciasTreinadas(sheet: PdfSheet, comLacunas: boolean): SheetImportFie
 }
 
 /**
- * As LACUNAS numeradas da ficha — rituais, itens e ataques.
+ * As LACUNAS numeradas da ficha: rituais, itens e ataques. Elas existem no arquivo como campos vazios
+ * (`RITUAIS 1`… `ITEM 11`, e a grade de ataques) e a importação as descartava por estarem em branco.
+ * O pedido dele: "coloca lacunas para TUDO que é preenchível, porque às vezes precisamos preencher no
+ * app também mesmo que não tenha, porque é um item novo na sessão".
  *
- * Elas existem no arquivo como campos vazios (`RITUAIS 1`… `RITUAIS 20`, `ITEM 1`… `ITEM 11` e a
- * segunda página deles, e a grade de ataques), e a importação as descartava por estarem em branco.
- * O pedido do usuário: "coloca lacunas para TUDO que é preenchível, porque às vezes precisamos
- * preencher no app também mesmo que não tenha, porque é um item novo na sessão".
- *
- * O que NÃO entra, e é escolha: os 38 campos sem nome do PDF (`1_2`, `2_2`…), as trinta caixas de
+ * O que não entra, e é escolha: os 38 campos sem nome do PDF (`1_2`, `2_2`…), as trinta caixas de
  * marcação e os círculos de nível de ritual. Lacuna sem nome não é lugar pra escrever — é linha em
- * branco com um número do lado, e trinta delas fariam a ficha parecer defeito em vez de espaço.
+ * branco com um número do lado, e trinta delas fariam a ficha parecer defeito.
  */
 function lacunasNumeradas(sheet: PdfSheet): SheetImportField[] {
   const campos: SheetImportField[] = []
@@ -540,17 +502,11 @@ function nomeDaPericia(sheet: PdfSheet, campo: PdfField): string | null {
 }
 
 /**
- * O nome impresso, arrumado pra virar rótulo de ficha.
- *
- * Três coisas saem, e as três foram vistas no arquivo real:
- *
- * - a LACUNA de preencher à mão, em "PROFISSÃO* (__________)". É espaço em branco do papel, não
- *   nome de perícia — e a ficha tem duas linhas assim;
- * - o ASTERISCO, que marca perícia que exige treinamento. É regra do sistema, não do personagem;
- * - o CAIXA-ALTA. A ficha imprime tudo em maiúscula porque é diagramação; ao lado de "Agilidade" e
- *   "PV máximo", um "SOBREVIVÊNCIA" gritando destoaria do resto da tela.
- *
- * O caixa-baixa é o do português (`pt-BR`), senão "SOBREVIVÊNCIA" perde o acento no caminho.
+ * O nome impresso, arrumado pra virar rótulo de ficha. Três coisas saem, as três vistas no arquivo
+ * real: a LACUNA de preencher à mão, em "PROFISSÃO* (__________)", que é espaço em branco do papel; o
+ * ASTERISCO, que marca perícia exigindo treinamento, e é regra do sistema e não do personagem; e o
+ * CAIXA-ALTA, que é diagramação — ao lado de "Agilidade" e "PV máximo", um "SOBREVIVÊNCIA" gritando
+ * destoaria. O caixa-baixa é o do português, senão a palavra perde o acento no caminho.
  */
 function apresentarPericia(bruto: string): string | null {
   const limpo = bruto
@@ -568,21 +524,19 @@ function apresentarPericia(bruto: string): string | null {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * O SEGUNDO modelo de ficha que Ordem Paranormal tem na prática: a editável da comunidade, que
- * chegou aqui na ficha real do Vincenzo. Outra estrutura, o mesmo sistema:
+ * O SEGUNDO modelo de ficha que Ordem Paranormal tem na prática: a editável da comunidade, que chegou
+ * aqui na ficha real do Vincenzo. Outra estrutura, o mesmo sistema:
  *
- * - os atributos são `atr_agi`…`atr_vig` (minúsculos, com prefixo), não `AGI`…`VIG`;
- * - cada perícia tem TRÊS campos: `t_<perícia>` (treinamento), `o_<perícia>` (outros) e
- *   `b_<perícia>` (o bônus TOTAL, calculado por JavaScript dentro do PDF). Como na família
- *   "Editável com Cálculos" de Pathfinder, o total calculado só fica gravado quando alguém tocou o
- *   campo — vazio, ele se refaz da soma dos componentes. CONFERIDO na ficha real três vezes:
- *   atletismo 10+2=12, medicina 10+5=15, diplomacia 10+0=10;
- * - a grade de armas é `atq_name<i>` / `dano_arma<i>` / `critico_arma<i>` / `alcance_arma<i>`,
- *   seis linhas, SEM coluna de teste (o teste é a perícia de Pontaria/Luta);
- * - Classe, Origem e Trilha são LISTAS que exportam índice ("2") — o rótulo legível vem das opções
- *   do próprio campo, que a varredura traduz (ver `rotuloDaOpcao` em `sheetFromPdfDocument.ts`);
- * - `ITEM 1`…`ITEM 11` e a segunda página `_2` têm OS MESMOS nomes da ficha oficial — as lacunas
- *   numeradas (`lacunasNumeradas`) servem às duas sem mudar nada.
+ * - os atributos são `atr_agi`…`atr_vig`, e não `AGI`…`VIG`;
+ * - cada perícia tem TRÊS campos: `t_` (treinamento), `o_` (outros) e `b_` (o bônus total, calculado
+ *   por JavaScript dentro do PDF). Como na família "Editável com Cálculos" de Pathfinder, o total só
+ *   fica gravado quando alguém tocou o campo; vazio, ele se refaz da soma. Conferido três vezes na
+ *   ficha real: atletismo 10+2=12, medicina 10+5=15, diplomacia 10+0=10;
+ * - a grade de armas é `atq_name<i>` / `dano_arma<i>` / `critico_arma<i>` / `alcance_arma<i>`, seis
+ *   linhas, SEM coluna de teste (o teste é a perícia de Pontaria ou Luta);
+ * - Classe, Origem e Trilha são LISTAS que exportam índice ("2"), e o rótulo legível vem das opções
+ *   do próprio campo (ver `rotuloDaOpcao`);
+ * - os itens têm OS MESMOS nomes da ficha oficial, então `lacunasNumeradas` serve às duas.
  */
 const ATRIBUTOS_B: { name: string; label: string }[] = [
   { name: 'atr_agi', label: 'Agilidade' },
@@ -741,10 +695,9 @@ function extrairFichaDaComunidade(sheet: PdfSheet): SheetImport {
   push('Carga', cargaAtual && cargaMax ? `${cargaAtual}/${cargaMax}` : (cargaAtual ?? cargaMax), 'Recursos')
   push('Pontos de prestígio', bruto('pontos_prestigio'), 'Recursos')
   /**
-   * Os "EXTRA" de cada recurso (o "±" impresso ao lado de PV, PE e SAN — "san_extra = -8" na ficha
-   * do Vincenzo) eram consumidos e não lidos. E, na página 2, os limites do inventário: `limite_1..3`
-   * embaixo do "LIMITE" impresso, `LIMITE DE` (= "Médio") e `mod_extra`. Os rótulos aqui são os
-   * impressos, mesmo quando curtos, porque inventar um ("limite de carga") seria chute.
+   * Os "EXTRA" de cada recurso (o "±" impresso ao lado de PV, PE e SAN) eram consumidos e não lidos,
+   * e com eles os limites do inventário da página 2. Os rótulos aqui são os impressos, mesmo quando
+   * curtos, porque inventar um ("limite de carga") seria chute.
    */
   push('PV extra', bruto('pv_extra'), 'Recursos', undefined, false, 'pv_extra')
   push('PE extra', bruto('pe_extra'), 'Recursos', undefined, false, 'pe_extra')

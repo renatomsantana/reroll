@@ -11,104 +11,78 @@ import { CHAVES_DA_APARENCIA, type AparenciaDoPersonagem } from '@shared/types/a
 export type ThemeMode = 'day' | 'night'
 
 /**
- * O que a pessoa ESCOLHEU, que é diferente do tema que está valendo agora.
+ * O que a pessoa ESCOLHEU, que é diferente do tema que está valendo agora. `'system'` existe porque
+ * um app aberto ao lado do Discord a noite inteira deveria escurecer junto com o Windows.
  *
- * `'system'` é a terceira opção, e ela existe porque um app que fica aberto ao lado do Discord a
- * noite inteira deveria escurecer junto com o Windows, e não ficar sendo o único retângulo branco da
- * tela às onze da noite.
- *
- * A distinção entre ESCOLHA e EFEITO é o que faz isso funcionar sem espalhar condicional pelo app:
- * `themeSource` é o que se guarda, `theme` continua sendo 'day' ou 'night' e é o que todo o resto lê
- * (inclusive o `data-theme` no `<html>`, de onde sai o CSS inteiro). Nada que consumia `theme`
- * precisou saber que esta opção passou a existir.
+ * A distinção entre escolha e efeito é o que evita espalhar condicional pelo app: `themeSource` é o
+ * que se guarda, `theme` continua sendo 'day' ou 'night' e é o que todo o resto lê, inclusive o
+ * `data-theme` do `<html>`. Nada que consumia `theme` precisou saber que esta opção passou a existir.
  */
 export type ThemeSource = ThemeMode | 'system'
 // Reexportado pra não quebrar quem já importava daqui; a definição mora em `shared` porque os
 // leitores de ficha também precisam dela. Ver `shared/types/idioma.ts`.
 export type { Language }
 /**
- * Como o dado entra na bandeja, e se a torre aparece — três opções, pedido do usuário ("uma opção de
- * escolher se quer que tenha a torre ou não, ou se quer que jogue por cima como é o padrão, ou se
- * quer a torre ali só por decoração"):
+ * Como o dado entra na bandeja, e se a torre aparece ("uma opção de escolher se quer que tenha a
+ * torre ou não, ou se quer que jogue por cima como é o padrão, ou se quer a torre ali só por
+ * decoração"):
  *
- * - `tray`: sem torre. O dado é arremessado de fora e de cima da bandeja (`tossDie`) — o padrão de
- *   sempre;
- * - `tower`: a torre encostada no hexágono E o dado saindo da boca dela (`tossDieFromMouth`);
- * - `towerDecor`: a torre na cena, mas o dado arremessado por cima como no `tray`. É a torre como
- *   peça de cenário, sem participar da rolagem.
+ * - `tray`: sem torre, com o dado arremessado de fora e de cima (`tossDie`), o padrão de sempre;
+ * - `tower`: a torre encostada no hexágono e o dado saindo da boca dela (`tossDieFromMouth`);
+ * - `towerDecor`: a torre na cena, mas o dado arremessado por cima como no `tray`.
  *
- * As duas primeiras trocam a FÍSICA e por isso entram no `key` de remontagem em `DiceRoller3D.tsx`;
- * a terceira também, porque muda a cena.
+ * Os três entram no `key` de remontagem em `DiceRoller3D.tsx`: dois trocam a física, e o terceiro
+ * muda a cena.
  */
 export type LaunchMode = 'tray' | 'tower' | 'towerDecor'
 
 /**
- * Como o WASD dirige a câmera (pedido do usuário: "poder movimentar pela mesa inteira, ou deixar
- * lockado no dado, ou free way"):
+ * Como o WASD dirige a câmera ("poder movimentar pela mesa inteira, ou deixar lockado no dado, ou
+ * free way"):
  *
- * - `table`: anda pela MESA. W/S e A/D deslizam a câmera no plano da mesa, sem sair dela.
- * - `dice`: TRAVADA nos dados. O alvo persegue sozinho onde os dados pararam e o WASD orbita em
- *   volta deles.
- * - `free`: LIVRE. A câmera voa na direção pra onde está olhando, sem ficar presa a nada.
+ * - `table`: anda pela MESA, deslizando no plano dela, sem sair;
+ * - `dice`: TRAVADA nos dados, com o alvo perseguindo onde eles pararam e o WASD orbitando;
+ * - `free`: LIVRE, voando na direção pra onde a câmera olha.
  *
- * Ao contrário de `launchMode`, isto NÃO entra no `key` de remount da cena: trocar de modo não
- * reconstrói nada, só muda como as teclas são interpretadas no laço de animação.
+ * Ao contrário de `launchMode`, isto NÃO entra no `key` de remount: trocar de modo não reconstrói
+ * nada, só muda como as teclas são interpretadas no laço de animação.
  */
 export type CameraMode = 'table' | 'dice' | 'free'
 
 /**
- * COMO O RESULTADO APARECE — a escolha que a spec pede em 2.3.
+ * Como o resultado aparece:
  *
- * - `3d`: os dados caem na bandeja e o resultado é o que eles mostram. É o app;
- * - `quick`: o número na hora, sem física e sem espera. O mesmo cálculo, feito por
- *   `rollExpression` em vez de por dados de verdade.
+ * - `3d`: os dados caem na bandeja e o resultado é o que eles mostram;
+ * - `quick`: o número na hora, sem física e sem espera, pelo mesmo `rollExpression`.
  *
- * O modo rápido não é uma versão pobre: ele resolve três coisas ao mesmo tempo. É o que a pessoa
- * quer numa mesa corrida (o mestre esperando pelo número), é o que o modo compacto já fazia por
- * conta própria, e é a REDE de quem não tem WebGL utilizável — sem ele, essa máquina não rola dado
- * nenhum (ver `webglDisponivel.ts` e o requisito 5.8 da spec).
+ * O modo rápido não é uma versão pobre: é o que a pessoa quer numa mesa corrida, é o que o modo
+ * compacto já fazia por conta própria, e é a REDE de quem não tem WebGL utilizável — sem ele, essa
+ * máquina não rola dado nenhum (ver `webglDisponivel.ts`).
  */
 export type DisplayMode = '3d' | 'quick'
 
 /**
- * TREZE fontes: doze no fechamento do alfa, a Sweetie e a Algerian pedidas logo depois, a Nunito
- * (indicação do juba) e a Determination (indicação do sat) em 27/08/2026 — e a SEGUNDA limpeza no
- * mesmo dia, a pedido do usuário: saíram Courier New, Segoe UI e Impact (as três viram reserva de
- * quem ficou, ver Montserrat, JetBrains Mono e Algerian).
- *
- * A Parisienne e a Hello Honey chegaram a entrar junto da Sweetie e SAÍRAM a pedido do usuário no
- * mesmo dia — é por isso que `assets/fonts/` não tem mais nenhum arquivo de manuscrita.
- *
- * A lista já teve dezoito e foi ENCURTADA a pedido do usuário — saíram MS Sans Serif, Verdana,
- * Trebuchet, Candara, Georgia, Palatino, Consolas e OpenDyslexic. Menu de fonte longo não é menu
- * melhor: metade das que saíram eram variações quase indistinguíveis das que ficaram, e escolher
- * fica mais fácil com menos.
- *
- * Quem tiver uma das removidas gravada nas preferências cai no padrão na próxima abertura (ver
+ * As fontes do menu: doze no fechamento do alfa, mais Sweetie, Algerian, Nunito e Determination,
+ * pedidas depois. A lista já teve dezoito e foi ENCURTADA a pedido dele — menu de fonte longo não é
+ * menu melhor, e metade das que saíram eram variações quase indistinguíveis das que ficaram. Quem
+ * tiver uma das removidas gravada nas preferências cai no padrão na próxima abertura (ver
  * `loadInitial`), e quem tiver uma delas gravada numa ANOTAÇÃO cai em "fonte padrão" no seletor do
- * bloco (ver `familyToFontId` em `NotesTab.tsx`) — os dois caminhos já existiam, justamente porque
- * esta lista já encolheu antes.
+ * bloco (ver `familyToFontId` em `NotesTab.tsx`).
  *
- * O número já foi motivo de bug de layout: a lista do seletor tinha teto de altura FIXO, com uma
- * cópia no CSS, e crescer a lista sem lembrar dos dois lugares deixava a lista cortada e a conta de
- * abrir-pra-cima errada. Isso não é mais um risco — a altura agora é calculada a partir de quantas
- * opções existem (ver `FontSelect.tsx`), então acrescentar fonte aqui é só acrescentar fonte.
+ * O que vale ao mexer nesta lista:
  *
- * O que continua valendo ao mexer nesta lista:
- *
- * 1. A cadeia de RESERVA de cada fonte termina numa família genérica, nunca em outra fonte deste
- *    menu. Quando a cadeia cai num item da própria lista, escolher uma dá visivelmente a outra — foi
- *    o bug do Papyrus, relatado por ele (ver mais abaixo).
- * 2. Fonte que NÃO vem no Windows precisa de um de dois tratamentos, e o que decide é a LICENÇA.
+ * 1. a cadeia de RESERVA de cada fonte termina numa família genérica, nunca em outra fonte deste
+ *    menu. Terminando num item da própria lista, escolher uma dá visivelmente a outra — foi o bug do
+ *    Papyrus, relatado por ele (ver abaixo);
+ * 2. fonte que não vem no Windows precisa de um de dois tratamentos, e quem decide é a LICENÇA.
  *    Montserrat, JetBrains Mono, Lora e Nunito são OFL: entram empacotadas em `assets/fonts/`, com a
- *    licença ao lado e um par de `@font-face` no `global.css`. Janda Silly Monkey e Sweetie são
- *    gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver instaladas vê o
- *    reserva. Fonte de fora sem um dos dois tratamentos cai no reserva calada.
- * 3. Fonte que só vem com o OFFICE (Century Gothic, Garamond) entra apenas se alguém a pedir pelo
- *    nome, e nunca por iniciativa de quem mexe aqui: na máquina sem Office ela vira outra coisa sem
- *    avisar, e quem escolheu não descobre por quê. A regra era "não entra" até a ALGERIAN ser
- *    pedida (ver mais abaixo) — ela é a única exceção, e o reserva dela é que faz a exceção custar
- *    pouco. Não use a existência dela como precedente para a próxima.
+ *    licença ao lado e um par de `@font-face` no `global.css`. Janda Silly Monkey, Sweetie e
+ *    Determination são gratuitas só pra uso pessoal: entram só como NOME, e quem não as tiver
+ *    instaladas vê o reserva. Sem um dos dois tratamentos, a fonte cai no reserva calada;
+ * 3. fonte que só vem com o OFFICE (Century Gothic, Garamond) entra apenas se alguém a pedir pelo
+ *    nome, nunca por iniciativa de quem mexe aqui: na máquina sem Office ela vira outra coisa sem
+ *    avisar. A Algerian é a única exceção, e o reserva dela é o que faz a exceção custar pouco — não
+ *    use a existência dela como precedente pra próxima.
  */
 export const FONT_OPTIONS = [
   { id: 'tahoma', label: 'Tahoma (clássica)', family: "Tahoma, 'MS Sans Serif', Geneva, sans-serif" },
@@ -119,13 +93,9 @@ export const FONT_OPTIONS = [
   // pedida pelo usuário com o crédito do juba. Mesmo reserva da Montserrat, pela mesma razão.
   { id: 'nunito', label: 'Nunito', family: "Nunito, 'Segoe UI', Tahoma, sans-serif", credit: 'by juba' },
   /**
-   * Pedido do usuário, com o crédito de quem indicou — mesmo esquema da JetBrains Mono e da Janda
-   * Silly Monkey.
-   *
    * Não é empacotada e não precisa: a Arial vem com o Windows desde sempre. O reserva é a Helvetica
-   * (que no Windows o próprio sistema resolve como Arial) e depois a genérica `sans-serif` — nenhuma
-   * das duas é item deste menu, que é a regra que o caso da Papyrus deixou aqui: cadeia de reserva
-   * terminando em outra opção da lista faz escolher uma dar visivelmente a outra.
+   * (que no Windows o sistema resolve como Arial) e depois a genérica — nenhuma das duas é item deste
+   * menu, que é a regra que o caso da Papyrus deixou aqui.
    */
   { id: 'arial', label: 'Arial', family: 'Arial, Helvetica, sans-serif', credit: 'by dan' },
   {
@@ -149,46 +119,38 @@ export const FONT_OPTIONS = [
     label: 'JetBrains Mono',
     family: "'JetBrains Mono', Consolas, 'Courier New', monospace",
     /**
-     * Crédito de quem indicou a fonte, mostrado ao lado do nome na lista (ver `FontSelect.tsx`).
-     * Vive AQUI, junto da fonte, e não numa tabela à parte no componente: quem acrescentar uma fonte
-     * amanhã vai mexer nesta lista, e um crédito guardado longe é um crédito que se perde.
+     * Crédito de quem indicou a fonte, mostrado ao lado do nome na lista. Vive AQUI, junto da fonte,
+     * e não numa tabela à parte no componente: quem acrescentar uma fonte amanhã vai mexer nesta
+     * lista, e crédito guardado longe é crédito que se perde.
      */
     credit: 'by caio'
   },
-  // "MS" fora do rótulo a pedido do usuário — o nome real da fonte continua em `family`, que é o
-  // que o navegador procura no sistema.
+  // "MS" fora do rótulo a pedido dele; o nome real continua em `family`, que é o que o navegador
+  // procura no sistema.
   /**
-   * A opção AMIGÁVEL A DISLÉXICOS da lista — e o rótulo NÃO diz isso, a pedido do usuário.
-   *
-   * O rótulo já foi "Comic Sans (p/ dislexia)". A explicação saiu, a fonte fica: a Comic Sans é
-   * recomendada com frequência pra leitura com dislexia, porque as letras têm formas irregulares o
-   * bastante pra reduzir a troca de b/d/p/q, que é a confusão mais comum. Não é remédio e não
-   * funciona pra todo mundo; é por isso que ela entra como opção, não como padrão.
+   * A opção AMIGÁVEL A DISLÉXICOS da lista, e o rótulo não diz isso, a pedido dele (já foi "Comic
+   * Sans (p/ dislexia)"). A Comic Sans é recomendada com frequência pra leitura com dislexia porque
+   * as letras têm formas irregulares o bastante pra reduzir a troca de b/d/p/q; não é remédio e não
+   * funciona pra todo mundo, e é por isso que ela entra como opção e não como padrão.
    *
    * Este comentário fica no lugar do rótulo. Sem ele, a Comic Sans vira só "a fonte de piada" da
-   * lista e some na próxima limpeza — e com ela some a única opção que cobre o requisito. A
-   * OpenDyslexic, desenhada especificamente pra isso, chegou a entrar e SAIU a pedido do usuário
-   * junto de outras sete; a Comic Sans ficou e vem com o Windows, então cobre sem empacotar arquivo.
+   * lista e some na próxima limpeza — e com ela some a única opção que cobre o requisito, já que a
+   * OpenDyslexic saiu a pedido dele.
    */
   { id: 'comic-sans', label: 'Comic Sans', family: "'Comic Sans MS', 'Comic Sans', cursive" },
   /**
-   * O reserva era `'Comic Sans MS'` e isso virou bug relatado: "você errou no Papyrus, ela ficou
-   * com a fonte Comic Sans". Não era troca de nome — a Papyrus simplesmente NÃO vem com o Windows
-   * (ela vem com o Office/macOS), confirmado consultando as fontes instaladas na máquina do
-   * usuário, e a cadeia caía direto no reserva seguinte, que era justamente a outra fonte da lista.
-   * `Segoe Print` vem com o Windows e é escrita à mão irregular — não é Papyrus, mas é o parente
-   * mais próximo disponível e, principalmente, não se disfarça de outra opção do menu.
+   * O reserva era `'Comic Sans MS'`, e isso virou bug relatado: "você errou no Papyrus, ela ficou com
+   * a fonte Comic Sans". Não era troca de nome — a Papyrus não vem com o Windows (vem com o
+   * Office e o macOS), conferido nas fontes instaladas da máquina dele, e a cadeia caía direto na
+   * outra fonte da lista. `Segoe Print` vem com o Windows, é escrita à mão irregular e,
+   * principalmente, não se disfarça de outra opção do menu.
    */
   { id: 'papyrus', label: 'Papyrus', family: "Papyrus, 'Segoe Print', 'Ink Free', fantasy" },
   /**
-   * NÃO É EMPACOTADA — e não pode ser. A Janda Silly Monkey é da Kimberly Geswein, gratuita só pra
-   * USO PESSOAL; pôr o `.ttf` dentro do app (que é publicado no GitHub) seria redistribuição, e pra
-   * isso o autor cobra uma licença de aplicação à parte. O que existe aqui é só o NOME da família: se
-   * a fonte estiver instalada na máquina, o Chromium a encontra; se não estiver, cai no reserva.
-   *
-   * O reserva é `Ink Free` (manuscrita que vem com o Windows 10+) e não uma das outras opções desta
-   * lista, pela lição do Papyrus logo acima: quando a cadeia de reserva termina numa fonte que também
-   * é item do menu, escolher uma dá visivelmente a outra, e isso já virou bug relatado aqui.
+   * NÃO é empacotada, e não pode ser: a Janda Silly Monkey é da Kimberly Geswein, gratuita só pra USO
+   * PESSOAL, e pôr o `.ttf` num app publicado no GitHub seria redistribuição. O que existe aqui é só
+   * o NOME da família. O reserva é `Ink Free`, manuscrita que vem com o Windows 10+, e não uma das
+   * outras opções desta lista, pela lição do Papyrus logo acima.
    */
   {
     id: 'janda-silly-monkey',
@@ -197,19 +159,13 @@ export const FONT_OPTIONS = [
     credit: 'by xuga'
   },
   /**
-   * SWEETIE — manuscrita, pedida pelo usuário com o crédito da vivi, e NÃO EMPACOTADA, pelo mesmo
-   * motivo da Janda Silly Monkey logo acima: ela é da Graphix Line Studio, gratuita apenas para USO
-   * PESSOAL, e vende licença comercial à parte. Pôr o arquivo dentro de um app publicado no GitHub
-   * seria redistribuição, e a licença não cobre isso.
+   * SWEETIE, manuscrita, pedida com o crédito da vivi. Não empacotada pelo mesmo motivo da Janda
+   * Silly Monkey: é da Graphix Line Studio, gratuita apenas pra uso pessoal, e vende licença
+   * comercial à parte. Só o NOME da família, então o reserva dela importa de verdade.
    *
-   * O que existe aqui é só o NOME da família. Quem tiver a fonte instalada no Windows vê a fonte;
-   * quem não tiver cai no reserva — e por isso o reserva dela importa de verdade, ao contrário do
-   * das empacotadas.
-   *
-   * `Segoe Script` é o reserva: vem com o Windows desde o Vista, é manuscrita conectada (que é o
-   * que a Sweetie é) e, principalmente, NÃO é opção deste menu. A `Ink Free` já é o reserva da Janda
-   * e da Papyrus, mas ela é uma manuscrita solta, de traço mais grosso — a Segoe Script fica mais
-   * perto do desenho de script fino da Sweetie.
+   * `Segoe Script` vem com o Windows desde o Vista, é manuscrita conectada (que é o que a Sweetie é)
+   * e não é opção deste menu. A `Ink Free`, reserva da Janda e da Papyrus, é de traço mais grosso e
+   * ficaria mais longe do script fino dela.
    */
   {
     id: 'sweetie',
@@ -218,18 +174,14 @@ export const FONT_OPTIONS = [
     credit: 'by vivi'
   },
   /**
-   * DETERMINATION — a fonte pixelada de Undertale, pedida pelo usuário com o crédito do sat
-   * (dafont.com/determination.font, de Lucca Cedro).
+   * DETERMINATION, a fonte pixelada de Undertale, pedida com o crédito do sat (de Lucca Cedro). Não
+   * empacotada, e não pode: o autor escreve "its for free, BUT ONLY FOR PERSONAL USE!!", mesma
+   * situação da Janda e da Sweetie.
    *
-   * NÃO EMPACOTADA, e não pode: o autor escreve "its for free, BUT ONLY FOR PERSONAL USE!!" —
-   * mesma situação da Janda Silly Monkey e da Sweetie, e pôr o `.ttf` num app publicado no GitHub
-   * seria redistribuição. Só o NOME: quem instalou a fonte vê a fonte; quem não instalou vê o
-   * reserva.
-   *
-   * `Consolas` é o reserva: não existe pixelada que venha com o Windows, e o parente mais próximo
-   * do desenho blocado e de largura fixa dela é uma monoespaçada de console — a Consolas vem com o
-   * Windows, já serve de reserva à JetBrains Mono e NÃO é opção deste menu (a `Courier New`, que
-   * também lembraria console, é — e cair em opção do menu é o bug do Papyrus).
+   * `Consolas` é o reserva: não existe pixelada que venha com o Windows, e o parente mais próximo do
+   * desenho blocado e de largura fixa dela é uma monoespaçada de console. Ela vem com o Windows, já
+   * serve de reserva à JetBrains Mono e não é opção deste menu — ao contrário da `Courier New`, que
+   * também lembraria console e cairia no bug do Papyrus.
    */
   {
     id: 'determination',
@@ -238,22 +190,16 @@ export const FONT_OPTIONS = [
     credit: 'by sat'
   },
   /**
-   * ALGERIAN — decorativa, de caixa alta, pedida pelo usuário com o crédito do pedro.
+   * ALGERIAN, decorativa e de caixa alta, pedida com o crédito do pedro. É a EXCEÇÃO da regra 3 lá em
+   * cima, e entra sabendo disso: ela não vem com o Windows, vem com o Office desde 1993 (conferido na
+   * máquina dele no dia do pedido — 154 fontes instaladas, e ela não estava entre elas). Empacotar
+   * não é opção: é comercial (Letraset/URW), não OFL como a Lora nem grátis pra uso pessoal como a
+   * Sweetie. Só o NOME, então o reserva é a parte que importa.
    *
-   * Ela é a EXCEÇÃO da regra 3 lá em cima, e entra sabendo disso. A Algerian não vem com o Windows:
-   * vem com o Microsoft Office desde 1993, o que é outra coisa. Conferido na máquina do usuário no
-   * dia em que ela foi pedida — 154 fontes instaladas, e a Algerian não estava entre elas.
-   *
-   * Empacotar não é opção: ela é comercial (Letraset/URW, vendida avulsa), não é OFL como a Lora
-   * nem "grátis pra uso pessoal" como a Sweetie. O que existe aqui é só o NOME, então quem não
-   * tiver Office vê o reserva — e por isso o reserva dela é a parte que importa.
-   *
-   * `Impact` na frente do reserva DESDE a segunda limpeza: ela é o parente visual mais próximo da
-   * Algerian (as duas são display pesadas), vem com o Windows, e enquanto era opção deste menu não
-   * podia ser reserva — cair numa fonte do próprio menu é o bug do Papyrus, onde escolher uma dava
-   * visivelmente a outra. Saindo do menu, virou o primeiro degrau; a `Arial Black` fica atrás
-   * (também vem com o Windows, e não se confunde com a `Arial` da lista: uma é preta e condensada,
-   * a outra é regular).
+   * `Impact` na frente: é o parente visual mais próximo (as duas são display pesadas) e vem com o
+   * Windows. Enquanto era opção deste menu não podia ser reserva, pelo bug do Papyrus; saindo do
+   * menu, virou o primeiro degrau. A `Arial Black` fica atrás, e não se confunde com a `Arial` da
+   * lista: uma é preta e condensada, a outra é regular.
    */
   {
     id: 'algerian',
@@ -285,10 +231,9 @@ interface Settings {
   diceNumberColor: string
   diceMaterial: DiceMaterialFinish
   /**
-   * Cor do corpo/número por TIPO de dado (chave = lados, ex.: 6, 20, 100) — sobrepõe
-   * `diceBodyColor`/`diceNumberColor` só pro(s) tipo(s) presentes aqui; tipos ausentes usam a
-   * cor global normalmente. Pedido do usuário depois da prateleira decorativa (`DiceCanvasMulti.tsx`)
-   * mostrar todos os tipos lado a lado fora do hexágono — ver cada tipo com cor própria ali.
+   * Cor do corpo e do número por TIPO de dado (chave = lados), sobrepondo a cor global só nos tipos
+   * presentes aqui. Pedido dele depois de a prateleira decorativa mostrar todos os tipos lado a lado
+   * fora do hexágono.
    */
   diceColorOverrides: Record<number, { bodyColor: string; numberColor: string }>
   /** Cor da parede da bandeja (CSS hex) — substitui os temas prontos (cerca/floresta) removidos a pedido do usuário; cor livre igual à do dado. */
@@ -306,10 +251,10 @@ interface Settings {
   towerFlagColor: string
   towerDoorColor: string
   /**
-   * Id do ícone da janela/barra de tarefas (ver `shared/appIcons.ts`) — espelha o que está
-   * persistido em `settings.json` no processo main (fonte de verdade real, porque o ícone
-   * precisa ser conhecido já na criação da janela, antes do renderer existir). Guardado aqui
-   * também só pra UI mostrar qual está selecionado sem precisar de uma chamada IPC extra.
+   * Id do ícone da janela e da barra de tarefas (ver `shared/appIcons.ts`). Espelha o que está em
+   * `settings.json` no processo main, que é a fonte de verdade real porque o ícone precisa ser
+   * conhecido já na criação da janela, antes de o renderer existir; aqui é só pra UI mostrar qual
+   * está selecionado sem uma chamada IPC extra.
    */
   appIconId: string
   /** Bandeja aberta (arremesso de fora) ou torre de castelo com rampa em espiral (`TOWER_CONFIG`). Estrutural — faz parte do `key` de remount em `DiceRoller3D.tsx`. */
@@ -325,10 +270,9 @@ interface Settings {
   displayMode: DisplayMode
   debugMode: boolean
   /**
-   * Imagem de fundo da cena 3D (data URL base64, ver `registerSceneBackgroundHandlers.ts`) —
-   * `null` = usa `backgroundColor` sólida (padrão). Guardada como data URL inteira (não um
-   * caminho de arquivo) porque o arquivo escolhido pode estar em qualquer pasta do sistema —
-   * um caminho ficaria inválido se o usuário mover/apagar o arquivo original depois.
+   * Imagem de fundo da cena (data URL base64); `null` usa a cor de fundo. Guardada como data URL
+   * inteira, e não como caminho de arquivo, porque o arquivo escolhido pode estar em qualquer pasta:
+   * um caminho ficaria inválido se a pessoa movesse ou apagasse o original.
    */
   backgroundImage: string | null
   /** Popup do total sobre a bandeja/torre ao assentar os dados (ver `DiceRoller3D.tsx`) — desligável porque nem todo mundo quer o efeito por cima da cena. */
@@ -347,10 +291,9 @@ interface Settings {
   critVisualEnabled: boolean
   critSoundEnabled: boolean
   /**
-   * As grades de cores prontas da aba Estilo (paletas de dado e estilos de bandeja) aparecem ou
-   * ficam recolhidas. Fica AQUI, e não num `useState` da aba, porque a aba desmonta a cada troca de
-   * seção/aba — recolher e voltar dois minutos depois pra tudo aberto de novo não é uma opção, é um
-   * botão que não lembra do que foi pedido.
+   * As grades de cores prontas da aba Estilo aparecem ou ficam recolhidas. Fica aqui, e não num
+   * `useState` da aba, porque a aba desmonta a cada troca de seção — recolher e voltar dois minutos
+   * depois pra tudo aberto de novo é um botão que não lembra do que foi pedido.
    */
   palettesVisible: boolean
 }
@@ -408,12 +351,10 @@ const STORAGE_KEY = 'rolador-settings'
 
 /**
  * O que é APARÊNCIA DO PERSONAGEM e por isso é guardado por perfil (ver `shared/types/profile.ts`):
- * "os dados são customizados para o de Rodrigo, as cores, e já fica tudo salvo... mas quando eu
- * voltar pro profile do Rodrigo, volta como era antes".
- *
- * Tudo que NÃO está nesta lista é preferência de quem usa o programa — idioma, tema, fonte, som,
- * ícone do app, modo de câmera — e continua valendo pra todos os personagens. A divisão importa:
- * ninguém quer o app trocando de idioma porque mudou de ficha.
+ * "os dados são customizados para o de Rodrigo, as cores, e já fica tudo salvo... mas quando eu voltar
+ * pro profile do Rodrigo, volta como era antes". Tudo que não está nesta lista é preferência de quem
+ * usa o programa (idioma, tema, fonte, som, ícone, câmera) e vale pra todos os personagens: ninguém
+ * quer o app trocando de idioma porque mudou de ficha.
  */
 const PROFILE_LOOK_KEYS = CHAVES_DA_APARENCIA
 
@@ -451,12 +392,10 @@ function loadLook(profileId: string): Partial<ProfileLook> | null {
 
 /**
  * Espera antes de gravar as preferências no `localStorage`. Gravar é síncrono e passa pelo
- * `JSON.stringify` do objeto INTEIRO — incluindo `backgroundImage`, que é uma imagem em base64 e
- * pode ter vários megabytes. Os seletores de cor da aba Estilo disparam `change` continuamente
- * enquanto o mouse arrasta, então sem espera cada pixel de arraste serializava a imagem de fundo
- * de novo, na thread da interface. É o que fazia a aba inteira "arrastar" junto com o seletor.
- *
- * Só a GRAVAÇÃO espera; o estado em memória (e portanto a cena e a prévia) muda no mesmo instante.
+ * `JSON.stringify` do objeto INTEIRO, incluindo `backgroundImage`, que é uma imagem em base64 e pode
+ * ter vários megabytes; os seletores de cor disparam `change` continuamente enquanto o mouse
+ * arrasta, então sem espera cada pixel de arraste serializava a imagem de novo na thread da
+ * interface. Só a GRAVAÇÃO espera: o estado em memória, e portanto a cena, muda na hora.
  */
 const PERSIST_DEBOUNCE_MS = 300
 
@@ -519,10 +458,10 @@ function loadInitial(): Settings {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       /**
-       * `sanearPreferencias` tira os campos de VALOR FECHADO que não são reconhecidos, pra eles
-       * caírem no padrão em vez de entrar torto. Sem isso um `trayShape` desconhecido — de uma
-       * versão em que a lista era outra — leva a cena inteira a NaN e mata a página de rolagem, sem
-       * jeito de consertar de dentro do app. Ver `sanearSettings.ts`.
+       * `sanearPreferencias` tira os campos de valor fechado que não são reconhecidos, pra caírem no
+       * padrão em vez de entrar tortos. Sem isso um `trayShape` desconhecido, de uma versão em que a
+       * lista era outra, leva a cena a NaN e mata a página de rolagem, sem jeito de consertar de
+       * dentro do app.
        */
       const bruto = JSON.parse(raw)
       /**
@@ -542,10 +481,9 @@ function loadInitial(): Settings {
       // ícone branco 'rbranco') — cai pro padrão em vez de deixar a miniatura da Preferências
       // sem seleção nenhuma ou o splash tentando carregar uma imagem que não existe mais.
       if (!isValidAppIconId(merged.appIconId)) merged.appIconId = DEFAULT_SETTINGS.appIconId
-      // Mesma higiene pra fonte: a lista encolheu de catorze pra nove opções, então quem tinha
-      // escolhido uma das que saíram (Arial, Georgia, Trebuchet, Consolas, Century Gothic) guarda um
-      // id que não existe mais. Sem isto o app abriria em Tahoma (o fallback dos dois lugares que
-      // consultam a lista) mas continuaria gravando o id morto pra sempre.
+      // Mesma higiene pra fonte: a lista encolheu, então quem escolheu uma das que saíram guarda um id
+      // que não existe mais. Sem isto o app abriria em Tahoma (o fallback dos dois lugares que
+      // consultam a lista) e continuaria gravando o id morto pra sempre.
       if (!FONT_OPTIONS.some((font) => font.id === merged.fontId)) {
         merged.fontId = DEFAULT_SETTINGS.fontId
       }
@@ -586,14 +524,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [activeId])
 
   /**
-   * O tema do WINDOWS, perguntado ao próprio Chromium.
-   *
-   * Não precisa de IPC nem de `nativeTheme`: o Electron já traduz o tema do sistema pra
-   * `prefers-color-scheme` dentro da página. O ouvinte é o que faz a troca valer NA HORA — a pessoa
-   * muda o Windows pro escuro com o Reroll aberto e o app acompanha, sem reabrir.
-   *
-   * O `try` é pela mesma razão de sempre: `matchMedia` existe em todo Chromium que nos interessa,
-   * mas um app que não abre por causa da preferência de tema seria um preço absurdo.
+   * O tema do WINDOWS, perguntado ao próprio Chromium: não precisa de IPC nem de `nativeTheme`,
+   * porque o Electron já traduz o tema do sistema pra `prefers-color-scheme` dentro da página. O
+   * ouvinte é o que faz a troca valer na hora, com o app aberto. O `try` é porque `matchMedia` existe
+   * em todo Chromium que interessa, mas um app que não abre por causa da preferência de tema seria um
+   * preço absurdo.
    */
   const [sistemaEscuro, setSistemaEscuro] = useState(() => {
     try {
