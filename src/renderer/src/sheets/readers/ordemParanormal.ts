@@ -564,6 +564,31 @@ const PERICIAS_DA_COMUNIDADE: { slug: string; label: string }[] = [
   { slug: 'vontade', label: 'Vontade' }
 ]
 
+/**
+ * A perícia de NOME LIVRE: "Profissão" e "Ofício" em Ordem são a linha em que o jogador escreve qual
+ * é, numa caixa própria (`profissao`). Duas coisas dependem disto:
+ *
+ * - o nome escrito vira o RÓTULO da linha ("Profissão (Médico)"), que é como a ficha de papel fica;
+ * - o que sobra quando ninguém escreveu é o PLACEHOLDER impresso ("PROFISSÃO*"), e ele caía na ficha
+ *   como um campo à parte, com o rótulo roubado da linha de cima: "REFLEXOS = PROFISSÃO*", numa seção
+ *   "Outros" que não existe em Ordem nenhum (medido na ficha do Vincenzo).
+ */
+const PERICIA_DE_NOME_LIVRE: Record<string, string> = { profissao: 'profissao' }
+
+/** O placeholder impresso da caixa: o nome da perícia em caixa alta, com ou sem o asterisco. */
+function nomeDaPericiaLivre(
+  pericia: { slug: string; label: string },
+  bruto: (nome: string) => string | null
+): string {
+  const caixa = PERICIA_DE_NOME_LIVRE[pericia.slug]
+  if (!caixa) return pericia.label
+  const escrito = (bruto(caixa) ?? '').trim()
+  if (!escrito || escrito.replace(/\*+$/, '').toLocaleUpperCase('pt-BR') === pericia.label.toLocaleUpperCase('pt-BR')) {
+    return pericia.label
+  }
+  return `${pericia.label} (${escrito})`
+}
+
 const RESISTENCIAS_B: { name: string; label: string }[] = [
   { name: 'corte', label: 'Corte' },
   { name: 'perfuracao', label: 'Perfuração' },
@@ -584,8 +609,12 @@ const CONSUMIDOS_B: RegExp[] = [
   /^atr_/,
   /^[tbo]_[a-z]+$/,
   /^(atq_name|dano_arma|critico_arma|alcance_arma|espaco_arma)\d+$/,
-  /^(pv|pe|san|def|dt_ritual)_?[a-z]*$/,
+  // `_?[a-z]*` parava no primeiro sublinhado, e `pe_rodada_extra` escapava: a caixa de bônus vazia
+  // da linha de PE por rodada chegava como "RODADA = 0", com o rótulo roubado do cabeçalho impresso.
+  /^(pv|pe|san|def|dt_ritual)(_[a-z]+)*$/,
   /^(PV|PE|San)$/,
+  // A caixa de nome da perícia livre: ela vira o rótulo da linha, ver `nomeDaPericiaLivre`.
+  /^profissao$/,
   /^(defesa|esquiva|deslocamento|NivelExposicao|patente|mod_extra|pontos_prestigio)$/,
   /^(origem|classe|trilha\d)$/,
   /^protecaolistbox1$/,
@@ -713,7 +742,7 @@ function extrairFichaDaComunidade(sheet: PdfSheet): SheetImport {
       (treino !== null || bruto(`o_${pericia.slug}`) !== null
         ? (grau?.bonus ?? inteiro(treino) ?? 0) + (inteiro(bruto(`o_${pericia.slug}`)) ?? 0)
         : null)
-    push(pericia.label, total ? (grau ? `${total} (${grau.nome})` : String(total)) : null, 'Perícias', undefined, true, `b_${pericia.slug}`)
+    push(nomeDaPericiaLivre(pericia, bruto), total ? (grau ? `${total} (${grau.nome})` : String(total)) : null, 'Perícias', undefined, true, `b_${pericia.slug}`)
   }
 
   // Ataques: seis linhas; o dano vira preset e a linha vira resumo, como no leitor de Pathfinder.
