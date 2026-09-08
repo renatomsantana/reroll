@@ -11,22 +11,20 @@ import { useTranslation } from '@renderer/i18n/useTranslation'
 import './BarrasDeRecurso.css'
 
 /**
- * As BARRAS DE RECURSO (spec §3.4): PV, PE, Sanidade — o que o personagem gasta e recupera na
- * sessão, com "−" e "+" ao lado de cada uma.
+ * As BARRAS DE RECURSO: PV, PE, Sanidade — o que o personagem gasta e recupera na sessão, com "−" e
+ * "+" ao lado de cada uma.
  *
- * É o gesto mais frequente de uma sessão online ("tomei 7", "gastei 2 PE"), e por isso três
- * decisões deste arquivo:
+ * É o gesto mais frequente de uma sessão online ("tomei 7", "gastei 2 PE"), e daí três decisões:
  *
- * - as barras moram ONDE OS DADOS CAEM: no HUD sobre a cena (`HudDoPersonagem`) e na janelinha
- *   do modo compacto. Elas já foram também uma caixa de grupo na linha de controles da cena, e o
- *   usuário pediu pra tirar: a mesma barra em dois lugares da mesma tela era uma a mais;
- * - cada clique GRAVA na hora (quem grava é o `useNotes`, que escreve o arquivo inteiro a cada
- *   mudança — ver lá): fechar o app no meio do combate não perde o PV;
- * - o número é clicável e aceita conta ("-7") — vinte e três cliques no "−" não é tracker, é
+ * - as barras moram ONDE OS DADOS CAEM, no HUD sobre a cena e na janelinha compacta. Já foram também
+ *   uma caixa de grupo na linha de controles, e ele pediu pra tirar: a mesma barra em dois lugares da
+ *   mesma tela era uma a mais;
+ * - cada clique GRAVA na hora (quem grava é o `useNotes`): fechar o app no meio do combate não perde
+ *   o PV;
+ * - o número é clicável e aceita conta ("-7"), porque vinte e três cliques no "−" não é tracker, é
  *   castigo. Ver `lerEntradaDeRecurso`.
  *
- * Nada de automático: a barra não desconta o dano da rolagem nem soma cura sozinha. O jogador
- * manda, e é o que a spec pede nesta fase.
+ * Nada de automático: a barra não desconta o dano da rolagem nem soma cura sozinha.
  */
 interface BarrasDeRecursoProps {
   recursos: RecursoVital[]
@@ -186,7 +184,12 @@ function BarraDeRecurso({ recurso, onChange }: BarraDeRecursoProps) {
  *
  * O `segurou` existe pelo `click` que o navegador dispara ao soltar: sem a marca, soltar depois de
  * segurar ainda somaria 1 por cima dos 5 que o segurar já aplicou. Quem consome a marca é o
- * `onClick` da barra.
+ * `onClick` da barra — e quem a LIMPA é o aperto seguinte, não o clique.
+ *
+ * A diferença é um defeito real: soltar FORA do botão (a mão escorrega, o `pointerleave` para os
+ * temporizadores) não dispara clique nenhum, então a marca ficava armada e era o clique seguinte, de
+ * verdade, que sumia. Limpando no `pointerdown`, ela só vale entre o segurar e o soltar daquele
+ * mesmo aperto.
  */
 function useSegurar(aplicar: (sinal: 1 | -1) => void) {
   const segurou = useRef(false)
@@ -208,6 +211,7 @@ function useSegurar(aplicar: (sinal: 1 | -1) => void) {
     return (e: PointerEvent<HTMLButtonElement>) => {
       // Só o botão principal: o direito abre menu, o do meio rola a página.
       if (e.button !== 0) return
+      segurou.current = false
       parar()
       atraso.current = setTimeout(() => {
         segurou.current = true

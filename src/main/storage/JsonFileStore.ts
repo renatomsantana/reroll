@@ -8,15 +8,11 @@ import { dirname } from 'path'
  */
 export class JsonFileStore<T> {
   /**
-   * Fila que serializa gravações concorrentes — BUG REAL corrigido aqui: `write()` sem isso
-   * deixava duas chamadas simultâneas (ex.: `NotesRepository.save` disparado a cada tecla
-   * digitada, sem debounce, ver `useNotes.ts`) escreverem no MESMO caminho `.tmp` ao mesmo
-   * tempo. Como as duas são assíncronas, a ordem de CONCLUSÃO não é garantida ser a mesma ordem
-   * de CHAMADA — a gravação mais RECENTE podia terminar (escrever `.tmp` + renomear) antes da
-   * mais ANTIGA, que then sobrescrevia o arquivo final com conteúdo mais velho por cima,
-   * perdendo as últimas teclas digitadas silenciosamente (só visível ao reabrir o app). Encadear
-   * cada `write()` atrás do anterior garante que elas rodem estritamente na ordem em que foram
-   * chamadas, uma de cada vez — a última chamada sempre é a última a terminar.
+   * Fila que serializa gravações concorrentes, e ela conserta um bug real: sem isso, duas chamadas
+   * simultâneas (o `NotesRepository.save` dispara a cada tecla digitada) escreviam no MESMO `.tmp` ao
+   * mesmo tempo, e como a ordem de CONCLUSÃO não é a de CHAMADA, a gravação mais recente podia
+   * terminar antes da mais antiga — que então sobrescrevia o arquivo final com conteúdo mais velho,
+   * perdendo as últimas teclas em silêncio. Encadeando, a última chamada é sempre a última a terminar.
    */
   private writeQueue: Promise<void> = Promise.resolve()
 

@@ -18,11 +18,10 @@ import type { ProfilesRepository } from './ProfilesRepository'
  */
 export class PresetsRepository {
   /**
-   * Um `JsonFileStore` POR PERFIL, criado sob demanda e guardado: o caminho do arquivo depende de
-   * qual personagem está aberto (ver `ProfilesRepository.activeDirectory`), e trocar de perfil não
-   * pode reaproveitar o store do anterior. O cache existe porque o `JsonFileStore` guarda a fila de
-   * gravações dele: recriá-lo a cada chamada jogaria fora essa fila, que é justamente o que impede
-   * duas gravações concorrentes de se atropelarem.
+   * Um `JsonFileStore` POR PERFIL, criado sob demanda e guardado: o caminho depende de qual
+   * personagem está aberto, e trocar de perfil não pode reaproveitar o store do anterior. O cache
+   * existe porque o store guarda a FILA de gravações dele — recriá-lo a cada chamada jogaria fora
+   * justamente o que impede duas gravações concorrentes de se atropelarem.
    */
   private readonly stores = new Map<string, JsonFileStore<Preset[]>>()
 
@@ -143,7 +142,6 @@ export class PresetsRepository {
     await this.store().write(reindexarFavoritos(presets.filter((p) => p.id !== id)))
   }
 
-  /** Adiciona vários presets de uma vez (importação), sempre com id/timestamps novos. */
   /**
    * Os presets de um PACOTE DE PERSONAGEM (ver `pacoteDePersonagem.ts`), COM a estrela, NO LUGAR
    * dos que havia: o pacote é o retrato inteiro do personagem, e acrescentar deixaria a lista com
@@ -175,6 +173,7 @@ export class PresetsRepository {
     return next
   }
 
+  /** Acrescenta vários presets de uma vez (o arquivo de presets), sempre com id e datas novos. */
   async importMany(inputs: PresetInput[]): Promise<Preset[]> {
     const presets = await this.store().read()
     conferirTeto(presets.length + inputs.length)
