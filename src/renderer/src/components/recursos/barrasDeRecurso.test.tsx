@@ -171,8 +171,8 @@ describe('as barras de recurso', () => {
     await montar()
     const pvEl = screen.getByRole('progressbar', { name: 'PV' }).parentElement!
     expect(pvEl.className).toContain('barra-normal')
-    // PV 30 de 45 (67%): cheia o bastante, pintada com a cor dela (bordô pelo nome).
-    expect(pvEl.style.getPropertyValue('--recurso-preenchido')).toBe('#800000')
+    // PV 30 de 45 (67%): cheia o bastante, e vida cheia é VERDE.
+    expect(pvEl.style.getPropertyValue('--recurso-preenchido')).toBe('#008000')
     const sanEl = screen.getByRole('progressbar', { name: 'Sanidade' }).parentElement!
     // 10 de 40 = 25%: abaixo dos 40% é aviso, acima dos 15% ainda não é perigo.
     expect(sanEl.className).toContain('barra-aviso')

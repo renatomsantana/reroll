@@ -3,12 +3,12 @@ import {
   MAXIMO_DE_RECURSOS,
   TAMANHO_MAXIMO_DO_NOME_DO_RECURSO,
   TETO_DO_VALOR_DE_RECURSO,
+  corDoRecurso,
   criarRecurso,
   normalizarRecursos,
+  recursoSobePorPadrao,
   type RecursoVital
 } from '@shared/types/recursoVital'
-import { corPadraoDoRecurso } from '@shared/types/cor'
-import { recursoSobePorPadrao } from '@shared/types/recursoVital'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useModalFocusTrap } from '@renderer/hooks/useModalFocusTrap'
 import { Button } from '../common/Button'
@@ -148,10 +148,10 @@ export function RecursoEditorModal({ recursos, onSave, onCancel }: RecursoEditor
                 />
               </label>
               <span className="recurso-editor-cor">
-                {/* Sem cor escolhida, o seletor já mostra a cor que o NOME dá (PV bordô, PE marinho...). */}
+                {/* Sem cor escolhida, o seletor mostra o verde de vida cheia, que é o que a barra usa. */}
                 <input
                   type="color"
-                  value={linha.cor ?? corPadraoDoRecurso(linha.nome)}
+                  value={corDoRecurso(linha)}
                   aria-label={t.resources.color}
                   onChange={(e) => mudar(linha.id, { cor: e.target.value })}
                 />

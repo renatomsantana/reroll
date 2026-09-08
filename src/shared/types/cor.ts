@@ -41,20 +41,15 @@ export function corPelaSoma(nome: string): string {
 }
 
 /**
- * A cor PADRÃO de uma barra pelo que ela mede — a convenção que toda mesa já usa: vida vermelha,
- * energia/mana azul, sanidade roxa, fôlego verde, sorte dourada. O que não tem convenção sai da
- * paleta pelo nome, sempre a mesma.
+ * VIDA CHEIA é VERDE, e daí a barra cai pro amarelo e pro vermelho (pedido dele, 08/09/2026: "full
+ * life fique VERDE aí cai pra AMARELO aí VERMELHO"). É a escala que todo jogo usa, e é a que se lê
+ * de relance no meio de um combate.
+ *
+ * Isto é o PADRÃO, e não uma imposição: a cor que a pessoa escolher no editor continua sendo a de
+ * vida cheia daquela barra (ver `corDoRecurso`). O que saiu foi o padrão POR NOME — PV bordô, PE
+ * marinho, Sanidade roxo —, que era invenção nossa e deixava toda barra cheia com cara de perigo.
  */
-export function corPadraoDoRecurso(nome: string): string {
-  const limpo = nome.trim().toLowerCase()
-  if (/^(pv|hp|vida|sa[úu]de|health|hit points?|pontos de vida)$/.test(limpo)) return '#800000'
-  if (/^(pe|pm|mp|mana|magia|esfor[çc]o|magic points?|pontos de (esfor[çc]o|magia))$/.test(limpo)) return '#000080'
-  if (/^(san|sanidade|sanity|pontos de sanidade)$/.test(limpo)) return '#800080'
-  if (/^(stamina|f[ôo]lego|vigor|energia)$/.test(limpo)) return '#008000'
-  if (/^(sorte|luck)$/.test(limpo)) return '#808000'
-  if (/^(determina[çc][ãa]o|assimila[çc][ãa]o)$/.test(limpo)) return '#008080'
-  return corPelaSoma(limpo)
-}
+export const VERDE_DE_VIDA_CHEIA = '#008000'
 
 /** A cor padrão de uma condição: pelo nome, sempre a mesma. "Machucado" é bordô em toda ficha. */
 export function corPadraoDaCondicao(nome: string): string {
