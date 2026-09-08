@@ -120,15 +120,13 @@ function faixaDe(y: number, base: number, alturaTotal: number): number {
 }
 
 /**
- * Afasta a câmera o exato necessário pra cena montada caber no quadro — MEDIDO na projeção, não um
- * número escolhido a olho.
+ * Afasta a câmera o exato necessário pra cena caber no quadro — MEDIDO na projeção, não um número
+ * escolhido a olho.
  *
  * O palco GIRA, então o que precisa caber não é a caixa parada, é o CILINDRO que ela varre em volta
- * do eixo Y: enquadrar pela caixa faria a prévia respirar pra dentro e pra fora do quadro enquanto
- * gira. A conta é por BISSEÇÃO sobre a projeção de verdade, e não pela esfera que envolve tudo,
- * porque a esfera mente por um caminhão — medido no harness, a cena sem torre pedia 35.7 pelo ajuste
- * da esfera contra 28 da câmera fixa que existia antes, ou seja, a bandeja encolheria pra 78% sem
- * nada ter mudado nela.
+ * do eixo Y. A conta é por BISSEÇÃO sobre a projeção de verdade, e não pela esfera que envolve tudo,
+ * porque a esfera mente por um caminhão: medido no harness, a cena sem torre pedia 35.7 pela esfera
+ * contra 28 da câmera fixa que existia antes — a bandeja encolheria pra 78% sem nada ter mudado.
  */
 export function frameCamera(camera: THREE.PerspectiveCamera, stage: THREE.Group): void {
   const giro = stage.rotation.y
@@ -143,10 +141,9 @@ export function frameCamera(camera: THREE.PerspectiveCamera, stage: THREE.Group)
   const alvo = new THREE.Vector3(0, alvoY, 0)
 
   /**
-   * O raio varrido POR FAIXA DE ALTURA, e não um cilindro só: um cilindro único mede ar, porque o
-   * mais largo da cena é o estojo, lá embaixo, e o mais alto é a bandeira, fina e a 10 de altura.
-   * Enfiar os dois num cilindro do maior raio pela maior altura pede uma distância que nada na cena
-   * precisa — foi assim que o ajuste anterior mandou a câmera pra 36 com a bandeja cabendo em 28.
+   * O raio varrido POR FAIXA DE ALTURA, e não um cilindro só: o mais largo da cena é o estojo, lá
+   * embaixo, e o mais alto é a bandeira, fina e a 10 de altura. Um cilindro do maior raio pela maior
+   * altura pede uma distância que nada na cena precisa — foi o que mandou a câmera pra 36.
    */
   const raioPorFaixa = medirRaioPorFaixa(stage, caixa)
 
@@ -187,13 +184,12 @@ export function frameCamera(camera: THREE.PerspectiveCamera, stage: THREE.Group)
 
 /**
  * Prévia da BANDEJA na aba Estilo, pedido dele, que até então só via o efeito das cores voltando pra
- * aba Rolagem. A geometria vem de `createTrayPreview`, que monta com as mesmas funções da cena
- * principal; aqui só ficam enquadramento, luz e giro, as três coisas que são DA PRÉVIA.
+ * aba Rolagem. A geometria vem de `createTrayPreview`, com as mesmas funções da cena principal; aqui
+ * ficam enquadramento, luz e giro, as três coisas que são DA PRÉVIA.
  *
  * As cores são aplicadas em cima dos materiais existentes, sem reconstruir nada: arrastar o seletor
- * dispara `input` continuamente, e refazer as texturas procedurais de madeira e veludo a cada evento
- * travaria a interface. Por isso esta prévia não precisa do debounce que a do dado usa — lá a troca
- * de cor obriga a redesenhar a textura de cada face.
+ * dispara `input` continuamente, e refazer as texturas de madeira e veludo a cada evento travaria a
+ * interface. É por isso que esta prévia não precisa do debounce que a do dado usa.
  */
 export function TrayPreview({
   wallColor,
@@ -231,17 +227,14 @@ export function TrayPreview({
   towerColorsRef.current = towerColors
 
   /**
-   * A MONTAGEM ESPERA UM QUADRO, e essa linha é o conserto de um engasgo medido: criar um
-   * `WebGLRenderer` custa ~15ms, e a aba Estilo cria DOIS (o dado e a bandeja) mais cenas, luzes,
-   * geometrias e texturas de cada um, tudo no mesmo quadro em que a aba aparece. Medido no app
-   * instalado, trocar pra Estilo custava 66ms — quatro quadros perdidos de uma vez, o tipo de engasgo
-   * que não parece bug, parece "o app é meio pesado". Adiando, a aba PINTA primeiro e a prévia entra
-   * logo depois: o trabalho é o mesmo, só não acontece entre o clique e a tela.
+   * A MONTAGEM ESPERA UM QUADRO, e é o conserto de um engasgo medido: criar um `WebGLRenderer` custa
+   * ~15ms, e a aba Estilo cria DOIS mais cenas, luzes, geometrias e texturas, tudo no quadro em que a
+   * aba aparece. No app instalado, trocar pra Estilo custava 66ms — quatro quadros perdidos. Adiando,
+   * a aba PINTA primeiro e a prévia entra logo depois.
    *
-   * DOIS `requestAnimationFrame` aninhados, e não um: o callback do rAF roda ANTES da pintura do
-   * quadro, então adiar um só empurra o trabalho pra dentro do mesmo quadro e a medição não muda (foi
-   * o que aconteceu na primeira tentativa). O `cancelado` impede o caso feio — trocar de aba rápido
-   * demais desmontaria o componente antes de o quadro chegar, criando um renderer sem dono.
+   * DOIS `requestAnimationFrame` aninhados, e não um: o callback do rAF roda ANTES da pintura, então
+   * adiar um só empurra o trabalho pro mesmo quadro e a medição não muda. O `cancelado` impede o caso
+   * feio — trocar de aba rápido demais criaria um renderer sem dono.
    */
   useEffect(() => {
     const container = containerRef.current
@@ -262,10 +255,9 @@ export function TrayPreview({
       desmontar?.()
     }
     /**
-     * `montarPrevia` fora da lista de propósito: ela é declaração de função, recriada a cada render, e
-     * listá-la reconstruiria a cena 3D inteira a cada mudança de estado — o oposto do que este efeito
-     * existe pra evitar. Quem manda continua sendo a forma da bandeja e a presença da torre, porque a
-     * geometria das duas nasce na construção.
+     * `montarPrevia` fora da lista de propósito: é declaração de função, recriada a cada render, e
+     * listá-la reconstruiria a cena 3D inteira a cada mudança de estado. Quem manda é a forma da
+     * bandeja e a presença da torre, porque a geometria das duas nasce na construção.
      */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trayShape, showTower])
@@ -288,9 +280,9 @@ export function TrayPreview({
 
     /**
      * O MESMO ambiente de reflexo da cena principal, e ele não é opcional: sem `scene.environment` os
-     * materiais PBR perdem toda a luz indireta, e a prévia saía com menos da METADE do brilho da mesa
-     * — medido offscreen no chão de veludo padrão, rgb(41,51,76) aqui contra rgb(99,117,166) na
-     * rolagem, com luzes idênticas. Era o "as cores do editor e da mesa tão bem diferentes".
+     * materiais PBR perdem a luz indireta, e a prévia saía com menos da METADE do brilho da mesa
+     * (rgb(41,51,76) aqui contra rgb(99,117,166) na rolagem, com luzes idênticas). Era o "as cores do
+     * editor e da mesa tão bem diferentes".
      */
     const environment = setupDiceEnvironment(scene, renderer)
 
@@ -311,10 +303,9 @@ export function TrayPreview({
     stage.add(tray.object)
 
     /**
-     * O ESTOJO entra na prévia porque ele também é tingido pela cor de parede, numa versão bem mais
-     * escura, e não dava pra ver o efeito da escolha nele sem voltar pra aba Rolagem. Vem de
-     * `DiceCanvasMulti.tsx` e é montado AQUI, e não dentro de `createTrayPreview`, porque
-     * `createScene.ts` não pode importar de volta sem fechar um ciclo.
+     * O ESTOJO entra na prévia porque também é tingido pela cor de parede, numa versão bem mais
+     * escura. Vem de `DiceCanvasMulti.tsx` e é montado AQUI, e não dentro de `createTrayPreview`,
+     * porque `createScene.ts` não pode importar de volta sem fechar um ciclo.
      */
     caseRef.current = buildCase(stage, wallColor, floorColor)
 

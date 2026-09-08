@@ -21,28 +21,6 @@ import './SheetTab.css'
 import { IconeReroll } from '../common/IconeReroll'
 import { CampoDeCaderno } from './CampoDeCaderno'
 
-/**
- * A FICHA do personagem, em aba própria ("vamos botar uma aba pra FICHA, outra para anotações").
- *
- * A divisão tem uma lógica que vale escrever: a ficha é o que o personagem É e muda devagar; as
- * anotações são o que ACONTECEU, e mudam a cada sessão. Estavam na mesma tela disputando altura, e o
- * diário ficava espremido embaixo dos blocos fixos.
- *
- * A página tem DUAS FORMAS, e qual aparece depende do personagem aberto:
- *
- * - IMPORTADO de um PDF: as seções do sistema, com os nomes e os campos dele, editáveis um a um.
- *   Pedido assim depois de a primeira versão espremer a ficha inteira dentro de blocos fixos: "eu
- *   quero que se a pessoa carregue um pdf de cada sistema a página Ficha mude para exatamente os
- *   nomes das coisas de cada sistema";
- * - CRIADO À MÃO: os blocos livres de atributos e habilidades, porque aí não há sistema a seguir.
- *
- * Inventário, aparência e história aparecem nos dois casos: são texto de quem joga, não campo de
- * sistema. As seções moram no `notes.json` do PERFIL, e é isso que faz a página trocar junto com o
- * personagem, sem nada de especial aqui.
- *
- * E ela ROLA DADO: cada número que é rolagem no sistema tem um botão de dado do lado (ver
- * `sheetRoll.ts`). Sem isso a ficha era um formulário bonito e inerte dentro de um rolador de dados.
- */
 export interface SheetTabProps {
   /**
    * Rola o que foi clicado na ficha. Quem rola de verdade é a aba de Rolagem, que fica montada o
@@ -60,6 +38,18 @@ export interface SheetTabProps {
   rollDisabled?: boolean
 }
 
+/**
+ * A FICHA do personagem, em aba própria: a ficha é o que o personagem É e muda devagar; as anotações
+ * são o que ACONTECEU. Estavam na mesma tela disputando altura, e o diário ficava espremido.
+ *
+ * A página tem DUAS FORMAS, conforme o personagem aberto: IMPORTADO de um PDF mostra as seções do
+ * sistema, com os nomes e campos dele ("a página Ficha mude para exatamente os nomes das coisas de
+ * cada sistema"); CRIADO À MÃO mostra os blocos livres de atributos e habilidades, porque aí não há
+ * sistema a seguir. Inventário, aparência e história aparecem nos dois: são texto de quem joga.
+ *
+ * E ela ROLA DADO: cada número que é rolagem no sistema tem um botão do lado (ver `sheetRoll.ts`).
+ * Sem isso a ficha era um formulário bonito e inerte dentro de um rolador de dados.
+ */
 export function SheetTab({ onRoll, rollDisabled }: SheetTabProps) {
   const t = useTranslation()
   const { notes, saveError, loadError, updateField, loadedFor } = useNotes()
