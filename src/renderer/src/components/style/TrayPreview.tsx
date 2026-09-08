@@ -32,10 +32,8 @@ const ROTATION_SPEED = 0.18
 /**
  * De onde a câmera olha. Só a DIREÇÃO mora aqui — a DISTÂNCIA é medida da cena montada
  * (`frameCamera`), porque ela muda de verdade: com a torre em cena o ponto mais alto sai de ~2 pra
- * ~9.4, e uma distância fixa cortaria a bandeira fora do quadro.
- *
- * O vetor é o que a câmera fixa usava antes (posição `(0, 16, 21)` mirando `(0, 0, -2)`), pra a
- * prévia sem torre continuar com o mesmo ângulo de sempre.
+ * ~9.4, e uma distância fixa cortaria a bandeira fora do quadro. O vetor é o que a câmera fixa usava
+ * antes, pra a prévia sem torre continuar com o mesmo ângulo de sempre.
  */
 const CAMERA_DIRECTION = new THREE.Vector3(0, 16, 23).normalize()
 
@@ -45,11 +43,9 @@ interface TrayPreviewProps {
   /** A prévia mostra a FORMA escolhida — se ela mostrasse hexágono sempre, ensinaria errado. */
   trayShape: TrayShape
   /**
-   * A TORRE na prévia. Pedido do usuário: pintar pedra, bico, bandeira ou porta não mostrava nada,
-   * porque a peça pintada não estava em cena — as quatro cores eram escolhidas no escuro.
-   *
-   * Quem decide é `StyleTab`, e são dois motivos: a torre está na mesa de verdade (modo de
-   * lançamento com torre) ou a pessoa está pintando uma peça dela.
+   * A TORRE na prévia: pintar pedra, bico, bandeira ou porta não mostrava nada, porque a peça pintada
+   * não estava em cena — as quatro cores eram escolhidas no escuro. Quem decide é `StyleTab`, por dois
+   * motivos: a torre está na mesa de verdade, ou a pessoa está pintando uma peça dela.
    */
   showTower: boolean
   /** As quatro peças pintáveis, em cor CSS — a conversão pra hex numérico é feita aqui dentro. */
@@ -83,12 +79,9 @@ const AMOSTRAS_POR_VOLTA = 48
 const FAIXAS_DE_ALTURA = 16
 
 /**
- * Pra cada fatia de altura, o quanto a cena se afasta do eixo Y ali dentro.
- *
- * Mede malha por malha, e não o grupo inteiro, pra caixa de uma peça alta e fina não emprestar a
- * largura de uma baixa e larga. Cada malha entra com o maior raio da caixa dela nas duas pontas de
- * altura que ela ocupa — conservador o suficiente pra nada escapar, e apertado o suficiente pra não
- * enquadrar vazio.
+ * Pra cada fatia de altura, o quanto a cena se afasta do eixo Y ali dentro. Mede malha por malha, e
+ * não o grupo inteiro, pra caixa de uma peça alta e fina não emprestar a largura de uma baixa e
+ * larga: cada malha entra com o maior raio da caixa dela nas duas pontas de altura que ocupa.
  */
 function medirRaioPorFaixa(stage: THREE.Group, caixa: THREE.Box3): { raio: number; y: number }[] {
   const alturaTotal = Math.max(caixa.max.y - caixa.min.y, 1e-6)
@@ -130,15 +123,12 @@ function faixaDe(y: number, base: number, alturaTotal: number): number {
  * Afasta a câmera o exato necessário pra cena montada caber no quadro — MEDIDO na projeção, não um
  * número escolhido a olho.
  *
- * O palco GIRA, então o que precisa caber não é a caixa parada: é o CILINDRO que ela varre em volta
- * do eixo Y. Enquadrar pela caixa parada faria a prévia "respirar" pra dentro e pra fora do quadro
- * enquanto gira — o mesmo problema que `StylePreview.frameCamera` resolve no dado.
- *
- * A conta é por BISSEÇÃO sobre a projeção de verdade, e não pela esfera que envolve tudo, porque a
- * esfera mente por um caminhão: ela enche as quinas do quadro de ar. Medido no harness de prévia,
- * a cena sem torre pedia 35.7 de distância pelo ajuste da esfera contra 28 da câmera fixa que
- * existia antes — a bandeja de sempre encolheria pra 78% do tamanho sem nada ter mudado nela.
- * Projetando o cilindro e apertando até encostar, o número volta pro lugar.
+ * O palco GIRA, então o que precisa caber não é a caixa parada, é o CILINDRO que ela varre em volta
+ * do eixo Y: enquadrar pela caixa faria a prévia respirar pra dentro e pra fora do quadro enquanto
+ * gira. A conta é por BISSEÇÃO sobre a projeção de verdade, e não pela esfera que envolve tudo,
+ * porque a esfera mente por um caminhão — medido no harness, a cena sem torre pedia 35.7 pelo ajuste
+ * da esfera contra 28 da câmera fixa que existia antes, ou seja, a bandeja encolheria pra 78% sem
+ * nada ter mudado nela.
  */
 export function frameCamera(camera: THREE.PerspectiveCamera, stage: THREE.Group): void {
   const giro = stage.rotation.y
@@ -153,13 +143,10 @@ export function frameCamera(camera: THREE.PerspectiveCamera, stage: THREE.Group)
   const alvo = new THREE.Vector3(0, alvoY, 0)
 
   /**
-   * O raio varrido POR FAIXA DE ALTURA, e não um cilindro só.
-   *
-   * Um cilindro único mede ar: o mais largo da cena é o estojo, lá embaixo, e o mais alto é a
-   * bandeira, fina e a 10 de altura. Enfiar os dois num cilindro do maior raio pela maior altura
-   * pede uma distância que nada na cena precisa — foi assim que o ajuste anterior mandou a câmera
-   * pra 36 quando a bandeja sozinha cabia em 28. Faixa a faixa, cada altura pede só o que a peça
-   * que mora nela ocupa.
+   * O raio varrido POR FAIXA DE ALTURA, e não um cilindro só: um cilindro único mede ar, porque o
+   * mais largo da cena é o estojo, lá embaixo, e o mais alto é a bandeira, fina e a 10 de altura.
+   * Enfiar os dois num cilindro do maior raio pela maior altura pede uma distância que nada na cena
+   * precisa — foi assim que o ajuste anterior mandou a câmera pra 36 com a bandeja cabendo em 28.
    */
   const raioPorFaixa = medirRaioPorFaixa(stage, caixa)
 
@@ -199,16 +186,14 @@ export function frameCamera(camera: THREE.PerspectiveCamera, stage: THREE.Group)
 }
 
 /**
- * Prévia da BANDEJA na aba Estilo — pedido do usuário, que até então só via o efeito das cores de
- * parede e chão voltando pra aba Rolagem e olhando a cena de verdade.
+ * Prévia da BANDEJA na aba Estilo, pedido dele, que até então só via o efeito das cores voltando pra
+ * aba Rolagem. A geometria vem de `createTrayPreview`, que monta com as mesmas funções da cena
+ * principal; aqui só ficam enquadramento, luz e giro, as três coisas que são DA PRÉVIA.
  *
- * A geometria vem de `createTrayPreview`, que monta com as mesmas funções da cena principal. Aqui
- * só ficam enquadramento, luz e o giro — as três coisas que são DA PRÉVIA e não da bandeja.
- *
- * As cores são aplicadas em cima dos materiais existentes (`updateColors`), sem reconstruir nada:
- * arrastar o seletor de cor dispara `input` continuamente, e reconstruir as texturas procedurais de
- * madeira e veludo a cada evento travaria a interface. Por isso esta prévia não precisa do debounce
- * que a do dado usa — lá a troca de cor obriga a redesenhar a textura de cada face.
+ * As cores são aplicadas em cima dos materiais existentes, sem reconstruir nada: arrastar o seletor
+ * dispara `input` continuamente, e refazer as texturas procedurais de madeira e veludo a cada evento
+ * travaria a interface. Por isso esta prévia não precisa do debounce que a do dado usa — lá a troca
+ * de cor obriga a redesenhar a textura de cada face.
  */
 export function TrayPreview({
   wallColor,
@@ -246,24 +231,17 @@ export function TrayPreview({
   towerColorsRef.current = towerColors
 
   /**
-   * A MONTAGEM ESPERA UM QUADRO, e essa linha é o conserto de um engasgo medido.
+   * A MONTAGEM ESPERA UM QUADRO, e essa linha é o conserto de um engasgo medido: criar um
+   * `WebGLRenderer` custa ~15ms, e a aba Estilo cria DOIS (o dado e a bandeja) mais cenas, luzes,
+   * geometrias e texturas de cada um, tudo no mesmo quadro em que a aba aparece. Medido no app
+   * instalado, trocar pra Estilo custava 66ms — quatro quadros perdidos de uma vez, o tipo de engasgo
+   * que não parece bug, parece "o app é meio pesado". Adiando, a aba PINTA primeiro e a prévia entra
+   * logo depois: o trabalho é o mesmo, só não acontece entre o clique e a tela.
    *
-   * Criar um `WebGLRenderer` custa ~15ms, e a aba Estilo cria DOIS (o dado e a bandeja) mais as
-   * cenas, luzes, geometrias e texturas de cada um — tudo dentro do mesmo quadro em que a aba
-   * aparece. Medido no app instalado: trocar pra Estilo custava 66ms, ou seja, quatro quadros
-   * perdidos de uma vez. É o tipo de engasgo que não parece bug, parece "o app é meio pesado".
-   *
-   * Adiando, a aba PINTA primeiro — texto, botões, paletas, tudo no lugar — e a prévia entra logo
-   * depois. O trabalho é o mesmo; o que muda é ele não acontecer entre o clique e a tela.
-   *
-   * DOIS `requestAnimationFrame` aninhados, e não um. É a parte que erra fácil: o callback do rAF
-   * roda ANTES da pintura do quadro, então adiar um só empurra o trabalho pra dentro do mesmo
-   * quadro — a tela continua esperando por ele, e a medição não muda em nada (foi o que aconteceu na
-   * primeira tentativa). Com o segundo aninhado, a pintura do primeiro quadro já aconteceu quando a
-   * montagem começa.
-   *
-   * O `cancelado` é o que impede o caso feio: trocar de aba rápido demais desmontaria o componente
-   * antes de o quadro chegar, e a montagem rodaria criando um renderer que ninguém iria descartar.
+   * DOIS `requestAnimationFrame` aninhados, e não um: o callback do rAF roda ANTES da pintura do
+   * quadro, então adiar um só empurra o trabalho pra dentro do mesmo quadro e a medição não muda (foi
+   * o que aconteceu na primeira tentativa). O `cancelado` impede o caso feio — trocar de aba rápido
+   * demais desmontaria o componente antes de o quadro chegar, criando um renderer sem dono.
    */
   useEffect(() => {
     const container = containerRef.current
@@ -284,10 +262,10 @@ export function TrayPreview({
       desmontar?.()
     }
     /**
-     * `montarPrevia` fora da lista de propósito: ela é uma declaração de função, recriada a cada
-     * render, e listá-la reconstruiria a cena 3D inteira a cada mudança de estado do componente —
-     * que é o oposto do que este efeito passou a existir pra evitar. Quem manda aqui continua sendo
-     * a forma da bandeja e a presença da torre, porque a geometria das duas nasce na construção.
+     * `montarPrevia` fora da lista de propósito: ela é declaração de função, recriada a cada render, e
+     * listá-la reconstruiria a cena 3D inteira a cada mudança de estado — o oposto do que este efeito
+     * existe pra evitar. Quem manda continua sendo a forma da bandeja e a presença da torre, porque a
+     * geometria das duas nasce na construção.
      */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trayShape, showTower])
@@ -309,12 +287,10 @@ export function TrayPreview({
     container.appendChild(renderer.domElement)
 
     /**
-     * O MESMO ambiente de reflexo da cena principal (`DiceCanvasMulti` chama isto também), e ele
-     * não é opcional: sem `scene.environment` os materiais PBR perdem toda a luz indireta, e a
-     * prévia saía com MENOS DA METADE do brilho da mesa — medido offscreen no chão de veludo
-     * padrão, rgb(41,51,76) aqui contra rgb(99,117,166) na rolagem, com luzes idênticas. Era o
-     * "as cores do editor e da mesa tão bem diferentes" reportado pelo usuário; com o ambiente,
-     * a amostra sai idêntica à da mesa (`scripts/medirCoresDaPrevia.mjs`).
+     * O MESMO ambiente de reflexo da cena principal, e ele não é opcional: sem `scene.environment` os
+     * materiais PBR perdem toda a luz indireta, e a prévia saía com menos da METADE do brilho da mesa
+     * — medido offscreen no chão de veludo padrão, rgb(41,51,76) aqui contra rgb(99,117,166) na
+     * rolagem, com luzes idênticas. Era o "as cores do editor e da mesa tão bem diferentes".
      */
     const environment = setupDiceEnvironment(scene, renderer)
 
@@ -335,13 +311,10 @@ export function TrayPreview({
     stage.add(tray.object)
 
     /**
-     * O ESTOJO entra na prévia a pedido do usuário: ele também é tingido pela cor de parede (numa
-     * versão bem mais escura, ver `createShelfCaseMesh`) e não dava pra ver o efeito da escolha
-     * nele sem voltar pra aba Rolagem.
-     *
-     * Vem de `DiceCanvasMulti.tsx` e é montado AQUI, e não dentro de `createTrayPreview`, porque
-     * `createScene.ts` — importado por `DiceCanvasMulti.tsx` — não pode importar de volta sem
-     * fechar um ciclo.
+     * O ESTOJO entra na prévia porque ele também é tingido pela cor de parede, numa versão bem mais
+     * escura, e não dava pra ver o efeito da escolha nele sem voltar pra aba Rolagem. Vem de
+     * `DiceCanvasMulti.tsx` e é montado AQUI, e não dentro de `createTrayPreview`, porque
+     * `createScene.ts` não pode importar de volta sem fechar um ciclo.
      */
     caseRef.current = buildCase(stage, wallColor, floorColor)
 

@@ -1,22 +1,17 @@
 import { corDaEscalaDeEstresse, corPadraoDoRecurso, ehCorHex } from './cor'
 
 /**
- * RECURSO VITAL — o que o personagem gasta e recupera durante a sessão: PV, PE, Sanidade em Ordem
- * Paranormal; HP em D&D; o que for no sistema da mesa. É a barra clicável da tela de rolagem
- * (spec §3.4).
+ * RECURSO VITAL: o que o personagem gasta e recupera durante a sessão — PV, PE, Sanidade em Ordem
+ * Paranormal, HP em D&D, o que for no sistema da mesa. É a barra clicável da tela de rolagem.
  *
  * Existe como MODELO PRÓPRIO, separado dos campos da ficha, por uma razão que a ficha importada
- * deixou clara: "PV atual" e "PV máximo" chegavam como dois campos de texto soltos numa seção
- * chamada "Recursos", e a pessoa tinha que abrir a aba Ficha, achar a caixa e digitar "19" no meio
- * de um combate — quando o gesto que ela faz na mesa é "tomei 7". A barra é esse gesto: um par
- * atual/máximo, com número inteiro dos dois lados, que se mexe com um clique.
+ * deixou clara: "PV atual" e "PV máximo" chegavam como dois campos de texto soltos numa seção, e a
+ * pessoa tinha que abrir a aba Ficha e digitar "19" no meio de um combate — quando o gesto que ela
+ * faz na mesa é "tomei 7". Mora no `notes.json` do PERFIL, porque é do personagem: trocar de ficha
+ * troca as barras, e voltar traz o PV onde estava.
  *
- * Mora no `notes.json` do PERFIL (ver `NotesData.recursos`), porque é do personagem: trocar de
- * ficha troca as barras, e voltar traz o PV exatamente onde estava.
- *
- * Nada aqui sabe de sistema de RPG. O nome é livre, a lista é livre, e o teto é folgado — é o que
- * torna o desenho "agnóstico de sistema": Ordem tem três barras, D&D tem uma (ou uma por espaço de
- * magia, se a pessoa quiser), e um sistema que o app nunca viu funciona igual.
+ * Nada aqui sabe de sistema de RPG: o nome é livre, a lista é livre e o teto é folgado, e é o que
+ * torna o desenho agnóstico — um sistema que o app nunca viu funciona igual.
  */
 export interface RecursoVital {
   id: string
@@ -26,19 +21,16 @@ export interface RecursoVital {
   maximo: number
   /**
    * Cor da barra escolhida pela pessoa, `#rrggbb`. AUSENTE é o normal, e aí a cor sai do NOME
-   * (`corPadraoDoRecurso`: PV bordô, PE marinho, Sanidade roxo) — pedido dele (02/09/2026): "para
-   * cada atributo atribuir cor também; a pessoa decide a cor também". A cor já foi a do ESTADO
-   * (verde, oliva abaixo da metade, bordô abaixo de um quarto); o estado continua sendo mostrado,
-   * agora no NÚMERO da barra (ver `BarrasDeRecurso.css`), pra cor da barra poder ser da barra.
+   * (`corPadraoDoRecurso`: PV bordô, PE marinho, Sanidade roxo) — "para cada atributo atribuir cor
+   * também; a pessoa decide a cor também". A cor já foi a do ESTADO, que continua sendo mostrado,
+   * agora no NÚMERO da barra, pra cor da barra poder ser da barra.
    */
   cor?: string
   /**
    * A barra SOBE: começa vazia e o perigo é ENCHER. É o estresse de Oblívio (o dano por região,
-   * "Torso 0/5"), a corrupção, a fadiga, a carga. Pedido dele (02/09/2026): "oblívio deixa o
-   * estresse subindo, tipo 1 amarelo, 2 alaranjando, 3 alaranjado, 4 laranja avermelhado, 5
-   * vermelhasso, com vários níveis de cor". Ausente, a barra DESCE como PV: cheia é o normal, e
-   * ela amarela nos 40% e avermelha nos 15%. Quem decide é o nome (`recursoSobePorPadrao`), e a
-   * pessoa troca no editor.
+   * "Torso 0/5"), a corrupção, a fadiga, a carga — "oblívio deixa o estresse subindo, tipo 1 amarelo
+   * ... 5 vermelhasso, com vários níveis de cor". Ausente, a barra DESCE como PV: cheia é o normal, e
+   * ela amarela nos 40% e avermelha nos 15%. Quem decide é o nome, e a pessoa troca no editor.
    */
   sobe?: boolean
 }
@@ -59,11 +51,9 @@ export function corDoRecurso(recurso: Pick<RecursoVital, 'nome' | 'cor'>): strin
 }
 
 /**
- * Quantas barras cabem num personagem. Doze.
- *
- * Ordem usa três; D&D uma; o pior caso real são os espaços de magia por círculo de um conjurador de
- * D&D (nove) mais PV. Acima disso a faixa de barras na tela de rolagem deixa de ser uma faixa e
- * vira uma coluna — e no modo compacto, que cresce em altura por barra, não cabe de jeito nenhum.
+ * Quantas barras cabem num personagem. Ordem usa três, D&D uma, e o pior caso real são os espaços de
+ * magia por círculo de um conjurador de D&D (nove) mais PV. Acima disso a faixa de barras na tela de
+ * rolagem deixa de ser uma faixa e vira uma coluna, e no modo compacto não cabe de jeito nenhum.
  */
 export const MAXIMO_DE_RECURSOS = 12
 
@@ -84,12 +74,10 @@ function inteiroLimitado(valor: unknown, teto: number): number | null {
 }
 
 /**
- * O valor ATUAL preso ao intervalo do recurso: nunca abaixo de zero, nunca acima do máximo.
- *
- * "Nunca acima do máximo" é escolha, não descuido: PV temporário de D&D estoura o máximo, e há
- * quem anote assim. Mas uma barra que passa de 100% não tem como ser desenhada, e a régua de
- * estado (aviso abaixo da metade) perderia a referência. Quem tem PV temporário sobe o máximo por
- * um instante — que é o que a ficha em papel faz, riscando o número.
+ * O valor ATUAL preso ao intervalo do recurso: nunca abaixo de zero, nunca acima do máximo. O teto é
+ * escolha, não descuido — PV temporário de D&D estoura o máximo e há quem anote assim, mas uma barra
+ * que passa de 100% não tem como ser desenhada e a régua de estado perderia a referência. Quem tem
+ * PV temporário sobe o máximo por um instante, que é o que a ficha em papel faz.
  */
 export function prenderAtual(atual: number, maximo: number): number {
   return Math.min(Math.max(0, Math.trunc(atual)), Math.max(0, Math.trunc(maximo)))
@@ -147,15 +135,11 @@ export function normalizarRecursos(raw: unknown): RecursoVital[] {
 }
 
 /**
- * As barras que a IMPORTAÇÃO traz, fundidas com as que o personagem já tem.
- *
- * Pelo NOME, sem diferenciar maiúsculas: reimportar a ficha depois de subir de nível traz um "PV"
- * com máximo novo, e ele tem que ser a MESMA barra — com o id (que a tela já conhece) e a cor que a
- * pessoa escolheu. Acrescentar em vez de fundir deixaria dois "PV" lado a lado, um velho e um novo,
- * sem nada dizendo qual é qual — o mesmo defeito que as seções da ficha já tiveram.
- *
- * O que já estava e não veio de novo FICA: uma barra criada à mão não some porque a ficha não a
- * menciona.
+ * As barras que a IMPORTAÇÃO traz, fundidas com as que o personagem já tem, pelo NOME e sem
+ * diferenciar maiúsculas: reimportar a ficha depois de subir de nível traz um "PV" com máximo novo, e
+ * ele tem que ser a MESMA barra, com o id que a tela já conhece e a cor que a pessoa escolheu.
+ * Acrescentar deixaria dois "PV" lado a lado sem nada dizendo qual é qual. O que já estava e não veio
+ * de novo FICA: barra criada à mão não some porque a ficha não a menciona.
  */
 export function fundirRecursos(
   atuais: RecursoVital[],
@@ -181,13 +165,11 @@ export function fundirRecursos(
 export type EstadoDoRecurso = 'normal' | 'aviso' | 'perigo'
 
 /**
- * O estado de relance. Barra que DESCE (PV, PM): avisa nos 40% e é perigo nos 15% — as duas
- * linhas que ele pediu (02/09/2026: "vai mudando de cor para amarela em 40% e vermelha em 15%"),
- * no lugar da metade e do quarto da spec. Barra que SOBE (estresse): o espelho, 60% e 85%, porque
- * ali o pior caso é cheia.
- *
- * Máximo zero é "normal" de propósito: não há proporção nenhuma a julgar, e pintar de perigo uma
- * barra que a pessoa ainda nem preencheu seria alarme falso.
+ * O estado de relance. Barra que DESCE (PV, PM) avisa nos 40% e é perigo nos 15% — as duas linhas que
+ * ele pediu ("vai mudando de cor para amarela em 40% e vermelha em 15%"), no lugar da metade e do
+ * quarto da spec. Barra que SOBE tem o espelho, 60% e 85%, porque ali o pior caso é cheia. Máximo
+ * zero é "normal" de propósito: não há proporção a julgar, e pintar de perigo uma barra que ninguém
+ * preencheu seria alarme falso.
  */
 export const FRACAO_DE_AVISO = 0.4
 export const FRACAO_DE_PERIGO = 0.15
@@ -204,12 +186,10 @@ export function estadoDoRecurso(recurso: Pick<RecursoVital, 'atual' | 'maximo' |
 }
 
 /**
- * A cor com que o PREENCHIMENTO da barra é pintado agora, pelo estado. É o pedido dele
- * (02/09/2026): "mantém o básico de vida cheia e depois vai descendo e também vai mudando de cor
- * para amarela em 40% e vermelha em 15%". A cor da barra (escolhida, ou pelo nome) é a de "vida
- * cheia"; no aviso o preenchimento fica AMARELO e no perigo VERMELHO, os dois da paleta de 16 do
- * Windows. A barra que SOBE não tem cor de repouso: cada nível é um degrau do amarelo ao vermelho
- * (`corDaEscalaDeEstresse`), do primeiro ponto ao último.
+ * A cor com que o PREENCHIMENTO da barra é pintado agora, pelo estado ("mantém o básico de vida cheia
+ * e depois vai descendo e também vai mudando de cor"). A cor da barra, escolhida ou pelo nome, é a de
+ * vida cheia; no aviso o preenchimento fica AMARELO e no perigo VERMELHO, os dois da paleta de 16 do
+ * Windows. A barra que SOBE não tem cor de repouso: cada nível é um degrau do amarelo ao vermelho.
  */
 export function corDoPreenchimento(recurso: Pick<RecursoVital, 'nome' | 'cor' | 'atual' | 'maximo' | 'sobe'>): string {
   if (recurso.sobe) {
@@ -223,17 +203,15 @@ export function corDoPreenchimento(recurso: Pick<RecursoVital, 'nome' | 'cor' | 
 }
 
 /**
- * O que a pessoa DIGITOU no número da barra, virando o valor atual novo — ou `null` se não leu.
+ * O que a pessoa DIGITOU no número da barra, virando o valor atual novo, ou `null` se não deu pra
+ * ler. Três jeitos, e a diferença é o SINAL na frente:
  *
- * Dois jeitos, e a diferença é o SINAL na frente:
+ * - `-7`, `+3`: conta em cima do atual. É o gesto da mesa ("tomei 7"), e é o motivo de o campo existir
+ *   além dos botões de ±1/±5 — um dano de 23 são vinte e três cliques ou um "-23";
+ * - `12`: valor exato, o "voltei pra 12" depois de uma cura que o mestre já somou;
+ * - `12/40`: os dois de uma vez, como toda ficha em papel escreve e como a importação lê.
  *
- * - `-7`, `+3`: conta em cima do atual. É o gesto da mesa ("tomei 7"), e é o motivo de o campo
- *   existir além dos botões de ±1/±5 — um dano de 23 são vinte e três cliques ou um "-23".
- * - `12`: valor exato. É o "voltei pra 12" depois de uma cura que o mestre já somou.
- * - `12/40`: os dois de uma vez — o jeito como toda ficha em papel escreve, e como a importação lê.
- *   Devolve o máximo junto pra quem chama poder gravar os dois.
- *
- * O resultado sempre volta PRESO ao intervalo (`prenderAtual`): "-50" num PV 12 dá zero, não -38.
+ * O resultado sempre volta PRESO ao intervalo: "-50" num PV 12 dá zero, não -38.
  */
 export function lerEntradaDeRecurso(
   texto: string,

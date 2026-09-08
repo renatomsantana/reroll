@@ -7,11 +7,9 @@
 }
 
 /**
- * Os controles agora moram em duas CAIXAS DE GRUPO (o `fieldset` com legenda em relevo etched do
- * Windows 98): à esquerda "que dado", à direita "como rolar". Antes eram três linhas soltas —
- * tipos de dado, chips e (modo + modificador + Rolar) — todas com o mesmo peso visual, então não
- * dava pra ver de relance onde uma coisa terminava e a outra começava. Elas ficam lado a lado
- * quando cabe e empilham quando a janela aperta.
+ * Os controles moram em duas CAIXAS DE GRUPO (o `fieldset` com legenda em relevo etched do 98): à
+ * esquerda "que dado", à direita "como rolar". Antes eram três linhas soltas com o mesmo peso visual,
+ * então não dava pra ver de relance onde uma coisa terminava e a outra começava.
  */
 .dice-roller-3d-controls {
   display: flex;
@@ -37,10 +35,9 @@
 }
 
 /*
- * Base de 520px, e não 340: o conteúdo desta caixa (chip do dado, Normal/Vantagem/Desvantagem, o
- * crachá e o ROLAR) pede ~510px, medido no app — com 340 ela dividia o espaço livre com uma
- * vizinha elástica e ficava com 464: "Desvantagem" saía cortado e o crachá invadia os botões. A
- * vizinha (a caixa de Recursos) foi embora depois, mas a base fica: é o tamanho do conteúdo.
+ * Base de 520px, e não 340: o conteúdo desta caixa pede ~510px, medido no app — com 340 ela dividia o
+ * espaço livre com uma vizinha elástica e ficava com 464, "Desvantagem" saía cortado e o crachá
+ * invadia os botões. A vizinha foi embora depois, mas a base fica: é o tamanho do conteúdo.
  */
 .dice-roller-3d-group-roll {
   flex: 1 1 520px;
@@ -63,14 +60,12 @@
 }
 
 /*
- * O dado MARCADO afunda de verdade: borda invertida E rótulo deslocado — o mesmo par do clique.
+ * O dado MARCADO afunda de verdade: borda invertida E rótulo deslocado, o mesmo par do clique.
  *
- * Este padding compacto (4px 8px, pra caber sete botões) tem a MESMA especificidade do
- * `.btn-selected` de `Button.css` e este arquivo importa depois, então o deslocamento do marcado
- * era cancelado aqui: o botão ficava com a borda afundada e o rótulo parado — e, no clique, o
- * rótulo afundava DE NOVO, contradizendo a regra "botão já marcado não tem pra onde afundar".
- * Mesmo desenho que o bloco de modos já usa logo abaixo. Achado no reteste de botões pedido pelo
- * usuário ("estão se afundando errado").
+ * Este padding compacto (pra caber sete botões) tem a MESMA especificidade do `.btn-selected` de
+ * `Button.css` e este arquivo importa depois, então o deslocamento do marcado era cancelado aqui — o
+ * botão ficava com a borda afundada e o rótulo parado, e no clique o rótulo afundava DE NOVO. Achado
+ * no reteste de botões ("estão se afundando errado").
  */
 .dice-roller-3d-types .btn-selected:not(:disabled) {
   padding: 5px 7px 3px 9px;
@@ -122,11 +117,9 @@
 }
 
 /**
- * Aviso de bandeja vazia, no lugar onde os chips estariam.
- *
- * Texto solto e não uma caixinha afundada como o chip: não é um valor que se ajusta, é uma frase
- * dizendo o que fazer. Altura casada com a do chip (22px) pra a fileira não pular de tamanho quando
- * o primeiro dado entra.
+ * Aviso de bandeja vazia, no lugar onde os chips estariam. Texto solto e não uma caixinha afundada:
+ * não é um valor que se ajusta, é uma frase dizendo o que fazer. Altura casada com a do chip pra a
+ * fileira não pular de tamanho quando o primeiro dado entra.
  */
 .dice-roller-3d-sem-dados {
   display: flex;
@@ -156,19 +149,15 @@
 }
 
 /**
- * Os botões "-" e "+" com a MESMA caixa, quadrada, e o glifo centrado por flex.
+ * Os botões "-" e "+" com a MESMA caixa, quadrada, e o glifo centrado por flex. Sem largura fixa cada
+ * um ficava do tamanho do próprio caractere — e "-" é bem mais estreito que "+" na Tahoma —, então os
+ * dois nunca ficavam do mesmo tamanho nem alinhados entre um grupo de dados e outro. Centralizar por
+ * flex, em vez de confiar no padding, resolve também a altura: o traço do menos e a cruz do mais têm
+ * alturas de glifo diferentes, e padding igual não produz centro igual.
  *
- * Sem largura fixa cada um ficava do tamanho do próprio caractere — e "-" é bem mais estreito que
- * "+" na Tahoma —, então os dois nunca ficavam do mesmo tamanho nem alinhados entre um grupo de
- * dados e outro. Centralizar por `align-items`/`justify-content` em vez de confiar no padding
- * resolve também a altura: o traço do menos e a cruz do mais têm alturas de glifo diferentes, e
- * padding igual não produz centro igual.
- */
-/*
- * O "−"/"+" AFUNDA DE VERDADE: o `padding: 0` daqui cancelava o deslocamento do `:active` (a regra
- * do ghost tem a mesma especificidade e este arquivo importa depois), então a borda invertia com o
- * glifo parado no lugar. Com o glifo centrado por flex, este padding assimétrico o empurra 1px pra
- * baixo/direita — o mesmo gesto de todo botão do 98.
+ * E eles AFUNDAM de verdade: o `padding: 0` daqui cancelava o deslocamento do `:active`, então a borda
+ * invertia com o glifo parado. Com o glifo centrado por flex, o padding assimétrico o empurra 1px pra
+ * baixo e pra direita, o mesmo gesto de todo botão do 98.
  */
 .dice-roller-3d-group-chip .btn:active:not(:disabled) {
   padding: 2px 0 0 2px;
@@ -245,15 +234,13 @@
  * BRANCO FIXO, e não a cor do dado.
  *
  * Este rótulo já foi pintado com `--popup-body`, que vinha da cor de corpo do dado escolhida nas
- * Preferências. A ideia era casar o painel com os dados da mesa; o efeito foi um texto cuja
- * legibilidade dependia de uma escolha de gosto feita em outra tela. Medido no app do usuário (fundo
- * de cena preto, dado escuro): a palavra "TOTAL" saía em rgb(0, 0, 0) sobre o painel quase preto —
- * contraste 1,1, onde 1,0 é invisível. Ele relatou exatamente isso: "o fundo é preto, ele apaga as
- * letras".
+ * Preferências: a ideia era casar o painel com os dados da mesa, e o efeito foi um texto cuja
+ * legibilidade dependia de uma escolha de gosto feita em outra tela. Medido no app dele (fundo de
+ * cena preto, dado escuro): "TOTAL" saía em rgb(0, 0, 0) sobre o painel quase preto, contraste 1,1,
+ * onde 1,0 é invisível — "o fundo é preto, ele apaga as letras".
  *
- * O painel é escuro POR CONSTRUÇÃO (o gradiente logo acima, fixo), então o texto em cima dele pode e
- * deve ser fixo também — 19:1 contra o painel, aconteça o que acontecer com as cores dos dados. A
- * cor escolhida pela pessoa continua mandando no que é DECORAÇÃO: a borda e o brilho, via
+ * O painel é escuro por construção, então o texto em cima dele pode e deve ser fixo: 19:1, aconteça o
+ * que acontecer com as cores dos dados. A cor escolhida continua mandando na DECORAÇÃO, via
  * `--popup-accent`.
  */
 .dice-result-popup-label {
@@ -274,10 +261,9 @@
 }
 
 /*
- * O CLARÃO de crítico e falha (spec §3.7). Um segundo, no centro da cena, por cima do popup do
- * total. Cores CHAPADAS da paleta do Windows (amarelo sobre preto no crítico, bordô no luto) — sem
- * degradê, que leria como moderno. As "partículas" são oito quadradinhos que voam do centro pra
- * fora ao longo de `--angulo` e somem; o painel da falha treme em vez de brilhar.
+ * O CLARÃO de crítico e falha: um segundo, no centro da cena, por cima do popup do total. Cores
+ * CHAPADAS da paleta do Windows (amarelo sobre preto no crítico, bordô no luto), sem degradê, que
+ * leria como moderno. As partículas são oito quadradinhos que voam do centro ao longo de `--angulo`.
  */
 .dice-crit {
   position: absolute;
@@ -405,10 +391,9 @@
 }
 
 /**
- * Os cortes são em porcentagem da duração, então esticar a animação esticaria TUDO junto — o
- * "pop" de entrada viraria um crescimento arrastado de um segundo. Estes valores são os tempos
- * absolutos de antes convertidos pros 8s: entrada em 0,3s (3,5%), assentado em 0,5s (6%), começo
- * do sumiço em 7,5s (94%).
+ * Os cortes são em porcentagem da duração, então esticar a animação esticaria tudo junto — o "pop" de
+ * entrada viraria um crescimento arrastado de um segundo. Estes valores são os tempos absolutos de
+ * antes convertidos pros 8s: entrada em 0,3s, assentado em 0,5s, começo do sumiço em 7,5s.
  */
 @keyframes dice-result-pop {
   0% {
@@ -471,11 +456,9 @@
 }
 
 /*
- * MODO RÁPIDO: o lugar da bandeja, com o número no meio.
- *
- * Ocupa o mesmo espaço que a cena 3D (`flex: 1` e o mesmo mínimo) de propósito — trocar de modo não
- * pode fazer a barra de rolagem pular pra outra altura da tela, senão o botão "Rolar" muda de lugar
- * embaixo do dedo de quem acabou de trocar.
+ * MODO RÁPIDO: o lugar da bandeja, com o número no meio. Ocupa o mesmo espaço que a cena 3D de
+ * propósito — trocar de modo não pode fazer a barra de rolagem pular pra outra altura da tela, senão o
+ * botão "Rolar" muda de lugar embaixo do dedo de quem acabou de trocar.
  */
 .dice-roller-3d-quick {
   flex: 1;
@@ -490,9 +473,8 @@
   padding: 16px;
   /*
    * `--win-surface-sunken`/`--win-light` não existem em tema nenhum (mesmo caso consertado no
-   * changelog do `UpdatePrompt.css`): só os fallbacks valiam, iguais nos dois temas. Aqui o
-   * efeito era mais sutil que lá — cinza fixo no modo noite — mas a regra é a mesma: rebaixo
-   * com as variáveis do tema. `--win-shadow` no dia é o mesmo #808080 de antes.
+   * `UpdatePrompt.css`): só os fallbacks valiam. Aqui o efeito era mais sutil — cinza fixo no modo
+   * noite —, mas a regra é a mesma: rebaixo com as variáveis do tema.
    */
   background: var(--win-shadow);
   border: 2px solid;
@@ -535,10 +517,9 @@
 }
 
 /*
- * MODIFICADOR: menos, campo, mais — no lugar das setinhas do `type="number"`.
- *
- * As três peças coladas numa linha só, como um contador do 98. O campo é estreito de propósito
- * (cabem quatro caracteres: sinal e três algarismos, que é o teto de `MODIFICADOR_MAXIMO`).
+ * MODIFICADOR: menos, campo, mais, no lugar das setinhas do `type="number"`. As três peças coladas
+ * numa linha só, como um contador do 98; o campo é estreito de propósito, com espaço pro sinal e três
+ * algarismos, que é o teto de `MODIFICADOR_MAXIMO`.
  */
 .dice-roller-3d-modifier-campo {
   display: flex;

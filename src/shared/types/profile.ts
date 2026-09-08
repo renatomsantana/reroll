@@ -1,17 +1,13 @@
 /**
- * PERFIL DE PERSONAGEM — pedido do usuário: "um espaço para poder selecionar o profile do
- * personagem, tipo nome e qual sistema de rpg, e aí precisa colocar uma foto também... os dados são
- * customizados para o de Rodrigo, as cores, e já ficam tudo salvo, as anotações, os presets, tudo
- * dele... mas quando eu voltar pro profile do Rodrigo, volta como era antes".
+ * PERFIL DE PERSONAGEM, pedido dele: "um espaço para poder selecionar o profile do personagem, tipo
+ * nome e qual sistema de rpg, e aí precisa colocar uma foto também... os dados são customizados para
+ * o de Rodrigo, as cores, e já ficam tudo salvo, as anotações, os presets, tudo dele... mas quando eu
+ * voltar pro profile do Rodrigo, volta como era antes".
  *
- * Ou seja: o perfil não é só um rótulo, é um COMPARTIMENTO. Cada um carrega as próprias anotações,
- * os próprios presets e a própria aparência (cores de dado, de bandeja, de torre, imagem de fundo).
- * Trocar de personagem troca tudo isso de uma vez, e voltar traz tudo de volta exatamente como
- * estava.
- *
- * O que NÃO é por perfil: idioma, tema, fonte, som, ícone do app — preferências de quem usa o
- * programa, não do personagem. Alguém que joga de Rodrigo e de Marina não quer o app em inglês
- * quando muda de ficha. A divisão está em `PROFILE_LOOK_KEYS`, em `SettingsContext.tsx`.
+ * Ou seja, o perfil não é um rótulo, é um COMPARTIMENTO: cada um carrega as próprias anotações,
+ * presets e aparência. O que NÃO é por perfil são as preferências de quem usa o programa — idioma,
+ * tema, fonte, som, ícone —, porque quem joga de Rodrigo e de Marina não quer o app em inglês quando
+ * muda de ficha. A divisão está em `PROFILE_LOOK_KEYS`.
  */
 import { PERSONAGENS_LIBERADOS } from '../liberacoes'
 
@@ -54,22 +50,17 @@ export const DEFAULT_PROFILE_ID = 'default'
 export const TETO_DE_PERSONAGENS_NO_DISCO = 15
 
 /**
- * QUANTOS PERSONAGENS a pessoa pode CRIAR — e aqui vale a regra do dono (30/08/2026): "EU o DONO
- * posso ter quantos personagens quiser, OS OUTROS usuários apenas 3, eles são bloqueados e recebem
- * um aviso: máximo de personagens atingido = 3".
+ * QUANTOS PERSONAGENS a pessoa pode CRIAR, pela regra do dono: "EU o DONO posso ter quantos
+ * personagens quiser, OS OUTROS usuários apenas 3, eles são bloqueados e recebem um aviso: máximo de
+ * personagens atingido = 3".
  *
- * Quem escolhe o lado é `PERSONAGENS_LIBERADOS` (`shared/liberacoes.ts`), a mesma chave de
- * liberação do HUD: ligada na `main` (o cliente dele), o teto é o do disco; desligada no branch
- * `lancamento` (os testadores), o teto é TRÊS, duro — o botão "Novo personagem" responde com o
- * aviso de limite pelo diálogo do app, e a importação trava o OK com o mesmo motivo.
+ * Quem escolhe o lado é `PERSONAGENS_LIBERADOS`, a mesma chave de liberação do HUD: ligada na `main`,
+ * o teto é o do disco; desligada no branch `lancamento`, o teto é TRÊS, duro.
  *
- * O teto vale na CRIAÇÃO, e não na leitura. `normalizeProfiles` NUNCA corta a lista, mesmo que ela
- * venha do disco com mais que isto: um arquivo restaurado de backup, ou escrito por uma versão em
- * que o teto era outro, não pode perder personagem por causa de um número que mudou. O que o app
- * faz é parar de deixar criar mais — o que sobra continua lá, editável e apagável.
- *
- * Quem cobra o teto: `ProfilesContext.create` (o botão "Novo personagem") e o canal de importação de
- * ficha. Os dois, porque são os dois jeitos de nascer um personagem.
+ * O teto vale na CRIAÇÃO, e não na leitura: `normalizeProfiles` nunca corta a lista, mesmo que ela
+ * venha do disco com mais que isto — um arquivo restaurado de backup não pode perder personagem por
+ * causa de um número que mudou. Quem cobra o teto é o botão "Novo personagem" e o canal de
+ * importação de ficha, que são os dois jeitos de nascer um personagem.
  */
 export const MAX_PROFILES = PERSONAGENS_LIBERADOS ? TETO_DE_PERSONAGENS_NO_DISCO : 3
 
@@ -78,16 +69,13 @@ export function createProfile(name = '', system = ''): Profile {
 }
 
 /**
- * Um id serve como NOME DE PASTA?
+ * Um id serve como NOME DE PASTA? A pergunta importa porque `ProfilesRepository.activeDirectory()`
+ * monta o caminho dos dados com `join(userData, 'profiles', id)`: o id não é só uma chave, é um pedaço
+ * de caminho de arquivo. Um id vazio faz as anotações caírem na pasta `profiles/` inteira, em cima do
+ * que estiver lá; um id com `..` ou com barra sai da pasta do app.
  *
- * A pergunta importa porque `ProfilesRepository.activeDirectory()` monta o caminho dos dados do
- * personagem com `join(userData, 'profiles', id)` — o id não é só uma chave, é um pedaço de caminho
- * de arquivo. Um id vazio faz as anotações caírem na pasta `profiles/` inteira, em cima do que
- * estiver lá; um id com `..` ou com barra sai da pasta do app e vai escrever onde não devia.
- *
- * Nada disso acontece com id gerado pelo app (`crypto.randomUUID`). Acontece com arquivo editado à
- * mão, restaurado de backup pela metade ou gravado por uma versão futura com outro formato — e o
- * estrago é silencioso, que é o que o torna caro.
+ * Nada disso acontece com id gerado pelo app. Acontece com arquivo editado à mão, restaurado de
+ * backup pela metade ou gravado por versão futura — e o estrago é silencioso, que é o que o torna caro.
  */
 function idServeComoPasta(id: string): boolean {
   if (!id.trim()) return false
@@ -99,42 +87,33 @@ function idServeComoPasta(id: string): boolean {
 
 /**
  * Deixa qualquer conteúdo lido do disco no formato atual: garante ao menos um perfil, campos com os
- * tipos certos, um id ÚNICO e utilizável como pasta em cada perfil, e um `activeId` que aponta pra
- * um perfil que existe de verdade (arquivo editado à mão, ou perfil apagado numa versão e reaberto
- * em outra).
+ * tipos certos, um id único e utilizável como pasta em cada um, e um `activeId` que aponta pra um
+ * perfil que existe de verdade.
  *
  * A distinção entre SEM id e COM id ruim é de propósito, e não detalhe:
  *
  * - entrada SEM `id` nenhum é descartada. Não é um personagem que perdeu a chave, é um fragmento —
- *   gravação interrompida no meio, ou objeto de outro formato. Mantê-la encheria a lista de
- *   personagens fantasmas que ninguém criou.
- * - entrada COM `id` que não serve (repetido, vazio, com `..` ou com barra) é MANTIDA, com id novo.
- *   Aqui há um personagem de verdade: o nome e o sistema estão ali, legíveis. Descartar apagaria
- *   alguém da lista por causa de um defeito de arquivo. Com id novo ele continua aparecendo,
- *   apontando pra uma pasta própria e vazia — no pior caso perdem-se as anotações dele, não ele.
+ *   gravação interrompida no meio, ou objeto de outro formato —, e mantê-la encheria a lista de
+ *   personagens fantasmas;
+ * - entrada COM `id` que não serve (repetido, vazio, com `..` ou barra) é MANTIDA, com id novo. Aqui
+ *   há um personagem de verdade, com nome e sistema legíveis: descartar apagaria alguém da lista por
+ *   causa de um defeito de arquivo. No pior caso perdem-se as anotações dele, não ele.
  *
- * Repetido é o caso perigoso de verdade: dois personagens com o mesmo id leem e escrevem NA MESMA
- * PASTA (ver `ProfilesRepository.activeDirectory`). Um sobrescreve as anotações do outro a cada
- * tecla, e da tela isso lê como "troquei de personagem e as informações sumiram".
+ * Repetido é o caso perigoso: dois personagens com o mesmo id leem e escrevem NA MESMA PASTA, um
+ * sobrescrevendo as anotações do outro a cada tecla — e da tela isso lê como "troquei de personagem e
+ * as informações sumiram".
  */
 /**
- * A FOTO só entra se for uma imagem embutida, e de tamanho que o app aceitaria escolher.
+ * A FOTO só entra se for imagem embutida, e de tamanho que o app aceitaria escolher. O campo é
+ * gravado como data URL e vai direto pra um `<img src>`, e a CSP já impede qualquer outro esquema de
+ * carregar: isto aqui é o que segura o TAMANHO. O seletor recusa arquivo acima de 12 MB, mas o canal
+ * `profiles:save` e o `profiles.json` no disco não passavam por limite nenhum, e uma foto de 60 MB em
+ * base64 seria lida inteira em toda abertura do app.
  *
- * O campo é gravado como data URL e vai direto pra um `<img src>`. A CSP (`img-src 'self' data:`)
- * já impede qualquer outro esquema de carregar, então isto não é o que segura um `javascript:` — é o
- * que segura o TAMANHO. O seletor de foto recusa arquivo acima de 12 MB (ver
- * `TAMANHO_MAXIMO_DA_IMAGEM`), mas o canal `profiles:save` e o `profiles.json` no disco não
- * passavam por limite nenhum: uma foto de 60 MB em base64 seria lida inteira em toda abertura do
- * app. 17 MB de texto é 12 MB de imagem em base64, com folga pro cabeçalho.
- *
- * Formato fora da lista ou grande demais vira `null` — o personagem fica sem foto, e não some.
- */
-/**
- * Só o PREFIXO é conferido, de propósito. A primeira versão varria o base64 inteiro com um `+$`
- * ancorado, e `normalizeProfiles` roda no renderer e no main a cada gravação da lista — inclusive a
- * cada tecla no nome do personagem. Quinze fotos de 10 MB eram 150 MB de string varridos por
- * tecla. O que importa pra segurança é o esquema e o tipo; o conteúdo, quem julga é o decodificador
- * de imagem do Chromium, que não executa nada.
+ * Só o PREFIXO é conferido, de propósito: a primeira versão varria o base64 inteiro, e
+ * `normalizeProfiles` roda no renderer e no main a cada gravação da lista, inclusive a cada tecla no
+ * nome do personagem — quinze fotos de 10 MB eram 150 MB de string varridos por tecla. O que importa
+ * pra segurança é o esquema e o tipo; o conteúdo, quem julga é o decodificador de imagem do Chromium.
  */
 const FOTO_EMBUTIDA = /^data:image\/(png|jpeg|webp);base64,/
 export const TAMANHO_MAXIMO_DA_FOTO = 17 * 1024 * 1024

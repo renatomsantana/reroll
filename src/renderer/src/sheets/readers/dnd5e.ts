@@ -7,25 +7,20 @@ import type { SheetReader } from './types'
 /**
  * Leitor da ficha de DUNGEONS & DRAGONS 5ª EDIÇÃO.
  *
- * É o sistema mais jogado do mundo, e até aqui era o caso pior do importador: a ficha oficial tem
- * uns 160 campos de formulário e quase nenhum rótulo IMPRESSO ao lado deles — os nomes ("FORÇA",
- * "DESTREZA", "Percepção") são parte da arte da página, desenhados dentro das caixas. O leitor
- * genérico, que vive de casar campo com o texto ao lado (ver `labelForField`), não tinha o que casar:
- * o resultado era uma lista de "1_2 = 16" e "Check Box 22 = sim" que ninguém reconheceria como a
- * própria ficha.
+ * É o sistema mais jogado do mundo e era o caso pior do importador: a ficha oficial tem uns 160
+ * campos e quase nenhum rótulo IMPRESSO ao lado deles — os nomes ("FORÇA", "Percepção") são parte da
+ * arte, desenhados dentro das caixas. O genérico, que vive de casar campo com o texto ao lado, não
+ * tinha o que casar: saía uma lista de "1_2 = 16" e "Check Box 22 = sim".
  *
- * O que salva o caso é o outro lado: os NOMES DE CAMPO da ficha oficial da Wizards são estáveis e
- * falam ("STR", "ProfBonus", "Wpn1 AtkBonus", "ST Dexterity"), e as fichas preenchíveis que a
- * comunidade publica quase todas descendem dela e mantêm os mesmos nomes. Então aqui o caminho é o
- * INVERSO do genérico: o nome do campo é a fonte, e o texto impresso não é consultado.
+ * O que salva é o outro lado: os NOMES DE CAMPO da ficha oficial da Wizards são estáveis e falam
+ * ("STR", "ProfBonus", "Wpn1 AtkBonus"), e as fichas preenchíveis da comunidade quase todas
+ * descendem dela. Então aqui o caminho é o INVERSO do genérico: o nome do campo é a fonte, e o texto
+ * impresso não é consultado.
  *
- * Duas armadilhas do arquivo oficial, as duas medidas e não supostas:
- *
- * - vários nomes terminam em ESPAÇO, e de forma inconsistente entre si — `Race `, `Deception `,
- *   `Wpn2 AtkBonus `, `Wpn3 AtkBonus  ` (dois espaços). Casar por igualdade crua perde metade da
- *   ficha, então tudo aqui passa por `chave()`;
- * - a ficha guarda o VALOR do atributo e o MODIFICADOR em campos separados (`STR` e `STRmod`), e
- *   quem preenche à mão frequentemente escreve só um dos dois. Ver `atributos()`.
+ * Duas armadilhas do arquivo oficial, as duas medidas: vários nomes terminam em ESPAÇO, de forma
+ * inconsistente entre si (`Race `, `Wpn3 AtkBonus  `), então tudo aqui passa por `chave()`; e a
+ * ficha guarda o VALOR do atributo e o MODIFICADOR em campos separados, com quem preenche à mão
+ * escrevendo só um dos dois (ver `atributos()`).
  */
 
 /** Nome de campo normalizado: sem espaço nas pontas e sem caixa. Ver o comentário do arquivo. */
@@ -34,19 +29,15 @@ function chave(nome: string): string {
 }
 
 /**
- * AS MAGIAS DA PÁGINA DE CONJURAÇÃO, lidas pela POSIÇÃO — pedido do usuário: cada sistema raspado
- * "igual o de Oblívio, cada um com seu jeito específico dependendo do PDF".
+ * AS MAGIAS DA PÁGINA DE CONJURAÇÃO, lidas pela POSIÇÃO — cada sistema raspado "igual o de Oblívio,
+ * cada um com seu jeito específico dependendo do PDF".
  *
- * O nome do campo não diz nada (`Spells 1014`, `Spells 10100` — numeração de quem montou o
- * formulário por cópia), e por isso elas viravam só um aviso. Mas a PÁGINA diz: a folha oficial
- * tem três colunas, cada nível é um bloco encabeçado pelo campo `SlotsTotal N` (N de 19, o 1º
- * nível, a 27, o 9º), e os truques são o bloco do alto da primeira coluna, sem cabeçalho. Uma
- * magia pertence ao cabeçalho mais próximo ACIMA dela na mesma coluna; sem cabeçalho acima, é
- * truque. Medido na ficha do Go (goblin ladino/mago): oito truques e onze magias de 1º nível
- * chegavam como "Spells 1014" e sumiam.
- *
- * Sai uma linha por nível ("Magias de nível 1 (3 espaços) = flash, mísseis mágicos…"), e não uma
- * por magia: é assim que se lê a lista na mesa, e uma ficha de conjurador tem dezenas delas.
+ * O nome do campo não diz nada (`Spells 1014`, numeração de quem montou o formulário por cópia), mas
+ * a PÁGINA diz: são três colunas, cada nível é um bloco encabeçado pelo campo `SlotsTotal N`, e os
+ * truques são o bloco do alto da primeira coluna, sem cabeçalho. Uma magia pertence ao cabeçalho
+ * mais próximo ACIMA dela na mesma coluna. Medido na ficha do Go (goblin ladino/mago): oito truques
+ * e onze magias de 1º nível chegavam como "Spells 1014" e sumiam. Sai uma linha por NÍVEL, e não uma
+ * por magia: é assim que se lê a lista na mesa.
  */
 const CABECALHO_DE_NIVEL = /^slotstotal\s*(\d+)$/i
 const LINHA_DE_MAGIA = /^spells\s*\d+$/i
@@ -97,13 +88,10 @@ function magiasPorNivel(
 }
 
 /**
- * Um rótulo nos dois idiomas da interface.
- *
- * D&D é o único leitor daqui que precisa disto, e a razão é que o sistema é publicado em inglês: os
- * nomes de campo que este leitor reconhece (`STR`, `Deception`, `ProfBonus`) são do arquivo oficial,
- * então o que aparece na tela é escolha nossa. Nos leitores de Ordem Paranormal e de Oblivio não há
- * escolha nenhuma a fazer — o rótulo é o que está IMPRESSO na ficha, em português, e traduzi-lo faria
- * a tela deixar de bater com o papel.
+ * Um rótulo nos dois idiomas da interface. D&D é o único leitor daqui que precisa disto, porque o
+ * sistema é publicado em inglês: os nomes de campo que ele reconhece são do arquivo oficial, então o
+ * que aparece na tela é escolha nossa. Em Ordem Paranormal e Oblivio não há escolha — o rótulo é o
+ * que está IMPRESSO na ficha, em português, e traduzi-lo faria a tela deixar de bater com o papel.
  */
 interface Rotulo {
   pt: string
@@ -115,12 +103,10 @@ function rotulo(par: Rotulo, idioma: Language): string {
 }
 
 /**
- * Os GRUPOS, que viram as seções da ficha.
- *
- * Os nomes em inglês não são tradução livre: eles passam por `SHEET_BLOCK_MATCHERS`
- * (`shared/types/sheetBlocks.ts`), que decide o que vira bloco de texto e o que vira quadro de
- * valores. "Attributes" e não "Ability Scores" por isso — a segunda casa com a expressão de
- * HABILIDADES e mandaria os seis atributos, que são números em caixa, pro bloco de texto livre.
+ * Os GRUPOS, que viram as seções da ficha. Os nomes em inglês não são tradução livre: eles passam por
+ * `SHEET_BLOCK_MATCHERS`, que decide o que vira bloco de texto e o que vira quadro de valores.
+ * "Attributes" e não "Ability Scores" por isso — a segunda casa com a expressão de HABILIDADES e
+ * mandaria os seis atributos, que são números em caixa, pro bloco de texto livre.
  */
 const GRUPOS = {
   identificacao: { pt: 'Identificação', en: 'Identity' },
@@ -136,12 +122,10 @@ const GRUPOS = {
 } satisfies Record<string, Rotulo>
 
 /**
- * Os seis atributos, com o nome do campo do VALOR e o do MODIFICADOR.
- *
- * `chamod` não é erro de digitação: na ficha oficial o campo do modificador de Carisma se chama
- * `CHamod`, com o "a" minúsculo, enquanto os outros cinco seguem o padrão. É um deslize de quem
- * montou o PDF que virou parte do formato — a ficha está publicada assim desde 2014 e todas as
- * cópias preenchíveis herdaram.
+ * Os seis atributos, com o nome do campo do VALOR e o do MODIFICADOR. `chamod` não é erro de
+ * digitação: na ficha oficial o campo do modificador de Carisma se chama `CHamod`, com o "a"
+ * minúsculo, enquanto os outros cinco seguem o padrão. É um deslize de quem montou o PDF em 2014 que
+ * virou parte do formato, herdado por todas as cópias preenchíveis.
  */
 const ATRIBUTOS = [
   { valor: 'str', mod: 'strmod', pt: 'Força', en: 'Strength' },
@@ -219,12 +203,10 @@ const COMBATE: { name: string; pt: string; en: string; roll?: 'd20' }[] = [
 ]
 
 /**
- * Os campos de TEXTO LONGO e para onde eles vão na ficha do app.
- *
- * O `group` aqui não é enfeite de conferência: ele é o que manda o conteúdo pro bloco certo (ver
- * `sheetBlocks.ts`), e foi o pedido explícito do usuário — "backstory pra backstory, inventário pra
- * inventário". Uma ficha de D&D preenchida tem parágrafos nesses campos, e como linha de formulário
- * eles ficariam espremidos numa caixa de uma linha.
+ * Os campos de TEXTO LONGO e para onde eles vão na ficha do app. O `group` aqui não é enfeite de
+ * conferência: é o que manda o conteúdo pro bloco certo (ver `sheetBlocks.ts`), e foi pedido dele —
+ * "backstory pra backstory, inventário pra inventário". Como linha de formulário, os parágrafos
+ * desses campos ficariam espremidos numa caixa de uma linha.
  */
 const TEXTOS: { name: string; pt: string; en: string; grupo: Rotulo }[] = [
   { name: 'equipment', pt: 'Equipamento', en: 'Equipment', grupo: GRUPOS.inventario },
@@ -284,14 +266,12 @@ const ARMAS = [
 ]
 
 /**
- * MAGIA. Os quatro campos do topo da página de conjuração, e o bônus de ataque mágico é uma rolagem
- * de verdade — vira preset como uma arma.
- *
- * Estes são procurados por PREFIXO, sem espaço nenhum, e não por igualdade: na ficha oficial eles se
- * chamam `Spellcasting Class 2`, `SpellcastingAbility 2`, `SpellSaveDC  2` (com dois espaços no
- * meio) e `SpellAtkBonus 2` — o " 2" é lixo de quando a página de magias foi montada por cópia, e a
- * quantidade de espaços varia campo a campo. Procurar `spellatkbonus` cru não acha nenhum deles, e o
- * conjurador — metade das classes do sistema — importaria sem CD e sem ataque mágico.
+ * MAGIA: os quatro campos do topo da página de conjuração, com o bônus de ataque mágico virando
+ * preset como uma arma. Eles são procurados por PREFIXO, sem espaço nenhum, e não por igualdade: na
+ * ficha oficial se chamam `Spellcasting Class 2`, `SpellSaveDC  2` (com dois espaços no meio) e
+ * `SpellAtkBonus 2`, onde o " 2" é lixo de quando a página foi montada por cópia e a quantidade de
+ * espaços varia campo a campo. Procurar `spellatkbonus` cru não acha nenhum deles, e o conjurador —
+ * metade das classes do sistema — importaria sem CD e sem ataque mágico.
  */
 const ATAQUE_MAGICO = 'spellatkbonus'
 const CD_DE_MAGIA = 'spellsavedc'
@@ -303,13 +283,11 @@ export const dnd5eReader: SheetReader = {
   label: 'D&D 5e',
 
   /**
-   * Reconhece pela COMBINAÇÃO de nomes de campo, e não por um só.
-   *
-   * `STR`/`DEX`/`CON`… sozinhos apareceriam em ficha de qualquer sistema d20 derivado (Pathfinder,
-   * Tormenta, os OSR), e reivindicar a ficha deles seria pior que deixar no genérico: o leitor
-   * traduziria os campos pra nomenclatura de D&D e o jogador de outro sistema veria a própria ficha
-   * com rótulos errados. Somando `ProfBonus` (que é invenção da 5ª edição) e a grade `Wpn…` a
-   * chance de coincidência some.
+   * Reconhece pela COMBINAÇÃO de nomes de campo, e não por um só: `STR`/`DEX`/`CON` sozinhos
+   * apareceriam em ficha de qualquer sistema d20 derivado, e reivindicar a ficha deles seria pior que
+   * deixar no genérico — o leitor traduziria os campos pra nomenclatura de D&D e o jogador veria a
+   * própria ficha com rótulos errados. Somando `ProfBonus` (invenção da 5ª edição) e a grade `Wpn…`,
+   * a chance de coincidência some.
    */
   detect: (sheet) => {
     if (sheet.fields.length === 0) return 0
@@ -329,12 +307,10 @@ export const dnd5eReader: SheetReader = {
     const nesteIdioma = (par: Rotulo): string => rotulo(par, idioma)
 
     /**
-     * Índice por nome NORMALIZADO, ficando com o primeiro de cada.
-     *
-     * A ficha oficial repete `CharacterName` na página 2 e na de magias (é o cabeçalho de cada
-     * página), e todas as cópias trazem o mesmo valor. Ficar com a última seria igualmente correto
-     * hoje e frágil amanhã: numa ficha em que só a primeira página foi preenchida, a última
-     * ocorrência está vazia.
+     * Índice por nome NORMALIZADO, ficando com o primeiro de cada. A ficha oficial repete
+     * `CharacterName` na página 2 e na de magias (é o cabeçalho de cada página) e todas as cópias
+     * trazem o mesmo valor; ficar com a última seria igualmente correto hoje e frágil amanhã, porque
+     * numa ficha em que só a primeira página foi preenchida a última ocorrência está vazia.
      */
     const porNome = new Map<string, PdfField>()
     for (const campo of sheet.fields) {
@@ -373,12 +349,11 @@ export const dnd5eReader: SheetReader = {
 
     const campos: SheetImportField[] = []
     /**
-     * `sempre` traz o campo MESMO VAZIO — é o esqueleto de lacunas, pedido do usuário: "coloca
-     * lacunas para TUDO que é preenchível, porque às vezes precisamos preencher no app também mesmo
-     * que não tenha, porque é um item novo na sessão". O leitor de Ordem Paranormal já fazia isso; o
-     * de D&D descartava tudo o que estivesse em branco, e uma ficha de nível 1 com três perícias
-     * treinadas chegava com três linhas de perícia, sem lugar pra anotar a quarta. Só quando a ficha
-     * tem dono: no modelo em branco, seriam quarenta linhas vazias.
+     * `sempre` traz o campo MESMO VAZIO: é o esqueleto de lacunas ("coloca lacunas para TUDO que é
+     * preenchível... porque é um item novo na sessão"). O leitor de Ordem Paranormal já fazia isso; o
+     * de D&D descartava tudo em branco, e uma ficha de nível 1 com três perícias treinadas chegava
+     * com três linhas, sem lugar pra anotar a quarta. Só quando a ficha tem dono: no modelo em
+     * branco, seriam quarenta linhas vazias.
      */
     const push = (
       label: string,
@@ -445,14 +420,11 @@ export const dnd5eReader: SheetReader = {
 
     /**
      * O que o GENÉRICO achou e este leitor não tratou fica de fora, e esta é a única diferença de
-     * fundo entre este leitor e o de Ordem Paranormal.
-     *
-     * Lá o restante vale a pena: a ficha tem rótulo impresso ao lado dos campos, então o que sobra
-     * chega com nome legível. Aqui não há rótulo impresso nenhum — é tudo desenho —, e o que o
-     * genérico produz pra um campo não catalogado é o nome cru do PDF: "Check Box 11 = sim". Numa
-     * ficha de D&D isso são DEZENAS de linhas, e o usuário já disse o que essa lista vira na tela:
-     * "fica uma bagunça, não dá para entender". As magias, que também moram em campos sem nome,
-     * são lidas pela POSIÇÃO — ver `magiasPorNivel`.
+     * fundo entre ele e o de Ordem Paranormal. Lá o restante vale a pena, porque a ficha tem rótulo
+     * impresso ao lado dos campos; aqui não há rótulo impresso nenhum, e o que o genérico produz pra
+     * um campo não catalogado é o nome cru do PDF ("Check Box 11 = sim"), o que numa ficha de D&D são
+     * dezenas de linhas — "fica uma bagunça, não dá para entender". As magias, que também moram em
+     * campos sem nome, são lidas pela POSIÇÃO (ver `magiasPorNivel`).
      */
     const avisos = [...base.warnings]
 
@@ -477,23 +449,19 @@ export const dnd5eReader: SheetReader = {
 
 /**
  * Os seis atributos, tratando o caso que a ficha oficial cria sozinha: VALOR e MODIFICADOR em campos
- * separados, preenchidos à mão, e quase nunca os dois.
+ * separados, preenchidos à mão, e quase nunca os dois. A ficha não calcula nada, então na prática se
+ * vê de tudo — ficha com os dois, só com o valor, só com o modificador, e com os dois DIVERGINDO
+ * porque o personagem subiu de nível e só um foi corrigido.
  *
- * A ficha não calcula nada — quem preenche digita 16 numa caixa e +3 na outra —, e na prática se vê
- * de tudo: ficha com os dois, ficha só com o valor, ficha só com o modificador (o pessoal que usa a
- * caixa grande pro número que importa na hora de rolar), e ficha com os dois DIVERGINDO, porque o
- * personagem subiu de nível e só um dos dois foi corrigido.
+ * A regra, nessa ordem:
  *
- * A regra aqui, nessa ordem:
- *
- * 1. tem VALOR (3 a 30, que é a faixa que o sistema permite): mostra o valor e rola o modificador
- *    calculado a partir dele (`d20-valor`). É o número que o jogador reconhece na própria ficha, e
- *    calcular é mais confiável que ler — o modificador escrito é o campo que envelhece;
- * 2. só tem MODIFICADOR: mostra ele e rola somando (`d20`). Nada a calcular;
- * 3. o valor está fora da faixa, ou vem com SINAL na frente: quase sempre é o modificador digitado
- *    na caixa errada — ninguém escreve "+16" como valor de Força, e a caixa grande é onde a mão vai
- *    quando se preenche a ficha pensando na hora de rolar. Tratar como modificador acerta esse caso
- *    e, se for outra coisa, ainda mostra o que está escrito.
+ * 1. tem VALOR (3 a 30, a faixa que o sistema permite): mostra o valor e rola o modificador
+ *    calculado a partir dele. É o número que o jogador reconhece, e calcular é mais confiável que
+ *    ler, porque o modificador escrito é o campo que envelhece;
+ * 2. só tem MODIFICADOR: mostra ele e rola somando;
+ * 3. o valor está fora da faixa ou vem com SINAL: quase sempre é o modificador digitado na caixa
+ *    errada — ninguém escreve "+16" como valor de Força. Tratar como modificador acerta esse caso e,
+ *    se for outra coisa, ainda mostra o que está escrito.
  */
 function atributos(
   valor: (nome: string) => string | null,
@@ -521,13 +489,11 @@ function atributos(
 }
 
 /**
- * As três armas da primeira página viram até DOIS presets cada — o teste de acerto e o dano —, pelo
- * mesmo motivo que em Ordem Paranormal: um preset guarda uma expressão só, e um ataque de RPG são
- * duas rolagens.
- *
- * A coluna de ataque traz o bônus solto ("+7"), porque o d20 é implícito no sistema; a de dano traz
- * notação completa, às vezes com o tipo junto ("1d8+3 cortante"), que `parseDiceExpression` já sabe
- * atravessar. Linha sem NOME não vira preset: a ficha tem três linhas e quase ninguém usa as três.
+ * As três armas da primeira página viram até DOIS presets cada, o teste de acerto e o dano, pelo
+ * mesmo motivo de Ordem Paranormal: um preset guarda uma expressão só, e um ataque de RPG são duas
+ * rolagens. A coluna de ataque traz o bônus solto ("+7"), porque o d20 é implícito; a de dano traz
+ * notação completa, às vezes com o tipo junto ("1d8+3 cortante"), que `parseDiceExpression` atravessa.
+ * Linha sem NOME não vira preset: a ficha tem três e quase ninguém usa as três.
  */
 function presetsDeArmas(
   porNome: Map<string, PdfField>,

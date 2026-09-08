@@ -9,15 +9,12 @@ import {
 import { trocarPerfil } from './trocaDePerfil'
 
 /**
- * Perfis de personagem (ver `shared/types/profile.ts`) — quem está aberto e a lista inteira.
+ * Perfis de personagem (ver `shared/types/profile.ts`): quem está aberto e a lista inteira.
  *
- * Fica ACIMA do `SettingsProvider` na árvore (`main.tsx`) porque é o id do perfil aberto que decide
- * quais cores carregar: cada personagem tem a própria aparência, e o `SettingsProvider` precisa
- * saber de quem são as cores antes de montar a cena.
- *
- * A lista vive no processo main (arquivo `profiles.json`), não no `localStorage`, pelo mesmo motivo
- * das anotações e dos presets: é dado do personagem, não preferência de janela — e é de lá que sai o
- * caminho das pastas de cada perfil.
+ * Fica ACIMA do `SettingsProvider` na árvore porque é o id do perfil aberto que decide quais cores
+ * carregar. A lista vive no processo main (`profiles.json`), e não no `localStorage`, pelo mesmo
+ * motivo das anotações e dos presets: é dado do personagem, não preferência de janela — e é de lá que
+ * sai o caminho das pastas de cada perfil.
  */
 interface ProfilesContextValue {
   profiles: Profile[]
@@ -35,11 +32,9 @@ interface ProfilesContextValue {
   /** Abre o diálogo nativo de imagem e guarda a foto escolhida no perfil. */
   pickPhoto: (id: string) => Promise<void>
   /**
-   * Relê a lista do disco.
-   *
-   * Existe pra importação de ficha: quem cria o personagem lá é o PROCESSO PRINCIPAL, num passo só
-   * junto das anotações e dos presets (ver `registerSheetHandlers`), então o renderer tem que buscar
-   * o resultado em vez de montar uma cópia dele aqui e torcer pra bater.
+   * Relê a lista do disco. Existe pra importação de ficha: quem cria o personagem lá é o PROCESSO
+   * PRINCIPAL, num passo só junto das anotações e dos presets, então o renderer tem que buscar o
+   * resultado em vez de montar uma cópia dele aqui e torcer pra bater.
    */
   reload: () => Promise<void>
 }
@@ -52,32 +47,25 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ProfilesState>(ESTADO_INICIAL)
   const [loading, setLoading] = useState(true)
   /**
-   * A LISTA VEIO DO DISCO? Enquanto não tiver vindo, gravar é APAGAR.
+   * A LISTA VEIO DO DISCO? Enquanto não tiver vindo, gravar é APAGAR — e este é o conserto do defeito
+   * mais caro que este app já teve.
    *
-   * Este é o conserto do defeito mais caro que este app já teve, e ele merece o parágrafo inteiro.
+   * `ESTADO_INICIAL` é uma lista INVENTADA, um personagem em branco feito aqui mesmo pra a tela ter o
+   * que desenhar no primeiro quadro, e nada impedia que ela fosse GRAVADA: qualquer `update` antes de
+   * a leitura voltar mandava esse personagem fictício pro `profiles.json`, por cima da lista real.
    *
-   * `ESTADO_INICIAL` é uma lista INVENTADA — um personagem em branco, feito aqui mesmo, pra a tela
-   * ter o que desenhar no primeiro quadro. Ela não veio de lugar nenhum. E nada impedia que ela
-   * fosse GRAVADA: qualquer chamada a `update` ou `aplicarComTroca` antes de a leitura voltar
-   * mandava esse personagem fictício pro `profiles.json`, por cima da lista de verdade.
+   * A janela é curta e mesmo assim foi atingida: a máquina dele terminou com QUATORZE pastas de
+   * personagem em `%APPDATA%/reroll/profiles/` e o `profiles.json` listando UMA. Treze personagens com
+   * anotações e presets continuavam no disco, inteiros, sem aparecer em lugar nenhum do app — e da
+   * tela isso lê como "as anotações não estão funcionando".
    *
-   * A janela é curta, e mesmo assim foi atingida: a máquina do usuário terminou com QUATORZE pastas
-   * de personagem em `%APPDATA%/reroll/profiles/` e o `profiles.json` listando UMA. Treze
-   * personagens com anotações e presets continuavam no disco, inteiros, e simplesmente não
-   * apareciam mais em lugar nenhum do app. Da tela isso lê como "as anotações não estão
-   * funcionando" — o que a pessoa escreveu ontem sumiu, e o que ela escreve hoje some amanhã.
+   * Dois caminhos chegavam lá, e a guarda fecha os dois: a leitura FALHAR (o `catch` registrava no
+   * console e a vida seguia com a lista inventada) e a leitura DEMORAR, porque basta uma escrita no
+   * intervalo — e existe uma automática, a aba Ficha copiando o nome das anotações pro perfil, que no
+   * primeiro quadro bate justamente porque as anotações vêm do processo principal.
    *
-   * Dois caminhos chegavam lá, e a guarda fecha os dois:
-   *
-   * 1. A leitura FALHA. O `catch` registrava no console e a vida seguia com a lista inventada, que
-   *    a primeira edição gravava por cima da real.
-   * 2. A leitura DEMORA. Basta uma escrita nesse intervalo — e existe uma automática: a aba Ficha
-   *    copia o nome do personagem das anotações pro perfil assim que as duas coisas batem, e no
-   *    primeiro quadro elas batem, porque as anotações vêm do processo principal (que sabe qual é o
-   *    perfil ativo de verdade) enquanto a lista aqui ainda é a fictícia.
-   *
-   * É a mesma guarda que `useNotes` já tinha (`prontoRef`) e que aqui faltava — e aqui era pior,
-   * porque `profiles.json` é o índice: perdê-lo não perde um personagem, perde todos.
+   * É a mesma guarda que `useNotes` já tinha, e aqui era pior: `profiles.json` é o índice, então
+   * perdê-lo não perde um personagem, perde todos.
    */
   const veioDoDiscoRef = useRef(false)
 
@@ -108,11 +96,9 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
   stateRef.current = state
 
   /**
-   * Aplica a mudança e grava.
-   *
-   * A gravação saiu de DENTRO do `setState`, onde estava. Uma função passada ao `setState` tem que
-   * ser pura — o React pode chamá-la mais de uma vez pelo mesmo resultado, e chamava: cada uma
-   * disparava uma gravação. Agora o novo estado é calculado a partir do espelho e a gravação
+   * Aplica a mudança e grava. A gravação saiu de DENTRO do `setState`, onde estava: uma função passada
+   * ao `setState` tem que ser pura, porque o React pode chamá-la mais de uma vez pelo mesmo resultado
+   * — e chamava, cada uma disparando uma gravação. Agora o estado novo sai do espelho e a gravação
    * acontece uma vez só, fora do render.
    */
   const update = useCallback((change: (previous: ProfilesState) => ProfilesState) => {
@@ -135,21 +121,14 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
    * grava PRIMEIRO, muda a tela DEPOIS.
    *
    * Anotações e presets são lidos da pasta do perfil ativo, e quem sabe qual é o ativo é o processo
-   * principal (`ProfilesRepository.activeDirectory`). Se a tela trocar antes de a gravação chegar
-   * lá, os efeitos de `useNotes`/`usePresets` disparam na hora e pedem os dados do personagem NOVO
-   * enquanto o principal ainda aponta pro ANTIGO — e o que volta é a ficha errada, que na primeira
-   * digitação é gravada por cima da certa.
+   * principal. Se a tela trocar antes de a gravação chegar lá, os efeitos de `useNotes`/`usePresets`
+   * disparam na hora e pedem os dados do personagem NOVO enquanto o principal ainda aponta pro
+   * ANTIGO — e o que volta é a ficha errada, que na primeira digitação é gravada por cima da certa.
+   * Com o `await` antes do `setState` essa janela deixa de existir.
    *
-   * Com o `await` antes do `setState` essa janela deixa de existir. É a mesma razão pela qual a
-   * importação de ficha virou um canal único e atômico (ver `registerSheetHandlers`).
-   *
-   * A sequência em si mora em `trocaDePerfil.ts`, fora do React, pra poder ser testada — inclusive o
-   * caso de a gravação FALHAR, em que a tela tem que ficar onde está.
-   *
-   * Vale pras TRÊS operações que mexem em quem está aberto — trocar, CRIAR e APAGAR. Criar um
-   * personagem também muda o ativo, e era por isso que criar vinha bugado: a tela abria o
-   * personagem novo enquanto o processo principal ainda apontava pro anterior, então a ficha que
-   * aparecia era a do anterior — e a primeira tecla gravava aquilo por cima do novo.
+   * A sequência mora em `trocaDePerfil.ts`, fora do React, pra poder ser testada, inclusive o caso de
+   * a gravação FALHAR. Vale pras TRÊS operações que mexem em quem está aberto — trocar, CRIAR e
+   * APAGAR: criar também muda o ativo, e era por isso que criar vinha bugado.
    */
   const aplicarComTroca = useCallback(async (change: (previous: ProfilesState) => ProfilesState) => {
     // Mesma guarda do `update`, e aqui ela é ainda mais importante: trocar/criar/apagar reescreve a

@@ -4,29 +4,22 @@ import { extrairGenerico } from './generic'
 import type { SheetReader } from './types'
 
 /**
- * Leitor da ficha de OBLIVIO.
- *
- * Ela é o oposto da de Ordem Paranormal: não tem campo de formulário NENHUM — é um documento do
- * Google Docs exportado, e quem preenche digita dentro dele. Por isso este leitor não tem uma lista
- * de nomes de campo como o outro; ele se apoia inteiro no que `camposDoTexto` extrai do texto
- * impresso, e acrescenta o que só quem conhece o sistema sabe: que sistema é, e como agrupar.
- *
- * É também a prova de que o registro de leitores serve pros DOIS tipos de ficha, que é o que
- * importa pro pedido de aceitar fichas de outros usuários.
+ * Leitor da ficha de OBLIVIO, que é o oposto da de Ordem Paranormal: não tem campo de formulário
+ * NENHUM — é um documento do Google Docs exportado, e quem preenche digita dentro dele. Por isso este
+ * leitor não tem lista de nomes de campo; ele se apoia inteiro no que `camposDoTexto` extrai do texto
+ * impresso, e acrescenta o que só quem conhece o sistema sabe: que sistema é, e como agrupar. É
+ * também a prova de que o registro de leitores serve pros dois tipos de ficha.
  */
 
 /**
- * ATRIBUTOS e ASPECTOS são coisas DIFERENTES na ficha, e agora são grupos diferentes aqui.
+ * ATRIBUTOS e ASPECTOS são coisas DIFERENTES na ficha, e por isso são grupos diferentes aqui: a
+ * própria página separa os dois com dois títulos, e os cinco aspectos são DERIVADOS dos atributos
+ * ("é derivada de Determinação e Mente", diz a ficha em cada um). Este leitor jogava os dez no mesmo
+ * grupo, e a conferência mostrava um quadro de dez atributos que não existe em Oblivio nenhum.
  *
- * A própria página separa os dois com dois títulos: "Atributos" (Carne, Força, Prontidão,
- * Determinação, Mente) e, embaixo, "Aspectos" — Coragem, Dor, Fôlego, Proteção e Velocidade, que
- * são DERIVADOS dos primeiros ("é derivada de Determinação e Mente", diz a ficha em cada um deles).
- * Este leitor jogava os dez no mesmo grupo, e a conferência mostrava um quadro de dez atributos que
- * não existe em Oblivio nenhum — cinco deles não são escolha do jogador, são conta.
- *
- * A DETECÇÃO continua olhando os dez juntos (`IMPRESSAO_DIGITAL`): é a assinatura do arquivo, e não
- * muda por causa de como a gente agrupa depois. Ela é por eles, e não pela palavra "Oblivio" — que
- * NÃO aparece em lugar nenhum do arquivo, conferido nas duas versões (em branco e preenchida).
+ * A DETECÇÃO continua olhando os dez juntos (`IMPRESSAO_DIGITAL`), que é a assinatura do arquivo e
+ * não muda por causa do agrupamento. Ela é por eles, e não pela palavra "Oblivio", que não aparece
+ * em lugar nenhum do arquivo — conferido nas duas versões, em branco e preenchida.
  */
 const ATRIBUTOS = ['Carne', 'Força', 'Prontidão', 'Determinação', 'Mente']
 
@@ -49,35 +42,27 @@ const IDENTIFICACAO = ['Nome', 'Papel', 'Motivação']
 const APARENCIA = ['Descrição', 'Aparência']
 
 /**
- * A partir daqui, o que sobrou é HABILIDADE.
+ * A partir daqui, o que sobrou é HABILIDADE. Numa ficha de Oblivio preenchida, o que não é
+ * identificação, atributo ou parte do corpo e ainda assim tem um parágrafo dentro é o talento que o
+ * jogador escolheu, escrito por extenso; o resto do arquivo é "2/10", "0/3", nome próprio.
  *
- * Numa ficha de Oblivio preenchida, o que não é identificação, atributo ou parte do corpo e ainda
- * assim tem um parágrafo dentro é o talento que o jogador escolheu, escrito por extenso — "Estocada:
- * Você realiza a Ação de Cena 'Mover'…". Eles são o único conteúdo do arquivo com valor comprido: o
- * resto é "2/10", "0/3", nome próprio.
- *
- * O corte é pelo TAMANHO e não por uma lista de talentos porque a lista mudaria a cada suplemento —
- * e uma lista desatualizada devolve o talento novo pra pilha de campos sem grupo, que é justamente o
- * que se quer evitar. Errar aqui custa uma habilidade caindo no lugar errado da ficha; acertar
- * manda o texto pro bloco de habilidades, que é onde se escreve frase.
+ * O corte é pelo TAMANHO e não por uma lista de talentos porque a lista mudaria a cada suplemento, e
+ * uma lista desatualizada devolve o talento novo pra pilha de campos sem grupo. Errar aqui custa uma
+ * habilidade no lugar errado da ficha; acertar manda o texto pro bloco de habilidades.
  */
 const TAMANHO_DE_HABILIDADE = 25
 
 /**
- * O EQUIPAMENTO CARREGADO — a parte da ficha que este leitor perdia inteira.
+ * O EQUIPAMENTO CARREGADO, a parte da ficha que este leitor perdia inteira. Medido na ficha real: o
+ * personagem carrega uma "Vestimenta Leve" no torso e uma "Lâmina Curta" no braço esquerdo, com dano
+ * 1D4 e um modificador que soma 1d6 — nada disso chegava na importação, e é o que um jogador mais
+ * quer ver depois dos atributos, porque é a arma dele.
  *
- * Medido na ficha real: o personagem carrega uma "Vestimenta Leve" no torso e uma "Lâmina Curta" no
- * braço esquerdo, com dano 1D4 e um modificador que soma 1d6. Nada disso chegava na importação, e é
- * o que um jogador mais quer ver na ficha depois dos atributos — é a arma dele.
- *
- * A causa era o formato: a página escreve o equipamento como "○ Torso:" seguido do item nas linhas
- * de baixo, e `camposDoTexto` procura "Rótulo: valor" na MESMA linha. O rótulo "Torso:" ainda por
- * cima colide com a região de dano do corpo ("Torso: 0/5"), que aparece antes — então mesmo o que
- * casava era descartado como repetido.
- *
- * Por isso a leitura aqui é por REGIÃO da página, e não por par rótulo/valor: do título
- * "Equipamentos Carregados:" até "Equipamentos Guardados:", cada "○ <Região>:" abre um item e tudo
- * o que vem até o próximo "○" é o texto dele.
+ * A causa era o formato: a página escreve o equipamento como "○ Torso:" seguido do item nas linhas de
+ * baixo, e `camposDoTexto` procura "Rótulo: valor" na MESMA linha; o rótulo "Torso:" ainda colide com
+ * a região de dano do corpo ("Torso: 0/5"), que aparece antes, então até o que casava era descartado
+ * como repetido. Por isso a leitura é por REGIÃO da página: do título "Equipamentos Carregados:" até
+ * "Equipamentos Guardados:", cada "○ <Região>:" abre um item.
  */
 const REGIOES_DO_CORPO = /^(Torso|Braço Direito|Braço Esquerdo|Perna Direita|Perna Esquerda):$/
 
@@ -135,18 +120,17 @@ function equipamentoCarregado(sheet: PdfSheet): ItemCarregado[] {
 }
 
 /**
- * O INVENTÁRIO GUARDADO — reporte de tester: "não scrapou os itens do inventário".
+ * O INVENTÁRIO GUARDADO, reporte de tester: "não scrapou os itens do inventário".
  *
- * "Equipamentos Guardados:" é uma área LIVRE do documento: o modelo não imprime nada ali (nem as
- * regiões do corpo — guardado não está vestido), e quem preenche digita os itens como lista do
- * Google Docs. Este leitor usava o título só como marcador de FIM dos carregados e jogava fora
- * tudo que vinha depois — o inventário inteiro do personagem.
+ * "Equipamentos Guardados:" é uma área LIVRE do documento — o modelo não imprime nada ali, nem as
+ * regiões do corpo, porque guardado não está vestido —, e quem preenche digita os itens como lista do
+ * Google Docs. Este leitor usava o título só como marcador de FIM dos carregados e jogava fora tudo
+ * que vinha depois.
  *
- * A leitura é a mesma ideia da dos carregados, trocando o que abre um item: aqui não há "○ Torso:",
- * então é o próprio marcador de lista ("○"/"●") que abre. Um trecho que começa com "Mod" cola no
- * item anterior — é o formato do modificador de arma, aninhado no item (visto na ficha real, seção
- * de carregados: "● Mod: Mortal: Adiciona 1d6…"). Sem marcador nenhum, o texto inteiro vira um item
- * só: importar em bloco é melhor que não importar.
+ * A leitura é a mesma ideia dos carregados, trocando o que abre um item: aqui é o próprio marcador de
+ * lista ("○"/"●"). Um trecho que começa com "Mod" cola no item anterior, que é o formato do
+ * modificador de arma aninhado no item. Sem marcador nenhum, o texto inteiro vira um item só:
+ * importar em bloco é melhor que não importar.
  */
 function equipamentoGuardado(sheet: PdfSheet): ItemCarregado[] {
   const inicio = sheet.texts.findIndex((t) => /Equipamentos Guardados/i.test(t.text))
@@ -201,18 +185,16 @@ function presetsDeItens(itens: ItemCarregado[], nomear: (item: ItemCarregado) =>
 }
 
 /**
- * As áreas de "Espaço Livre" — regra do usuário: "qualquer anotação de player no pdf precisamos
- * trazer", mesmo a que parece inútil.
+ * As áreas de "Espaço Livre" — regra dele: "qualquer anotação de player no pdf precisamos trazer",
+ * mesmo a que parece inútil.
  *
- * A ficha tem DUAS: uma entre as Habilidades e o Inventário, outra entre o inventário e as Mazelas
- * (esta com a instrução "Use esse espaço para fazer anotações" impressa). No modelo em branco as
- * duas estão vazias — conferido nos dois PDFs: tudo que aparecer ali é digitado pelo jogador, e
- * este leitor jogava fora. Na ficha real preenchida o jogador digitou as habilidades GERAIS dele na
- * primeira área, e nada chegava.
+ * A ficha tem DUAS, e no modelo em branco as duas estão vazias (conferido nos dois PDFs): tudo que
+ * aparecer ali é digitado pelo jogador, e este leitor jogava fora. Na ficha real preenchida o jogador
+ * digitou as habilidades GERAIS dele na primeira área, e nada chegava.
  *
- * O texto vai pro `rawText`: a conferência mostra como "texto sem rótulo" (com a caixa de trazer ou
- * não) e a montagem manda pro bloco de história — é anotação livre, não tem rótulo pra virar campo.
- * Vazio continua vazio: área sem nada digitado não rende aviso nem linha.
+ * O texto vai pro `rawText`, que a conferência mostra como texto sem rótulo e a montagem manda pro
+ * bloco de história: é anotação livre, não tem rótulo pra virar campo. Área sem nada digitado não
+ * rende aviso nem linha.
  */
 function espacoLivre(sheet: PdfSheet): string {
   const blocos: string[] = []

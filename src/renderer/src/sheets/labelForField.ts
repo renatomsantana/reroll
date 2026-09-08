@@ -3,29 +3,22 @@ import type { PdfField, PdfSheet, PdfText } from '@shared/types/sheetImport'
 /**
  * O RÓTULO IMPRESSO mais próximo de um campo de formulário.
  *
- * Esta é a peça que faz o importador servir pra ficha que eu nunca vi — o pedido do usuário de que
- * "outros usuários irão colocar suas próprias fichas". O motivo é que o NOME do campo, que seria o
- * caminho óbvio, quase nunca presta: a ficha de Ordem Paranormal tem 458 campos e boa parte deles se
- * chama `19`, `1_2`, `undefined` ou `Categoria 7`, porque quem monta a ficha no Acrobat/InDesign
- * deixa o nome automático. Já o rótulo IMPRESSO ao lado é feito pra humano ler, e é justamente o
- * que dá sentido ao valor.
+ * É a peça que faz o importador servir pra ficha que eu nunca vi ("outros usuários irão colocar suas
+ * próprias fichas"). O NOME do campo, que seria o caminho óbvio, quase nunca presta: a ficha de
+ * Ordem Paranormal tem 458 campos e boa parte se chama `19`, `1_2` ou `undefined`, porque quem monta
+ * no Acrobat deixa o nome automático. Já o rótulo impresso ao lado é feito pra humano ler.
  *
- * Foi conferido nas duas fichas de referência antes de virar código: no PDF de Ordem Paranormal,
- * `Personagem`→"PERSONAGEM", `AGI`→"AGILIDADE", `Atq1.0.0.0.1`→"TESTE", `Atq1.0.0.0.2`→"DANO".
- *
- * A regra de vizinhança é "à ESQUERDA ou ACIMA", que é onde rótulo de formulário mora em qualquer
- * ficha impressa — em cima da caixa ou na frente dela. Sem essa restrição, o texto mais próximo de
+ * Conferido nas duas fichas de referência antes de virar código: `Personagem`→"PERSONAGEM",
+ * `AGI`→"AGILIDADE", `Atq1.0.0.0.2`→"DANO". A regra de vizinhança é "à ESQUERDA ou ACIMA", que é onde
+ * rótulo de formulário mora em qualquer ficha impressa; sem essa restrição, o texto mais próximo de
  * um campo é com frequência o rótulo do campo SEGUINTE.
  */
 
 /**
- * Nada mais longe que isto vira rótulo, em pontos de PDF.
- *
- * O número saiu de MEDIR a ficha de Ordem Paranormal antes de escrever isto: os rótulos corretos
- * caem entre 11 ("Equip." pro campo de defesa de equipamento) e 53 ("Critico/Alcance/Especial" pra
- * quarta coluna de ataque). O rodapé de direitos autorais, que é texto e não rótulo, aparecia a 56
- * e 70 de dois campos de ataque — ele já sai pelo filtro de comprimento (`ehRotulo`), mas o teto
- * daqui é a segunda defesa. 70 dá folga sobre os 53 medidos sem abraçar meia página.
+ * Nada mais longe que isto vira rótulo, em pontos de PDF. O número saiu de MEDIR a ficha de Ordem
+ * Paranormal: os rótulos corretos caem entre 11 e 53. O rodapé de direitos autorais, que é texto e
+ * não rótulo, aparecia a 56 e 70 de dois campos de ataque — ele já sai pelo filtro de comprimento
+ * (`ehRotulo`), e o teto daqui é a segunda defesa, com folga sobre os 53 medidos.
  */
 const MAX_DISTANCE = 70
 
@@ -40,11 +33,10 @@ export function labelForField(sheet: PdfSheet, field: PdfField): string | null {
 }
 
 /**
- * A distância de um texto impresso a um campo pelas regras de vizinhança — ou `null` quando o
- * texto não pode rotular o campo: outra página, não é rótulo, está à direita E abaixo, ou longe
- * demais. É a ÚNICA régua: `labelForField` e `rotulosExclusivos` mediam cada um do seu jeito, em
- * cópia, e a correção da caixa alta (abaixo) teria que ser feita duas vezes — e foi feita numa só,
- * na primeira tentativa, e o leitor genérico continuou sem ver o rótulo.
+ * A distância de um texto impresso a um campo pelas regras de vizinhança, ou `null` quando o texto
+ * não pode rotular o campo. É a ÚNICA régua: `labelForField` e `rotulosExclusivos` mediam cada um do
+ * seu jeito, em cópia, e a correção da caixa alta abaixo foi feita numa só — e o leitor genérico
+ * continuou sem ver o rótulo.
  */
 export function distanciaDoRotulo(field: PdfField, texto: PdfText): number | null {
   if (texto.page !== field.page) return null
@@ -62,24 +54,20 @@ export function distanciaDoRotulo(field: PdfField, texto: PdfText): number | nul
   if (dx <= -5 && dy >= 5) return null
 
   /**
-   * A distância até a BORDA da caixa, e não até o centro dela.
-   *
-   * Pra um campo de uma linha dá no mesmo. Pra um campo ALTO — a caixa de história do personagem,
-   * 140pt de altura — não: o rótulo impresso fica no canto de cima, a 4pt da borda e a 80pt do
-   * centro, e o teto de 70 o deixava de fora por causa da altura da própria caixa. Medido na
-   * quinta leva de PDFs de teste ("HISTÓRIA" sobre uma caixa de 560 a 700): o campo saía com o
-   * nome cru "Historia" tendo o rótulo impresso colado nele.
+   * A distância até a BORDA da caixa, e não até o centro dela. Pra um campo de uma linha dá no mesmo;
+   * pra um campo ALTO — a caixa de história do personagem, 140pt — não: o rótulo fica no canto de
+   * cima, a 4pt da borda e a 80pt do centro, e o teto de 70 o deixava de fora por causa da altura da
+   * própria caixa. Medido na quinta leva de PDFs de teste, com "HISTÓRIA" sobre uma caixa de 560 a
+   * 700: o campo saía com o nome cru tendo o rótulo impresso colado nele.
    */
   const px = Math.min(Math.max(lx, x0), x1)
   const py = Math.min(Math.max(ly, y0), y1)
   let distancia = Math.hypot(lx - px, ly - py)
   /**
    * Rótulo na MESMA LINHA, à esquerda, vale METADE da distância: é a diagramação canônica de
-   * formulário ("NOME ____"), e a disputa por proximidade pura perdia dela pro TÍTULO da página.
-   * Medido na nona leva (a ficha de inscrição que um testador vai arrastar): "FICHA DE INSCRIÇÃO"
-   * ficava a 34pt do primeiro campo e roubava o rótulo dele; o "NOME" órfão descia pro campo de
-   * baixo, e o CPF saía proposto como nome de personagem. Com o peso, quem está na linha vence o
-   * que paira por cima — e o rótulo curto um pouco mais afastado ("CPF", a 72pt) volta a caber.
+   * formulário ("NOME ____"), e na disputa por proximidade pura ela perdia pro TÍTULO da página.
+   * Medido na nona leva: "FICHA DE INSCRIÇÃO" ficava a 34pt do primeiro campo e roubava o rótulo
+   * dele, o "NOME" órfão descia pro campo de baixo, e o CPF saía proposto como nome de personagem.
    */
   const mesmaLinha = ly >= y0 - 2 && ly <= y1 + 2 && lx < x0
   if (mesmaLinha) distancia = (x0 - lx) / 2
@@ -87,32 +75,28 @@ export function distanciaDoRotulo(field: PdfField, texto: PdfText): number | nul
 }
 
 /**
- * O que NÃO pode virar rótulo.
- *
- * O rodapé de direitos autorais da ficha de Ordem Paranormal ("É permitido reproduzir esta página
- * para uso pessoal...") foi eleito rótulo de dois campos de ataque na primeira sondagem, só por
- * estar fisicamente perto deles. Texto longo não é rótulo de campo em ficha nenhuma; rótulo é curto
- * por definição, porque tem que caber ao lado da caixa.
+ * O que NÃO pode virar rótulo. O rodapé de direitos autorais da ficha de Ordem Paranormal ("É
+ * permitido reproduzir esta página para uso pessoal...") foi eleito rótulo de dois campos de ataque
+ * na primeira sondagem, só por estar fisicamente perto deles. Rótulo é curto por definição, porque
+ * tem que caber ao lado da caixa.
  */
 function ehRotulo(texto: PdfText): boolean {
   const limpo = texto.text.trim()
   if (!limpo) return false
   if (limpo.length > 28) return false
   /**
-   * O TÍTULO da página nunca rotula campo: "FICHA DE INSCRIÇÃO" pairando 34pt acima do primeiro
-   * campo vencia o "NOME" impresso na mesma linha dele (nona leva — o formulário que um testador
-   * vai arrastar), e o rótulo órfão descia pro campo de baixo em cascata. "Ficha" e "sheet" são
-   * palavras de título; os rótulos legítimos que as fichas usam ("PERSONAGEM", "CHARACTER NAME")
-   * não as contêm.
+   * O TÍTULO da página nunca rotula campo: "FICHA DE INSCRIÇÃO" pairando 34pt acima do primeiro campo
+   * vencia o "NOME" impresso na mesma linha dele, e o rótulo órfão descia pro campo de baixo em
+   * cascata. "Ficha" e "sheet" são palavras de título; os rótulos legítimos ("PERSONAGEM",
+   * "CHARACTER NAME") não as contêm.
    */
   if (/\b(ficha|sheet)\b/i.test(limpo)) return false
   /**
-   * UMA letra solta também não é rótulo. HONESTIDADE SOBRE ESTA GUARDA: o caso que a motivou (o
-   * título "espaçado" desenhado letra a letra, oitava leva) não a exercita — medido com o dump, o
-   * pdf.js remonta os comandos da mesma linha num fragmento só ("F O R Ç A"), que rotula direito.
-   * Ela fica pelo caso que o extrator NÃO remonta (letra em linha própria, texto vertical): ali a
-   * letra mais próxima viraria o rótulo do campo, com cara de dado lido. O menor rótulo de verdade
-   * nas fichas reais tem duas letras ("CA", "PV"); o custo é uma comparação.
+   * UMA letra solta também não é rótulo. Honestidade sobre esta guarda: o caso que a motivou (o
+   * título espaçado, desenhado letra a letra) não a exercita — medido com o dump, o pdf.js remonta os
+   * comandos da mesma linha num fragmento só ("F O R Ç A"). Ela fica pelo caso que o extrator NÃO
+   * remonta (letra em linha própria, texto vertical), onde a letra mais próxima viraria o rótulo do
+   * campo com cara de dado lido. O menor rótulo real nas fichas tem duas letras ("CA", "PV").
    */
   if (limpo.length < 2) return false
   // Linha só de pontuação/traços (as guias pontilhadas das fichas) não diz nada.
@@ -150,23 +134,19 @@ export function labelFromFieldName(name: string): string | null {
   // Só dígitos, ou dígitos com sufixo de repetição do exportador (`1_2`, `17_3`).
   if (/^\d+(_\d+)?$/.test(limpo)) return null
   /**
-   * Nomes de grade do exportador (`Atq1.0.0.2.1`, `Pericias.4.3`, `Bns1.14`): a posição na grade não
-   * é rótulo. O `\d*` depois das letras não é detalhe — sem ele, `Bns1.14` escapava do filtro (o
-   * dígito colado em `Bns` quebrava o casamento) e a ficha de Ordem Paranormal importava as 28
-   * células da grade de bônus de perícia como se fossem campos, todas valendo "0" e rotuladas
-   * "Bns1.2", "Bns1.3"… Isso só apareceu ao dar exclusividade aos rótulos impressos
-   * (`rotulosExclusivos`): antes essas células roubavam um rótulo impresso do vizinho e sumiam na
-   * deduplicação, ou seja, o lixo estava escondido atrás de outro defeito.
+   * Nomes de grade do exportador (`Atq1.0.0.2.1`, `Pericias.4.3`): a posição na grade não é rótulo. O
+   * `\d*` depois das letras não é detalhe — sem ele `Bns1.14` escapava do filtro e a ficha de Ordem
+   * Paranormal importava as 28 células da grade de bônus como campos, todas valendo "0". Isso só
+   * apareceu ao dar exclusividade aos rótulos impressos: antes essas células roubavam o rótulo do
+   * vizinho e sumiam na deduplicação, ou seja, o lixo estava escondido atrás de outro defeito.
    */
   if (/^[A-Za-zÀ-ú]+\d*(\.\d+)+$/.test(limpo)) return null
   /**
-   * Nomes AUTOMÁTICOS de exportador de formulário: o TIPO do controle mais um sufixo aleatório.
-   *
-   * A ficha oficial de Pathfinder 2e (Paizo) nomeia os 517 campos assim — `text_15gujr`,
-   * `checkbox_5xofc` — e um campo preenchido SEM rótulo impresso por perto entrava na conferência
-   * rotulado "text_4r5t" (sexta leva de PDFs de teste). Isso não informa nada e ainda tira a
-   * confiança do resto da leitura. O separador é obrigatório no padrão de propósito: "Texto" e
-   * "Datas" são nomes legítimos que alguém dá a um campo; `text_...` é máquina falando.
+   * Nomes AUTOMÁTICOS de exportador de formulário: o TIPO do controle mais um sufixo aleatório. A
+   * ficha oficial de Pathfinder 2e nomeia os 517 campos assim (`text_15gujr`, `checkbox_5xofc`), e um
+   * campo preenchido sem rótulo impresso por perto entrava na conferência rotulado "text_4r5t". O
+   * separador é obrigatório no padrão de propósito: "Texto" e "Datas" são nomes legítimos que alguém
+   * dá a um campo, enquanto `text_...` é máquina falando.
    */
   if (/^(text|textarea|checkbox|check|radio|radiobutton|combo|combobox|dropdown|list|listbox|button|signature|date|image|untitled)[_-][a-z0-9]+$/i.test(limpo)) {
     return null
@@ -183,25 +163,19 @@ export function labelFromFieldName(name: string): string | null {
  * Os rótulos impressos distribuídos entre os campos SEM REPETIR: cada texto rotula um campo só.
  *
  * `labelForField` responde "qual o texto mais próximo deste campo?", uma pergunta por campo e sem
- * memória do que já foi usado. Numa ficha bem diagramada isso basta, porque cada caixa tem o rótulo
- * dela ao lado. Numa ficha QUALQUER, não: campo sem rótulo próprio rouba o do vizinho, e o resultado
- * é pior que não ler nada, porque um valor errado vem com cara de valor certo.
- *
- * MEDIDO numa ficha de formulário sem leitor dedicado (`sistemaDesconhecido.node.test.ts`): "NOME DO
- * PERSONAGEM" saía como rótulo de três campos diferentes — o nome, o nome do JOGADOR e o primeiro
- * atributo; o título da segunda coluna rotulava a defesa, o PV máximo e o bônus de ataque de uma
- * arma; e as duas armas viravam dois presets com o mesmo nome, "ARMAS E CONJURAÇÕES",
- * indistinguíveis na lista.
+ * memória do que já foi usado. Numa ficha bem diagramada isso basta; numa ficha QUALQUER, não —
+ * campo sem rótulo próprio rouba o do vizinho, e o resultado é pior que não ler nada, porque um valor
+ * errado vem com cara de valor certo. Medido numa ficha de formulário sem leitor dedicado: "NOME DO
+ * PERSONAGEM" saía como rótulo de três campos diferentes, e as duas armas viravam dois presets com o
+ * mesmo nome, indistinguíveis na lista.
  *
  * A distribuição é gulosa pelo par mais próximo: monta todos os pares (campo, texto) que passam nas
- * regras de `labelForField`, ordena por distância e vai fechando — o texto fica com o campo mais
- * perto dele, e quem perder cai no próprio NOME do campo (`labelFromFieldName`), que é feio mas é
- * verdade. Guloso, e não uma atribuição ótima de verdade, porque o par mais próximo é quase sempre o
- * certo e o custo de errar aqui é um rótulo feio, não um valor trocado.
+ * regras, ordena por distância e vai fechando; quem perder cai no próprio NOME do campo, que é feio
+ * mas é verdade. Guloso, e não uma atribuição ótima, porque o par mais próximo é quase sempre o certo
+ * e o custo de errar aqui é um rótulo feio, não um valor trocado.
  *
- * `labelForField` continua existindo e continua sem exclusividade de propósito: o leitor de Ordem
- * Paranormal a usa pra DESEMPATAR campos de mesmo nome ("qual destes três `Atq1` tem 'DANO' ao
- * lado?"), que é outra pergunta.
+ * `labelForField` continua sem exclusividade de propósito: o leitor de Ordem Paranormal a usa pra
+ * DESEMPATAR campos de mesmo nome, que é outra pergunta.
  */
 export function rotulosExclusivos(sheet: PdfSheet): Map<PdfField, string> {
   interface Par {

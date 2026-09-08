@@ -90,12 +90,10 @@ export default function App() {
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   /**
-   * Espelha `DiceRoller3D`'s `isRolling` — usado só pra desabilitar as ações de preset
-   * (rolar/editar/excluir) enquanto QUALQUER rolagem está em andamento, mesmo padrão de
-   * `disabled={isRolling}` já usado dentro do próprio `DiceRoller3D.tsx`. Existe pra fechar
-   * um bug real: editar um preset e cancelar enquanto a rolagem que ELE MESMO disparou ainda
-   * está animando podia travar a interface (achado testando ao vivo) — impedir a interação
-   * nesse período evita o cenário inteiro, independente da causa exata.
+   * Espelha o `isRolling` do `DiceRoller3D`, usado só pra desabilitar as ações de preset (rolar,
+   * editar, excluir) enquanto qualquer rolagem está em andamento. Fecha um bug real: editar um preset
+   * e cancelar enquanto a rolagem que ele mesmo disparou ainda animava podia travar a interface —
+   * impedir a interação nesse período evita o cenário inteiro, independente da causa exata.
    */
   const [isAnyRollInProgress, setIsAnyRollInProgress] = useState(false)
   /**
@@ -182,14 +180,10 @@ export default function App() {
   }
 
   /**
-   * Rolagem disparada da FICHA — um atributo, uma perícia, o dano de uma arma (ver `sheetRoll.ts`).
-   *
-   * Ela troca pra aba de Rolagem antes de rolar, e isso não é enfeite: os dados caem na bandeja 3D,
-   * que mora lá. Sem a troca, o clique na ficha faria os dados rolarem numa tela que a pessoa não
-   * está vendo — o botão pareceria quebrado enquanto o app fazia exatamente o que foi pedido.
-   *
-   * Não custa remontagem nenhuma: a aba de Rolagem fica montada o tempo todo, só escondida (ver o
-   * comentário do `display` mais abaixo), então o `roller3DRef` já aponta pra uma cena viva.
+   * Rolagem disparada da FICHA: um atributo, uma perícia, o dano de uma arma (ver `sheetRoll.ts`).
+   * Ela troca pra aba de Rolagem antes de rolar, e isso não é enfeite — os dados caem na bandeja 3D,
+   * que mora lá, e sem a troca o clique na ficha faria os dados rolarem numa tela que a pessoa não
+   * está vendo. Não custa remontagem: a aba de Rolagem fica montada o tempo todo, só escondida.
    */
   function handleSheetRoll(expression: DiceExpression, name: string) {
     const modifierTotal = expression.modifiers.reduce((sum, m) => sum + m.value, 0)
@@ -365,11 +359,10 @@ export default function App() {
                   /* A regra de crítico é do personagem — ver `critico.ts` e a Ficha. */
                   regraDeCritico={notas.notes.critico}
                   /*
-                    O HUD sobre a cena (spec §3.6) — só quando a ficha carregada é a do personagem
-                    aberto. É a ÚNICA casa das barras de recurso na tela cheia: elas já foram também
-                    uma seção própria e depois uma caixa na linha de controles, e o usuário pediu pra
-                    tirar — a mesma barra em dois lugares da mesma tela era uma a mais. O lápis de
-                    criar/editar barras e o Descansar moram no HUD por isso.
+                    O HUD sobre a cena, só quando a ficha carregada é a do personagem aberto. É a
+                    ÚNICA casa das barras de recurso na tela cheia: elas já foram uma seção própria e
+                    depois uma caixa na linha de controles, e ele pediu pra tirar — a mesma barra em
+                    dois lugares da mesma tela era uma a mais.
                   */
                   overlay={
                     HUD_LIBERADO && notas.loadedFor === profiles.activeId && (
@@ -421,11 +414,10 @@ export default function App() {
                   }
                   disabled={isAnyRollInProgress}
                   /**
-                   * Rolar continua liberado durante uma rolagem NA BANDEJA — pedido do usuário
-                   * ("que aconteça a qualquer momento"), possível agora que preset não remonta
-                   * mais a cena. Na TORRE segue travado: lá a rolagem é uma fila de dados e cortar
-                   * no meio deixa dados presos em espera (ver `rollGroups` em `DiceRoller3D.tsx`,
-                   * que recusa o clique nesse caso — o botão travado é só o aviso visual disso).
+                   * Rolar continua liberado durante uma rolagem NA BANDEJA ("que aconteça a qualquer
+                   * momento"), possível agora que preset não remonta mais a cena. Na TORRE segue
+                   * travado: lá a rolagem é uma fila e cortar no meio deixa dados presos em espera, e
+                   * `rollGroups` recusa o clique — o botão travado é só o aviso visual disso.
                    */
                   rollDisabled={isAnyRollInProgress && launchMode === 'tower'}
                 />
