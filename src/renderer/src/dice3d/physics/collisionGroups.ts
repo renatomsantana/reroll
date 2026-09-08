@@ -6,10 +6,10 @@ import { isInsideRegularPolygon } from './regularPolygon'
 import { D100_DEFINITION } from '../dice-defs/d100Sphere'
 
 /**
- * Atrito e restituição só enquanto o d100 está dentro da torre (`dropDieIntoTower.ts`). O tuning
- * dele (`D100_DEFINITION.physics`) é feito pra grudar na bandeja aberta, e medido no mecanismo de
- * prateleiras deixava o dado preso por minutos simulados: o atrito máximo engolia quase todo o
- * empurrão de recuperação a cada frame. O original volta na saída (`exitTowerIfDescended`).
+ * Atrito e restituição só enquanto o d100 está dentro da torre (`dropDieIntoTower.ts`). O tuning dele
+ * é feito pra grudar na bandeja aberta, e nas prateleiras deixava o dado preso por minutos simulados:
+ * o atrito máximo engolia quase todo o empurrão de recuperação a cada frame. O original volta na
+ * saída (`exitTowerIfDescended`).
  */
 export const TOWER_D100_PHYSICS_OVERRIDE = {
   friction: 0.5,
@@ -17,11 +17,10 @@ export const TOWER_D100_PHYSICS_OVERRIDE = {
 }
 
 /**
- * Grupos de colisão do Rapier (16 bits de "pertence a" + 16 de "colide com"). Servem pra uma
- * coisa: o dado recém-arremessado atravessa o LUGAR da parede enquanto está entrando, em vez de
- * precisar de um arco alto o bastante pra pular por cima dela (essa altura extra virava impacto
- * forte demais no pouso, e daí escapes). Ele segue colidindo com o chão e com quem já está na
- * bandeja; ignora só a parede e os outros dados que também ainda estão entrando.
+ * Grupos de colisão do Rapier (16 bits de "pertence a" + 16 de "colide com"). Servem pra uma coisa: o
+ * dado recém-arremessado atravessa o LUGAR da parede enquanto está entrando, em vez de precisar de um
+ * arco alto pra pular por cima dela — essa altura extra virava impacto forte demais no pouso, e daí
+ * escapes. Ele segue colidindo com o chão e com quem já está na bandeja.
  */
 const GROUP_DICE = 0b0001
 const GROUP_WALL = 0b0010
@@ -34,13 +33,11 @@ const GROUP_TOWER = 0b1000
 /**
  * Bit próprio do dado que ainda está entrando, pra dois dados entrando não colidirem entre si.
  *
- * Medido (15 dados de tipos misturados, 12 rolagens): deixando-os se atropelar, 18% dos da bandeja
- * e 24% dos da boca da torre eram desviados no voo e paravam FORA do hexágono, até 6.74 unidades
- * além da parede e até 2450ms lá fora; o que os trazia de volta era o empurrão de entrada, com
- * 1837 disparos em 44 dados. É o "ele sai mas tenta voltar rapidamente pra bandeja" que o usuário
- * viu. A causa é a largada: na torre todo dado nasce no mesmo ponto, um a cada 140ms, e na bandeja
- * os pontos ficam próximos por construção. Enquanto atravessam o lugar da parede eles não são
- * obstáculo legítimo um pro outro; quem já está na bandeja continua sendo.
+ * Medido (15 dados de tipos misturados, 12 rolagens): deixando-os se atropelar, 18% dos da bandeja e
+ * 24% dos da boca da torre eram desviados no voo e paravam FORA do hexágono, até 6.74 unidades além
+ * da parede e até 2450ms lá fora, com 1837 empurrões de entrada em 44 dados. É o "ele sai mas tenta
+ * voltar rapidamente pra bandeja" que ele viu. A causa é a largada: na torre todo dado nasce no mesmo
+ * ponto, um a cada 140ms. Quem já está na bandeja continua sendo obstáculo legítimo.
  */
 const GROUP_DICE_ENTERING = 0b10000
 
@@ -93,24 +90,21 @@ const ENTRY_ASSIST_TARGET_SPEED = 4.5
 /**
  * Aceleração (u/s²) do empurrão de entrada.
  *
- * Era um `setLinvel`, que trocava a velocidade horizontal de uma vez: medido, mudava até 15.4 u/s
- * num quadro e agia quadro após quadro. Na tela lê como ímã, não como física. Como aceleração, o
- * resgate muda no máximo `ENTRY_ASSIST_ACCELERATION × dt` por quadro (0.75 u/s a 60fps) e o dado
- * CURVA de volta mantendo o giro.
+ * Era um `setLinvel`, que trocava a velocidade horizontal de uma vez: mudava até 15.4 u/s num quadro,
+ * quadro após quadro, e na tela lê como ímã. Como aceleração, o resgate muda no máximo
+ * `ENTRY_ASSIST_ACCELERATION × dt` (0.75 u/s a 60fps) e o dado CURVA de volta mantendo o giro.
  *
- * O valor é medido contra o ATRITO: parado do lado de fora o dado está apoiado no chão, e o atrito
- * (0.6 com gravidade 13) come ~7.8 u/s² de qualquer empurrão horizontal. Com 14 sobravam ~6 e o
- * resgate ficava fraco (3 dados em 1440 pararam fora da bandeja, com excursões de 10.6 unidades);
- * com 45 sobram ~37, o dado volta em ~0.12s e nenhum ficou fora.
+ * O valor é medido contra o ATRITO: parado do lado de fora, o atrito (0.6 com gravidade 13) come
+ * ~7.8 u/s² de qualquer empurrão horizontal. Com 14 sobravam ~6 e três dados em 1440 pararam fora,
+ * com excursões de 10.6 unidades; com 45 sobram ~37, o dado volta em ~0.12s e nenhum ficou fora.
  */
 const ENTRY_ASSIST_ACCELERATION = 45
 
 /**
- * Quanto tempo um dado entrando pode ficar sem cruzar pra dentro antes de o empurrão agir mesmo
- * com velocidade acima do limiar. Sem esse teto, um dado rebatido por outro mantinha velocidade
- * alta sem nunca voltar: medido, até 3283ms fantasma e 6.6 unidades fora do hexágono. O valor fica
- * um pouco acima do pior caso de uma entrada legítima (≈875ms) pra não disparar numa entrada
- * normal, só devagar.
+ * Quanto tempo um dado entrando pode ficar sem cruzar pra dentro antes de o empurrão agir mesmo com
+ * velocidade acima do limiar. Sem esse teto, um dado rebatido por outro mantinha velocidade alta sem
+ * nunca voltar: até 3283ms fantasma e 6.6 unidades fora do hexágono. Fica um pouco acima do pior caso
+ * de uma entrada legítima (≈875ms).
  */
 const ENTRY_FORCE_PUSH_TIMEOUT_MS = 900
 
@@ -118,20 +112,16 @@ const ENTRY_FORCE_PUSH_TIMEOUT_MS = 900
  * Margem tirada do apótema na checagem de "já entrou".
  *
  * O collider da parede tem meia-espessura própria, então um dado cujo centro acabou de cruzar o
- * apótema pode já estar embutido no volume sólido dela quando a colisão é restaurada. Num LADO
- * plano é ~0.15 de sobreposição; num VÉRTICE é bem pior, porque o limite geométrico do polígono
- * fica praticamente na mesma distância radial onde a parede começa (apótema 6.5 → limite no
- * vértice ≈ 7.505, parede a partir de ~7.33). Reproduzido: colisão restaurada perto de um vértice,
- * o solver desfaz a sobreposição com um impulso que inverte a velocidade e joga o dado pra fora.
- * Encolhendo o polígono do teste, a transição acontece antes de o dado alcançar a parede em
- * qualquer direção.
+ * apótema pode já estar embutido no volume sólido dela. Num LADO plano é ~0.15 de sobreposição; num
+ * VÉRTICE é pior, porque o limite do polígono fica quase na mesma distância radial onde a parede
+ * começa (apótema 6.5 → limite no vértice ≈ 7.505, parede a partir de ~7.33), e o solver desfaz a
+ * sobreposição com um impulso que inverte a velocidade e joga o dado pra fora.
  */
 const WALL_ENTRY_SAFETY_MARGIN = 0.5
 
 /**
  * Chamado todo frame por dado: quando ele volta pra dentro da bandeja, restaura a colisão com a
- * parede. Idempotente e barato, só age na fase "entrando", então dá pra chamar sem checar nada
- * fora daqui.
+ * parede. Idempotente e barato, e só age na fase "entrando".
  *
  * `enteringElapsedMs` é o tempo simulado nesta fase sem cruzar pra dentro; quem chama acumula e
  * reseta. Só decide quando o empurrão passa a agir mesmo com velocidade alta.
@@ -166,10 +156,9 @@ export function restoreWallCollisionIfInside(
   }
 
   /**
-   * Empurrão de entrada: o dado que perde o embalo antes de cruzar (bateu noutro no caminho)
-   * nunca dispararia o `withinTray` acima, e ficaria parado do lado de fora, visível, ignorando a
-   * parede pra sempre. Age quando ele está devagar, quando já passou tempo demais tentando, ou
-   * quando está indo pra longe.
+   * Empurrão de entrada: o dado que perde o embalo antes de cruzar (bateu noutro no caminho) nunca
+   * dispararia o `withinTray` acima, e ficaria parado do lado de fora ignorando a parede pra sempre.
+   * Age quando ele está devagar, quando já passou tempo demais tentando, ou quando vai pra longe.
    */
   const v = body.linvel()
   const horizontalSpeed = Math.hypot(v.x, v.z)
@@ -205,11 +194,9 @@ export function restoreWallCollisionIfInside(
 }
 
 /**
- * O equivalente pro modo torre: abaixo de `TOWER_CONFIG.exitY` o dado já saiu e vai pro grupo
- * normal. Não há fase intermediária aqui porque a cena da torre não tem parede de bandeja pra
- * ignorar; o único collider que volta a valer é o chão da base.
- *
- * A velocidade não é tocada: o dado chega com a que construiu caindo entre as prateleiras.
+ * O equivalente pro modo torre: abaixo de `TOWER_CONFIG.exitY` o dado já saiu e vai pro grupo normal.
+ * Não há fase intermediária porque a cena da torre não tem parede de bandeja pra ignorar. A velocidade
+ * não é tocada: o dado chega com a que construiu caindo entre as prateleiras.
  */
 export function exitTowerIfDescended(body: RAPIER.RigidBody, sides?: PhysicalDiceSides): void {
   if (body.numColliders() === 0) return
