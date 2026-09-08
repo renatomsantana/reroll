@@ -10,25 +10,23 @@ import type { SheetReader } from './types'
 /**
  * Leitor de TORMENTA20, o sistema brasileiro mais jogado e o que mais chega em ficha de formato
  * variado: a editável da Jambô, as caseiras feitas no Word, as de comunidade com cálculo automático.
- * Não existe UM modelo, e este leitor foi escrito sem nenhuma ficha real na mão (as duas de teste são
- * fabricadas). Por isso ele é diferente dos de Ordem, D&D e Pathfinder, que casam NOME DE CAMPO
- * exato: aqui o que se casa é o VOCABULÁRIO do sistema, seja nome de campo ou rótulo impresso, com ou
- * sem acento — uma ficha de T20 que o app nunca viu cai no lugar certo se chamar as coisas como o
- * livro chama.
+ * Não existe UM modelo, e este leitor foi escrito sem nenhuma ficha real na mão. Por isso ele é
+ * diferente dos de Ordem, D&D e Pathfinder, que casam NOME DE CAMPO exato: aqui o que se casa é o
+ * VOCABULÁRIO do sistema, seja nome de campo ou rótulo impresso, com ou sem acento.
  *
  * O que só quem conhece o sistema sabe:
  *
  * - os seis atributos são os de D&D em português, e a ROLAGEM depende da edição: no livro de 2019 o
  *   atributo é um VALOR (Força 14, modificador +2), na edição Jogo do Ano é só o MODIFICADOR. A mesma
  *   ficha nunca mistura os dois, então a decisão é por ficha, olhando os seis juntos;
- * - PV e PM viram barra, com nome canônico ("PV atual", "PM máximo"), porque a barra é montada pelo
- *   nome e "PONTOS DE VIDA TOTAL" não vira barra sozinho;
+ * - PV e PM viram barra, com nome canônico ("PV atual"), porque a barra é montada pelo nome e
+ *   "PONTOS DE VIDA TOTAL" não vira barra sozinho;
  * - as 29 perícias (com Iniciativa entre elas, que em T20 é perícia) rolam d20 + o número;
- * - a grade de ataques vira uma linha por arma e dois presets, o teste e o dano, tanto em colunas
- *   numeradas quanto quando alguém escreve tudo numa célula só ("Adaga +5 1d4+2").
+ * - a grade de ataques vira uma linha por arma e dois presets, tanto em colunas numeradas quanto
+ *   quando alguém escreve tudo numa célula só ("Adaga +5 1d4+2").
  *
  * O rótulo que vai pra tela é o que está IMPRESSO na ficha, porque a pessoa lê a tela com o papel do
- * lado; a exceção são os recursos, pelo motivo acima. E ficha COM DONO traz o esqueleto de lacunas.
+ * lado; a exceção são os recursos, pelo motivo acima.
  */
 
 const GRUPOS = {
@@ -279,8 +277,7 @@ function sobraDoTexto(sheet: PdfSheet): string | undefined {
 
 /**
  * A ficha que um testador trouxe (a do Milo) e que "ficou horrível" pelo caminho do vocabulário: é a
- * editável de comunidade, com 343 campos de NOME PRÓPRIO, e o que ela tem de bom é exatamente o que o
- * vocabulário não vê. Medido no arquivo:
+ * editável de comunidade, com 343 campos de NOME PRÓPRIO. Medido no arquivo:
  *
  * - atributos como MODIFICADOR em `ModFor`…`ModCar`, e PV/PM em `Pontos de Vida atuais` e `Pontos de
  *   Vida m#C3#A1ximos` (o `#C3#A1` é "á" escapado à moda do PDF, ver `nomeDeCampoDecodificado`);
@@ -290,11 +287,11 @@ function sobraDoTexto(sheet: PdfSheet): string | undefined {
  *   escolhido; e o TOTAL só existe gravado em algumas linhas, então é REFEITO aqui (metade do nível +
  *   atributo + treino + outros, mais o tamanho na Furtividade). Conferido onde o arquivo guardou o
  *   total: Pilotagem 6, Pontaria 4, Reflexos 6, Vontade 4;
- * - cinco linhas de ataque, dezessete de item, `Tibares`, carga, Defesa em `CA` com os componentes,
- *   armadura e escudo, `Lv`, `SeleTamanho`, e os textos longos da página 2.
+ * - cinco linhas de ataque, dezessete de item, `Tibares`, carga, Defesa em `CA`, `Lv`, `SeleTamanho`,
+ *   e os textos longos da página 2.
  *
- * As células numéricas da grade não têm rótulo e caíam no texto sem rótulo da ficha ("2 0 4 6 5 8 10
- * 3" no bloco de história): neste modelo TODO campo é conhecido, então nada vai pra lá.
+ * As células numéricas da grade não têm rótulo e caíam no texto sem rótulo da ficha: neste modelo
+ * TODO campo é conhecido, então nada vai pra lá.
  */
 const MARCAS_DO_MODELO = ['modfor', 'moddes', 'modcar', 'seleatribacro', 'pontos de vida atuais', 'pontos de mana atuais', 'ataque 1', 'tibares', 'lv']
 
