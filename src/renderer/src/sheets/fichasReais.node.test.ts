@@ -390,6 +390,22 @@ describe.skipIf(!existsSync(VINCENZO))('ficha real da comunidade de Ordem Parano
     const rotulos = lido.fields.map((c) => c.label)
     expect(rotulos.some((r) => /^[tbo]_|^atq_|^dano_arma/.test(r))).toBe(false)
   }, 60_000)
+
+  /**
+   * NADA DE SEÇÃO "OUTROS" nesta ficha, pelo mesmo motivo da do Matais: em Ordem Paranormal não
+   * existe seção "Outros", e o que caía lá eram duas caixas do modelo com o rótulo roubado do vizinho
+   * impresso — `pe_rodada_extra` como "RODADA = 0" e a caixa do nome da perícia livre como
+   * "REFLEXOS = PROFISSÃO*".
+   */
+  it('nenhum campo sobra sem grupo: a ficha não ganha uma seção "Outros"', async () => {
+    const lido = readSheet(await abrirPdfNoNode(VINCENZO))
+    expect(lido.fields.filter((c) => !c.group)).toEqual([])
+    expect(montarFicha(lido.fields).sections.map((s) => s.title)).not.toContain('Outros')
+    // A perícia de nome livre continua na lista, como lacuna: ninguém escreveu a profissão dele.
+    expect(lido.fields).toContainEqual(
+      expect.objectContaining({ label: 'Profissão', value: '', group: 'Perícias' })
+    )
+  }, 60_000)
 })
 
 /**
