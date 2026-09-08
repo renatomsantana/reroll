@@ -16,24 +16,16 @@ export interface TossOptions {
 }
 
 /**
- * Reposiciona qualquer dado com um ARREMESSO DE FORA DA BANDEJA: nasce do
- * lado de fora dela, numa direção aleatória em torno do slot de destino, e é
- * arremessado de volta pra dentro — como se uma mão alcançasse por cima da
- * borda e jogasse o dado, em vez de o dado já nascer dentro da bandeja. Zera
- * a velocidade antes: senão o impulso novo soma com o resto de velocidade da
+ * Reposiciona qualquer dado com um ARREMESSO DE FORA DA BANDEJA: nasce do lado de fora, numa direção
+ * aleatória em torno do slot de destino, e é arremessado de volta pra dentro, como se uma mão
+ * alcançasse por cima da borda. Zera a velocidade antes, senão o impulso novo soma com o resto da
  * queda anterior.
  *
- * O dado nasce numa altura BAIXA (perto do chão, não perto do topo da
- * parede) mesmo estando horizontalmente do lado de fora — ele atravessa o
- * LUGAR da parede sem colidir com ela enquanto ainda está "entrando" (ver
- * `collisionGroups.ts`/`restoreWallCollisionIfInside`), então não precisa de
- * um arco alto o bastante pra literalmente pular por cima dela. Isso importa
- * de verdade: exigir altura suficiente pra saltar a parede (>
- * `TRAY_CONFIG.wallHeight`) multiplicava a velocidade de impacto no chão
- * (∝ √altura) o bastante pra, com `MAX_SIMULTANEOUS_DICE` dados colidindo ao
- * mesmo tempo, ocasionalmente arremessar um dado de volta pra fora por cima
- * da parede na hora de POUSAR — o mesmo bug de escape que este módulo evita,
- * só que causado pela ENTRADA em vez de evitado por ela.
+ * O dado nasce numa altura BAIXA mesmo estando horizontalmente do lado de fora, porque ele atravessa o
+ * LUGAR da parede sem colidir com ela enquanto está entrando (ver `collisionGroups.ts`). Isso importa
+ * de verdade: exigir altura suficiente pra saltar a parede multiplicava a velocidade de impacto no
+ * chão (∝ √altura) o bastante pra, com a bandeja cheia, ocasionalmente arremessar um dado por cima da
+ * parede na hora de POUSAR — o mesmo escape que este módulo evita, causado pela entrada.
  */
 export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): void {
   const target = options.target ?? { x: 0, z: 0 }
@@ -55,20 +47,18 @@ export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): void
   const spread = SPAWN_CONFIG.launchAngleSpreadRad
   const launchAngle = targetAngleFromCenter + randomInRange([-spread, spread])
   /**
-   * Distância do centro até o ponto de largada: a borda da bandeja NA DIREÇÃO DO LANÇAMENTO, mais
-   * a folga de fora e o jitter (ver `launchRadiusJitter` — evita que dois dados com ângulo de
-   * lançamento parecido nasçam sobrepostos um no outro).
+   * Distância do centro até o ponto de largada: a borda da bandeja NA DIREÇÃO DO LANÇAMENTO, mais a
+   * folga de fora e o jitter (que evita dois dados com ângulo parecido nascerem sobrepostos).
    *
-   * Era `TRAY_CONFIG.apothem` fixo (6.5, o do hexágono) e isso quebrava nas outras formas, com
-   * número medido: no TRIÂNGULO, cujo apótema é 3.75, o dado largava de 8.5 e tinha que atravessar
-   * quase cinco unidades de vazio antes de entrar na bandeja — 72% dos dados eram desviados no
-   * caminho e precisavam do empurrão de retorno (`restoreWallCollisionIfInside`), contra 13% no
-   * hexágono. Não é que o triângulo seja difícil: é que o dado estava sendo largado num ponto
-   * calculado pra outra forma.
+   * Era `TRAY_CONFIG.apothem` fixo, o do hexágono, e isso quebrava nas outras formas com número
+   * medido: no TRIÂNGULO, cujo apótema é 3.75, o dado largava de 8.5 e atravessava quase cinco
+   * unidades de vazio antes de entrar — 72% dos dados eram desviados no caminho e precisavam do
+   * empurrão de retorno, contra 13% no hexágono. O triângulo não é difícil: o dado estava sendo
+   * largado num ponto calculado pra outra forma.
    *
-   * `regularPolygonRadiusAt` e não o apótema porque a borda de um polígono não fica à mesma
-   * distância em toda direção — largar sempre no apótema deixaria o dado NASCER DENTRO da bandeja
-   * quando o ângulo cai perto de uma ponta.
+   * `regularPolygonRadiusAt` e não o apótema porque a borda de um polígono não fica à mesma distância
+   * em toda direção — largar sempre no apótema deixaria o dado NASCER DENTRO da bandeja quando o
+   * ângulo cai perto de uma ponta.
    */
   const launchRadius =
     regularPolygonRadiusAt(launchAngle, trayApothem(sides), sides, trayRotation(sides)) +

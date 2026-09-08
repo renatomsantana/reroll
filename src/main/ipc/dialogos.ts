@@ -5,22 +5,17 @@ import { JsonFileStore } from '../storage/JsonFileStore'
 /**
  * TODOS os diálogos de arquivo do app passam por aqui, e o motivo é uma regressão que já aconteceu.
  *
- * Até o Electron 42, `showOpenDialog` sem `defaultPath` caía na última pasta usada — o Windows
- * guardava isso por conta própria, e o app pegava carona sem nunca ter pedido. No Electron 43 esse
- * comportamento ACABOU: agora todo diálogo abre na pasta Downloads, sempre, e não há nada que o
- * sistema restaure.
+ * Até o Electron 42, `showOpenDialog` sem `defaultPath` caía na última pasta usada: o Windows guardava
+ * isso por conta própria e o app pegava carona sem nunca ter pedido. No Electron 43 esse comportamento
+ * ACABOU, e agora todo diálogo abre na pasta Downloads, sempre. Na prática apareceu como "o app
+ * esqueceu onde eu guardo minhas coisas": quem tem as imagens numa pasta e as fichas noutra passou a
+ * navegar até elas a cada vez.
  *
- * Na prática isso apareceu como "o app esqueceu onde eu guardo minhas coisas": quem tem as imagens
- * de fundo numa pasta e as fichas noutra passou a navegar até elas a cada vez. Não é falha de
- * segurança, é a diferença entre um app que parece cuidado e um que parece descuidado.
- *
- * A memória é POR PROPÓSITO e não uma só: quem escolhe uma foto de personagem e quem exporta presets
- * está em duas pastas diferentes da vida, e uma memória única faria as duas se atrapalharem. É o
- * mesmo raciocínio de o Windows lembrar separado por tipo de diálogo, que era o que se perdeu.
- *
- * E o motivo de as chamadas de `dialog` morarem aqui em vez de espalhadas: enquanto cada handler
- * chamava `dialog.showOpenDialog` direto, lembrar do `defaultPath` era responsabilidade de cada um
- * — ou seja, o próximo diálogo escrito ia esquecer. Com uma porta só, não tem como esquecer.
+ * A memória é POR PROPÓSITO e não uma só, porque quem escolhe uma foto de personagem e quem exporta
+ * presets está em duas pastas diferentes da vida — é o mesmo raciocínio de o Windows lembrar separado
+ * por tipo de diálogo, que é o que se perdeu. E as chamadas de `dialog` moram aqui em vez de
+ * espalhadas porque, enquanto cada handler chamava `showOpenDialog` direto, lembrar do `defaultPath`
+ * era responsabilidade de cada um: o próximo diálogo escrito ia esquecer.
  */
 
 /**
@@ -36,15 +31,10 @@ export type PropositoDeDialogo = 'imagem' | 'ficha' | 'presets' | 'pacote'
 type PastasLembradas = Partial<Record<PropositoDeDialogo, string>>
 
 /**
- * Arquivo próprio, e não um campo dentro de `settings.json`.
- *
- * Dois `JsonFileStore` apontando pro mesmo caminho seriam duas filas de gravação sobre um arquivo
- * só — exatamente o atropelo que a fila do `JsonFileStore` existe pra impedir (ver o comentário
- * dela). Como isto é lido e escrito por um caminho independente das preferências, ganha o arquivo
- * dele.
- *
- * Preguiçoso porque `app.getPath('userData')` só responde depois do `app.whenReady()`, e este
- * módulo é importado antes disso.
+ * Arquivo próprio, e não um campo dentro de `settings.json`: dois `JsonFileStore` apontando pro mesmo
+ * caminho seriam duas filas de gravação sobre um arquivo só, que é o atropelo que a fila do
+ * `JsonFileStore` existe pra impedir. Preguiçoso porque `app.getPath('userData')` só responde depois
+ * do `app.whenReady()`, e este módulo é importado antes disso.
  */
 let armazem: JsonFileStore<PastasLembradas> | null = null
 
@@ -56,13 +46,10 @@ function store(): JsonFileStore<PastasLembradas> {
 }
 
 /**
- * A pasta lembrada pra este propósito, ou `undefined` na primeira vez.
- *
- * Pasta que não existe MAIS (pendrive removido, pasta de rede fora do ar, diretório apagado) é o
- * caso que interessa aqui: passar um `defaultPath` inválido pro diálogo nativo faz o Windows abrir
- * num lugar arbitrário, o que é pior do que não lembrar nada. Como não dá pra conferir a existência
- * sem tocar no disco, o preço de conferir é uma leitura — e o diálogo já é a operação mais lenta
- * desta cadeia, então ela não custa nada perto dele.
+ * A pasta lembrada pra este propósito, ou `undefined` na primeira vez. Pasta que não existe MAIS
+ * (pendrive removido, pasta de rede fora do ar) é o caso que interessa: passar um `defaultPath`
+ * inválido pro diálogo nativo faz o Windows abrir num lugar arbitrário, pior que não lembrar nada.
+ * Conferir custa uma leitura de disco, e o diálogo já é a operação mais lenta desta cadeia.
  */
 async function pastaLembrada(proposito: PropositoDeDialogo): Promise<string | undefined> {
   const pastas = await store().read()

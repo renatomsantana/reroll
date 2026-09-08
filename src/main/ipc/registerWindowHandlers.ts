@@ -9,16 +9,12 @@ const RESIZE_ANIMATION_DURATION_MS = 280
 const RESIZE_ANIMATION_STEPS = 18
 
 /**
- * Anima o redimensionamento em vez de pular direto pro tamanho final — pedido do usuário (a
- * janela do splash já nascia pequena e ia pro tamanho cheio corretamente, mas o salto era
- * instantâneo de um frame pro outro; "expande" implica um crescimento visível, não um corte
- * seco). `setInterval` chamando `setBounds` repetidamente é a única forma de animar uma janela
- * nativa do Electron — não existe API de transição/animação embutida. Mantém o centro fixo
- * (interpola em direção ao retângulo final já centralizado na tela), igual o antigo
- * `window.center()` fazia de uma vez só. Retorna uma Promise que só resolve quando a animação
- * termina, pra quem chamou (`App.tsx`, ver `onFinish` do splash) só trocar pro conteúdo cheio
- * DEPOIS da janela já estar no tamanho final — evita o app cheio "espremido" aparecendo por um
- * instante dentro da janela ainda pequena.
+ * Anima o redimensionamento em vez de pular pro tamanho final: a janela do splash já nascia pequena e
+ * ia pro tamanho cheio corretamente, mas num salto de um quadro pro outro, e "expande" implica um
+ * crescimento visível. `setInterval` chamando `setBounds` é a única forma de animar uma janela nativa
+ * do Electron, que não tem API de transição. Mantém o centro fixo, como o `window.center()` fazia de
+ * uma vez, e devolve uma Promise que só resolve no fim — pra quem chamou trocar pro conteúdo cheio
+ * DEPOIS de a janela estar no tamanho final, sem o app espremido aparecendo por um instante.
  */
 function animateResize(window: BrowserWindow, targetWidth: number, targetHeight: number): Promise<void> {
   return new Promise((resolve) => {
@@ -48,13 +44,10 @@ function animateResize(window: BrowserWindow, targetWidth: number, targetHeight:
 }
 
 /**
- * A janela chega por FUNÇÃO, e não pronta.
- *
- * Estes handlers são registrados uma vez só, na abertura do app (ver `index.ts`), porque
- * `ipcMain.handle` derruba o processo se o mesmo canal for registrado duas vezes. Perguntando pela
- * janela na hora da chamada, eles continuam valendo se a janela for recriada — e devolvem sem fazer
- * nada, em vez de estourar com "Object has been destroyed", se ela já tiver morrido (é o caso do
- * clique que chega enquanto o app fecha).
+ * A janela chega por FUNÇÃO, e não pronta: estes handlers são registrados uma vez só, na abertura do
+ * app, porque `ipcMain.handle` derruba o processo se o mesmo canal for registrado duas vezes.
+ * Perguntando pela janela na hora da chamada, eles continuam valendo se ela for recriada — e devolvem
+ * sem fazer nada, em vez de estourar com "Object has been destroyed", se ela já tiver morrido.
  */
 export function alturaExtraValida(valor: unknown): number {
   if (typeof valor !== 'number' || !Number.isFinite(valor)) return 0
@@ -62,13 +55,11 @@ export function alturaExtraValida(valor: unknown): number {
 }
 
 /**
- * `FULL_SIZE` apertado pra dentro da área útil do monitor onde a janela está.
- *
- * Sem isto o tamanho cheio era aplicado às cegas, e 1300×800 (o valor da época) é MAIOR que a
- * área útil de monitor comum de notebook — 1366×768 tem ~728 úteis de altura, e 1920×1080 com
- * escala 150% tem só 1280×672. A janela saía com título e borda pra fora da tela ("o full
- * screen buga dependendo do tamanho do monitor", reportado por tester). O mínimo aperta junto,
- * senão `setMinimumSize` esticaria a janela de volta pra fora da tela logo depois da animação.
+ * `FULL_SIZE` apertado pra dentro da área útil do monitor onde a janela está. Sem isto o tamanho cheio
+ * era aplicado às cegas, e 1300×800 é MAIOR que a área útil de notebook comum (1366×768 tem ~728 de
+ * altura; 1920×1080 com escala 150% tem 1280×672), então a janela saía com título e borda pra fora da
+ * tela — "o full screen buga dependendo do tamanho do monitor", reportado por tester. O mínimo aperta
+ * junto, senão `setMinimumSize` esticaria a janela de volta pra fora logo depois da animação.
  */
 export function tamanhoCheioQueCabe(workArea: { width: number; height: number }): {
   width: number
@@ -106,12 +97,10 @@ export function registerWindowHandlers(
     const window = obterJanela()
     if (!window) return
     /**
-     * A altura EXTRA do modo compacto, pedida pelo renderer: uma faixa por barra de recurso (spec
-     * §3.4 — "compact mode shows the bars too"). A janelinha foi medida sem barra nenhuma, e cada
-     * barra que entra empurraria o dado pra fora se a janela não crescesse junto.
-     *
-     * Vem de fora, então é conferida: inteiro, e preso a `TETO_DA_ALTURA_EXTRA_COMPACTA` — mais que
-     * isso já não é "janelinha de canto".
+     * A altura EXTRA do modo compacto, pedida pelo renderer: uma faixa por barra de recurso. A janelinha
+     * foi medida sem barra nenhuma, e cada barra que entra empurraria o dado pra fora se a janela não
+     * crescesse junto. Vem de fora, então é conferida: inteiro, e presa ao teto — mais que isso já não é
+     * "janelinha de canto".
      */
     const extra = alturaExtraValida(alturaExtra)
     const target = compact
@@ -127,13 +116,10 @@ export function registerWindowHandlers(
     window.setMinimumSize(target.minWidth, target.minHeight)
 
     /**
-     * SEMPRE VISÍVEL enquanto compacto, e isso é o que decide se o modo serve pra alguma coisa: a
-     * janelinha existe pra ficar num canto do monitor durante a partida, e uma janela comum some
-     * atrás do navegador ou do VTT no primeiro clique fora. Sai junto ao voltar pro tamanho cheio,
-     * onde ficar por cima de tudo seria só estorvo.
-     *
-     * Sem opção própria nas Preferências de propósito: é consequência do modo compacto, não uma
-     * segunda escolha pra manter em dia.
+     * SEMPRE VISÍVEL enquanto compacto, e isso decide se o modo serve pra alguma coisa: a janelinha
+     * existe pra ficar num canto do monitor durante a partida, e uma janela comum some atrás do
+     * navegador ou do VTT no primeiro clique fora. Sai junto ao voltar pro tamanho cheio. Sem opção
+     * própria nas Preferências de propósito: é consequência do modo compacto, não uma segunda escolha.
      */
     window.setAlwaysOnTop(compact)
   })
@@ -144,16 +130,14 @@ export function registerWindowHandlers(
     if (!isValidAppIconId(iconId)) return
     obterJanela()?.setIcon(nativeImage.createFromPath(resolveAppIconPath(iconId)))
     /**
-     * Isto cobre o título da janela e o Alt+Tab. A BARRA DE TAREFAS continua com o ícone do
-     * instalador enquanto o app declarar um AppUserModelID — o Windows tira o ícone do botão da
-     * barra do ATALHO, não da janela.
+     * Isto cobre o título da janela e o Alt+Tab. A BARRA DE TAREFAS continua com o ícone do instalador
+     * enquanto o app declarar um AppUserModelID: o Windows tira o ícone do botão da barra do ATALHO, não
+     * da janela.
      *
-     * Existia um `applyIconToShortcuts` aqui que reescrevia o ícone dos `.lnk` pra cobrir esse
-     * caso. Foi REMOVIDO: ele chamava `powershell.exe -EncodedCommand <base64>`, e um executável
-     * sem assinatura digital disparando PowerShell com comando em base64 é uma das assinaturas
-     * comportamentais mais clássicas de malware. Na máquina de um tester o antivírus matava o app
-     * em looping (abria e fechava sem parar) e o outro tester só conseguiu usar desativando a
-     * proteção. Ícone bonito na barra não vale um app que não abre.
+     * Existia um `applyIconToShortcuts` aqui que reescrevia o ícone dos `.lnk` pra cobrir esse caso, e
+     * foi REMOVIDO: ele chamava `powershell.exe -EncodedCommand <base64>`, uma das assinaturas
+     * comportamentais mais clássicas de malware num executável sem assinatura digital. Na máquina de um
+     * tester o antivírus matava o app em looping, e outro só conseguiu usar desativando a proteção.
      */
     await settingsRepository.setAppIconId(iconId)
   })

@@ -50,15 +50,13 @@ export function nearestFaceAngle(sides: number, preferido: number): number {
 }
 
 /**
- * Quanto girar a bandeja pra ela ficar "de frente" pra câmera: uma FACE virada pro observador
- * (+90°), e não uma ponta.
+ * Quanto girar a bandeja pra ela ficar de frente pra câmera: uma FACE virada pro observador, e não
+ * uma ponta. Sem isso o triângulo nasce com uma quina apontando pra câmera e outra pra direita, que é
+ * o que ele viu como "o triângulo ficou mt bugado"; girado, ele apoia uma face na frente e manda a
+ * ponta pro fundo, onde fica o estojo ("coloca o bico para o estojo").
  *
- * Sem isso o triângulo nasce com uma quina apontando pra câmera e outra pra direita, que é o que o
- * usuário viu como "o triângulo ficou mt bugado". Girado, ele apoia uma face na frente e manda a
- * ponta pro fundo — onde fica o estojo, que foi o pedido dele ("coloca o bico para o estojo").
- *
- * O HEXÁGONO dá zero: as normais dele já caem em 30°, 90°, 150°... e o 90° está lá. É de
- * propósito — a forma que já existia não pode mudar por causa das novas.
+ * O HEXÁGONO dá zero, porque as normais dele já caem em 30°, 90°, 150°: é de propósito, a forma que
+ * já existia não pode mudar por causa das novas.
  */
 export function trayRotation(sides: number): number {
   const passo = (2 * Math.PI) / sides
@@ -69,20 +67,16 @@ export function trayRotation(sides: number): number {
 }
 
 /**
- * Meia-largura do quadrado onde os ALVOS do arremesso são distribuídos (`computeSpawnSlots`),
- * ajustada à forma da bandeja.
+ * Meia-largura do quadrado onde os ALVOS do arremesso são distribuídos, ajustada à forma da bandeja.
  *
- * `SPAWN_CONFIG.slotSafeHalfExtent` é um número fixo (4.25) calibrado pro hexágono. Num triângulo,
- * cujo apótema é 3.75, aquele quadrado tem quinas a 6.0 do centro — muito além da parede. Foi
- * exatamente o que o usuário viu: "quando spawna os dados nos outros formatos estão spawnando fora
- * das caixas".
+ * `SPAWN_CONFIG.slotSafeHalfExtent` é um número fixo calibrado pro hexágono. Num triângulo, cujo
+ * apótema é 3.75, aquele quadrado tem quinas a 6.0 do centro — muito além da parede, e foi o que ele
+ * viu: "quando spawna os dados nos outros formatos estão spawnando fora das caixas".
  *
- * A escala é a razão entre o apótema da forma e o do hexágono, e isso basta pra garantir que o
- * alvo cai DENTRO de qualquer uma delas: a quina do quadrado de alvos fica a `extent·√2` do
- * centro, e essa distância continua menor que o apótema em todas as quatro (no triângulo, 3.47
- * contra 3.75). Um ponto dentro do círculo inscrito está dentro do polígono, qualquer que seja ele.
- *
- * O HEXÁGONO dá exatamente 4.25 de volta — a forma que já existia não muda.
+ * A escala é a razão entre o apótema da forma e o do hexágono, e isso basta: a quina do quadrado de
+ * alvos fica a `extent·√2` do centro, e essa distância continua menor que o apótema em todas as quatro
+ * (no triângulo, 3.47 contra 3.75) — um ponto dentro do círculo inscrito está dentro do polígono,
+ * qualquer que seja ele. O hexágono dá exatamente o valor de antes de volta.
  */
 export function traySafeHalfExtent(sides: number, base: number): number {
   return base * (trayApothem(sides) / trayApothem(6))

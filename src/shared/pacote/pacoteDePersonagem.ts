@@ -6,30 +6,22 @@ import { MAXIMO_DE_PRESETS_POR_PERSONAGEM } from '../diceRegistry'
 import { paginasValidas } from '../types/paginasDaFicha'
 
 /**
- * O PACOTE DE PERSONAGEM — o personagem inteiro num arquivo só (spec §3.2: "profile export/import
- * (single file) so users can back up or move characters").
- *
- * Pedido do usuário: "um exportável de ficha, para a pessoa poder mostrar pro mestre a ficha ou
- * talvez usar isso para fazer upload em outro pc, ter um jeito de já estar tudo ajeitadinho, com
- * designs dos dados, anotações, presets — pra que alguém que já use bastante não perca suas
- * informações".
+ * O PACOTE DE PERSONAGEM: o personagem inteiro num arquivo só, pedido dele — "um exportável de ficha,
+ * para a pessoa poder mostrar pro mestre a ficha ou talvez usar isso para fazer upload em outro pc, ter
+ * um jeito de já estar tudo ajeitadinho, com designs dos dados, anotações, presets".
  *
  * São DOIS usos num arquivo só, e o formato é o que faz os dois caberem:
  *
- * - MOSTRAR AO MESTRE: o arquivo é um `.html` que abre em qualquer navegador, sem o app, com a
- *   ficha desenhada — nome, foto, barras, seções, blocos, presets (ver `htmlDoPacote.ts`);
+ * - MOSTRAR AO MESTRE: o arquivo é um `.html` que abre em qualquer navegador, sem o app, com a ficha
+ *   desenhada (ver `htmlDoPacote.ts`);
  * - LEVAR PRA OUTRO PC: dentro do mesmo HTML vai o pacote em JSON, num `<script type=
- *   "application/json">` que o navegador ignora e o Reroll lê de volta. Importar cria o
- *   personagem com tudo o que ele tinha — ficha, diário, barras, descansos, HUD, presets COM as
- *   estrelas, foto e a aparência dos dados.
+ *   "application/json">` que o navegador ignora e o Reroll lê de volta.
  *
- * A estrela vai junto de propósito, ao contrário da exportação de presets soltos (ver o comentário
- * de `favorito` em `preset.ts`): lá o arquivo é pra dar presets a OUTRA pessoa; aqui é a mesma
- * pessoa levando o personagem dela pra outra máquina, e a fileira de favoritos é parte do "tudo
- * ajeitadinho".
+ * A estrela vai junto de propósito, ao contrário da exportação de presets soltos: lá o arquivo é pra
+ * dar presets a OUTRA pessoa, e aqui é a mesma pessoa levando o personagem dela pra outra máquina.
  *
- * O que NÃO vai: preferências de quem usa o app (idioma, tema, fonte, som) — não são do
- * personagem — e o histórico de rolagens, que é da sessão.
+ * O que NÃO vai: preferências de quem usa o app (idioma, tema, fonte, som), que não são do personagem,
+ * e o histórico de rolagens, que é da sessão.
  */
 export const FORMATO_DO_PACOTE = 'reroll-personagem'
 export const VERSAO_DO_PACOTE = 1
@@ -112,14 +104,11 @@ export function extrairPacoteDoTexto(texto: string): unknown {
 }
 
 /**
- * O pacote conferido, na forma que o app grava. Estrutura errada ESTOURA (não é um pacote, ou é de
- * uma versão que este app não conhece); campo solto torto é CORRIGIDO — a mesma régua de dois pesos
- * da importação de ficha (`validarSheetApplyPayload`), e pelo mesmo motivo: o arquivo vem de fora,
- * e um campo estragado não pode custar o personagem inteiro.
- *
- * Os presets saem daqui CRUS, só com o teto de quantidade: quem julga cada um é o
- * `isValidPresetInput` do processo principal, a mesma régua dos outros três caminhos que gravam
- * preset. Uma segunda régua aqui seria a que fica pra trás.
+ * O pacote conferido, na forma que o app grava. Estrutura errada ESTOURA (não é um pacote, ou é de uma
+ * versão que este app não conhece) e campo solto torto é CORRIGIDO — a mesma régua de dois pesos da
+ * importação de ficha, e pelo mesmo motivo: o arquivo vem de fora, e um campo estragado não pode custar
+ * o personagem inteiro. Os presets saem daqui CRUS, só com o teto de quantidade, porque quem julga
+ * cada um é o `isValidPresetInput` do processo principal.
  */
 export function lerPacote(bruto: unknown): PacoteDePersonagem {
   if (typeof bruto !== 'object' || bruto === null) {

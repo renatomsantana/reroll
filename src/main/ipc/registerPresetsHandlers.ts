@@ -54,12 +54,10 @@ export function isValidPresetInput(value: unknown): value is PresetInput {
   if (expression.groups.length === 0) return false
 
   /**
-   * `sides` tem que ser um dos SETE tipos que o app rola, e não só um inteiro positivo.
-   *
-   * A cena 3D faz `DICE_REGISTRY[sides]` sem guarda (`DiceCanvasMulti.tsx`) — com um `d30` ali o
-   * `entry` vem `undefined` e a montagem inteira estoura, ou seja, o preset não falha sozinho: leva
-   * a bandeja junto. Três caminhos gravam preset e todos passam por aqui: o editor, a IMPORTAÇÃO DE
-   * PRESETS POR ARQUIVO (um `.json` que a pessoa escolheu, que pode vir de qualquer lugar) e agora a
+   * `sides` tem que ser um dos SETE tipos que o app rola, e não só um inteiro positivo: a cena 3D faz
+   * `DICE_REGISTRY[sides]` sem guarda, então com um `d30` ali o `entry` vem `undefined` e a montagem
+   * inteira estoura — o preset não falha sozinho, leva a bandeja junto. Três caminhos gravam preset e
+   * todos passam por aqui: o editor, a importação por arquivo (um `.json` de qualquer lugar) e a
    * importação de ficha. `> 0` protegia só do zero e do negativo.
    */
   const groupsValid = expression.groups.every(
@@ -93,13 +91,10 @@ export function isValidPresetInput(value: unknown): value is PresetInput {
 }
 
 /**
- * A regra explosiva ("tirou o máximo, rola de novo"), quando houver uma.
- *
- * AUSENTE é válido, e é o caso de todo preset gravado antes de a regra existir. O que não passa é
- * `explode` presente e torto — e o campo que importa é o TETO: um `maxChain` gigante vindo de um
- * `presets.json` editado à mão é um dado que cai centenas de vezes na bandeja antes de a rolagem
- * terminar, e a pessoa não tem como interromper. O teto do teto é o mesmo que o app usa
- * (`MAX_EXPLOSOES_POR_DADO`), porque um preset não tem por que poder mais do que a interface.
+ * A regra explosiva ("tirou o máximo, rola de novo"), quando houver uma. AUSENTE é válido, e é o caso
+ * de todo preset gravado antes de a regra existir; o que não passa é `explode` presente e torto. O
+ * campo que importa é o TETO: um `maxChain` gigante vindo de um `presets.json` editado à mão é um dado
+ * que cai centenas de vezes antes de a rolagem terminar, sem a pessoa poder interromper.
  */
 function explodeValido(explode: unknown): boolean {
   if (explode === undefined || explode === null) return true
@@ -184,15 +179,14 @@ export function registerPresetsHandlers(repository: PresetsRepository): void {
 /**
  * O maior `.json` de presets que o app abre, e quantos presets ele aceita de uma vez.
  *
- * Achado da revisão de segurança do 1.0.12: o PDF de ficha tem teto (`TAMANHO_MAXIMO_DA_FICHA`), a
- * imagem tem teto (`TAMANHO_MAXIMO_DA_IMAGEM`), e a importação de presets lia o arquivo escolhido
- * inteiro pra memória e fazia `JSON.parse` nele, fosse do tamanho que fosse. Um arquivo errado
- * escolhido no diálogo — um vídeo renomeado, um dump de banco — travaria o app tentando analisá-lo.
+ * Achado da revisão de segurança do 1.0.12: o PDF de ficha tem teto, a imagem tem teto, e a importação
+ * de presets lia o arquivo escolhido inteiro pra memória e fazia `JSON.parse` nele, fosse do tamanho
+ * que fosse — um vídeo renomeado escolhido no diálogo travaria o app tentando analisá-lo.
  *
- * Dois megabytes cabem uns dez mil presets; o teto de quinhentos por importação é o mesmo da
- * importação de ficha (`LIMITES_DA_FICHA.presets`). Acima disso a resposta é RECUSAR com o número
- * na mensagem, e não importar os primeiros quinhentos calado — importação pela metade sem aviso é
- * o tipo de coisa que a pessoa só descobre no meio da sessão.
+ * Dois megabytes cabem uns dez mil presets, e o teto de quinhentos por importação é o mesmo da
+ * importação de ficha. Acima disso a resposta é RECUSAR com o número na mensagem, e não importar os
+ * primeiros quinhentos calado: importação pela metade é o tipo de coisa que a pessoa só descobre no
+ * meio da sessão.
  */
 export const TAMANHO_MAXIMO_DO_ARQUIVO_DE_PRESETS = 2 * 1024 * 1024
 /**

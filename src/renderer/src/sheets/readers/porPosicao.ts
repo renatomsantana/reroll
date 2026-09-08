@@ -4,21 +4,17 @@ import { valorDeFicha } from './generic'
 /**
  * LER UMA FICHA PELA POSIÇÃO DOS CAMPOS.
  *
- * As fichas editáveis da Luz Negra (Breu, Tenebra, Infaernum) são ARTE com formulário por cima: o
- * texto impresso é desenho (Tenebra e Infaernum não têm um fragmento de texto sequer) e os nomes de
- * campo são os automáticos do editor (`Text1.0.1.0.1…`, `Campo de Texto12`, `Text Field 4`). Nem
- * rótulo impresso nem nome de campo dizem o que uma caixa é. O que diz é ONDE ela está: a caixa
- * em (74, 710) da ficha de Tenebra é a "Assinatura do Sobrevivente" em toda cópia daquele modelo,
- * porque o modelo é o mesmo arquivo.
+ * As fichas editáveis da Luz Negra (Breu, Tenebra, Infaernum) são ARTE com formulário por cima: o texto
+ * impresso é desenho (Tenebra e Infaernum não têm um fragmento de texto sequer) e os nomes de campo são
+ * os automáticos do editor. Nem rótulo impresso nem nome de campo dizem o que uma caixa é; o que diz é
+ * ONDE ela está — a caixa em (74, 710) da ficha de Tenebra é a "Assinatura do Sobrevivente" em toda
+ * cópia daquele modelo, porque o modelo é o mesmo arquivo.
  *
- * Então cada leitor desses sistemas carrega um MAPA medido no PDF em branco (`scripts` de
- * sondagem, 02/09/2026): retângulos em pontos, origem embaixo à esquerda, como o `rect` de
- * `PdfField`. Um campo "está" numa região quando o CENTRO dele cai dentro dela, com folga de uns
- * pontos: é o que tolera a diferença de décimos entre versões exportadas do mesmo modelo, sem
- * deixar a caixa vizinha (a 15 ou 20 pontos) entrar no lugar.
- *
- * O mesmo mapa serve pra RECONHECER a ficha: um modelo é identificado por meia dúzia de
- * retângulos-âncora que só ele tem naquele lugar e naquele tamanho (`ancorasPresentes`).
+ * Então cada leitor desses sistemas carrega um MAPA medido no PDF em branco: retângulos em pontos,
+ * origem embaixo à esquerda, como o `rect` de `PdfField`. Um campo "está" numa região quando o CENTRO
+ * dele cai dentro dela, com folga de uns pontos — o que tolera a diferença de décimos entre versões
+ * exportadas do mesmo modelo sem deixar a caixa vizinha entrar no lugar. O mesmo mapa serve pra
+ * RECONHECER a ficha, por meia dúzia de retângulos-âncora que só ela tem naquele lugar.
  */
 export interface Regiao {
   page: number
@@ -81,15 +77,12 @@ export function marcadasEm(sheet: PdfSheet, regiao: Regiao, prefixo?: RegExp, fo
 }
 
 /**
- * As marcas que são BOTÕES MOSTRADOS OU ESCONDIDOS, e não caixas de marcar.
- *
- * É como a ficha editável de Tenebra guarda as Gotas de Suor, a Fadiga, a Barra de Feridas, a
- * Proteção e o Óleo (medido em 02/09/2026): cada gota é um botão de imagem (`fo0`…`fo19`) que
- * nasce OCULTO, e o botão visível ao lado ("Pressionar Botão3") roda um script que o mostra ou
- * esconde. Não há valor gravado em lugar nenhum: a gota está acesa quando o botão dela não está
- * oculto. O extrator traz esses botões marcados com `oculto` (ver `PdfField.oculto`), e é a
- * ausência da marca que conta. `prefixo` separa as camadas que dividem o mesmo lugar (`fr` e `tr`
- * na Barra de Feridas).
+ * As marcas que são BOTÕES MOSTRADOS OU ESCONDIDOS, e não caixas de marcar. É como a ficha editável de
+ * Tenebra guarda as Gotas de Suor, a Fadiga, a Barra de Feridas e a Proteção: cada gota é um botão de
+ * imagem que nasce OCULTO, e o botão visível ao lado roda um script que o mostra ou esconde. Não há
+ * valor gravado em lugar nenhum — a gota está acesa quando o botão dela não está oculto. O extrator
+ * traz esses botões marcados com `oculto`, e é a ausência da marca que conta; `prefixo` separa as
+ * camadas que dividem o mesmo lugar.
  */
 export function acesosEm(sheet: PdfSheet, regiao: Regiao, prefixo: RegExp, folga = 3): { marcadas: number; total: number } {
   const botoes = camposEm(sheet, regiao, folga).filter((campo) => prefixo.test(campo.name))
@@ -97,13 +90,10 @@ export function acesosEm(sheet: PdfSheet, regiao: Regiao, prefixo: RegExp, folga
 }
 
 /**
- * Os FRAGMENTOS DE TEXTO IMPRESSO cuja âncora (o começo da linha de base) cai na região, na ordem
- * de leitura: de cima pra baixo, da esquerda pra direita.
- *
- * Existe pra ficha que é ARTE COM ANOTAÇÃO POR CIMA e sem formulário nenhum: a de Kids on Bikes
- * que o usuário trouxe é uma imagem com o que o jogador digitou flutuando em cima, e o que diz o
- * que cada anotação é não é rótulo (é pixel) nem nome de campo (não há campo), é o LUGAR. O
- * mesmo mapa medido que serve pros campos serve pros textos.
+ * Os FRAGMENTOS DE TEXTO IMPRESSO cuja âncora cai na região, na ordem de leitura. Existe pra ficha que
+ * é arte com anotação por cima e sem formulário nenhum: a de Kids on Bikes é uma imagem com o que o
+ * jogador digitou flutuando em cima, e o que diz o que cada anotação é não é rótulo (é pixel) nem nome
+ * de campo (não há campo), é o LUGAR.
  */
 export function fragmentosEm(sheet: PdfSheet, regiao: Regiao, folga = 3): PdfText[] {
   return sheet.texts
