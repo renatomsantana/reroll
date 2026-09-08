@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeNotes, DEFAULT_NOTES } from './notes'
+import { fichaEstaVazia, normalizeNotes, DEFAULT_NOTES } from './notes'
 import { normalizeProfiles, DEFAULT_PROFILE_ID, TAMANHO_MAXIMO_DA_FOTO, TAMANHO_MAXIMO_DO_NOME } from './profile'
 import { blockForGroup } from './sheetBlocks'
 
@@ -106,6 +106,31 @@ describe('normalizeNotes — ler o arquivo de anotações', () => {
     })
     // Vira string vazia em vez de manter um número onde a tela espera texto — e a tela não quebra.
     expect(lido.sections[0].fields[0].value).toBe('')
+  })
+
+  /**
+   * Bloco de texto livre que veio de tipo errado. Não é só arquivo editado à mão: `normalizeNotes`
+   * também recebe a ficha de um PACOTE DE PERSONAGEM, que é arquivo de outra pessoa. Com um `null`
+   * ali, `fichaEstaVazia` chamava `.trim()` em nada e derrubava a aba Ficha inteira.
+   */
+  it('bloco de texto de tipo errado vira vazio, e a ficha continua de pé', () => {
+    const lido = normalizeNotes({
+      characterName: 7,
+      attributes: null,
+      abilities: undefined,
+      inventory: { texto: 'x' },
+      appearance: ['a'],
+      backstory: 42
+    })
+    expect(lido).toMatchObject({
+      characterName: '',
+      attributes: '',
+      abilities: '',
+      inventory: '',
+      appearance: '',
+      backstory: ''
+    })
+    expect(fichaEstaVazia(lido)).toBe(true)
   })
 
   it('aguenta lixo completo sem lançar', () => {

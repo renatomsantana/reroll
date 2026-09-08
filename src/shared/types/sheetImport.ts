@@ -6,12 +6,10 @@ import type { SheetRollKind } from './sheetRoll'
 import type { SheetWarningId } from './sheetWarning'
 
 /**
- * O que se consegue LER de um PDF, antes de qualquer interpretação de sistema de RPG.
- *
- * É a fronteira do desenho inteiro do importador: quem extrai (`extractPdfSheet.ts`) faz IO e
- * devolve isto; quem interpreta (os leitores em `sheets/readers/`) é função PURA daqui pra
- * `SheetImport`. É o que permite testar leitor de ficha sem PDF nenhum no repositório — e as fichas
- * de referência estão no `.gitignore`, então não haveria como testar de outro jeito.
+ * O que se consegue LER de um PDF, antes de qualquer interpretação de sistema de RPG. É a fronteira
+ * do importador: quem extrai (`extractPdfSheet.ts`) faz IO e devolve isto; quem interpreta (os
+ * leitores em `sheets/readers/`) é função PURA daqui pra `SheetImport`. Por isso dá pra testar leitor
+ * sem PDF nenhum no repositório, e as fichas de referência estão no `.gitignore`.
  */
 export interface PdfSheet {
   /** Nome do arquivo, sem caminho — entra como palpite de nome do personagem em último caso. */
@@ -46,10 +44,9 @@ export interface PdfField {
   rect: [number, number, number, number]
   /**
    * Campo que a pessoa NÃO VÊ (bandeiras HIDDEN/NOVIEW do PDF). O genérico o ignora por inteiro: é
-   * como formulário calculado esconde total interno, e um "TOTAL_INTERNO = 999" tem cara de dado
-   * lido. O leitor DEDICADO precisa dele — em Tenebra as Gotas de Suor moram em caixas ocultas que os
-   * botões da página ligam, e em Tormenta20 o modificador de cada perícia é oculto. Vêm no FIM da
-   * lista, depois dos visíveis, pra um mapa "primeiro nome ganha" preferir o visível.
+   * onde formulário calculado esconde total interno, e um "TOTAL_INTERNO = 999" tem cara de dado
+   * lido. O leitor DEDICADO precisa dele (as Gotas de Suor de Tenebra, o modificador de perícia de
+   * Tormenta20). Vêm no FIM da lista, pra um mapa "primeiro nome ganha" preferir o visível.
    */
   oculto?: boolean
 }
@@ -64,11 +61,9 @@ export interface PdfText {
 }
 
 /**
- * O resultado da leitura de uma ficha: o que vai virar personagem no app.
- *
- * Nada aqui é gravado direto — isto alimenta a TELA DE CONFERÊNCIA, e é o usuário que confirma. Um
- * importador de ficha que grava sozinho o que achou é um importador que, no primeiro PDF estranho,
- * cria um personagem chamado "Assinatura do Mestre" com quatro presets de lixo.
+ * O resultado da leitura de uma ficha: o que vai virar personagem no app. Nada aqui é gravado
+ * direto — isto alimenta a TELA DE CONFERÊNCIA, e é o usuário que confirma. Importador que grava
+ * sozinho cria, no primeiro PDF estranho, um personagem chamado "Assinatura do Mestre".
  */
 export interface SheetImport {
   /** Qual leitor produziu isto, e o quanto ele confia — a tela mostra os dois. */
@@ -79,28 +74,21 @@ export interface SheetImport {
   /** Sistema de RPG, quando o leitor souber dizer. Vira o campo `system` do perfil. */
   system: string
   /**
-   * Tudo que foi lido, em pares rótulo/valor — vira o texto das anotações do personagem. Guardado
-   * como lista, e não como texto já montado, pra tela poder mostrar em duas colunas e pro usuário
-   * poder desmarcar o que não quer.
+   * Tudo que foi lido, em pares rótulo/valor. Guardado como lista, e não como texto já montado, pra
+   * tela poder mostrar em duas colunas e pro usuário poder desmarcar o que não quer.
    */
   fields: SheetImportField[]
   presets: SheetImportPreset[]
   /**
    * Avisos pra tela: ficha sem formulário, campo esperado que não veio, expressão que não deu pra
-   * entender. O usuário precisa saber o que NÃO foi lido — silêncio aqui vira "o app importou
-   * errado".
-   *
-   * São IDENTIFICADORES, e não frases: o texto mora no dicionário de tradução, porque a interface
-   * tem dois idiomas e o aviso é a mensagem que mais precisa ser entendida. Ver `sheetWarning.ts`.
+   * entender. Silêncio aqui vira "o app importou errado". São IDENTIFICADORES e não frases, porque o
+   * texto mora no dicionário de tradução (ver `sheetWarning.ts`).
    */
   warnings: SheetWarningId[]
   /**
-   * O texto da ficha que NÃO deu pra rotular, na ordem em que está na página.
-   *
-   * Existe pra ficha que é uma arte com anotação por cima (ver `anotacoesSobreImagem.ts`): ali os
-   * nomes dos campos são desenho, então o que a pessoa escreveu não tem como virar par rótulo/valor.
-   * Jogar isso fora seria perder a ficha inteira; inventar rótulo seria pior. Vai como texto, e a
-   * tela de conferência mostra pra pessoa decidir.
+   * O texto da ficha que NÃO deu pra rotular, na ordem da página. Existe pra ficha que é arte com
+   * anotação por cima (ver `anotacoesSobreImagem.ts`): ali os nomes dos campos são desenho. Jogar
+   * fora seria perder a ficha inteira; inventar rótulo seria pior.
    */
   rawText?: string
   /** O retrato candidato (ver `PdfSheet.retrato`), passado adiante pra conferência oferecer. */
@@ -115,19 +103,15 @@ export interface SheetImportField {
   /** Seção da ficha ("Atributos", "Perícias"), quando o leitor souber agrupar. */
   group?: string
   /**
-   * Nome do campo do PDF de onde este valor saiu, quando veio de um formulário.
-   *
-   * Existe pra um leitor dedicado poder dizer com exatidão "este eu já tratei" sobre o que o leitor
-   * genérico produziu. A alternativa — casar por valor — confunde dois campos que por acaso
-   * tenham o mesmo conteúdo, e numa ficha de RPG isso é rotina: metade dos atributos é "2".
+   * Nome do campo do PDF de onde este valor saiu, quando veio de um formulário: é como um leitor
+   * dedicado diz com exatidão "este eu já tratei" sobre o que o genérico produziu. Casar por VALOR
+   * confundiria dois campos de mesmo conteúdo, e numa ficha de RPG metade dos atributos é "2".
    */
   fieldName?: string
   /**
-   * COMO SE ROLA este campo, quando ele for de rolar (ver `sheetRoll.ts`).
-   *
-   * Só um leitor de sistema preenche isto, porque só ele sabe o que o número quer dizer: o mesmo "3"
-   * é 1d20-3 num sistema e "role 3d20 e fique com o maior" noutro. Ausente é o normal — nome, classe
-   * e deslocamento não se rolam —, e aí a ficha ainda tenta ler notação de dado do próprio valor.
+   * COMO SE ROLA este campo, quando ele for de rolar (ver `sheetRoll.ts`). Só um leitor de sistema
+   * preenche: o mesmo "3" é 1d20-3 num sistema e "role 3d20 e fique com o maior" noutro. Ausente é o
+   * normal, e aí a ficha ainda tenta ler notação de dado do próprio valor.
    */
   roll?: SheetRollKind
 }
@@ -144,52 +128,41 @@ export interface SheetImportPreset {
   /** Texto original de onde a expressão saiu, pra tela poder mostrar "veio daqui". */
   source: string
   /**
-   * Campo do PDF de onde a expressão saiu, quando veio de um formulário. Mesmo papel que em
-   * `SheetImportField`: um leitor dedicado precisa poder dizer com exatidão "esta célula eu já
-   * tratei", e casar por texto confunde duas armas que causam o mesmo dano.
+   * Campo do PDF de onde a expressão saiu, mesmo papel que em `SheetImportField`: casar por texto
+   * confunde duas armas que causam o mesmo dano.
    */
   fieldName?: string
 }
 
 /**
- * Limite de tamanho do PDF que o app aceita abrir, em bytes. Não é desconfiança do arquivo, é o custo
- * real do caminho: os bytes são lidos no processo principal, CLONADOS pelo IPC pra chegar ao renderer
- * e clonados de novo pelo pdf.js ao abrir, então um arquivo de centenas de megabytes vira mais de um
- * gigabyte de memória viva antes de qualquer leitura, e o app morre sem dizer nada.
- *
- * 80 MB é folgado de propósito: a maior ficha de referência tem 4.5 MB, e uma DIGITALIZADA em alta
- * resolução chega perto de 50 MB. Acima disso deixa de ser ficha de personagem.
+ * Limite de tamanho do PDF que o app aceita abrir, em bytes. É o custo real do caminho: os bytes são
+ * lidos no processo principal, CLONADOS pelo IPC pra chegar ao renderer e clonados de novo pelo
+ * pdf.js, então centenas de megabytes viram mais de um gigabyte de memória viva e o app morre calado.
+ * 80 MB é folgado: a maior ficha de referência tem 4.5 MB, e uma digitalizada em alta chega a 50 MB.
  */
 export const TAMANHO_MAXIMO_DA_FICHA = 80 * 1024 * 1024
 
 /**
  * Quantas páginas do PDF são varridas; daí pra cima o arquivo é ignorado, com um aviso no console.
- *
- * O limite de BYTES não cobre este caso, e é por isso que existem os dois: página de PDF quase não
- * custa espaço, então um arquivo de poucos megabytes pode declarar dezenas de milhares delas. Só que
- * a varredura custa por PÁGINA (duas chamadas assíncronas ao pdf.js em cada), e uma ficha dessas
- * deixa a importação rodando por minutos com uma ampulheta sem botão de cancelar. 100 é muito acima
- * do real: a maior ficha de referência tem 5 páginas.
+ * O teto de BYTES não cobre isto: página quase não custa espaço, então poucos megabytes podem
+ * declarar dezenas de milhares delas, e a varredura custa por página (duas chamadas ao pdf.js em
+ * cada) — minutos de ampulheta sem cancelar. A maior ficha de referência tem 5 páginas.
  */
 export const MAXIMO_DE_PAGINAS_DA_FICHA = 100
 
 /**
- * Quantos CAMPOS de formulário e quantos FRAGMENTOS de texto a varredura guarda, no total.
- *
- * Os dois tetos acima não cobrem este caso, e ele é o que custa caro: os leitores fazem conta de
- * distância entre cada campo e cada texto da página, ou seja, campos × textos. Um PDF de uma página
- * com cinco mil campos e duzentos mil fragmentos cabe em poucos megabytes e dá um bilhão de
- * comparações dentro do renderer, congelando a janela. Medido nas fichas reais: a maior tem 458
- * campos e 886 fragmentos, e os tetos são dez e cinquenta vezes isso.
+ * Quantos CAMPOS de formulário e quantos FRAGMENTOS de texto a varredura guarda, no total. É o teto
+ * que custa caro: os leitores fazem conta de distância entre cada campo e cada texto, ou seja,
+ * campos × textos. Cinco mil campos e duzentos mil fragmentos cabem em poucos megabytes e dão um
+ * bilhão de comparações, congelando a janela. A maior ficha real tem 458 campos e 886 fragmentos.
  */
 export const MAXIMO_DE_CAMPOS_DA_FICHA = 5_000
 export const MAXIMO_DE_TEXTOS_DA_FICHA = 50_000
 
 /**
- * O resultado de escolher um PDF, com o MOTIVO quando não deu. Era `PickedPdf | null`, e o `null`
- * significava só "o usuário fechou o diálogo": tudo o que dava errado ANTES da leitura (arquivo
- * removido entre escolher e abrir, pasta de rede que caiu, permissão negada) virava uma promessa
- * rejeitada, e como a chamada no renderer está fora do `try` que trata falha de leitura, o botão
+ * O resultado de escolher um PDF, com o MOTIVO quando não deu. Era `PickedPdf | null`, e o `null` só
+ * dizia "o usuário fechou o diálogo": tudo que falhava ANTES da leitura (arquivo removido, pasta de
+ * rede caída, permissão negada) virava promessa rejeitada fora do `try` do renderer, e o botão
  * simplesmente não fazia nada.
  */
 export type PdfEscolhido =
@@ -204,23 +177,19 @@ export type PdfEscolhido =
 
 export interface SheetApplyPayload {
   /**
-   * Personagem de destino, quando a importação for pra ATUALIZAR um que já existe; ausente = criar um
-   * novo, que é o padrão.
-   *
-   * Existe por um caso que acontece toda sessão de campanha: o jogador sobe de nível, salva o PDF de
-   * novo e importa. Sem isto o app criava um SEGUNDO personagem com o mesmo nome, e recuperar o
-   * anterior significava apagar um dos dois, levando junto o diário e as anotações dele. Id que não
-   * existe mais cai no caminho de criar novo: perder a importação inteira seria pior.
+   * Personagem de destino, quando a importação for pra ATUALIZAR um que já existe; ausente = criar
+   * novo. O caso é o de toda sessão: o jogador sobe de nível, salva o PDF e importa. Sem isto o app
+   * criava um SEGUNDO personagem de mesmo nome, e escolher um significava perder o diário do outro.
+   * Id que não existe mais cai no caminho de criar novo: perder a importação inteira seria pior.
    */
   targetProfileId?: string
   characterName: string
   system: string
   /**
    * As SEÇÕES da ficha, com os nomes que o sistema de RPG dá a elas, e só o que ficou marcado na
-   * conferência. Isto já foi uma string só e depois três (atributos, habilidades, história), e as
-   * duas versões tinham o mesmo defeito, que ele apontou: espremiam uma ficha de RPG inteira dentro
-   * de blocos fixos que o app inventou. Agora quem manda na forma da ficha é o SISTEMA, e a aba Ficha
-   * desenha o que veio.
+   * conferência. Já foi uma string só e depois três (atributos, habilidades, história), e ele apontou
+   * o mesmo defeito nas duas: espremiam uma ficha inteira em blocos fixos que o app inventou. Quem
+   * manda na forma da ficha é o SISTEMA, e a aba Ficha desenha o que veio.
    */
   notes: {
     /** Texto pros blocos livres da ficha (atributos, habilidades, inventário, aparência, história). */
@@ -253,11 +222,9 @@ export interface RecursoImportado {
   maximo: number
 }
 
-
 /**
- * Campos por SEÇÃO da ficha do personagem, cobrado na gravação (`LIMITES_DA_FICHA`) e avisado na
- * tela de conferência — antes só a gravação sabia, e cortava calada: um PDF de 5.001 campos passava
- * pela conferência inteiro e chegava ao disco com 2.000, sem ninguém dizer (quinta leva de PDFs de
- * teste). Nenhuma ficha real chega perto; o número existe pra que entrada adversarial tenha teto.
+ * Campos por SEÇÃO da ficha, cobrado na gravação (`LIMITES_DA_FICHA`) e avisado na conferência —
+ * antes só a gravação sabia, e cortava calada: 5.001 campos passavam pela conferência inteiros e
+ * chegavam ao disco 2.000. Nenhuma ficha real chega perto; o teto é pra entrada adversarial.
  */
 export const MAXIMO_DE_CAMPOS_POR_SECAO = 2_000

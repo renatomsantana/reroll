@@ -12,34 +12,24 @@ import { normalizarHistorico, type ItemDoHistorico } from './historico'
 export interface NotesPage {
   id: string
   /**
-   * QUANDO A SESSÃO FOI CRIADA, em milissegundos do epoch; vai pra lista lateral, embaixo do nome
-   * ("poder escolher e dizer qual dia foi criada"). ZERO significa NÃO SEI, e é valor legítimo: as
-   * sessões escritas antes desta versão não têm essa data em canto nenhum, e a tela diz "sem data".
-   * Carimbar a data da migração seria pior — uma sessão de três meses atrás passaria a dizer que
-   * nasceu hoje, sem ninguém ter como desconfiar.
+   * QUANDO A SESSÃO FOI CRIADA, em milissegundos do epoch; vai pra lista lateral, embaixo do nome.
+   * ZERO significa NÃO SEI, e é valor legítimo: as sessões escritas antes desta versão não têm essa
+   * data em canto nenhum, e a tela diz "sem data". Carimbar a data da migração seria pior — uma
+   * sessão de três meses atrás passaria a dizer que nasceu hoje.
    */
   createdAt: number
   /**
-   * Nome do dia, opcional. Vazio = a interface mostra "Dia N" pela POSIÇÃO da página. É de
-   * propósito: assim apagar o dia 2 renumera o resto sozinho, em vez de deixar "Dia 3" na segunda
-   * posição pra sempre. Quem quiser escrever "Taverna do Javali" por cima, escreve.
+   * Nome do dia, opcional. Vazio = a interface mostra "Dia N" pela POSIÇÃO da página, e assim apagar
+   * o dia 2 renumera o resto sozinho em vez de deixar "Dia 3" na segunda posição pra sempre.
    */
   title: string
   text: string
 }
 
 /**
- * Os três primeiros campos são FIXOS (um de cada, valem pro personagem inteiro) e o `pages` é o
- * diário — a divisão que ele pediu ("um bloco para cada coisa: inventário, backstory, aparência,
- * bloco"), e ela tem lógica: inventário, aparência e backstory não mudam por dia, o bloco muda. A
- * ficha chegou a ter classe, nível, raça, os seis atributos e os números de combate, e tudo isso SAIU
- * a pedido dele ("tira atributos, combate, deixa só nome, bloco, inventário, aparência, backstory").
- */
-/**
- * Uma SEÇÃO da ficha, com o nome que o sistema de RPG dá a ela. É o que faz a aba Ficha assumir a
- * forma do sistema em vez de ter cinco blocos fixos pra todo mundo: uma ficha de Ordem Paranormal
- * mostra Identificação, Atributos e Recursos; uma de Oblivio mostra Identificação, Atributos e Corpo.
- * Os nomes não são inventados aqui, são os que o leitor daquele sistema devolveu.
+ * Uma SEÇÃO da ficha, com o nome que o sistema de RPG dá a ela: é o que faz a aba Ficha assumir a
+ * forma do sistema em vez de ter cinco blocos fixos pra todo mundo. Os nomes não são inventados
+ * aqui, são os que o leitor daquele sistema devolveu.
  *
  * Mora dentro do `notes.json` do PERFIL, e é por isso que trocar de personagem troca a ficha inteira.
  */
@@ -54,11 +44,9 @@ export interface SheetSectionField {
   label: string
   value: string
   /**
-   * Como se rola este campo (ver `sheetRoll.ts`). Vem do leitor do sistema na importação e é o que
-   * põe o botão de dado ao lado do número na ficha.
-   *
-   * Guarda o TIPO da rolagem, não a expressão: o valor ao lado é editável, e uma expressão gravada
-   * rolaria pra sempre o bônus que o personagem tinha no dia da importação.
+   * Como se rola este campo (ver `sheetRoll.ts`): vem do leitor do sistema na importação e é o que
+   * põe o botão de dado ao lado do número. Guarda o TIPO da rolagem e não a expressão, porque o
+   * valor ao lado é editável e uma expressão gravada rolaria pra sempre o bônus da importação.
    */
   roll?: SheetRollKind
 }
@@ -66,31 +54,25 @@ export interface SheetSectionField {
 export interface NotesData {
   characterName: string
   /**
-   * ATRIBUTOS e HABILIDADES, pedidos quando a ficha virou aba própria ("coloca backstory, inventário,
-   * atributos, habilidades, deixa mais organizado para uma ficha"). São texto livre, e não campos
-   * estruturados com número por atributo — a ficha já teve isso e foi mandada tirar. O que muda é que
-   * existe um lugar pra escrever, não que o app volte a entender de sistema.
+   * ATRIBUTOS e HABILIDADES são texto livre, e não campos com número por atributo: a ficha já teve
+   * isso e foi mandada tirar. O que existe é um lugar pra escrever, não o app entendendo de sistema.
    */
   attributes: string
   abilities: string
   /**
    * Seções vindas de uma ficha IMPORTADA. Vazio = personagem criado à mão, e aí a aba Ficha mostra
-   * os blocos livres (atributos, habilidades, inventário, aparência, história).
-   *
-   * As duas formas convivem de propósito: quem importou quer a ficha do sistema dele, campo a
-   * campo; quem criou do zero não tem sistema nenhum pra seguir e precisa de espaço pra escrever.
+   * os blocos livres. As duas formas convivem de propósito: quem importou quer a ficha do sistema
+   * dele campo a campo, quem criou do zero não tem sistema nenhum pra seguir.
    */
   sections: SheetSection[]
   /**
    * As BARRAS de PV/PE/Sanidade da tela de rolagem (spec §3.4; ver `recursoVital.ts`). São do
-   * personagem e mudam a cada golpe, então moram aqui, no arquivo que troca junto com ele — e não
-   * nas preferências, que são de quem usa o app.
+   * personagem, então moram no arquivo que troca junto com ele e não nas preferências do app.
    */
   recursos: RecursoVital[]
   /**
-   * Que dado o sistema deste personagem olha pra dizer CRÍTICO e FALHA, e em que direção (spec
-   * §3.7; ver `critico.ts`). Do personagem, porque é do sistema dele: o d20 de D&D e o d100
-   * rola-abaixo de Cthulhu não cabem numa preferência só do app.
+   * Que dado o sistema deste personagem olha pra dizer CRÍTICO e FALHA, e em que direção (spec §3.7;
+   * ver `critico.ts`): o d20 de D&D e o d100 rola-abaixo de Cthulhu não cabem numa preferência só.
    */
   critico: RegraDeCritico
   /**
@@ -102,9 +84,8 @@ export interface NotesData {
   hud: EstadoDoHud
   condicoes: Condicao[]
   /**
-   * O HISTÓRICO de rolagens e descansos (spec §3.2: "roll history" é parte do que troca junto com o
-   * personagem, e sobrevive a fechar o app). Morava na memória do renderer e sumia ao fechar; agora
-   * é do personagem, como tudo o mais aqui. Os últimos `MAXIMO_DO_HISTORICO`, o mais novo primeiro.
+   * O HISTÓRICO de rolagens e descansos (spec §3.2), que troca junto com o personagem e sobrevive a
+   * fechar o app. Os últimos `MAXIMO_DO_HISTORICO`, o mais novo primeiro.
    */
   historico: ItemDoHistorico[]
   inventory: string
@@ -148,13 +129,10 @@ export function createNotesPage(text = ''): NotesPage {
 }
 
 /**
- * TETO de caracteres de UMA sessão de anotações ("vamos colocar um limite de 2000 caracteres em
- * anotações, agora que vi que não tinha").
- *
- * Vale pro que se DIGITA: o campo para no teto, o que se cola entra cortado nele, e o contador ao
- * lado diz onde se está. O que JÁ ESTÁ gravado acima do teto não é cortado na leitura, pela mesma
- * regra do teto de personagens — arquivo antigo não perde conteúdo por causa de um número novo, só
- * não cresce mais. O teto total do arquivo, na gravação, continua sendo a última linha de defesa.
+ * TETO de caracteres de UMA sessão de anotações. Vale pro que se DIGITA: o campo para no teto, o que
+ * se cola entra cortado, e o contador ao lado diz onde se está. O que JÁ ESTÁ gravado acima do teto
+ * não é cortado na leitura — arquivo antigo não perde conteúdo por causa de um número novo, só não
+ * cresce mais.
  */
 export const TAMANHO_MAXIMO_DA_ANOTACAO = 2_000
 
@@ -164,9 +142,8 @@ export function textoDeAnotacaoLimitado(texto: string): string {
 }
 
 /**
- * Formato antigo do `notes.json`: um bloco de texto só, chamado `notes`, mais o `backstory`. Quem
- * já usava o app tem isso gravado, então ele vira a PRIMEIRA PÁGINA do diário em vez de sumir —
- * ninguém perde o que escreveu por causa de uma mudança de tela.
+ * Formato antigo do `notes.json`: um bloco de texto só, chamado `notes`. Quem já usava o app tem
+ * isso gravado, e ele vira a PRIMEIRA PÁGINA do diário em vez de sumir.
  */
 interface LegacyNotes {
   notes?: string
@@ -185,9 +162,8 @@ export function normalizeNotes(raw: unknown): NotesData {
     ? data.pages
         .filter((page): page is NotesPage => typeof page?.text === 'string')
         /**
-         * `createdAt` pode faltar (sessão escrita antes desta versão) ou vir torta (arquivo editado
-         * à mão, `NaN`, texto, número negativo). Nos dois casos vira ZERO, que a tela lê como "sem
-         * data" — ver o comentário do campo lá em cima sobre por que não se inventa data aqui.
+         * `createdAt` pode faltar (sessão de antes desta versão) ou vir torta (`NaN`, texto,
+         * negativo). Nos dois casos vira ZERO, que a tela lê como "sem data".
          */
         .map((page) => ({
           ...page,
@@ -204,9 +180,8 @@ export function normalizeNotes(raw: unknown): NotesData {
   }
 
   /**
-   * `sections` vem de arquivo, então pode vir qualquer coisa — ausente (perfil de antes desta
-   * versão), não-lista, ou com item torto. Filtrar aqui é o que impede a aba Ficha de quebrar
-   * inteira por causa de uma entrada estragada.
+   * `sections` vem de arquivo, então pode vir qualquer coisa: ausente, não-lista, ou com item torto.
+   * Filtrar aqui é o que impede a aba Ficha de quebrar inteira por uma entrada estragada.
    */
   const sections: SheetSection[] = Array.isArray(data.sections)
     ? data.sections
@@ -231,7 +206,18 @@ export function normalizeNotes(raw: unknown): NotesData {
   // O nome já morou dentro de um objeto `sheet` (junto de classe, nível, atributos...) — quem gravou
   // naquele formato não perde o nome por causa disso.
   const legacyName = (raw as { sheet?: { name?: string } } | null)?.sheet?.name
-  const characterName = data.characterName || legacyName || ''
+  const characterName = texto(data.characterName) || texto(legacyName)
+  /**
+   * Os BLOCOS de texto livre, saneados como o resto: um `"backstory": null` num pacote de personagem
+   * de outra pessoa derrubava a aba Ficha inteira, porque `fichaEstaVazia` chama `.trim()` neles.
+   */
+  const blocos = {
+    attributes: texto(data.attributes),
+    abilities: texto(data.abilities),
+    inventory: texto(data.inventory),
+    appearance: texto(data.appearance),
+    backstory: texto(data.backstory)
+  }
   // Mesma régua das seções: ausente (perfil de antes desta versão) ou torto não derruba a ficha.
   const recursos = normalizarRecursos(data.recursos)
   const critico = normalizarRegraDeCritico(data.critico)
@@ -240,7 +226,12 @@ export function normalizeNotes(raw: unknown): NotesData {
   const hud = normalizarHud(data.hud)
   const condicoes = normalizarCondicoes(data.condicoes)
   const historico = normalizarHistorico(data.historico)
-  return { ...data, characterName, pages, currentPage, sections, recursos, critico, descansos, hud, condicoes, historico }
+  return { ...data, ...blocos, characterName, pages, currentPage, sections, recursos, critico, descansos, hud, condicoes, historico }
+}
+
+/** Texto lido do arquivo: o que não for texto vira vazio, e a tela não quebra. */
+function texto(valor: unknown): string {
+  return typeof valor === 'string' ? valor : ''
 }
 
 /**
