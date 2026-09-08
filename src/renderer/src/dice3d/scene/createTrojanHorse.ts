@@ -4,14 +4,12 @@ import { createWoodTextures } from './createWoodTexture'
 /**
  * Cavalo de troia: um brinquedo de madeira RECORTADO sobre plataforma com rodas.
  *
- * O bicho é uma SILHUETA recortada de tábua grossa, como cavalinho de puxar: corpo, pernas,
- * pescoço, cabeça, crina e cauda saem todos do mesmo contorno (ver `PERFIL`). A primeira versão
- * montava o bicho anatômico com primitivas encaixadas, do jeito que a torre é feita, e não deu:
- * primitiva é ótima pra ARQUITETURA (uma torre É cilindro, cone e caixa) e péssima pra BICHO, onde
- * cada peça encaixada lê como peça encaixada. Nada aqui é colado.
+ * O bicho é uma SILHUETA recortada de tábua grossa, como cavalinho de puxar: corpo, pernas, pescoço,
+ * cabeça, crina e cauda saem do mesmo contorno (ver `PERFIL`). A primeira versão montava o bicho com
+ * primitivas encaixadas, do jeito da torre, e não deu: primitiva é ótima pra ARQUITETURA e péssima
+ * pra BICHO, onde cada peça encaixada lê como peça encaixada.
  *
- * As proporções e a plataforma vêm das fotos em `torre 3D/`. Decorativo como a pelúcia do Riebeck:
- * nunca ganha corpo físico nem collider.
+ * Proporções e plataforma vêm das fotos em `torre 3D/`. Decorativo: nunca ganha collider.
  */
 
 /**
@@ -22,13 +20,13 @@ import { createWoodTextures } from './createWoodTexture'
 const ALTURA_TOTAL = 4.3
 
 /**
- * As três medidas de partida, tiradas da foto por varredura de pixel e não estimadas no olho: o
- * harness separa o bicho do fundo por saturação, acha a linha do tampo do carrinho (a única faixa
- * que atravessa a foto inteira) e mede tudo a partir dela. Deu tampo a 33,7% da altura total, bicho
- * nos 66,3% de cima e carrinho com 1,052 de comprimento por altura.
+ * As três medidas de partida, tiradas da foto por varredura de pixel: o harness separa o bicho do
+ * fundo por saturação, acha a linha do tampo do carrinho (a única faixa que atravessa a foto) e mede
+ * a partir dela. Deu tampo a 33,7% da altura total, bicho nos 66,3% de cima e carrinho com 1,052 de
+ * comprimento por altura.
  *
- * Estimar no olho errou o essencial duas vezes pelo mesmo lado: a foto tem PERNA LONGA (o vão da
- * barriga a 30% da altura do bicho) e corpo raso, e perna curta com corpo fundo vira bassê.
+ * Estimar no olho errou pelo mesmo lado duas vezes: a foto tem PERNA LONGA (vão da barriga a 30% da
+ * altura do bicho) e corpo raso, e perna curta com corpo fundo vira bassê.
  */
 const TAMPO_Y = ALTURA_TOTAL * 0.337
 /** Altura do bicho sozinho, do tampo ao alto da orelha — a unidade em que o `PERFIL` é escrito. */
@@ -56,14 +54,13 @@ const BISEL_CORPO = 0.12
 const PLATAFORMA_LARGURA = ESPESSURA_CORPO + ESPESSURA_PERNA * 2 + 0.5
 
 /**
- * O contorno do bicho, LIDO DA FOTO por varredura de pixel e não desenhado à mão: o harness separou
- * o cavalo do fundo, cortou o carrinho fora e andou coluna a coluna anotando onde a silhueta começa
- * e termina. Passou por Douglas-Peucker (tolerância 0.012) pra virar 36 pontos em vez de 146 — o que
- * se joga fora ali é ruído de borda de JPEG, não desenho.
+ * O contorno do bicho, LIDO DA FOTO por varredura de pixel: o harness separou o cavalo do fundo,
+ * cortou o carrinho e andou coluna a coluna anotando onde a silhueta começa e termina. Passou por
+ * Douglas-Peucker (tolerância 0.012) pra virar 36 pontos em vez de 146 — o que se joga fora é ruído
+ * de borda de JPEG, não desenho.
  *
  * Unidade: altura do bicho = 1, com zero no tampo do carrinho e o focinho no +Z (na foto a cabeça
- * está à esquerda; o espelhamento foi feito na geração). O traço fechado traz peito, pescoço,
- * cabeça, orelha, os dentes da crina, dorso, garupa, cauda, as duas pernas de perto e a barriga.
+ * está à esquerda; o espelhamento foi feito na geração).
  */
 const PERFIL: [number, number][] = [
   [-0.715, 0.432],
@@ -127,18 +124,16 @@ const PERNA_TRASEIRA: [number, number][] = [
 
 /**
  * O TRONCO: o contorno medido, sem os recortes das pernas (a linha da barriga passa reto por cima
- * dos dois vãos), e crescido pra virar a saia que as esconde. As pernas saíram do recorte porque um
- * bisel grande o bastante pra arredondar o costado é MAIOR que a largura de uma perna: ela
- * desapareceria, ou pior, a geometria se autointersectaria.
+ * dos vãos), e crescido pra virar a saia que as esconde. As pernas saíram do recorte porque um bisel
+ * grande o bastante pra arredondar o costado é MAIOR que a largura de uma perna.
  *
- * O crescimento tem DOIS eixos, e misturá-los num número só foi erro meu: esticando os dois juntos
- * o bicho ficou comprido e deitado ("nao vc deitou o torso"). O comprimento fica o MEDIDO na foto, e
- * a altura cresce pra baixo ANCORADA NO TOPO (`1 - (1 - y) * escala`), o que mantém dorso, cabeça e
- * orelha exatamente onde a foto os pôs e derruba só a barriga.
+ * O crescimento tem DOIS eixos, e misturá-los num número só foi erro meu — esticando os dois juntos
+ * o bicho ficou deitado ("nao vc deitou o torso"). O comprimento fica o MEDIDO na foto, e a altura
+ * cresce pra baixo ANCORADA NO TOPO (`1 - (1 - y) * escala`), o que mantém dorso, cabeça e orelha
+ * onde a foto os pôs e derruba só a barriga.
  *
- * O limite é calculado, não tentado: a barriga medida está em 0.279, então com a âncora no topo ela
- * ENCOSTA no carrinho quando a escala passa de `1 / (1 - 0.279)`, ou seja 1.387. O `Math.max(0, ...)`
- * existe pra esse caso; sem ele a barriga atravessaria a tábua e apareceria por baixo do carro.
+ * O limite é calculado: a barriga medida está em 0.279, então com a âncora no topo ela ENCOSTA no
+ * carrinho quando a escala passa de `1 / (1 - 0.279)` = 1.387. O `Math.max(0, ...)` é pra esse caso.
  */
 const CORPO_ESCALA_Z = 1.0
 const CORPO_ESCALA_Y = 1.0
@@ -301,12 +296,10 @@ function criarMateriais(): Materiais {
 /**
  * Põe a foto de referência num material, trocando o fundo do estúdio por madeira antes de usar.
  *
- * A limpeza do fundo existe por um defeito visto renderizado: a silhueta do modelo não é idêntica à
- * da foto (o bisel engorda o contorno e o corpo cresceu), então a borda do bicho amostra pixel de
- * FORA do cavalo, que é o cinza claro do estúdio — dava uma auréola em volta do lombo, da garupa e
- * da cabeça. Apertar a UV pra dentro reduzia sem eliminar (em alguns trechos a diferença passa de
- * 10%); pintar o fundo de madeira resolve na origem. O teste de fundo é o MESMO da medição que gerou
- * o perfil, então o que a medição chamou de bicho é exatamente o que sobrevive aqui.
+ * A limpeza existe por um defeito visto renderizado: a silhueta do modelo não é idêntica à da foto
+ * (o bisel engorda o contorno e o corpo cresceu), então a borda amostrava o cinza do estúdio e dava
+ * uma auréola em volta do lombo e da cabeça. Apertar a UV reduzia sem eliminar — em alguns trechos a
+ * diferença passa de 10%. O teste de fundo é o MESMO da medição que gerou o perfil.
  */
 export function aplicarFotoDeReferencia(
   material: THREE.MeshStandardMaterial,
@@ -403,17 +396,15 @@ function recortar(
 }
 
 /**
- * A foto de referência como textura do corpo, DESLIGADA a pedido dele, que viu e preferiu de volta
- * o marrom claro chapado. O caminho continua de pé atrás deste interruptor porque a decisão é de
- * gosto, não técnica.
+ * A foto de referência como textura do corpo, DESLIGADA a pedido dele, que preferiu de volta o
+ * marrom claro chapado. O caminho continua de pé atrás do interruptor porque a decisão é de gosto.
  *
- * O encaixe seria exato, e não por sorte: a silhueta do modelo foi medida nesta mesma foto (ver
- * `PERFIL`), então projetá-la de lado põe cada ripa e cada junta em cima do desenho que saiu dela.
+ * O encaixe seria exato: a silhueta do modelo foi medida nesta mesma foto (ver `PERFIL`), então
+ * projetá-la de lado põe cada ripa em cima do desenho que saiu dela.
  *
  * `import.meta.glob` em vez de `import` direto, e este é o ponto principal: a imagem é arquivo de
  * TERCEIRO e mora numa pasta ignorada pelo git. Com `import` estático, quem clonasse o repositório
- * não conseguiria nem COMPILAR, porque o Vite resolve asset em tempo de build; com `glob` a lista
- * vem vazia, `url` fica `undefined` e o cavalo cai na madeira lisa.
+ * não conseguiria nem COMPILAR; com `glob` a lista vem vazia e o cavalo cai na madeira lisa.
  */
 const USAR_FOTO_COMO_TEXTURA = false
 
@@ -458,14 +449,10 @@ const FOTO_CENTRO_V = FOTO_UV.V0 - FOTO_UV.B * 0.5
  * O CORPO: um volume arredondado, não uma tábua. Duas coisas fazem o volume, e as duas são baratas:
  *
  * 1. bisel grande na extrusão, que deixa o meio da peça na largura cheia e encolhe o contorno em
- *    direção às faces — na prática, um corpo abaulado. De lado a silhueta continua sendo a medida na
- *    foto; de frente ele deixou de ser uma placa com quina viva, que era o que fazia as primeiras
- *    versões lerem como recorte;
- * 2. afinamento por Z, aplicado vértice a vértice depois de extrudar (ver `LARGURA_POR_Z`): barril
- *    cheio, pescoço, cabeça e cauda finos. Sem isto o focinho tem a grossura da barriga.
- *
- * As duas juntas custam uma extrusão e um laço sobre os vértices: nada de malha nova, nada de
- * biblioteca.
+ *    direção às faces — de lado a silhueta continua a medida na foto, e de frente ele deixou de ser
+ *    a placa de quina viva que fazia as primeiras versões lerem como recorte;
+ * 2. afinamento por Z, vértice a vértice depois de extrudar (ver `LARGURA_POR_Z`): barril cheio,
+ *    pescoço, cabeça e cauda finos. Sem isto o focinho tem a grossura da barriga.
  */
 function criarCorpo(materiais: Materiais, grupo: THREE.Group): void {
   const geometria = recortar(emCena(TRONCO), ESPESSURA_CORPO, TAMPO_Y, BISEL_CORPO)
@@ -503,14 +490,13 @@ function criarCorpo(materiais: Materiais, grupo: THREE.Group): void {
 }
 
 /**
- * O segundo par de pernas, pregado por fora dos dois flancos. A tábua do corpo já traz um par (o
- * corte entre dianteira e traseira faz parte do contorno), mas um cavalo com dois pés lê como
- * recorte de papel de qualquer ângulo que não seja o perfil exato; este par resolve pelo mesmo meio
- * que o brinquedo de verdade, mais tábua pregada por cima. São tábua, e não cilindro, pelo mesmo
- * motivo de o tronco ser tábua: peça de outro feitio, colada ao lado, é o que denuncia montagem.
+ * O segundo par de pernas, pregado por fora dos dois flancos. A tábua do corpo já traz um par, mas um
+ * cavalo com dois pés lê como recorte de papel de qualquer ângulo que não seja o perfil exato. São
+ * tábua, e não cilindro, pelo mesmo motivo de o tronco ser tábua: peça de outro feitio, colada ao
+ * lado, é o que denuncia montagem.
  *
- * Ficam ADIANTADAS (dianteira) e ATRASADAS (traseira) em relação às de dentro: é o passo do cavalo,
- * e é o que separa as duas de cada lado quando se olha de frente.
+ * Ficam ADIANTADAS e ATRASADAS em relação às de dentro: é o passo do cavalo, e é o que separa as
+ * duas de cada lado quando se olha de frente.
  */
 function criarPernasDeFora(materiais: Materiais, grupo: THREE.Group): void {
   for (const lado of [-1, 1]) {
@@ -536,14 +522,13 @@ function criarPernasDeFora(materiais: Materiais, grupo: THREE.Group): void {
  */
 function criarOlho(materiais: Materiais, grupo: THREE.Group): void {
   /**
-   * Eram um furo só, atravessando a cabeça de lado a lado, o que funcionava enquanto ela era uma
-   * tábua fina; com o volume de `LARGURA_POR_Z` o furo passou a morrer lá dentro e de fora não se via
-   * olho nenhum. Uma meia-esfera em cada bochecha aparece de qualquer ângulo e não depende da
-   * espessura da cabeça.
+   * Era um furo só, atravessando a cabeça de lado a lado, o que funcionava enquanto ela era tábua
+   * fina; com o volume de `LARGURA_POR_Z` o furo passou a morrer lá dentro. Uma meia-esfera em cada
+   * bochecha aparece de qualquer ângulo.
    *
-   * A posição sai do PERFIL, não de números soltos: a cabeça vai de z 0.45 a 0.72 e do alto (0.99) ao
-   * queixo (0.57), então o olho fica a 62% do comprimento e 86% da altura, alto e adiante como em
-   * cavalo. O X é a meia-largura LOCAL da cabeça, pra ele pousar na superfície e não flutuar.
+   * A posição sai do PERFIL: a cabeça vai de z 0.45 a 0.72 e do alto (0.99) ao queixo (0.57), então o
+   * olho fica a 62% do comprimento e 86% da altura. O X é a meia-largura LOCAL da cabeça, pra ele
+   * pousar na superfície e não flutuar.
    */
   const z = 0.6 * ALTURA_BICHO
   const y = TAMPO_Y + 0.86 * ALTURA_BICHO

@@ -4,39 +4,34 @@ import { createVelvetTextures } from './createVelvetNormalMap'
 /**
  * Mini pelúcia do Riebeck (Outer Wilds), modelada só com primitivas do three.
  *
- * A referência são as fotos do produto em `riebeck/`, e não a memória do personagem: corpo PÊSSEGO
- * (uma bola gorda e larga), cabeça AMARELA lisa com os quatro olhos BORDADOS direto na cúpula (um
- * do lado direito dele e três do esquerdo, ver `EYES`), faixa de tricô rosa na base da cabeça,
- * calota creme com a antena de arames abertos, punho verde com anel creme, botas marrons, faixa
- * rosa na cintura e o banjo pendurado numa correia que cruza o peito. Ele é ASTRONAUTA: tanque de
- * oxigênio nas costas, lanterna no ombro direito e o triângulo da Outer Wilds Ventures no peito.
+ * A referência são as fotos do produto em `riebeck/`, e não a memória do personagem: corpo PÊSSEGO,
+ * cabeça AMARELA com os quatro olhos BORDADOS na cúpula (um do lado direito dele e três do esquerdo,
+ * ver `EYES`), tricô rosa na base da cabeça, calota creme com antena, punho verde, botas marrons,
+ * faixa rosa na cintura e o banjo na correia. É ASTRONAUTA: tanque de oxigênio, lanterna no ombro
+ * direito e o triângulo da Outer Wilds Ventures no peito.
  *
  * Duas decisões de técnica sustentam o resto:
  *
  * 1. tecido de verdade, não plástico fosco: `sheen` (a extensão do three feita pra tecido) com as
- *    texturas de pelo do veludo da bandeja, em repetição bem mais fina. É o que separa pelúcia de
- *    boneco de resina;
- * 2. rosto em TEXTURA, não em geometria: bolinha 3D de olho vira borrão cinza num boneco que ocupa
- *    ~30px na tela. Os olhos são pintados no `map` da própria esfera da cabeça, e não num disco
- *    colado na frente — o disco fugia da paralaxe, mas obrigava a cabeça a ter uma placa de rosto,
- *    que é justamente o que a pelúcia real não tem.
+ *    texturas de pelo do veludo da bandeja, em repetição bem mais fina;
+ * 2. rosto em TEXTURA, não em geometria: bolinha 3D de olho vira borrão cinza num boneco de ~30px na
+ *    tela. Os olhos são pintados no `map` da própria esfera, e não num disco colado na frente — o
+ *    disco obrigaria a cabeça a ter uma placa de rosto, que a pelúcia real não tem.
  *
- * Decorativa: nunca ganha corpo físico nem collider, então não interfere em rolagem nenhuma.
+ * Decorativa: nunca ganha corpo físico nem collider.
  */
 
 /**
  * Cores escolhidas já descontando a luz da cena (ambiente 0.55 + direcional 1.3 + `environment`).
  *
- * O fator não foi escolhido, foi medido: renderizando o boneco com a luz da cena e amostrando o
- * pixel da barriga, a cor do material saía multiplicada por ~2.7 e chegava perto do teto (238 de
- * 255), onde a faixa já está comprimida — nessa região tirar 20% da cor quase não move o pixel, e
- * duas tentativas de escurecer passaram despercebidas por isso. Invertendo a conta pra um alvo de
- * ~190 no pixel, cada cor precisou de mais um ~0.55 sobre o valor lido na foto.
+ * O fator foi MEDIDO: renderizando com a luz da cena e amostrando o pixel da barriga, a cor do
+ * material saía multiplicada por ~2.7 e chegava perto do teto (238 de 255), onde a faixa já está
+ * comprimida — ali tirar 20% da cor quase não move o pixel, e foi por isso que duas tentativas de
+ * escurecer passaram despercebidas. Invertendo a conta pra um alvo de ~190, cada cor precisou de
+ * mais um ~0.55 sobre o valor lido na foto.
  *
- * O fator é o MESMO pra todas as peças de propósito: escurecer cada cor no olho desmancharia as
- * relações entre elas (o painel da barriga um degrau acima do traje, a bota um degrau abaixo), e é
- * a relação que faz o boneco ler, não o valor absoluto. A cúpula da cabeça é a exceção, comentada
- * onde aparece: ela virou metal, e metal escurece sozinho.
+ * O fator é o MESMO pra todas as peças: escurecer cada cor no olho desmancharia as relações entre
+ * elas, e é a relação que faz o boneco ler, não o valor absoluto. A cúpula é a exceção: virou metal.
  */
 const COLORS = {
   /** Corpo/traje — o pêssego da pelúcia (foto: ~#f0be94). */
@@ -102,18 +97,17 @@ const FRONT_X = HEAD_TEXTURE_WIDTH * 0.25
 
 /**
  * Os quatro olhos, em pixels do canvas. Tamanhos e posições DESIGUAIS de propósito: na foto eles não
- * formam par nenhum, e o arranjo simétrico "dois grandes em cima, dois pequenos embaixo" lê como
- * bichinho genérico, não como hearthiano. São 1 + 3: um olho grande do lado direito dele e três do
- * esquerdo (pequeno, médio e um grande ovalado quase na quina da cabeça).
+ * formam par nenhum, e o arranjo simétrico lê como bichinho genérico. São 1 + 3: um grande do lado
+ * direito dele e três do esquerdo.
  *
- * Os `x` saem de medir a foto: num rosto esférico visto de frente, um olho a α graus do centro
- * aparece a `sin(α)` da metade da largura da cúpula, e invertendo esse seno dá α ≈ -35°, +14°, +26°
- * e +40°, que viram deslocamento em pixel por `Δx = α/360 · largura`. Como o personagem olha pro +Z
- * e o +X dele é o lado ESQUERDO dele, os três ficam com `x` acima de `FRONT_X`.
+ * Os `x` saem de medir a foto — num rosto esférico visto de frente, um olho a α graus do centro
+ * aparece a `sin(α)` da metade da largura, e invertendo o seno dá α ≈ -35°, +14°, +26° e +40°, que
+ * viram pixel por `Δx = α/360 · largura`. Como o +X é o lado ESQUERDO dele, os três ficam acima de
+ * `FRONT_X`.
  *
- * As alturas subiram depois da primeira renderização desta leva: a faixa de tricô é um toro que
- * SOBRESSAI da cúpula, então com a câmera olhando de cima ela tapa um pedaço da cabeça bem acima da
- * linha onde cruza, e o olho de baixo saía cortado ao meio.
+ * As alturas subiram depois da primeira renderização: o tricô é um toro que SOBRESSAI da cúpula, e
+ * com a câmera de cima ele tapava um pedaço da cabeça acima da linha onde cruza, cortando o olho de
+ * baixo ao meio.
  */
 const EYES: ReadonlyArray<{ x: number; y: number; radius: number; stretchY?: number }> = [
   { x: FRONT_X - 101, y: 214, radius: 44 },
@@ -202,13 +196,11 @@ function createHeadTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Sombra de contato: uma mancha escura desenhada no chão, debaixo da pelúcia.
- *
- * Não é enfeite, é a correção do "o Riebeck está flutuando": a câmera de sombra da cena cobre um
- * raio de `circumradius + 2` (~9.5), dimensionado pra bandeja, e a pelúcia mora a ~13 do centro —
- * fora desse alcance ela não projeta sombra nenhuma, e objeto sem sombra de contato lê como
- * flutuando. Alargar o frustum sairia caro no lugar errado: o mesmo mapa de 2048 cobriria mais que
- * o dobro de área, perdendo resolução nas sombras dos DADOS. A mancha custa um draw call.
+ * Sombra de contato: uma mancha escura no chão, debaixo da pelúcia. Não é enfeite, é a correção do
+ * "o Riebeck está flutuando": a câmera de sombra da cena cobre um raio de `circumradius + 2` (~9.5),
+ * dimensionado pra bandeja, e a pelúcia mora a ~13 do centro — fora desse alcance ela não projeta
+ * sombra nenhuma. Alargar o frustum faria o mesmo mapa de 2048 cobrir mais que o dobro de área,
+ * perdendo resolução nas sombras dos DADOS; a mancha custa um draw call.
  */
 function createContactShadow(): THREE.Mesh {
   const size = 128
@@ -248,13 +240,12 @@ function createContactShadow(): THREE.Mesh {
 }
 
 /**
- * Emblema triangular da Outer Wilds Ventures, desenhado em canvas: céu estrelado, o foguete
- * decolando em diagonal com o rastro de fogo, uma fogueira acesa e dois pinheiros. É o que está na
- * referência ampliada; antes o emblema era um triângulo verde chapado.
+ * Emblema triangular da Outer Wilds Ventures, desenhado em canvas: céu estrelado, foguete decolando,
+ * fogueira e dois pinheiros — é o que está na referência ampliada.
  *
- * Desenhado e não modelado: são sete elementos pequenos dentro de um triângulo de 0.17 de lado, que
- * como peças 3D seriam uma dúzia de malhas disputando o mesmo milímetro de barriga. Fora do
- * triângulo o canvas fica transparente, e o material recorta por `alphaTest`.
+ * Desenhado e não modelado: são sete elementos dentro de um triângulo de 0.17 de lado, que como
+ * peças 3D seriam uma dúzia de malhas no mesmo milímetro de barriga. Fora do triângulo o canvas fica
+ * transparente, e o material recorta por `alphaTest`.
  */
 function createVenturesPatchTexture(): THREE.CanvasTexture {
   const size = 256
@@ -566,17 +557,14 @@ export function createRiebeckPlush(): THREE.Group {
   group.add(strap)
 
   /**
-   * Emblema da Outer Wilds Ventures no peito, no lado ESQUERDO dele (+X), que é onde está na foto —
-   * o direito é o da lanterna. É um plano quadrado com textura, e não um triângulo de geometria: a
-   * arte tem borda arredondada e detalhe interno, coisas que se desenham num canvas. O quadrado
-   * sobrando some por `alphaTest`, então a silhueta na cena continua sendo a do triângulo.
+   * Emblema no peito, no lado ESQUERDO dele (+X), que é onde está na foto — o direito é o da
+   * lanterna. Plano quadrado com textura, e não triângulo de geometria: a arte tem borda arredondada
+   * e detalhe interno. O quadrado sobrando some por `alphaTest`.
    *
-   * Tamanho, altura e INCLINAÇÃO saem da equação da elipsoide, não de tentativa: entre o topo e a
-   * base do emblema o peito avança quase 0.13 em z, e um plano chapado só cabe ali deitado pra trás
-   * junto com essa curva. Reto e num quadrado maior, o terço de baixo entrava no corpo e a fogueira
-   * e os pinheiros não apareciam na conferência. Com -0.55 e 0.15×0.14 os quatro cantos ficam entre
-   * 0.016 e 0.052 à frente da superfície: fora dela em todos, e perto o bastante pra não parecer um
-   * adesivo levantado.
+   * Tamanho, altura e INCLINAÇÃO saem da equação da elipsoide: entre o topo e a base do emblema o
+   * peito avança quase 0.13 em z, e um plano chapado só cabe ali deitado junto com a curva. Reto e
+   * maior, o terço de baixo entrava no corpo e a fogueira sumia. Com -0.55 e 0.15×0.14 os quatro
+   * cantos ficam entre 0.016 e 0.052 à frente da superfície.
    */
   const patch = part(
     new THREE.PlaneGeometry(0.15, 0.14),
@@ -597,15 +585,12 @@ export function createRiebeckPlush(): THREE.Group {
 
   // ── Equipamento de astronauta ────────────────────────────────────────────────────────────────
   /**
-   * Tanque de oxigênio nas costas; sem ele o boneco vira só um bicho gordo de gorro. Um cilindro só
-   * (eram dois), um pouco mais gordo que cada um do par, senão a mochila encolhia e sumia atrás do
-   * corpo.
+   * Tanque de oxigênio nas costas; sem ele o boneco vira um bicho gordo de gorro. Um cilindro só
+   * (eram dois), um pouco mais gordo, senão a mochila sumia atrás do corpo.
    *
    * A ALTURA foi baixada depois de ver rodando: com o topo em ~1.15 as duas calotas claras apareciam
-   * uma de cada lado da cúpula e o boneco ganhava um par de ORELHAS. A cabeça mora em y=1.16 com
-   * raio 0.40, então qualquer coisa que suba até lá disputa silhueta com ela; agora o conjunto
-   * termina em ~1.03, abaixo da linha do tricô. De frente o tanque fica quase todo escondido atrás
-   * do corpo, e está certo assim: é uma mochila, ela aparece de lado e de trás.
+   * uma de cada lado da cúpula e o boneco ganhava ORELHAS. A cabeça mora em y=1.16 com raio 0.40,
+   * então tudo que sobe até lá disputa silhueta com ela; agora termina em ~1.03.
    */
   const gearMaterial = prop(COLORS.gear, 0.45, 0.25)
   const gearDarkMaterial = prop(COLORS.gearDark, 0.5, 0.3)
@@ -639,24 +624,21 @@ export function createRiebeckPlush(): THREE.Group {
   group.add(tankStrap)
 
   /**
-   * LANTERNA DE MÃO presa ao traje, DEITADA e iluminando pra frente, não um lampião. A versão
-   * anterior era um cilindro em pé, com o vidro numa faixa no meio e alça de arame no topo — a
-   * silhueta de uma lamparina. Na referência, o que aparece no ombro dele é um DISCO claro, que é
-   * como uma lanterna deitada apontada pra frente se vê de frente.
+   * LANTERNA DE MÃO presa ao traje, DEITADA e iluminando pra frente, não um lampião: na referência o
+   * que aparece no ombro é um DISCO claro, que é como uma lanterna deitada se vê de frente. A versão
+   * anterior era um cilindro em pé, com a silhueta de uma lamparina.
    *
-   * Por isso ela é montada ao longo do +Z e não do +Y: o cilindro do three nasce no eixo Y, então
-   * cada peça leva `rotation.x = π/2` pra deitar. O vidro é a TAMPA DA FRENTE, e o que garante que
-   * ele apareça é estar na ponta, à frente de todo o resto.
+   * Por isso ela é montada ao longo do +Z: o cilindro do three nasce no eixo Y, então cada peça leva
+   * `rotation.x = π/2`. O vidro é a TAMPA DA FRENTE, na ponta, à frente de todo o resto.
    */
   const lantern = new THREE.Group()
   /**
-   * Ombro DIREITO dele, que é o -X: o personagem olha pro +Z com o +Y pra cima, e `forward × up`
-   * dá -X — ou seja, ela aparece do lado ESQUERDO de quem olha, que é onde ela está na foto.
+   * Ombro DIREITO dele, que é o -X (`forward × up` com o personagem olhando pro +Z) — ou seja, o
+   * lado ESQUERDO de quem olha, que é onde ela está na foto.
    *
    * O ponto sai da equação da elipsoide do corpo (semieixos 0.605 / 0.515 / 0.549 centrados em
-   * y = 0.6), não de chute: em x = -0.40, y = 0.88 a superfície está em z ≈ 0.28. O grupo fica em
-   * 0.34 pra que a traseira do cano (z local -0.09) entre um pouco no traje — é isso que faz ela
-   * ler como PRESA nele, em vez de encostada por fora.
+   * y = 0.6): em x = -0.40, y = 0.88 a superfície está em z ≈ 0.28, e o grupo fica em 0.34 pra que a
+   * traseira do cano entre um pouco no traje — é isso que faz ela ler como PRESA nele.
    */
   lantern.position.set(-0.4, 0.88, 0.34)
   // Um tico virada pra fora e pra baixo, acompanhando a curva do ombro. Reta demais ela parece
@@ -923,18 +905,16 @@ export function createRiebeckPlush(): THREE.Group {
   group.add(banjo)
 
   /**
-   * O boneco afunda um pouco antes de ser entregue. Medindo peça a peça: o corpo é uma esfera de
-   * raio 0.56 achatada em 0.92 e centrada em 0.60, ou seja a barriga TERMINA em 0.085, e a única
-   * coisa que descia até o chão eram as duas botas — de qualquer ângulo que não fosse bem de frente,
-   * a bola do corpo aparecia pairando com um vão embaixo.
+   * O boneco afunda um pouco antes de ser entregue: o corpo é uma esfera de raio 0.56 achatada em
+   * 0.92 e centrada em 0.60, ou seja a barriga TERMINA em 0.085, e só as botas desciam até o chão —
+   * de qualquer ângulo que não fosse bem de frente, a bola do corpo pairava com um vão embaixo.
    *
-   * Está em ZERO a pedido dele ("sobe o Riebeck"), e zero é o limite: as botas terminam exatamente
-   * em 0, então qualquer valor negativo tira o boneco do chão e abre um vão de verdade. Na tela todo
-   * o curso deste ajuste cabe em cerca de UM pixel — pra uma subida que dê pra ver, o que precisa
-   * mudar é o tamanho ou a distância dela, não esta constante.
+   * Está em ZERO a pedido dele ("sobe o Riebeck"), e zero é o limite: as botas terminam exatamente em
+   * 0, então qualquer negativo abre um vão de verdade. Na tela todo o curso deste ajuste cabe em UM
+   * pixel — pra uma subida que dê pra ver, o que muda é o tamanho ou a distância, não esta constante.
    *
-   * A SOMBRA fica de fora do deslocamento, presa ao grupo externo: ela tem que continuar na altura
-   * do chão, senão afunda junto e some, que é justamente o que faria ela parar de ancorar o boneco.
+   * A SOMBRA fica de fora do deslocamento, presa ao grupo externo: ela tem que continuar na altura do
+   * chão, senão afunda junto e para de ancorar o boneco.
    */
   const SIT_DEPTH = 0
   group.position.y = -SIT_DEPTH
