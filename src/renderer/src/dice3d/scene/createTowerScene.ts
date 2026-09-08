@@ -16,30 +16,22 @@ import { createBrickTexture } from './createBrickTexture'
 import { createStonePavingTexture } from './createStonePavingTexture'
 
 /**
- * A casca da torre é OPACA (pedido explícito do usuário depois de ver referências reais em
- * `ideias/`: "você não vê dentro da torre, apenas por cima"). Sem tampo/fundo — dá pra ver as
- * prateleiras de CIMA, olhando pra dentro pela abertura, só não através da parede lateral.
+ * A casca da torre é OPACA ("você não vê dentro da torre, apenas por cima"). Sem tampo nem fundo: dá
+ * pra ver as prateleiras de cima, olhando pela abertura, só não através da parede lateral.
  */
 const SHELL_OPACITY = 1
 const FLOOR_ROUGHNESS = 0.9
 /**
- * Escurecida em várias rodadas (0x3a3a3a → 0x262626 → 0x1a1a1a → aqui) — pedido repetido do
- * usuário de "mais contraste, parecer uma torre da idade média" (a versão anterior ainda lia
- * como "prédio moderno"). Praticamente preta agora — junto com `STONE_COLOR` bem mais escura
- * abaixo e a variação de tom por tijolo aumentada (ver `seededShade` em `createBrickTexture.ts`),
- * a argamassa lê como fenda funda de verdade sob luz direta, não uma linha de cor.
+ * Argamassa quase preta, escurecida em várias rodadas ("mais contraste, parecer uma torre da idade
+ * média"). Junto com a pedra escura e a variação de tom por tijolo, ela lê como fenda funda sob luz
+ * direta em vez de uma linha de cor.
  */
 export const MORTAR_COLOR = 0x100f0d
 /**
- * Pedra/castelo — cor fixa, não customizável junto de parede/chão/fundo (essas continuam livres,
- * ver `updateColors`): é a "estrutura" da torre, não a bandeja em si. Exportadas pra
- * `createTowerDecor.ts` (ameias/torreões) usarem a MESMA cor/rugosidade de pedra, sem duplicar o
- * número mágico.
- *
- * Era 0x6b6b6b (cinza médio neutro, "concreto"), depois 0x5c5850 — ainda achado "moderno demais"
- * pelo usuário. Escurecida bem mais (referência real em `ideias/`: torre de resina impressa em
- * 3D, cinza-chumbo bem escuro/quase preto, não um cinza médio "limpo") — junto com a argamassa
- * quase preta acima, dá o contraste forte que estava faltando.
+ * Pedra do castelo, cor FIXA e não customizável junto de parede, chão e fundo: é a estrutura da
+ * torre, não a bandeja. Exportada pra `createTowerDecor.ts` usar a mesma cor e rugosidade sem
+ * duplicar o número. Era um cinza médio neutro e lia como concreto moderno; a referência real é
+ * cinza-chumbo quase preto, que junto com a argamassa acima dá o contraste que faltava.
  */
 export const STONE_COLOR = 0x3a382f
 export const STONE_ROUGHNESS = 0.95
@@ -60,22 +52,18 @@ export interface TowerSceneHandle {
 }
 
 /**
- * Praça hexagonal da base — era um círculo com uma parede baixa ao redor; o usuário pediu pra
- * tirar a parede E deixar a base hexagonal também (mesmo tratamento do chão da bandeja aberta,
- * ver `createHexShape`/`createFloor` em `createScene.ts`), pra ficar coerente com a referência
- * real (`ideias/`) — uma praça de pedra aberta ao redor da base da torre, não uma segunda
- * "bandeja" com parede própria. `baseFloorRadius` vira o apótema do hexágono (mesmo papel que
- * `TRAY_CONFIG.apothem` tem pra bandeja), `TRAY_CONFIG.wallSegments` (6) garante o mesmo
- * hexágono "de verdade" da bandeja, não uma aproximação.
+ * Praça hexagonal da base: era um círculo com parede baixa ao redor, e ele pediu pra tirar a parede e
+ * deixar a base hexagonal também, como o chão da bandeja aberta. `baseFloorRadius` vira o apótema do
+ * hexágono (mesmo papel de `TRAY_CONFIG.apothem`) e `wallSegments` garante o mesmo hexágono de
+ * verdade, não uma aproximação.
  */
 function createBaseFloor(floorColor: number): THREE.Mesh {
   const circumradius = regularPolygonCircumradius(TOWER_CONFIG.baseFloorRadius, TRAY_CONFIG.wallSegments)
   const geometry = new THREE.ShapeGeometry(createHexShape(circumradius, TRAY_CONFIG.wallSegments))
   geometry.rotateX(-Math.PI / 2)
-  // "Relevos de tijolos na terra" — pedido do usuário depois do portão: um chão liso de cor
-  // sólida não lia como "praça de pedra de castelo". `floorColor` continua tingindo o resultado
-  // (multiplicado sobre a textura, mesmo mecanismo já usado pelo veludo da bandeja) em vez de
-  // travar numa cor fixa, então a customização de cor do usuário continua tendo efeito visível.
+  // "Relevos de tijolos na terra": chão liso de cor sólida não lia como praça de pedra de castelo.
+  // `floorColor` continua tingindo o resultado por multiplicação, como o veludo da bandeja, em vez de
+  // travar numa cor fixa.
   const { map, normalMap } = createStonePavingTexture(STONE_COLOR, MORTAR_COLOR)
   const floor = new THREE.Mesh(
     geometry,
@@ -92,13 +80,9 @@ function createBaseFloor(floorColor: number): THREE.Mesh {
 }
 
 /**
- * A casca fica OPACA de propósito agora (era semi-transparente) — pedido explícito do usuário
- * depois de ver a torre real de referência (`ideias/`): "você não vê dentro da torre, apenas por
- * cima". Não tem tampo/fundo, então ainda dá pra ver as prateleiras OLHANDO DE CIMA pela
- * abertura — só não mais através da parede lateral. Geometria própria (`buildTowerShellGeometry`,
- * não `CylinderGeometry`) com um recorte de verdade pro "portão" de saída. Também ganhou um
- * `normalMap` (ver `createBrickTexture.ts`) pra a argamassa realmente ler como recuada sob luz,
- * não só uma variação de cor plana — pedido explícito de "tijolos mais realistas".
+ * Casca opaca, sem tampo nem fundo (ver `SHELL_OPACITY`), com geometria própria
+ * (`buildTowerShellGeometry`, e não `CylinderGeometry`) por causa do recorte de verdade do portão. O
+ * `normalMap` existe pra a argamassa ler como recuada sob luz, e não como variação de cor plana.
  */
 function createTowerShellMesh(topY: number): THREE.Mesh {
   const { shellApothem, shellTopMargin, gateArcWidth, gateHeight } = TOWER_CONFIG
@@ -130,23 +114,13 @@ function createTowerShellMesh(topY: number): THREE.Mesh {
 }
 
 /**
- * "Mini área de aterrissagem" fora do portão — pedido explícito do usuário. O CENTRO do disco
- * fica em `shellApothem + platformRadius`, não em `shellApothem` direto, pra a borda mais
- * próxima da torre encostar exatamente na parede, sem sobrepor. O dado sai da última prateleira
- * e cai `TOWER_CONFIG.exitY` até o chão/plataforma — uma queda curta e deliberada (mesma lição
- * aprendida no mecanismo anterior, rampa em espiral: um `exitY` colado na altura da plataforma,
- * sem folga sobre o chão, fazia o dado ficar espremido entre colliders quase sobrepostos).
+ * Plataforma de pouso fora do portão. O CENTRO do disco fica em `shellApothem + platformRadius`, e
+ * não em `shellApothem`, pra a borda mais próxima encostar exatamente na parede sem sobrepor. É uma
+ * plataforma de verdade — um cilindro baixo com collider do MESMO tamanho, os dois lendo de
+ * `EXIT_PLATFORM_CONFIG` — pra o dado ficar apoiado no topo do degrau, não afundado nele.
  *
- * Uma plataforma de VERDADE — pedido do usuário ("faz uma mini plataforma", não só uma marcação
- * pintada no chão). Um cilindro baixo com `EXIT_PLATFORM_CONFIG.height` de altura, com um
- * collider próprio do MESMO tamanho (ver `createTowerColliders.ts` — sempre lendo os dois de
- * `EXIT_PLATFORM_CONFIG`, nunca duplicando o número) pra um dado que pousa ali realmente ficar
- * apoiado no TOPO do degrau, não afundado nele.
- *
- * Cilindro (não um retângulo orientado) de propósito: evita qualquer risco de acertar a
- * orientação/rotação errada — um sólido de revolução não tem "frente" pra girar errado. Cor de
- * pedra (não a cor de piso customizável) pra ler como uma soleira/varanda de pedra saindo da
- * torre, não como parte da praça em si.
+ * Cilindro, e não retângulo orientado: sólido de revolução não tem frente pra girar errado. Cor de
+ * pedra, e não a de piso customizável, pra ler como soleira saindo da torre.
  */
 function createExitLandingPlatform(): THREE.Mesh {
   const angle = computeTowerExitAngle()
@@ -166,13 +140,10 @@ const DOOR_WOOD_COLOR = 0x4a3520
 const DOOR_STUD_COLOR = 0x2a2a2a
 
 /**
- * Moldura de pedra (2 pilares + verga) ao redor do recorte do portão, mais uma folha de madeira
- * ABERTA (encostada na parede ao lado, não bloqueando a passagem) — pedido explícito do usuário:
- * "coloca um portão de castelo... como se estivesse aberto", depois do recorte na parede
- * (`buildTowerShellGeometry.ts`) sozinho ler só como um buraco, sem nenhuma moldura reconhecível
- * como porta. Rotação de cada peça calculada com `THREE.Quaternion.setFromUnitVectors` (mesma
- * técnica já usada em `createRingWall.ts`), nunca trigonometria de sinal/eixo na mão — esta sessão
- * já teve um bug real de desalinhamento por causa exatamente disso.
+ * Moldura de pedra (dois pilares e a verga) em volta do recorte do portão, mais uma folha de madeira
+ * ABERTA encostada na parede ao lado: o recorte sozinho lia como um buraco, sem nada reconhecível
+ * como porta. A rotação de cada peça sai de `Quaternion.setFromUnitVectors`, nunca de trigonometria
+ * de sinal na mão — já houve bug real de desalinhamento por causa disso.
  */
 function createGateStructure(): THREE.Group {
   const { shellApothem, gateArcWidth, gateHeight } = TOWER_CONFIG
@@ -226,13 +197,11 @@ function createGateStructure(): THREE.Group {
   }
 
   /**
-   * Dobradiça no pilar do lado "-1". FECHADA, a folha vai do hinge em direção ao OUTRO pilar
-   * (`+tangentAt(hingeAngle)`, atravessando a abertura) — girada 180° (`-tangentAt`), ela passa a
-   * se estender na direção OPOSTA, continuando a curva da parede PRA FORA da abertura, encostada
-   * por fora. Primeira tentativa usava uma rotação arbitrária (~100°) escolhida "no olho" — o
-   * usuário reportou que a porta ficava atravessada bem no meio do vão (confirmado numa captura
-   * de tela de perto: a folha cortava a abertura na diagonal). 180° é o único ângulo que garante
-   * geometricamente que a folha nunca cruza a abertura, não importa a largura do portão.
+   * Dobradiça no pilar do lado "-1". Fechada, a folha vai do hinge em direção ao outro pilar,
+   * atravessando a abertura; girada 180°, ela continua a curva da parede PRA FORA, encostada por
+   * fora. A primeira tentativa usava ~100° escolhidos no olho, e a porta ficava atravessada no meio
+   * do vão (confirmado numa captura); 180° é o único ângulo que garante geometricamente que a folha
+   * nunca cruza a abertura, qualquer que seja a largura do portão.
    */
   const hingeAngle = angle - halfAngle
   const hingeRadial = radialAt(hingeAngle)
@@ -282,11 +251,9 @@ function createLights(shadowFrustum: number): THREE.Light[] {
 }
 
 /**
- * Cena "torre de dados" (modo de lançamento alternativo, ver `TOWER_CONFIG`/`launchMode` em
- * `SettingsContext.tsx`) — usada NO LUGAR da bandeja retangular (`createTrayScene`), não junto
- * dela: os dois modos são mutuamente exclusivos (`DiceCanvasMulti.tsx` escolhe qual cena montar
- * de acordo com `launchMode`), então não existe conflito de espaço entre a torre e a bandeja de
- * lançamento aberto.
+ * Cena da torre de dados, usada NO LUGAR da bandeja (`createTrayScene`) e não junto dela: os dois
+ * modos são mutuamente exclusivos (quem escolhe é `DiceCanvasMulti.tsx`), então não existe conflito
+ * de espaço entre a torre e a bandeja de lançamento aberto.
  */
 export function createTowerScene(
   // A base da torre não tem parede própria; `wallColor` aqui pinta a MADEIRA da borda da mesa
@@ -322,11 +289,9 @@ export function createTowerScene(
     scene,
     topY: TOWER_TOP_Y,
     exitY: TOWER_CONFIG.exitY,
-    // `wallColor` não tem mais nenhum mesh pra colorir aqui — a base perdeu a parede própria
-    // (pedido do usuário) e a casca da torre é pedra de cor FIXA, nunca customizável (ver
-    // `STONE_COLOR`). Parâmetro mantido só pra bater com a mesma assinatura de
-    // `TraySceneHandle.updateColors` que `DiceCanvasMulti.tsx` chama sem saber qual cena está
-    // ativa.
+    // `wallColor` não tem mesh pra colorir aqui: a base perdeu a parede própria e a casca é pedra de
+    // cor fixa (ver `STONE_COLOR`). O parâmetro fica só pra bater com a assinatura de
+    // `TraySceneHandle.updateColors`, que `DiceCanvasMulti.tsx` chama sem saber qual cena está ativa.
     updateColors(newWallColor, newBackgroundColor, newFloorColor, newBackgroundImage) {
       applySceneBackground(scene, newBackgroundColor, newBackgroundImage)
       floorMaterial.color.set(newFloorColor)

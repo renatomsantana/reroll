@@ -12,27 +12,19 @@ import { STONE_ROUGHNESS } from './createTowerScene'
 import { TABLE_SURFACE_Y } from './createScene'
 
 /**
- * Torre AO LADO da bandeja hexagonal — arranjo pedido pelo usuário, diferente da torre antiga
- * (`createTowerScene.ts`), que ficava sozinha no centro de uma praça de pedra, sem hexágono nenhum,
- * e por dentro da qual o dado realmente caía.
+ * Torre AO LADO da bandeja hexagonal. Aqui ela é CENÁRIO: o dado nasce na BOCA (o portão, ver
+ * `tossDieFromMouth.ts`) e sai rolando pra dentro do hexágono, sem nunca passar pelo miolo. Daí ela
+ * ser fechada em cima (telhado cônico + tampa) e não ter prateleira nem collider interno — nada os
+ * veria nem tocaria.
  *
- * Aqui a torre é CENÁRIO: o dado nasce na BOCA (o portão, ver `tossDieFromMouth.ts`) e sai rolando
- * pra dentro do hexágono, sem nunca passar pelo miolo. Duas consequências diretas disso, as duas
- * pedidas: a torre é FECHADA em cima (telhado cônico + tampa), e não há prateleiras nem colliders
- * internos — nada as veria nem tocaria.
+ * DIMENSÕES PRÓPRIAS, e não `TOWER_CONFIG` escalado: aquela torre tem 10.3 de altura pra 2.2 de
+ * raio porque a altura era derivada do mecanismo de prateleiras, e escalada pra caber ao lado da
+ * bandeja lia como chaminé. Como peça de cenário a altura é livre, e perto de 3:1 dá torre.
  *
- * DIMENSÕES PRÓPRIAS, não `TOWER_CONFIG` escalado: aquela torre tem 10.3 de altura pra 2.2 de raio
- * porque a altura era DERIVADA do mecanismo (`baffleCount` × `baffleVerticalSpacing`). Escalada pra
- * caber ao lado da bandeja, lia como chaminé — conferido renderizado. Como peça de cenário a altura
- * é livre, e perto de 3:1 dá a silhueta de torre.
- *
- * Vocabulário de fantasia (torre de D&D, pedido do usuário): telhado cônico em fiadas, frestas de
- * arqueiro em espiral, arco de aduelas sobre o portão, três tochas acesas em volta e flâmula de
- * rabo de andorinha no topo. Tudo procedural, sem asset externo — mesma restrição do resto da cena.
- *
- * CONTRAFORTES REMOVIDOS a pedido do usuário ("tira essas coisas atrás"). Ficavam na metade oposta
- * ao portão pra não atrapalhar a saída do dado, e era justamente lá que apareciam: da câmera padrão,
- * três blocos espetados no fundo da torre.
+ * Vocabulário de fantasia, tudo procedural e sem asset externo: telhado cônico em fiadas, arco de
+ * aduelas sobre o portão, três tochas acesas em volta e flâmula de rabo de andorinha no topo. Os
+ * contrafortes foram removidos ("tira essas coisas atrás"): ficavam na metade oposta ao portão pra
+ * não atrapalhar a saída do dado, e era justamente lá que a câmera padrão os mostrava.
  */
 
 /** Ardósia do telhado — azulada e bem escura, pra separar da pedra por MATIZ, não só por tom. */
@@ -40,10 +32,10 @@ export const DEFAULT_TOWER_ROOF_COLOR = 0x2f3542
 export const DEFAULT_TOWER_FLAG_COLOR = 0xb03030
 export const DEFAULT_TOWER_DOOR_COLOR = 0x4a3520
 /**
- * Pedra da torre. Um pouco mais clara que a `STONE_COLOR` da torre antiga (0x3a382f) porque aqui ela
- * TINGE uma textura neutra em vez de estar assada nela (ver `createBrickMaterialFactory`), e
- * multiplicação sempre escurece: o tijolo médio da textura fica em ~0.85 de luminosidade, então a
- * cor precisa subir na mesma medida pra chegar no mesmo cinza-oliva na tela.
+ * Pedra da torre. Um pouco mais clara que a da torre antiga porque aqui ela TINGE uma textura
+ * neutra em vez de estar assada nela, e multiplicação sempre escurece: o tijolo médio da textura
+ * fica em ~0.85 de luminosidade, então a cor precisa subir na mesma medida pra chegar no mesmo
+ * cinza-oliva na tela.
  */
 export const DEFAULT_TOWER_STONE_COLOR = 0x45423a
 
@@ -52,15 +44,14 @@ const TORCH_FLAME_COLOR = 0xff9a3c
 const TORCH_LIGHT_COLOR = 0xffb055
 
 /**
- * Cinzas NEUTROS assados na textura de tijolo, pra cor real vir do `material.color` por cima.
- *
- * É o mesmo mecanismo que o chão da bandeja já usa (textura de pedra multiplicada pela cor
- * escolhida) e o que torna a cor da torre editável AO VIVO. Assar a cor do usuário na textura
- * obrigaria a redesenhar canvas e mapa de normais a cada quadro de arrasto na roda de cor.
+ * Cinzas NEUTROS assados na textura de tijolo, pra cor real vir do `material.color` por cima. É o
+ * mesmo mecanismo que o chão da bandeja usa, e é o que torna a cor da torre editável ao vivo: assar
+ * a cor escolhida na textura obrigaria a redesenhar canvas e mapa de normais a cada quadro de
+ * arrasto na roda de cor.
  *
  * O tijolo é claro mas NÃO branco, de propósito: `seededShade` varia ±20% de luminosidade por
- * tijolo, e partindo do branco a metade positiva satura e some — a variação viraria só "escurece ou
- * não", e a alvenaria perderia metade do contraste entre pedras.
+ * tijolo, e partindo do branco a metade positiva satura e some — a alvenaria perderia metade do
+ * contraste entre pedras.
  */
 const NEUTRAL_BRICK = 0xd8d8d8
 const NEUTRAL_MORTAR = 0x2b2b2b
@@ -93,11 +84,10 @@ export interface TowerBesideTrayHandle {
    */
   updateColors: (colors: TowerColors) => void
   /**
-   * Um quadro de animação da torre, com o tempo da cena em SEGUNDOS. Hoje só a bandeira usa.
-   *
-   * Fica no handle, e não num laço próprio dentro da torre: quem manda no tempo é a cena (ver o
-   * `tick` em `DiceCanvasMulti`), que já para de desenhar com a aba escondida. Uma torre com
-   * `requestAnimationFrame` próprio continuaria calculando pano invisível pra sempre.
+   * Um quadro de animação da torre, com o tempo da cena em segundos; hoje só a bandeira usa. Fica no
+   * handle, e não num laço próprio dentro da torre: quem manda no tempo é a cena, que já para de
+   * desenhar com a aba escondida. Uma torre com `requestAnimationFrame` próprio continuaria
+   * calculando pano invisível pra sempre.
    */
   update: (elapsedSeconds: number) => void
   /**
@@ -109,11 +99,10 @@ export interface TowerBesideTrayHandle {
 
 interface BrickFactory {
   /**
-   * Material de tijolo pra uma peça de `width` × `height` no mundo.
-   *
-   * `pedra` diz o tamanho DA PEDRA daquela peça, e existe pras peças aparelhadas do portão. Sem
-   * isso, todas herdavam o tijolo da casca e o encolhimento automático transformava a ombreira em
-   * vinte fiadas de pedrinha — que é alvenaria de parede, não a cantaria que emoldura um vão.
+   * Material de tijolo pra uma peça de `width` × `height` no mundo. `pedra` diz o tamanho DA PEDRA
+   * daquela peça e existe pras peças aparelhadas do portão: sem isso todas herdavam o tijolo da
+   * casca, e o encolhimento automático transformava a ombreira em vinte fiadas de pedrinha — que é
+   * alvenaria de parede, não a cantaria que emoldura um vão.
    */
   (width: number, height: number, pedra?: { largura: number; altura: number }): THREE.MeshStandardMaterial
   /** Todos os materiais já criados — pra tingir todos de uma vez em `updateColors`. */
@@ -121,22 +110,16 @@ interface BrickFactory {
 }
 
 /**
- * Material de tijolo, com cache. O tamanho do tijolo é O MESMO pra torre inteira — quem o escolhe é
- * quem cria a fábrica, a partir da casca.
+ * Material de tijolo, com cache. O tamanho do tijolo é O MESMO pra torre inteira, escolhido a partir
+ * da casca. Ele já foi derivado de cada PEÇA ("~3 tijolos na largura, ~4 fiadas na altura"), e o
+ * resultado era uma ameia de 35cm recebendo quatro fiadas de tijolo minúsculo enquanto a casca de
+ * 3.6 recebia quatro fiadas de tijolo grande: duas alvenarias na mesma construção, com a menor
+ * lendo como listra ("os tijolos do portão estão mt feios"). Alvenaria de verdade tem um tijolo só
+ * pro prédio inteiro; numa ameia cabe menos de um, e é assim que tem que ser.
  *
- * Ele já foi derivado de cada PEÇA ("~3 tijolos na largura, ~4 fiadas na altura"), e o usuário viu
- * o resultado: "os tijolos do portão estão mt feios, tem uma linha para 7 tijolos, e os tijolos dos
- * bicos da torre lá em cima também". A conta por peça fazia uma ameia de 35cm receber quatro
- * fiadas de tijolo minúsculo enquanto a casca de 3.6 recebia quatro fiadas de tijolo grande — duas
- * alvenarias diferentes na mesma construção, e a menor lia como listra.
- *
- * Alvenaria de verdade tem um tijolo só pro prédio inteiro: numa ameia cabe menos de um, e é assim
- * que tem que ser. É a primeira das duas saídas que ele ofereceu ("faz eles igual a torre padrão ou
- * então apenas um tijolo grande"), e a que mantém a torre parecendo de pedra.
- *
- * O `repeat` da textura sai das medidas reais da superfície (ver `createBrickTexture`), então uma
- * ameia e a casca inteira precisam de texturas diferentes pra mostrarem tijolos do mesmo tamanho no
- * mundo. Sem o cache seria um canvas 256×256 e um mapa de normais por peça — e só de ameias e
+ * O `repeat` da textura sai das medidas reais da superfície (ver `createBrickTexture`), então peças
+ * de tamanhos diferentes precisam de texturas diferentes pra mostrar tijolos do mesmo tamanho no
+ * mundo. Sem o cache seria um canvas 256×256 e um mapa de normais por peça, e só de ameias e
  * aduelas são quase vinte.
  */
 function createBrickMaterialFactory(stoneColor: number, brickWidth: number, brickHeight: number): BrickFactory {
@@ -199,10 +182,9 @@ function createShellMesh(
 }
 
 /**
- * Tampa no topo da casca, por dentro do anel de ameias. É ela que garante o "não dá pra ver por
- * dentro": a casca não tem tampo nem fundo (ver `buildTowerShellGeometry`), e o telhado cônico
- * sozinho não fecha — nasce mais estreito que a parede, então de um ângulo rasante daria pra
- * enxergar o vão entre um e outro.
+ * Tampa no topo da casca, por dentro do anel de ameias: é ela que garante o "não dá pra ver por
+ * dentro". A casca não tem tampo nem fundo, e o telhado cônico sozinho não fecha, porque nasce mais
+ * estreito que a parede — de um ângulo rasante dava pra enxergar o vão entre um e outro.
  */
 function createRoofCap(radius: number, topY: number, brick: BrickFactory): THREE.Mesh {
   const geometry = new THREE.CircleGeometry(radius, 48)
@@ -214,12 +196,10 @@ function createRoofCap(radius: number, topY: number, brick: BrickFactory): THREE
 }
 
 /**
- * Telhado cônico (o "bico") em FIADAS, saindo de dentro do anel de ameias — o elemento que mais
- * empurra a leitura de "torre de mago" em vez de "torreão de castelo".
- *
- * Fiadas empilhadas (cilindros truncados, cada um mais estreito e com uma saliência sobre o de
- * baixo) em vez de um `ConeGeometry` liso: cone perfeito lê como funil de plástico, e as saliências
- * pegam a luz direcional em degraus, que é como uma cobertura de ardósia se lê à distância.
+ * Telhado cônico em FIADAS (cilindros truncados, cada um mais estreito e com uma saliência sobre o
+ * de baixo), e não um `ConeGeometry` liso: cone perfeito lê como funil de plástico, enquanto as
+ * saliências pegam a luz direcional em degraus, que é como uma cobertura de ardósia se lê à
+ * distância. É o elemento que mais empurra a leitura de torre de mago.
  */
 function createSpire(radius: number, baseY: number, material: THREE.Material): THREE.Group {
   const group = new THREE.Group()
@@ -253,12 +233,9 @@ function createSpire(radius: number, baseY: number, material: THREE.Material): T
 }
 
 /**
- * As AMEIAS em volta do bico — os doze blocos de pedra no alto da casca, entre a cornija e o
- * telhado cônico.
- *
- * Desligadas a pedido do usuário ("vamos tirar esses tijolos ao redor do bico da torre para ver como
- * fica"). Ficam atrás de um interruptor, e não apagadas, porque o pedido é explicitamente um teste
- * de aparência: voltar é trocar `false` por `true`.
+ * As ameias em volta do bico, desligadas a pedido dele ("vamos tirar esses tijolos ao redor do bico
+ * da torre para ver como fica"). Ficam atrás de um interruptor, e não apagadas, porque o pedido é
+ * um teste de aparência: voltar é trocar `false` por `true`.
  */
 const MOSTRA_AMEIAS_DO_TOPO = false
 
@@ -299,33 +276,22 @@ function createCornice(radius: number, y: number, brick: BrickFactory): THREE.Me
 }
 
 /**
- * NÃO existem frestas de arqueiro nesta torre, e a ausência é deliberada — foram TENTADAS DUAS
- * VEZES e removidas nas duas.
- *
- * A primeira versão punha uma pedra de verga em cima de cada fresta: no tamanho delas a textura
- * entregava dois tijolos claros sobre argamassa escura, e o conjunto lia como uma etiqueta listrada
- * grudada na parede. A segunda tirou a verga e deixou só o vão escuro (`0x0a0908`), quatro caixinhas
- * chapadas assentadas 0.015 PRA FORA da casca — e o usuário as viu pelo que elas eram: "tira essas
- * barras pretas na torre". Numa parede curva, um retângulo preto colado por cima não lê como buraco;
- * lê como adesivo, porque não tem nem profundidade nem sombra própria.
+ * NÃO existem frestas de arqueiro nesta torre, e a ausência é deliberada: foram tentadas duas vezes
+ * e removidas nas duas. A primeira punha uma pedra de verga em cima de cada fresta, e no tamanho
+ * delas a textura entregava dois tijolos claros sobre argamassa escura, lendo como etiqueta
+ * listrada; a segunda deixou só o vão escuro, quatro caixinhas chapadas assentadas 0.015 pra FORA
+ * da casca ("tira essas barras pretas na torre"). Numa parede curva, um retângulo preto colado por
+ * cima não lê como buraco, lê como adesivo: não tem profundidade nem sombra própria.
  *
  * O que funcionaria é o que o PORTÃO faz: recorte de verdade na geometria da casca
- * (`buildTowerShellGeometry`), com espessura de parede aparecendo na borda. Enquanto isso não
- * existir pra mais de um vão, a torre fica sem frestas — a silhueta dela já vem das ameias, da
- * cornija, do arco e das tochas.
+ * (`buildTowerShellGeometry`), com espessura de parede aparecendo na borda.
  */
 /**
- * Arco de ADUELAS sobre o portão. O recorte da casca é retangular (`buildTowerShellGeometry`), e
- * portão reto é vocabulário de galpão; o arco é o que data a construção. Cada aduela é uma peça
- * independente girando ao longo da meia-volta, como numa abóbada de verdade, e não um desenho.
- */
-/**
- * As sete ADUELAS que arqueavam por cima do vão. Desligadas junto com os mini tijolos: com as três
- * pedras grandes emoldurando a porta, elas voltavam a picar o contorno em bloquinhos, que é
- * exatamente o que o usuário mandou tirar.
- *
- * Atrás de interruptor, como as ameias do topo — os dois são teste de aparência, e voltar é trocar
- * `false` por `true`.
+ * Arco de ADUELAS sobre o portão, cada uma uma peça independente girando ao longo da meia-volta,
+ * como numa abóbada de verdade — o recorte da casca é retangular, e portão reto é vocabulário de
+ * galpão. Desligado junto com os mini tijolos: com as três pedras grandes emoldurando a porta, as
+ * aduelas voltavam a picar o contorno em bloquinhos, que é o que ele mandou tirar. Atrás de
+ * interruptor como as ameias, pelo mesmo motivo.
  */
 const MOSTRA_ARCO_DE_ADUELAS = false
 
@@ -340,13 +306,10 @@ function createGateArch(
   const blockWidth = radius * 0.15
   const blockHeight = radius * 0.2
   /**
-   * Cada aduela é UMA PEDRA, e por isso pede pedra do tamanho dela mesma.
-   *
-   * Sem isso ela herdava o tijolo da casca e o encolhimento automático punha uns seis tijolinhos
-   * dentro de cada bloco do arco — o usuário viu e mandou tirar ("tira esses mini tijolos da
-   * portinha"). E ele está certo pela construção, não só pelo gosto: arco de pedra é feito de
-   * aduelas inteiras encaixadas, uma pedra por bloco. Alvenaria miúda dentro de uma aduela é uma
-   * contradição.
+   * Cada aduela é UMA PEDRA, e por isso pede pedra do tamanho dela mesma. Sem isso ela herdava o
+   * tijolo da casca e o encolhimento punha uns seis tijolinhos dentro de cada bloco do arco ("tira
+   * esses mini tijolos da portinha"). É construção, não gosto: arco de pedra é feito de aduelas
+   * inteiras encaixadas, uma pedra por bloco, e alvenaria miúda dentro de uma aduela é contradição.
    */
   const material = brick(blockWidth, blockHeight, { largura: blockWidth, altura: blockHeight })
   const halfSpan = gateArcWidth / 2
@@ -381,14 +344,12 @@ function createGateArch(
 }
 
 /**
- * TRÊS tochas acesas em volta da torre, a 120° uma da outra — pedido do usuário depois de gostar da
- * primeira ("coloca 3, uma em cada canto"). A de referência continua ao lado do portão, e é a que
- * importa: a luz dela cai justo na pedra de onde o dado sai. As outras duas ocupam, entre outras
- * coisas, o lado de trás que ficou vazio quando os contrafortes saíram.
+ * Três tochas acesas em volta da torre, a 120° uma da outra. A de referência fica ao lado do portão,
+ * e é a que importa: a luz dela cai justo na pedra de onde o dado sai; as outras duas ocupam o lado
+ * de trás que ficou vazio quando os contrafortes saíram.
  *
  * Cada uma tem uma `PointLight` de verdade, de alcance curto e SEM sombra: a cena já tem uma
- * direcional com mapa de 2048, e cada fonte sombreadora extra custa outro passe de render inteiro —
- * três deles, por um detalhe de canto, não se paga.
+ * direcional com mapa de 2048, e cada fonte sombreadora extra custa outro passe de render inteiro.
  */
 /** Uma tocha viva: a chama e a luz dela, pra quem anima poder mexer nas duas juntas. */
 interface TochaViva {
@@ -433,13 +394,10 @@ function createTorches(radius: number, gateArcWidth: number, gateHeight: number)
     group.add(basket)
 
     /**
-     * MATERIAL PRÓPRIO por tocha, e não um compartilhado pelas três.
-     *
-     * O brilho da chama entra na animação (`emissiveIntensity`), e material compartilhado faria as
-     * três acenderem e apagarem exatamente juntas — que é o que denuncia fogo falso mais rápido que
-     * qualquer outra coisa. Três materiais é barato; sincronia não tem conserto depois.
-     *
-     * A chama é emissiva porque a luz sai DELA: sem isso ela ficaria escura como qualquer objeto.
+     * Material PRÓPRIO por tocha, e não um compartilhado pelas três: o brilho da chama entra na
+     * animação (`emissiveIntensity`), e material compartilhado faria as três acenderem e apagarem
+     * exatamente juntas, que é o que denuncia fogo falso mais rápido que qualquer outra coisa. A
+     * chama é emissiva porque a luz sai DELA.
      */
     const material = new THREE.MeshStandardMaterial({
       color: TORCH_FLAME_COLOR,
@@ -463,16 +421,10 @@ function createTorches(radius: number, gateArcWidth: number, gateHeight: number)
   return {
     group,
     /**
-     * O TREMOR do fogo, por soma de duas ondas de frequências que não se dividem (7.3 e 11.7 por
-     * segundo).
-     *
-     * Uma onda só dá pulso de sinaleiro — o olho pega a batida na hora. Duas incomensuráveis nunca
-     * repetem o mesmo desenho, que é o que faz parecer chama e não pisca-pisca. É a mesma ideia que
-     * a bandeira usa pra ondular (ver `createFlag`).
-     *
-     * Três coisas mexem juntas, e é a combinação que vende o fogo: a chama ESTICA e afina (volume
-     * de fogo não muda, a forma sim), o brilho dela sobe e desce junto, e a LUZ no chão acompanha —
-     * chama que cresce sem clarear a parede lê como enfeite de plástico.
+     * O tremor do fogo, por soma de duas ondas de frequências que não se dividem (7.3 e 11.7 por
+     * segundo): uma onda só dá pulso de sinaleiro, e o olho pega a batida na hora. Três coisas mexem
+     * juntas, e é a combinação que vende o fogo — a chama ESTICA e afina (volume de fogo não muda, a
+     * forma sim), o brilho dela sobe e desce junto, e a LUZ no chão acompanha.
      */
     update(segundos) {
       for (const { chama, material, luz, fase } of vivas) {
@@ -490,19 +442,17 @@ function createTorches(radius: number, gateArcWidth: number, gateHeight: number)
 }
 
 /**
- * PONTE LEVADIÇA abaixada, saindo do vão do portão em direção ao hexágono — pedido do usuário, com
- * referências em `ideias/` (a ponte do Castillo Jagua e duas ilustrações de castelo). O que as três
- * têm em comum, e o que está desenhado aqui: tabuleiro de pranchas no comprimento, ferragem
- * atravessada, e corrente subindo de cada canto de fora até a parede acima da verga.
+ * PONTE LEVADIÇA abaixada, saindo do vão do portão em direção ao hexágono, com referências em
+ * `ideias/`: tabuleiro de pranchas no comprimento, ferragem atravessada, e corrente subindo de cada
+ * canto de fora até a parede acima da verga.
  *
  * Ela ocupa o lugar da SOLEIRA de pedra, e é isso que torna a mudança barata: a soleira já era uma
  * laje saindo da boca por cima da bandeja, e o dado já nascia em cima dela e a atravessava rolando
- * (ver `createMouthSill`, que continua embaixo da dobradiça como degrau curto). O tabuleiro fica no
- * MESMO plano em que a laje estava, então a relação entre o dado e o que ele pisa não mudou —
- * nenhum número de física foi tocado, e nenhum precisou ser.
+ * (`createMouthSill` continua embaixo da dobradiça como degrau curto). O tabuleiro fica no MESMO
+ * plano em que a laje estava, então nenhum número de física foi tocado.
  *
- * Sem collider, como todo o resto da torre: nada aqui participa da simulação. O dado nasce na boca
- * (`tossDieFromMouth`) e sobe em arco pra dentro do hexágono, passando ACIMA do tabuleiro.
+ * Sem collider, como todo o resto da torre: o dado nasce na boca (`tossDieFromMouth`) e sobe em arco
+ * pra dentro do hexágono, passando ACIMA do tabuleiro.
  */
 export interface DrawbridgeHandle {
   grupo: THREE.Group
@@ -524,54 +474,37 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   const grupo = new THREE.Group()
 
   /**
-   * A DOBRADIÇA fica na face da casca (`radius`), e o tabuleiro é cortado ali em dois: o pedaço de
-   * dentro (que está enfiado sob o arco) fica parado como soleira, e o de fora é a folha que
-   * levanta.
-   *
-   * Cortar é o que evita o defeito de girar o tabuleiro inteiro em torno de um ponto no meio dele:
-   * o pedaço de dentro desceria por baixo do piso do arco e apareceria pendurado no vão embaixo do
-   * portão, porque o plinto da torre tem o raio da casca (`plinthOverhang` é 0) e não esconderia
-   * nada. Com o corte, o que gira começa exatamente onde a torre acaba.
+   * A DOBRADIÇA fica na face da casca, e o tabuleiro é cortado ali em dois: o pedaço de dentro
+   * (enfiado sob o arco) fica parado como soleira, e o de fora é a folha que levanta. Cortar evita o
+   * defeito de girar o tabuleiro inteiro em torno de um ponto no meio dele — o pedaço de dentro
+   * desceria por baixo do piso do arco e apareceria pendurado no vão, porque o plinto tem o raio da
+   * casca e não esconderia nada.
    *
    * Levantada, a folha fica no plano `x = radius`, que é justamente o VÃO do portão: os pilares da
-   * ombreira flanqueiam o vão em ±`gateArcWidth/2` e o tabuleiro tem 0.85 dessa largura, então ela
-   * sobe ENTRE eles, sem raspar em pedra nenhuma. Medido: a folha tem 1.41 de comprimento contra um
-   * vão de 1.49 de altura, ou seja, tampa o portão quase inteiro, como uma ponte levadiça fechada.
+   * ombreira flanqueiam em ±`gateArcWidth/2` e o tabuleiro tem 0.85 dessa largura, então ela sobe
+   * ENTRE eles. Medido: 1.41 de comprimento contra um vão de 1.49 de altura, ou seja tampa o portão
+   * quase inteiro, como uma ponte levadiça fechada.
    */
   const folha = new THREE.Group()
   folha.position.x = radius
   grupo.add(folha)
 
   /**
-   * Onde o tabuleiro COMEÇA e ONDE TERMINA, em distância do eixo da torre.
+   * Onde o tabuleiro começa e termina, em distância do eixo da torre: colado na casca e em cima do
+   * MEIO da parede do hexágono. A ponta de fora sai de `seatDistance - (apótema + espessura/2)`, que
+   * é a borda que a ponte precisa alcançar pra parecer que liga a torre à bandeja. O comprimento é
+   * consequência de `shellGap`: quanto mais longe a torre senta, mais comprida ela fica.
    *
-   * Começa colado na casca e termina em cima do MEIO da parede do hexágono — as duas pontas são
-   * medidas, não escolhidas. A de fora sai de `seatDistance - (apótema + espessura/2)`: é
-   * exatamente a borda que a ponte precisa alcançar pra parecer que liga a torre à bandeja, e é o
-   * ponto onde ela para de avançar sobre a área de jogo.
-   *
-   * O comprimento, então, é consequência de `shellGap`: quanto mais longe a torre senta, mais
-   * comprida a ponte fica. Com a folga de 0.75 dá 0.9 de vão — uma ponte, e não o degrau quadrado
-   * que era com 0.15.
-   */
-  /**
-   * Entra 0.3 pra DENTRO da casca, e não 0.05.
-   *
-   * Com 0.05 o tabuleiro parava rente à face externa e sobrava um vão entre ele e o piso do arco —
-   * visível de cima, e é por ele que o dado sairia pisando no vazio. Enfiado sob o arco, o tampo da
-   * ponte vira a continuação do piso da boca, que é o que este comentário sempre disse que ela era.
+   * Entra 0.3 pra DENTRO da casca, e não 0.05: com 0.05 o tabuleiro parava rente à face externa e
+   * sobrava um vão entre ele e o piso do arco, visível de cima, por onde o dado sairia pisando no
+   * vazio. Enfiado sob o arco, o tampo vira a continuação do piso da boca.
    */
   const inicio = radius - 0.3
   /**
-   * DOIS CENTÍMETROS a mais de alcance, a pedido do usuário ("aumenta 2cm o tamanho dela").
-   *
-   * A unidade sai da mesma âncora que o resto do projeto usa: um d20 aqui tem 0.56 de lado e um d20
-   * de verdade mede uns 2cm de face a face, então 2cm = 0.56 de mundo. Não é um decimal escolhido —
-   * é a conversão.
-   *
-   * O acréscimo é pra FORA, então a ponte passa a avançar meio palmo além do meio da parede do
-   * hexágono, pairando 0.6 acima da borda. Ela é decorativa (não tem collider), então isso não muda
-   * rolagem nenhuma: o que muda é que agora ela LIGA a torre à bandeja em vez de parar antes.
+   * Dois centímetros a mais de alcance ("aumenta 2cm o tamanho dela"). A unidade sai da mesma âncora
+   * que o resto do projeto usa: um d20 aqui tem 0.56 de lado e um de verdade mede uns 2cm de face a
+   * face, então 2cm = 0.56 de mundo. O acréscimo é pra fora, então a ponte passa a avançar além do
+   * meio da parede do hexágono; ela é decorativa, sem collider, então não muda rolagem nenhuma.
    */
   const DOIS_CENTIMETROS = 0.56
   const fim = seatDistance - (apothem + TRAY_CONFIG.wallThickness / 2) + DOIS_CENTIMETROS
@@ -580,19 +513,14 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   const espessura = 0.08
 
   /**
-   * O tampo fica em y=0 LOCAL, que é o piso do arco (a base da torre, ver `baseY` no layout) — a
-   * ponte é a continuação do chão da boca saindo pra fora, e é sobre ela que o dado nasce apoiado.
+   * O tampo fica em y=0 LOCAL, que é o piso do arco: a ponte é a continuação do chão da boca saindo
+   * pra fora, e é sobre ela que o dado nasce apoiado. Ela não desce até encostar na borda da bandeja,
+   * 0.6 abaixo, porque o dado sai da boca na HORIZONTAL e qualquer rampa descendo ficaria no caminho
+   * dele — ponte pendurada nas correntes, sem tocar o outro lado, é o que a referência mostra também.
    *
-   * Ela não desce até encostar na borda da bandeja, que está 0.6 abaixo: o dado sai da boca na
-   * HORIZONTAL, então qualquer rampa descendo ficaria no caminho dele e o dado voltaria a atravessar
-   * madeira. Ponte levadiça pendurada nas correntes, sem tocar o outro lado, é o que a foto de
-   * referência (`ideias/ponte-levadiça...`) mostra também.
-   */
-  /**
-   * Os dois pedaços em que o tabuleiro é cortado pela dobradiça. A SOLEIRA é o que fica sob o arco
-   * e não se mexe; a FOLHA é o que levanta. Somados, dão o mesmo tabuleiro de antes, e com a ponte
-   * abaixada as peças caem exatamente onde sempre estiveram — o corte não é visível, é a emenda
-   * onde a dobradiça está.
+   * Os dois pedaços em que a dobradiça corta o tabuleiro: a SOLEIRA fica sob o arco e não se mexe, a
+   * FOLHA levanta. Somados dão o mesmo tabuleiro de antes, e com a ponte abaixada o corte não é
+   * visível — é a emenda onde a dobradiça está.
    */
   const soleiraComprimento = radius - inicio
   const folhaComprimento = fim - radius
@@ -601,21 +529,16 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   const fatia = largura / quantas
   for (let i = 0; i < quantas; i++) {
     /**
-     * As LISTRAS entre as tábuas voltaram (0.88 de fatia), mas agora elas não VAZAM: existe um
-     * estrado por baixo (logo acima) fechando o tabuleiro.
-     *
-     * A primeira versão tinha a fresta e nada atrás dela — de cima dava pra ver o chão entre as
-     * tábuas, e o tabuleiro lia como grade. Fechei encostando as tábuas, e aí o usuário sentiu falta
-     * do desenho ("coloca as listras da ponte de volta"): as duas coisas eram separáveis, e a peça
-     * que faltava era o estrado, não a fresta.
+     * As listras entre as tábuas existem, mas não VAZAM: há um estrado por baixo fechando o
+     * tabuleiro. A primeira versão tinha a fresta e nada atrás dela, então de cima dava pra ver o
+     * chão entre as tábuas e o tabuleiro lia como grade; encostar as tábuas resolvia isso e perdia o
+     * desenho ("coloca as listras da ponte de volta"). A peça que faltava era o estrado, não a fresta.
      */
     const z = (i + 0.5) * fatia - largura / 2
     /**
-     * O tampo fica 0.004 ACIMA do piso do arco, não exatamente nele.
-     *
-     * Com a ponte entrando por baixo do arco, as duas superfícies ficaram coplanares em y=0 e o
-     * z-fighting apareceu como um chuvisco na emenda (visto de cima na renderização). Quatro
-     * milésimos separam as duas sem criar degrau: o dado tem 0.56, ele não sente isso.
+     * O tampo fica 0.004 acima do piso do arco, não exatamente nele: com a ponte entrando por baixo
+     * do arco as duas superfícies ficaram coplanares em y=0, e o z-fighting apareceu como um chuvisco
+     * na emenda. Quatro milésimos separam as duas sem criar degrau que o dado sinta.
      */
     const y = -espessura / 2 + 0.004
 
@@ -640,11 +563,9 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   }
 
   /**
-   * ESTRADO: uma tábua inteira por baixo das seis, que é o que uma ponte de verdade tem — as tábuas
-   * do tampo são pregadas em cima de um estrado, não flutuam lado a lado.
-   *
-   * É ele que deixa as listras serem listras: sem o estrado, a fresta entre as tábuas é um buraco
-   * até o chão; com ele, é uma linha escura de sombra.
+   * Estrado: uma tábua inteira por baixo das seis, que é o que uma ponte de verdade tem. É ele que
+   * deixa as listras serem listras — sem o estrado, a fresta entre as tábuas é um buraco até o chão;
+   * com ele, é uma linha escura de sombra.
    */
   const estradoY = -espessura - espessura * 0.2
   const estradoSoleira = new THREE.Mesh(
@@ -684,13 +605,10 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   }
 
   /**
-   * CORRENTES, uma de cada canto de fora até a parede acima da verga. São elas que dizem
-   * "levadiça" — sem elas o tabuleiro é só uma prateleira de madeira, e aqui, com a ponte
-   * pendurada sobre o vão sem tocar o outro lado, são elas que explicam o que a segura.
-   *
-   * A quantidade de elos sai do COMPRIMENTO do vão, não de um número escolhido: com oito elos fixos
-   * (a primeira tentativa) eles ficavam a meio palmo um do outro e liam como rebites espalhados
-   * pelo pilar, não como corrente. O passo é 1.6 raio de elo, que é o encaixe de uma corrente real.
+   * Correntes, uma de cada canto de fora até a parede acima da verga: são elas que dizem "levadiça",
+   * e aqui, com a ponte pendurada sobre o vão sem tocar o outro lado, são elas que explicam o que a
+   * segura. A quantidade de elos sai do COMPRIMENTO do vão: com oito elos fixos eles ficavam a meio
+   * palmo um do outro e liam como rebites. O passo é 1.6 raio de elo, o encaixe de uma corrente real.
    */
   const raioElo = 0.045
   const passoDoElo = raioElo * 1.6
@@ -703,17 +621,10 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   const correntes: { ancora: THREE.Vector3; elos: THREE.Mesh[] }[] = []
   for (const lado of [-1, 1] as const) {
     /**
-     * Um pouco PARA DENTRO da quina do tabuleiro (0.40 da largura, e não 0.46): nos 0.46 a corrente
-     * caindo passava rente aos pilares do portão, que ficam a `gateArcWidth / 2`, e as duas coisas
-     * se enterravam uma na outra. Puxada pra dentro, ela desce livre na frente do vão.
-     */
-    /**
-     * Na QUINA do tabuleiro, e um fio pra fora dele (0.52 da largura, contra os 0.40 de antes).
-     *
-     * Em 0.40 a corrente descia por DENTRO da largura da ponte: de cima ela aparecia deitada em cima
-     * das tábuas, e de três-quartos parecia atravessar a madeira. Corrente de ponte levadiça prende
-     * na quina, por fora — e aqui cabe: a quina está em 0.801 e o pilar do portão em 0.943, então
-     * sobra folga de 0.11 pra ela descer livre sem raspar em nada.
+     * Na QUINA do tabuleiro, e um fio pra fora dele (0.52 da largura). Em 0.40 a corrente descia por
+     * DENTRO da largura da ponte: de cima aparecia deitada sobre as tábuas, e de três-quartos parecia
+     * atravessar a madeira. Corrente de ponte levadiça prende na quina, por fora — e aqui cabe: a
+     * quina está em 0.801 e o pilar do portão em 0.943, sobrando 0.11 pra ela descer livre.
      */
     const z = lado * largura * 0.52
     const ancora = new THREE.Vector3(radius * 0.98, gateHeight + radius * 0.3, z)
@@ -736,11 +647,9 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
   }
 
   /**
-   * Põe as correntes onde a ponta da folha está no ângulo `anguloRad` (0 = abaixada).
-   *
-   * A ponta se move num arco em volta da dobradiça, e é só isso que a conta faz — a mesma rotação
-   * que a folha sofre, aplicada ao ponto de amarração. Não há como as duas saírem de sincronia
-   * porque as duas leem o mesmo ângulo.
+   * Põe as correntes onde a ponta da folha está no ângulo `anguloRad` (0 = abaixada): a ponta se move
+   * num arco em volta da dobradiça, e a conta é a mesma rotação que a folha sofre, aplicada ao ponto
+   * de amarração. As duas leem o mesmo ângulo, então não têm como sair de sincronia.
    */
   const EIXO_X = new THREE.Vector3(1, 0, 0)
   const pontaMovel = new THREE.Vector3()
@@ -764,14 +673,11 @@ function createDrawbridge(layout: TowerBesideLayout, deckMaterial: THREE.Materia
         if (!malha.visible) return
         malha.position.lerpVectors(ancora, pontaMovel, (i + 0.5) / visiveis)
         /**
-         * O plano de cada elo CONTÉM a direção da corrente, e os ímpares giram 90° em torno dela — é
-         * assim que uma corrente é feita.
-         *
-         * A primeira versão fazia `lookAt(para)` e `rotateZ`, e saiu uma MOLA: `lookAt` aponta o +Z
-         * do toro pra direção da corrente, o que deixa o anel PERPENDICULAR a ela (um disco visto de
-         * lado), e girar em Z um toro cujo eixo é Z não muda absolutamente nada. Mapeando o +X (que
-         * está no plano do anel) pra direção, o eixo do toro cai perpendicular a ela, que é o certo,
-         * e aí girar em X — agora o eixo da corrente — alterna de verdade.
+         * O plano de cada elo CONTÉM a direção da corrente, e os ímpares giram 90° em torno dela: é
+         * assim que uma corrente é feita. A primeira versão fazia `lookAt(para)` e `rotateZ`, e saiu
+         * uma MOLA — `lookAt` aponta o +Z do toro pra direção, o que deixa o anel perpendicular a
+         * ela, e girar em Z um toro cujo eixo é Z não muda nada. Mapeando o +X (que está no plano do
+         * anel) pra direção, o eixo do toro cai perpendicular a ela, e aí girar em X alterna mesmo.
          */
         malha.quaternion.setFromUnitVectors(EIXO_X, direcaoDaCorrente)
         if (i % 2 === 1) malha.rotateX(Math.PI / 2)
@@ -821,12 +727,10 @@ function createGateStructure(
   const pillarDepth = radius * 0.26
   const pillarHeight = gateHeight + radius * 0.18
   /**
-   * CANTARIA da ombreira: UMA pedra, do tamanho do pilar inteiro.
-   *
-   * Começou como a alvenaria da casca encolhida (vinte fiadas de pedrinha), virou quatro blocos
-   * empilhados, e agora é um monólito — o usuário foi cortando a cada rodada até sobrar o essencial
-   * ("deixa só o grande da direita, o grande da esquerda e o grande de cima"). O vão passa a ser
-   * emoldurado por três pedras, e nada mais.
+   * Cantaria da ombreira: UMA pedra, do tamanho do pilar inteiro. Começou como a alvenaria da casca
+   * encolhida (vinte fiadas de pedrinha), virou quatro blocos empilhados, e agora é um monólito — ele
+   * foi cortando a cada rodada até sobrar o essencial ("deixa só o grande da direita, o grande da
+   * esquerda e o grande de cima"). O vão passa a ser emoldurado por três pedras, e nada mais.
    */
   const pillarMaterial = brick(pillarWidth, pillarHeight, {
     largura: pillarWidth,
@@ -859,23 +763,19 @@ function createGateStructure(
   group.add(lintel)
 
   /**
-   * A FOLHA de porta saiu daqui. Era uma tábua com duas cintas de ferro, girada 180° na dobradiça
-   * lateral, encostada por fora ao lado do vão — uma porta aberta. Quem faz esse papel agora é a
-   * PONTE LEVADIÇA (`createDrawbridge`), a pedido do usuário, e as duas juntas eram excesso: uma
-   * folha em pé do lado de uma ponte deitada, as duas em madeira, no mesmo vão de 1.89 de largura.
-   * A cor `door` da torre passou pro tabuleiro da ponte, então ela continua pintando o que é de
-   * madeira no portão.
+   * A FOLHA de porta saiu daqui. Era uma tábua com duas cintas de ferro, encostada por fora ao lado
+   * do vão, uma porta aberta; quem faz esse papel agora é a PONTE LEVADIÇA (`createDrawbridge`), e as
+   * duas juntas eram excesso. A cor `door` da torre passou pro tabuleiro da ponte, então ela continua
+   * pintando o que é de madeira no portão.
    */
   return group
 }
 
 /**
- * Pedestal, da mesa até a base da torre (ver `mouthClearance` no layout) — na prática, o pedaço da
- * torre que fica abaixo da boca.
- *
- * RETO e com a MESMA contagem de segmentos da casca (48). Antes era um cilindro levemente cônico
- * (base 7% mais larga) com 32 segmentos e raio maior que o da casca: três diferenças ao mesmo tempo,
- * e o resultado foi o usuário ver "dois cilindros diferentes". Raio, conicidade e facetamento
+ * Pedestal, da mesa até a base da torre (ver `mouthClearance` no layout): na prática, o pedaço da
+ * torre abaixo da boca. Reto e com a MESMA contagem de segmentos da casca (48). Antes era um
+ * cilindro levemente cônico com 32 segmentos e raio maior que o dela: três diferenças ao mesmo
+ * tempo, e o resultado foi ele ver "dois cilindros diferentes". Raio, conicidade e facetamento
  * precisam bater com a casca — qualquer um dos três sozinho já denuncia a emenda.
  */
 function createPlinth(baseY: number, radius: number, brick: BrickFactory): THREE.Mesh {
@@ -891,16 +791,13 @@ function createPlinth(baseY: number, radius: number, brick: BrickFactory): THREE
 }
 
 /**
- * Flâmula de RABO DE ANDORINHA (o entalhe em V na ponta) — forma de estandarte, não triângulo.
+ * Flâmula de rabo de andorinha (o entalhe em V na ponta): forma de estandarte, não triângulo.
  *
- * Ela é uma MALHA de pano, não um recorte chapado, e essa foi a mudança que a fez tremular. Antes
- * era um `ShapeGeometry` a partir de um contorno de cinco pontos: bonito parado e impossível de
- * animar, porque `ShapeGeometry` só cria vértices NO CONTORNO — não há nada no meio do pano pra
- * deslocar, e empurrar os cantos só entortaria o recorte inteiro como uma placa.
- *
- * Agora o contorno é gerado por conta: uma grade `(u, v)` onde `u` vai do mastro à ponta e `v` do
- * topo à base, com a borda livre calculada por fórmula. O entalhe em V sai de `xLivre(v)`, que
- * encurta o pano no meio da altura — a mesma silhueta de antes, agora com miolo pra ondular.
+ * É uma MALHA de pano, e não um recorte chapado, e foi essa a mudança que a fez tremular. Como
+ * `ShapeGeometry` a partir de um contorno de cinco pontos ela era bonita parada e impossível de
+ * animar: `ShapeGeometry` só cria vértices NO CONTORNO, então não há nada no meio do pano pra
+ * deslocar. Agora o contorno é gerado por conta, numa grade `(u, v)` com a borda livre por fórmula,
+ * e o entalhe em V sai de `xLivre(v)` — a mesma silhueta, agora com miolo pra ondular.
  */
 const FLAG_COLUNAS = 14
 const FLAG_LINHAS = 8
@@ -983,18 +880,16 @@ function createFlag(tipY: number, radius: number, material: THREE.Material): Fla
   return {
     group,
     /**
-     * A ONDA. Três decisões, todas visíveis se erradas:
+     * A onda. Três decisões, todas visíveis se erradas:
      *
-     * 1. amplitude cresce com `u²`, não linear — pano preso no mastro não se move ali, e a
-     *    aceleração quadrática é o que dá o estalo característico da ponta solta. Linear faz a
-     *    bandeira inteira oscilar em bloco, como uma placa numa dobradiça.
-     * 2. a fase depende de `u`, então a onda VIAJA do mastro pra ponta em vez de a bandeira
-     *    inteira subir e descer junto. É a diferença entre pano ao vento e um aceno.
-     * 3. duas frequências somadas, uma quase o dobro da outra e mais fraca. Uma só é regular
-     *    demais e lê como animação; a segunda quebra a repetição sem custar nada.
-     *
-     * A leve variação por `v` (a segunda onda usa a altura na fase) evita que todas as linhas
-     * horizontais façam exatamente o mesmo, que é o que denuncia uma malha animada por fórmula.
+     * 1. a amplitude cresce com `u²`, e não linear: pano preso no mastro não se move ali, e a
+     *    aceleração quadrática é o que dá o estalo da ponta solta. Linear faz a bandeira oscilar em
+     *    bloco, como uma placa numa dobradiça;
+     * 2. a fase depende de `u`, então a onda VIAJA do mastro pra ponta em vez de a bandeira inteira
+     *    subir e descer junto. É a diferença entre pano ao vento e um aceno;
+     * 3. duas frequências somadas, uma quase o dobro da outra e mais fraca: uma só é regular demais
+     *    e lê como animação. A leve variação por `v` evita que todas as linhas horizontais façam
+     *    exatamente o mesmo, que é o que denuncia malha animada por fórmula.
      */
     update: (segundos) => {
       for (let linha = 0; linha < FLAG_LINHAS; linha++) {
