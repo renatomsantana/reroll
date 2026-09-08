@@ -1,24 +1,17 @@
 /**
- * RETESTE DO AFUNDAR DOS BOTÕES — medido, não olhado.
+ * RETESTE DO AFUNDAR DOS BOTÕES, medido e não olhado ("os botões dos dados estão se afundando errado,
+ * os dos presets também, retesta os botões").
  *
- * Pedido do usuário: "os botões dos dados estão se afundando errado, os dos presets também,
- * retesta os botões". O que "afundar certo" quer dizer no Windows 98 é UM contrato: no clique a
- * borda inverte (outset → inset) e o conteúdo anda 1px pra baixo e pra direita. Este script abre
- * uma janela OCULTA do Electron (nunca captura da tela — o PC está sempre em uso), monta cada
- * família de botão do app com o CSS DE PRODUÇÃO (o bundle de `out/renderer`), segura o mouse
- * apertado de verdade (`sendInputEvent`) e compara os pixels de antes e durante o clique:
+ * "Afundar certo" no Windows 98 é um contrato: no clique a borda inverte (outset → inset) e o conteúdo
+ * anda 1px pra baixo e pra direita. Este script abre uma janela OCULTA do Electron (nunca captura da
+ * tela — o PC está sempre em uso), monta cada família de botão com o CSS DE PRODUÇÃO, segura o mouse
+ * apertado de verdade (`sendInputEvent`) e compara os pixels de antes e durante o clique: o
+ * DESLOCAMENTO é achado por correlação, e quem é MARCADO tem que estar deslocado parado, sem deslocar
+ * de novo no clique.
  *
- * - o DESLOCAMENTO é achado por correlação — qual (dx, dy) faz o miolo do botão apertado casar
- *   com o miolo solto; o certo é (1, 1);
- * - quem é MARCADO (`.btn-selected`) tem que estar deslocado parado, e o clique nele não pode
- *   deslocar de novo: (0, 0).
+ *     npx electron-vite build && npx electron scripts/afundarDosBotoes.mjs
  *
- * Rodar (depois de `npx electron-vite build`):
- *
- *     npx electron scripts/afundarDosBotoes.mjs
- *
- * Sai com código 1 se algum botão afundar errado — dá pra pendurar em CI ou rodar à mão a cada
- * mexida de CSS.
+ * Sai com código 1 se algum botão afundar errado.
  */
 import { app, BrowserWindow, nativeImage } from 'electron'
 import { readdirSync, writeFileSync, mkdirSync } from 'fs'

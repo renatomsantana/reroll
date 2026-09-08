@@ -26,27 +26,20 @@ export function numericColorToCss(color: number): string {
 export const DEFAULT_NUMBER_FONT_HEIGHT_FRACTION = 0.55
 
 /**
- * Desenha um número num canvas 2D com o fundo na cor REAL do corpo do dado e
- * devolve como `CanvasTexture`. O material que usa esta textura deve manter
- * `material.color` NEUTRO (branco, `0xffffff`) — nunca a cor do corpo.
+ * Desenha um número num canvas 2D com o fundo na cor REAL do corpo do dado e devolve como
+ * `CanvasTexture`. O material que usa esta textura deve manter `material.color` NEUTRO.
  *
- * Antes o fundo era sempre branco puro e a cor do corpo vinha de
- * `material.color` multiplicando a textura inteira (branco × cor = cor, sem
- * precisar regerar textura ao trocar a cor). O problema: isso multiplica
- * IGUALMENTE os pixels do NÚMERO, não só o fundo — um número branco
- * (`numberColor: '#ffffff'`) virava invisível (branco × corDoCorpo =
- * corDoCorpo, exatamente igual ao fundo já multiplicado), e qualquer outra
- * cor de número saía tingida pela cor do corpo em vez de sair na cor exata
- * escolhida. Desenhar o fundo já na cor certa (e manter `material.color`
- * neutro) faz o número sair sempre na cor exata pedida, custando regerar a
- * textura quando a cor muda — aceitável porque a troca de cor já força
- * recriar a cena inteira de qualquer forma (ver `DiceRoller3D.tsx`).
+ * Antes o fundo era branco puro e a cor do corpo vinha de `material.color` multiplicando a textura
+ * inteira, o que dispensava regerar a textura ao trocar de cor. O problema é que isso multiplica
+ * igualmente os pixels do NÚMERO: um número branco virava invisível (branco × corDoCorpo = o próprio
+ * fundo), e qualquer outra cor saía tingida pela cor do corpo. Desenhar o fundo já na cor certa faz o
+ * número sair na cor exata pedida, custando regerar a textura quando a cor muda — aceitável porque a
+ * troca já força recriar a cena de qualquer forma.
  */
 /**
- * Desenha só o NÚMERO, num quadrado de lado `size` a partir da origem atual do contexto (sem
- * pintar fundo nenhum). Extraído de `createNumberTexture` pra que o atlas
- * (`createNumberAtlas.ts`) desenhe cada célula exatamente com a mesma tipografia/centralização
- * de sempre, em vez de reimplementar (e divergir com o tempo).
+ * Desenha só o NÚMERO, num quadrado de lado `size` a partir da origem atual do contexto, sem pintar
+ * fundo. Extraído pra que o atlas (`createNumberAtlas.ts`) desenhe cada célula com a mesma tipografia
+ * de sempre, em vez de reimplementar e divergir com o tempo.
  */
 export function drawNumberGlyph(
   ctx: CanvasRenderingContext2D,

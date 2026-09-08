@@ -5,25 +5,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 /**
  * O DADO DA ABA ESTILO PRECISA APARECER SOZINHO.
  *
- * Este arquivo existe por causa de um defeito relatado pelo usuário: "o dado quando vou em estilo,
- * não está aparecendo". A bandeja aparecia; o dado, não — e ele surgia assim que se mexia numa cor,
- * num acabamento ou no tipo do dado, o que fazia o defeito parecer intermitente.
+ * Este arquivo existe por um defeito relatado: "o dado quando vou em estilo, não está aparecendo". A
+ * bandeja aparecia, o dado não, e ele surgia assim que se mexia numa cor ou no tipo do dado, o que
+ * fazia o defeito parecer intermitente.
  *
- * A causa era ORDEM, não desenho. São dois efeitos:
- *
- * 1. o de MONTAGEM, que cria cena, câmera e renderer, e que passou a esperar dois quadros pra a aba
- *    pintar antes (era um engasgo medido de 66ms ao trocar de aba);
- * 2. o de APARÊNCIA, que é quem CRIA a malha do dado, e cuja primeira linha desiste se a cena ainda
- *    não existe.
- *
- * Na primeira passagem os dois rodam juntos, e a cena só nasce dois quadros depois — então o efeito
- * de aparência sempre desistia. As dependências dele são as props de cor e tipo, que não mudam
- * sozinhas, então ele não rodava de novo: o dado ficava por criar numa cena que já estava sendo
- * desenhada, vazia.
+ * A causa era ORDEM, não desenho: o efeito de MONTAGEM cria cena, câmera e renderer e passou a esperar
+ * dois quadros (por um engasgo medido de 66ms ao trocar de aba), enquanto o efeito de APARÊNCIA, que é
+ * quem cria a malha, desiste na primeira linha se a cena ainda não existe. Na primeira passagem os
+ * dois rodam juntos, e as dependências do segundo são props que não mudam sozinhas — então ele não
+ * rodava de novo, e o dado ficava por criar numa cena vazia já sendo desenhada.
  *
  * O teste é a ordem, e nada mais: montar e conferir que a malha foi construída sem ninguém tocar em
- * nada. Não há WebGL aqui — o `three` e as peças da cena são dublês, porque o que se está fixando é
- * a coreografia dos efeitos, e ela é a parte que quebrou.
+ * nada. Não há WebGL aqui — o `three` e as peças da cena são dublês, porque o que se fixa é a
+ * coreografia dos efeitos.
  */
 
 /**

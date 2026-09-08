@@ -3,49 +3,34 @@ import { DEFAULT_DICE_SIDES } from '@shared/diceRegistry'
 import { rollExpression, rollWithMode, singleGroupExpression } from './diceEngine'
 
 /**
- * O SORTEIO É JUSTO? — a prova que a spec cobre em dois lugares (5.6 e o aceite da seção 6).
+ * O SORTEIO É JUSTO? Os outros testes do motor conferem intervalo, soma e rótulo, e nenhum deles
+ * reprovaria um gerador enviesado: um dado que nunca tira 1 continua devolvendo valores no intervalo e
+ * somando certo. Este arquivo separa "está dentro da faixa" de "cada face sai na mesma proporção".
  *
- * Os outros testes do motor conferem intervalo, soma e rótulo. Nenhum deles reprovaria um gerador
- * enviesado: um dado que nunca tira 1 continua devolvendo valores no intervalo, somando certo e
- * rotulando certo. Este arquivo é o que separa "está dentro da faixa" de "cada face sai na mesma
- * proporção".
+ * São DUAS provas diferentes, e nenhuma basta sozinha:
  *
- * SÃO DUAS PROVAS DIFERENTES, e é importante que sejam, porque nenhuma das duas basta sozinha:
+ * 1. a ESTRUTURAL. `rollDie` usa amostragem por rejeição, descartando os valores da ponta que não
+ *    dividem o espaço de 32 bits em partes iguais, e é isso que remove o viés de módulo — os testes de
+ *    descarte verificam essa rejeição DIRETAMENTE, contando as consultas ao gerador. Precisa ser
+ *    estrutural porque o viés em questão é estatisticamente invisível: com um dado de 100 lados sobre
+ *    32 bits, a divisão ingênua favoreceria 95 faces em cerca de duas partes em cem milhões, e nenhuma
+ *    amostra que caiba numa vida distinguiria isso do acaso;
+ * 2. a DISTRIBUCIONAL. Qui-quadrado sobre uma amostra grande, que é o que pega defeito de verdade:
+ *    face que nunca sai, face que sai o dobro, deslocamento de um no mapeamento.
  *
- * 1. A ESTRUTURAL. `rollDie` usa amostragem por rejeição: descarta os valores da ponta que não
- *    dividem o espaço de 32 bits em partes iguais. É essa rejeição que remove o viés de módulo, e é
- *    ela que os testes de "descarte" abaixo verificam DIRETAMENTE, contando quantas vezes o gerador
- *    foi consultado.
- *
- *    Ela precisa ser estrutural porque o viés em questão é ESTATISTICAMENTE INVISÍVEL: com um dado
- *    de 100 lados sobre 32 bits, a divisão ingênua favoreceria 95 das 100 faces em cerca de duas
- *    partes em cem milhões. Nenhuma amostra que caiba num teste — nenhuma amostra que caiba numa
- *    vida — distinguiria isso do acaso. Ou seja: um teste só de distribuição NÃO conseguiria provar
- *    o que este arquivo diz no título, e afirmar que consegue seria a pior espécie de teste, o que
- *    passa dando a impressão errada.
- *
- * 2. A DISTRIBUCIONAL. Qui-quadrado sobre uma amostra grande, que é o que pega defeito de VERDADE:
- *    face que nunca sai, face que sai o dobro, deslocamento de um no mapeamento, quantidade errada
- *    de dados no grupo. É o erro que se comete de fato ao mexer aqui.
- *
- * NENHUM DOS DOIS É INSTÁVEL, e isso é deliberado — teste de dado que falha sozinho de vez em
- * quando é teste que se aprende a ignorar. Ver a nota sobre a semente logo abaixo.
+ * Nenhum dos dois é instável, e isso é deliberado: teste de dado que falha sozinho de vez em quando é
+ * teste que se aprende a ignorar.
  */
 
 /**
- * Um gerador de 32 bits DETERMINÍSTICO no lugar do `crypto.getRandomValues`.
+ * Um gerador de 32 bits DETERMINÍSTICO no lugar do `crypto.getRandomValues`, que é o que torna o
+ * qui-quadrado reprodutível: mesma semente, mesmo resultado em toda execução. Um teste de distribuição
+ * sobre o gerador de verdade seria aleatório por definição, e o custo disso não é o teste vermelho, é a
+ * pessoa que passa a ignorar o vermelho.
  *
- * É o que torna o qui-quadrado abaixo reprodutível: mesma semente, mesma sequência, mesmo resultado
- * em toda execução. Um teste de distribuição sobre o gerador de verdade seria aleatório por
- * definição — falharia sozinho a cada tantas execuções, e o custo disso não é o teste vermelho, é
- * a pessoa que passa a ignorar o vermelho.
- *
- * O que se está medindo aqui é o MAPEAMENTO de 32 bits pra 1..N, não a qualidade do `crypto`. A
- * qualidade do `crypto` é responsabilidade do sistema operacional, e não é o que este arquivo
- * consegue (ou deveria tentar) provar.
- *
- * xorshift32, na formulação do Marsaglia. Semente diferente de zero, obrigatoriamente: o estado
- * todo-zero é ponto fixo desta família e devolveria zero pra sempre.
+ * O que se mede aqui é o MAPEAMENTO de 32 bits pra 1..N, não a qualidade do `crypto`, que é
+ * responsabilidade do sistema operacional. xorshift32, na formulação do Marsaglia, com semente
+ * diferente de zero: o estado todo-zero é ponto fixo desta família.
  */
 function fonteDeterministica(semente: number): () => number {
   let estado = semente >>> 0

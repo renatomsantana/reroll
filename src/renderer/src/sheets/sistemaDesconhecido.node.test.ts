@@ -6,24 +6,19 @@ import { pdfDeUmaPagina, widget } from './testes/pdfDeMentira'
 /**
  * Uma ficha de um sistema que o app NUNCA VIU.
  *
- * As fichas de referência (`fichasReais.node.test.ts`) têm leitor dedicado ou já foram calibradas.
- * Este arquivo cobre o pedido literal do usuário — "qualquer pessoa com o app possa uploadar seus
- * PDFs e funcionem normalmente" — com um formulário de um sistema INVENTADO, cujos nomes de campo
- * (`ALMA`, `Arma1 Dano`, `PVatual`) nenhum leitor daqui conhece. Quem atende é o genérico.
+ * As fichas de referência têm leitor dedicado ou já foram calibradas; este arquivo cobre o pedido
+ * literal — "qualquer pessoa com o app possa uploadar seus PDFs e funcionem normalmente" — com um
+ * formulário de um sistema INVENTADO, cujos nomes de campo nenhum leitor daqui conhece. Quem atende é
+ * o genérico.
  *
- * O fixture já foi o formulário oficial de D&D 5e, e mudou quando o D&D ganhou leitor próprio: com
- * um leitor dedicado no meio, este arquivo deixaria de exercitar o genérico e passaria a testar o
- * outro — que é justamente o caminho que ESTE teste não cobre. Um sistema inventado não corre esse
- * risco de virar conhecido.
+ * O fixture já foi o formulário oficial de D&D 5e, e mudou quando o D&D ganhou leitor próprio: com um
+ * leitor dedicado no meio, este arquivo deixaria de exercitar o genérico. Um sistema inventado não
+ * corre o risco de virar conhecido.
  *
  * O que ele pegou, e é o que estas asserções travam: o rótulo impresso era distribuído SEM
- * exclusividade, então um mesmo texto virava rótulo de vários campos — "NOME DO PERSONAGEM"
- * rotulava o nome, o nome do JOGADOR e o primeiro atributo; e as duas armas viravam dois presets
- * com o mesmo nome, indistinguíveis na lista.
- *
- * Rótulo errado é pior que rótulo nenhum: o valor chega na tela de conferência com cara de certo, e
- * quem importa não tem como desconfiar de "Vigor = 8" estar escrito embaixo de "Nome do
- * personagem".
+ * exclusividade, então um mesmo texto virava rótulo de vários campos — "NOME DO PERSONAGEM" rotulava o
+ * nome, o do JOGADOR e o primeiro atributo, e as duas armas viravam dois presets de mesmo nome.
+ * Rótulo errado é pior que rótulo nenhum: o valor chega na conferência com cara de certo.
  */
 
 /**
