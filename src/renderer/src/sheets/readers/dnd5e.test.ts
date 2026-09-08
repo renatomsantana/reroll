@@ -326,6 +326,40 @@ describe('atributo de D&D preenchido de todo jeito', () => {
     const seis = [campo('STR', '+3'), campo('DEX', ''), campo('CON', ''), campo('INT', ''), campo('WIS', ''), campo('CHA', '')]
     expect(atributo(seis)?.roll).toBe('d20')
   })
+
+  /**
+   * AS DUAS CAIXAS TROCADAS, medido na ficha do Go: `STR` = "-2" (modificador) e `STRmod` = "6"
+   * (pontuação), nas seis linhas. O app mostrava Força 6 e rolava 1d20+6 onde a regra manda 1d20-2 —
+   * errado por oito, com cara de certo, no sistema mais jogado do mundo.
+   *
+   * Dá pra confiar na troca porque os dois números se confirmam: 6 dá -2, 16 dá +3, 9 dá -1.
+   */
+  it('as duas caixas TROCADAS: a pontuação manda, e o modificador sai dela', () => {
+    const seis = [
+      campo('STR', '-2'),
+      campo('STRmod', '6'),
+      campo('DEX', '+3'),
+      campo('DEXmod', '16'),
+      campo('CON', ''),
+      campo('INT', ''),
+      campo('WIS', ''),
+      campo('CHA', '')
+    ]
+    expect(atributo(seis)).toEqual({ label: 'Força', value: '6', group: 'Atributos', roll: 'd20-valor' })
+    const lido = readSheet(ficha([...seis, ...MARCAS, campo('CharacterName', 'Go')]))
+    expect(lido.fields.find((c) => c.label === 'Destreza')).toEqual({
+      label: 'Destreza',
+      value: '16',
+      group: 'Atributos',
+      roll: 'd20-valor'
+    })
+  })
+
+  /** Modificador SEM SINAL na caixa dele continua sendo modificador: "3" com o valor vazio é +3. */
+  it('modificador sem sinal, com a caixa do valor vazia, continua sendo modificador', () => {
+    const seis = [campo('STR', ''), campo('STRmod', '3'), campo('DEX', ''), campo('CON', ''), campo('INT', ''), campo('WIS', ''), campo('CHA', '')]
+    expect(atributo(seis)).toEqual({ label: 'Força', value: '3', group: 'Atributos', roll: 'd20' })
+  })
 })
 
 /**
