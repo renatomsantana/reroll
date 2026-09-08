@@ -9,12 +9,10 @@ import {
 import { trocarPerfil } from './trocaDePerfil'
 
 /**
- * Perfis de personagem (ver `shared/types/profile.ts`): quem está aberto e a lista inteira.
- *
- * Fica ACIMA do `SettingsProvider` na árvore porque é o id do perfil aberto que decide quais cores
- * carregar. A lista vive no processo main (`profiles.json`), e não no `localStorage`, pelo mesmo
- * motivo das anotações e dos presets: é dado do personagem, não preferência de janela — e é de lá que
- * sai o caminho das pastas de cada perfil.
+ * Perfis de personagem (ver `shared/types/profile.ts`): quem está aberto e a lista inteira. Fica
+ * ACIMA do `SettingsProvider` na árvore porque é o id do perfil aberto que decide quais cores
+ * carregar. A lista vive no processo main (`profiles.json`) e não no `localStorage`, pelo mesmo
+ * motivo das anotações: é dado do personagem, e é dela que sai o caminho das pastas.
  */
 interface ProfilesContextValue {
   profiles: Profile[]
@@ -32,9 +30,8 @@ interface ProfilesContextValue {
   /** Abre o diálogo nativo de imagem e guarda a foto escolhida no perfil. */
   pickPhoto: (id: string) => Promise<void>
   /**
-   * Relê a lista do disco. Existe pra importação de ficha: quem cria o personagem lá é o PROCESSO
-   * PRINCIPAL, num passo só junto das anotações e dos presets, então o renderer tem que buscar o
-   * resultado em vez de montar uma cópia dele aqui e torcer pra bater.
+   * Relê a lista do disco, pra importação de ficha: quem cria o personagem lá é o PROCESSO PRINCIPAL,
+   * num passo só junto das anotações e dos presets.
    */
   reload: () => Promise<void>
 }
@@ -50,22 +47,15 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
    * A LISTA VEIO DO DISCO? Enquanto não tiver vindo, gravar é APAGAR — e este é o conserto do defeito
    * mais caro que este app já teve.
    *
-   * `ESTADO_INICIAL` é uma lista INVENTADA, um personagem em branco feito aqui mesmo pra a tela ter o
-   * que desenhar no primeiro quadro, e nada impedia que ela fosse GRAVADA: qualquer `update` antes de
-   * a leitura voltar mandava esse personagem fictício pro `profiles.json`, por cima da lista real.
+   * `ESTADO_INICIAL` é uma lista INVENTADA, um personagem em branco feito aqui pra tela ter o que
+   * desenhar no primeiro quadro, e nada impedia que ela fosse GRAVADA por cima da lista real. A
+   * janela é curta e mesmo assim foi atingida: a máquina dele terminou com QUATORZE pastas de
+   * personagem em `profiles/` e o `profiles.json` listando UMA.
    *
-   * A janela é curta e mesmo assim foi atingida: a máquina dele terminou com QUATORZE pastas de
-   * personagem em `%APPDATA%/reroll/profiles/` e o `profiles.json` listando UMA. Treze personagens com
-   * anotações e presets continuavam no disco, inteiros, sem aparecer em lugar nenhum do app — e da
-   * tela isso lê como "as anotações não estão funcionando".
-   *
-   * Dois caminhos chegavam lá, e a guarda fecha os dois: a leitura FALHAR (o `catch` registrava no
-   * console e a vida seguia com a lista inventada) e a leitura DEMORAR, porque basta uma escrita no
-   * intervalo — e existe uma automática, a aba Ficha copiando o nome das anotações pro perfil, que no
-   * primeiro quadro bate justamente porque as anotações vêm do processo principal.
-   *
-   * É a mesma guarda que `useNotes` já tinha, e aqui era pior: `profiles.json` é o índice, então
-   * perdê-lo não perde um personagem, perde todos.
+   * Dois caminhos chegavam lá, e a guarda fecha os dois: a leitura FALHAR (o `catch` só registrava no
+   * console) e a leitura DEMORAR, porque basta uma escrita no intervalo — e existe uma automática, a
+   * aba Ficha copiando o nome das anotações pro perfil. Aqui é pior que em `useNotes`: `profiles.json`
+   * é o índice, então perdê-lo não perde um personagem, perde todos.
    */
   const veioDoDiscoRef = useRef(false)
 
@@ -78,10 +68,8 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
       })
       .catch((error: unknown) => {
         /**
-         * Continua PROIBIDO gravar. É o contrário do instinto — parece que o app "não funciona" —,
-         * mas o app funcionando por cima de uma lista inventada é o que apagava tudo. Sem poder
-         * gravar, o pior caso é uma sessão perdida; com a gravação liberada, o pior caso são todos
-         * os personagens.
+         * Continua PROIBIDO gravar. É o contrário do instinto, mas o app funcionando por cima de uma
+         * lista inventada é o que apagava tudo: sem gravar, o pior caso é uma sessão perdida.
          */
         console.error('Falha ao carregar perfis — a lista fica somente leitura nesta sessão:', error)
       })
@@ -96,10 +84,9 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
   stateRef.current = state
 
   /**
-   * Aplica a mudança e grava. A gravação saiu de DENTRO do `setState`, onde estava: uma função passada
-   * ao `setState` tem que ser pura, porque o React pode chamá-la mais de uma vez pelo mesmo resultado
-   * — e chamava, cada uma disparando uma gravação. Agora o estado novo sai do espelho e a gravação
-   * acontece uma vez só, fora do render.
+   * Aplica a mudança e grava. A gravação saiu de DENTRO do `setState`: a função passada ao `setState`
+   * tem que ser pura, porque o React pode chamá-la mais de uma vez pelo mesmo resultado — e chamava,
+   * cada uma disparando uma gravação.
    */
   const update = useCallback((change: (previous: ProfilesState) => ProfilesState) => {
     // A lista ainda não é a de verdade: ver `veioDoDiscoRef`. Melhor perder a edição que a lista.
@@ -117,18 +104,14 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /**
-   * TROCAR DE PERSONAGEM. É o único caso em que a ORDEM importa, e ela é o contrário da intuição:
-   * grava PRIMEIRO, muda a tela DEPOIS.
+   * TROCAR DE PERSONAGEM, o único caso em que a ORDEM importa, e ela é o contrário da intuição: grava
+   * PRIMEIRO, muda a tela DEPOIS. Anotações e presets são lidos da pasta do perfil ativo, e quem sabe
+   * qual é o ativo é o processo principal — se a tela trocar antes, os efeitos de `useNotes` pedem os
+   * dados do personagem NOVO enquanto o principal ainda aponta pro ANTIGO, e a ficha errada volta e é
+   * gravada por cima da certa na primeira digitação.
    *
-   * Anotações e presets são lidos da pasta do perfil ativo, e quem sabe qual é o ativo é o processo
-   * principal. Se a tela trocar antes de a gravação chegar lá, os efeitos de `useNotes`/`usePresets`
-   * disparam na hora e pedem os dados do personagem NOVO enquanto o principal ainda aponta pro
-   * ANTIGO — e o que volta é a ficha errada, que na primeira digitação é gravada por cima da certa.
-   * Com o `await` antes do `setState` essa janela deixa de existir.
-   *
-   * A sequência mora em `trocaDePerfil.ts`, fora do React, pra poder ser testada, inclusive o caso de
-   * a gravação FALHAR. Vale pras TRÊS operações que mexem em quem está aberto — trocar, CRIAR e
-   * APAGAR: criar também muda o ativo, e era por isso que criar vinha bugado.
+   * A sequência mora em `trocaDePerfil.ts`, fora do React, pra ser testada inclusive quando a gravação
+   * FALHA. Vale pras TRÊS operações que mexem em quem está aberto: trocar, CRIAR e APAGAR.
    */
   const aplicarComTroca = useCallback(async (change: (previous: ProfilesState) => ProfilesState) => {
     // Mesma guarda do `update`, e aqui ela é ainda mais importante: trocar/criar/apagar reescreve a
@@ -159,9 +142,8 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
       },
       create: () => {
         /**
-         * O teto (ver `MAX_PROFILES`). A guarda fica aqui, e não só no botão desabilitado da tela:
-         * o botão é o aviso, esta linha é a regra — e é ela que continua valendo pra qualquer outro
-         * caminho que chame `create` amanhã.
+         * O teto (ver `MAX_PROFILES`). A guarda fica aqui, e não só no botão desabilitado: o botão é
+         * o aviso, esta linha é a regra, e vale pra qualquer outro caminho que chame `create`.
          */
         if (state.profiles.length >= MAX_PROFILES) {
           console.warn(`Limite de ${MAX_PROFILES} personagens atingido.`)
@@ -179,11 +161,6 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
           ...previous,
           profiles: previous.profiles.map((p) => (p.id === id ? { ...p, ...patch } : p))
         })),
-      /**
-       * Apagar tira o personagem da lista; a pasta dele em disco vai pra
-       * `backups/personagens-apagados/` (quem move é `ProfilesRepository.save`, ao ver o id sumir,
-       * ver `backupsDeDados.ts`). Apagar por engano continua recuperável: é copiar a pasta de volta.
-       */
       reload: async () => {
         const carregado = await window.api.profiles.get()
         setState(normalizeProfiles(carregado))
@@ -191,6 +168,10 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
         // segunda chance quando a leitura da abertura falhou (ver `veioDoDiscoRef`).
         veioDoDiscoRef.current = true
       },
+      /**
+       * Apagar tira o personagem da lista; a pasta dele vai pra `backups/personagens-apagados/` (quem
+       * move é `ProfilesRepository.save`, ao ver o id sumir). Apagar por engano continua recuperável.
+       */
       remove: (id) =>
         void aplicarComTroca((previous) => {
           const restantes = previous.profiles.filter((p) => p.id !== id)
