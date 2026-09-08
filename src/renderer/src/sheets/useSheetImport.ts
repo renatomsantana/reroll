@@ -17,10 +17,8 @@ import { escolherDestino, personagemEmBranco } from './destinoDaImportacao'
 export const SISTEMA_PADRAO = 'oblivio'
 
 /**
- * As opções da lista de sistemas: os leitores dedicados e, por último, o genérico como "Não
- * encontrei o meu" (pedido dele, 06/09/2026: "não bota o deixa o app descobrir, coloca o 'não
- * encontrei o meu' e aí o app faz o scraping cru"). Não há opção de detecção automática: quem não
- * acha o seu sistema vai direto pro leitor genérico, que é o scraping cru.
+ * As opções da lista: os leitores dedicados e, por último, o genérico como "Não encontrei o meu".
+ * Não há detecção automática na lista — quem não acha o seu sistema vai direto pro scraping cru.
  */
 function opcoesDeSistema(rotuloDoGenerico: string): { id: string; label: string }[] {
   return SHEET_READERS.map((leitor) => ({ id: leitor.id, label: rotuloDoSistema(leitor.id, rotuloDoGenerico) }))
@@ -31,26 +29,7 @@ function rotuloDoSistema(id: string, rotuloDoGenerico: string): string {
   return leitor?.id === 'generico' ? rotuloDoGenerico : (leitor?.label ?? id)
 }
 
-/**
- * O fluxo da importação de ficha, do clique até o personagem gravado, SEM JANELA NO MEIO.
- *
- * Pedido dele: "não precisa perguntar para a pessoa e mostrar aquela página inteira de ficha, apenas
- * upload, scrap tudo, e deixa editável para o user". A importação já foi uma tela de conferência campo
- * a campo e depois um "ok, importaremos" pequeno; agora as etapas são:
- *
- * 1. o processo principal abre o seletor e devolve os BYTES do PDF;
- * 2. o pdf.js extrai campos e texto (`extractPdfSheet`);
- * 3. o leitor certo interpreta (`readSheet`);
- * 4. o app decide o nome (`escolherDestino`) e o principal CRIA o personagem com tudo dentro:
- *    anotações, presets, barras, retrato, páginas e o texto sem rótulo.
- *
- * Antes da etapa 1 há o "tem certeza?" e a LISTA DE SISTEMAS, e nada mais — o caminho que ele fechou:
- * "clicar no importar, avisar que vai criar um novo, aí lista dos sistemas, aí arquivo no PC da pessoa
- * e cria". Importar nunca grava por cima de ninguém, e é por isso que um importador que adivinha sem
- * conferência é aceitável. No teto de personagens o botão fica apagado, e este hook ainda recusa por
- * conta própria caso o clique escape. Depois de importar, a tela diz o que foi lido e o que NÃO foi:
- * silêncio sobre isso viraria "o app importou errado".
- */
+/** O que a tela diz depois de importar: o que foi lido, e o que NÃO foi. */
 export interface ImportacaoFeita {
   /** O personagem que recebeu a ficha: o aviso só aparece enquanto ele estiver aberto. */
   profileId: string
@@ -67,15 +46,22 @@ export interface ImportacaoFeita {
   sistemaPedido?: string
 }
 
+/**
+ * O fluxo da importação de ficha, do clique até o personagem gravado, SEM JANELA DE CONFERÊNCIA NO
+ * MEIO ("apenas upload, scrap tudo, e deixa editável para o user"): o principal abre o seletor e
+ * devolve os BYTES, o pdf.js extrai campos e texto, o leitor interpreta, e o principal CRIA o
+ * personagem com tudo dentro — anotações, presets, barras, retrato, páginas e o texto sem rótulo.
+ *
+ * Antes disso só o "tem certeza?" e a LISTA DE SISTEMAS. Importar nunca grava por cima de ninguém, e
+ * é por isso que adivinhar sem conferência é aceitável. No teto de personagens o botão fica apagado,
+ * e este hook ainda recusa por conta própria caso o clique escape.
+ */
 export function useSheetImport() {
   const [lendo, setLendo] = useState(false)
   const [feito, setFeito] = useState<ImportacaoFeita | null>(null)
   /**
-   * O erro é guardado como TEXTO já traduzido, e não como identificador.
-   *
-   * Diferente dos avisos do leitor (ver `sheetWarning.ts`), que atravessam processo e chegam à tela
-   * por outro caminho, este erro nasce e morre dentro deste hook, com o idioma escolhido à mão. Um
-   * identificador aqui só acrescentaria um salto de indireção entre a falha e a frase.
+   * O erro é guardado como TEXTO já traduzido, e não como identificador: diferente dos avisos do
+   * leitor (ver `sheetWarning.ts`), ele nasce e morre dentro deste hook.
    */
   const [erro, setErro] = useState<string | null>(null)
   const t = useTranslation()
@@ -102,13 +88,9 @@ export function useSheetImport() {
     if (!emBranco && !(await dialogo.confirmar(t.sheetImport.confirmNew))) return
 
     /**
-     * A LISTA DE SISTEMAS, entre o "tem certeza?" e o seletor de arquivo. É o caminho que ele
-     * fechou (06/09/2026): "clicar no importar, avisar que vai criar um novo, aí lista dos
-     * sistemas, aí arquivo no PC da pessoa e cria". A escolha manda quando o leitor escolhido
-     * reconhece a ficha (ver `readSheet`), senão o app lê como reconheceu e a Ficha avisa qual era
-     * o pedido. Vem com OBLÍVIO marcado ("deixa sempre Oblívio"): é a mesa dele; a ficha de outro
-     * sistema importada sem trocar cai na detecção do mesmo jeito, com o aviso. "Não encontrei o
-     * meu", no fim, é o leitor genérico: o scraping cru, sem detecção.
+     * A LISTA DE SISTEMAS, entre o "tem certeza?" e o seletor de arquivo. A escolha manda quando o
+     * leitor escolhido reconhece a ficha (ver `readSheet`), senão o app lê como reconheceu e a Ficha
+     * avisa qual era o pedido. Vem com OBLÍVIO marcado, que é a mesa dele.
      */
     const sistema = await dialogo.escolher(
       t.sheetImport.chooseSystem,
@@ -119,13 +101,10 @@ export function useSheetImport() {
     if (sistema === null) return
 
     /**
-     * A ESCOLHA do arquivo também dentro de `try`.
-     *
-     * Ela ficava fora, e isso engolia uma família inteira de falhas: o diálogo é do processo
-     * principal, e qualquer coisa que dê errado lá (o IPC cair, o arquivo sumir entre escolher e
-     * abrir, a pasta de rede desconectar) chegava aqui como promessa rejeitada sem ninguém pra
-     * pegar. O resultado na tela era o pior possível: o botão não fazia absolutamente nada, sem
-     * erro, sem carregando, sem janela.
+     * A ESCOLHA do arquivo também dentro de `try`. Ela ficava fora, e isso engolia uma família
+     * inteira de falhas: o diálogo é do processo principal, e o que desse errado lá (IPC caindo,
+     * arquivo sumindo entre escolher e abrir, pasta de rede desconectando) chegava aqui como promessa
+     * rejeitada sem ninguém pra pegar. Na tela, o botão não fazia absolutamente nada.
      */
     let escolhido: Awaited<ReturnType<typeof window.api.sheets.pickPdf>>
     try {
@@ -174,9 +153,9 @@ export function useSheetImport() {
         paginas = sheet.paginas
       } catch (causa) {
         /**
-         * PDF protegido por senha, arquivo truncado, coisa que não é PDF apesar da extensão. A
-         * mensagem do pdf.js é técnica demais pra tela, mas vai pro console: sem ela, um relato de
-         * "não importou" não teria por onde ser investigado.
+         * PDF com senha, arquivo truncado, coisa que não é PDF apesar da extensão. A mensagem do
+         * pdf.js é técnica demais pra tela, mas vai pro console: sem ela, "não importou" não tem
+         * por onde ser investigado.
          */
         console.error('Falha ao ler a ficha:', causa)
         setErro(t.sheetImport.errors.parse)
@@ -185,8 +164,7 @@ export function useSheetImport() {
 
       /**
        * NADA pra importar (imagem digitalizada sem texto, livro de 100+ páginas): nenhum personagem
-       * nasce. Criar um vazio calado seria pior que o aviso; o aviso do leitor, quando há, é o que
-       * explica o porquê.
+       * nasce. Criar um vazio calado seria pior que o aviso.
        */
       const nadaLido = lido.fields.length === 0 && lido.presets.length === 0 && !(lido.rawText ?? '').trim()
       if (nadaLido) {
@@ -217,23 +195,20 @@ export function useSheetImport() {
           photo: retrato ?? null,
           paginas: paginas ?? [],
           /**
-           * O preset vai só com o que o app guarda (nome e expressão). O `kind` e o `source` eram
-           * coisa da tela de conferência, dizer de onde a rolagem saiu, e não têm lugar no preset
-           * gravado.
+           * O preset vai só com o que o app guarda (nome e expressão): `kind` e `source` eram coisa
+           * da tela de conferência, dizer de onde a rolagem saiu.
            */
           presets: lido.presets.map((preset) => ({ name: preset.name, expression: preset.expression }))
         })
         /**
          * Relê a lista de perfis do disco em vez de mexer no estado daqui: quem criou o personagem
          * foi o processo principal, e ele é a fonte da verdade sobre id, ordem e qual está aberto.
-         * Recriar isso no renderer seria manter duas versões da mesma lista.
          */
         await reload()
         /**
-         * E relê as ANOTAÇÕES e os PRESETS. O personagem novo fica aberto e o `activeId` muda, o
-         * que já faz a ficha e a lista de rolagem relerem; os dois avisos ficam como cinto de
-         * segurança do caso em que o id não muda (medido no harness quando a importação ainda
-         * caía no personagem aberto: presets só apareciam depois de trocar de personagem).
+         * E relê as ANOTAÇÕES e os PRESETS: o personagem novo fica aberto e o `activeId` muda, o que
+         * já faz a ficha e a lista relerem. Os dois avisos são o cinto do caso em que o id NÃO muda
+         * (medido no harness: os presets só apareciam depois de trocar de personagem).
          */
         recarregarAnotacoes()
         window.dispatchEvent(new Event(EVENTO_PRESETS_MUDARAM))
