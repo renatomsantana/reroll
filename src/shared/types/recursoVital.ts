@@ -1,17 +1,16 @@
 import { VERDE_DE_VIDA_CHEIA, corDaEscalaDeEstresse, ehCorHex } from './cor'
 
 /**
- * RECURSO VITAL: o que o personagem gasta e recupera durante a sessão — PV, PE, Sanidade em Ordem
- * Paranormal, HP em D&D, o que for no sistema da mesa. É a barra clicável da tela de rolagem.
+ * RECURSO VITAL: o que o personagem gasta e recupera durante a sessão — PV, PE, Sanidade, HP, o que
+ * for no sistema da mesa. É a barra clicável da tela de rolagem.
  *
  * Existe como MODELO PRÓPRIO, separado dos campos da ficha, por uma razão que a ficha importada
- * deixou clara: "PV atual" e "PV máximo" chegavam como dois campos de texto soltos numa seção, e a
- * pessoa tinha que abrir a aba Ficha e digitar "19" no meio de um combate — quando o gesto que ela
- * faz na mesa é "tomei 7". Mora no `notes.json` do PERFIL, porque é do personagem: trocar de ficha
- * troca as barras, e voltar traz o PV onde estava.
+ * deixou clara: "PV atual" e "PV máximo" chegavam como dois campos de texto soltos, e a pessoa tinha
+ * que abrir a aba Ficha e digitar "19" no meio de um combate — quando o gesto da mesa é "tomei 7".
+ * Mora no `notes.json` do PERFIL: trocar de ficha troca as barras, e voltar traz o PV onde estava.
  *
- * Nada aqui sabe de sistema de RPG: o nome é livre, a lista é livre e o teto é folgado, e é o que
- * torna o desenho agnóstico — um sistema que o app nunca viu funciona igual.
+ * Nada aqui sabe de sistema de RPG: nome livre, lista livre e teto folgado, e é o que faz um sistema
+ * que o app nunca viu funcionar igual.
  */
 export interface RecursoVital {
   id: string
@@ -99,15 +98,13 @@ export function criarRecurso(nome: string, maximo: number, atual = maximo): Recu
  * Deixa qualquer lista lida do disco no formato atual — a mesma régua de `normalizeNotes` e
  * `normalizeProfiles`: item torto é DESCARTADO ou CORRIGIDO, nunca derruba a ficha inteira.
  *
- * - sem `nome` legível: fora. Uma barra sem nome não diz o que está medindo.
- * - `maximo`/`atual` que não são número finito: viram zero (e o atual, preso ao máximo). É o caso
- *   de um arquivo escrito por versão futura com outro formato, ou editado à mão.
+ * - sem `nome` legível: fora. Barra sem nome não diz o que está medindo;
+ * - `maximo`/`atual` que não são número finito: viram zero (e o atual, preso ao máximo);
  * - `id` repetido ou ausente: ganha um novo. Dois recursos com o mesmo id fariam o clique no "−" de
- *   um mexer nos dois.
- * - `cor` fora do formato: ausente — a barra volta pra cor de estado, que é o padrão.
- * - `sobe` que não é booleano: decidido pelo NOME (`recursoSobePorPadrao`). É o que faz um
- *   `notes.json` de antes desta regra já mostrar "Torso 0/5" subindo, sem migração. Um `false`
- *   gravado é respeitado: foi a pessoa desmarcando no editor.
+ *   um mexer nos dois;
+ * - `cor` fora do formato: ausente, e a barra volta pro verde de vida cheia;
+ * - `sobe` que não é booleano: decidido pelo NOME (`recursoSobePorPadrao`), o que faz um `notes.json`
+ *   antigo já mostrar "Torso 0/5" subindo. Um `false` gravado é a pessoa desmarcando, e fica;
  * - acima do teto de itens: os primeiros ficam. Ver `MAXIMO_DE_RECURSOS`.
  */
 export function normalizarRecursos(raw: unknown): RecursoVital[] {
@@ -207,12 +204,12 @@ export function corDoPreenchimento(recurso: Pick<RecursoVital, 'cor' | 'atual' |
  * O que a pessoa DIGITOU no número da barra, virando o valor atual novo, ou `null` se não deu pra
  * ler. Três jeitos, e a diferença é o SINAL na frente:
  *
- * - `-7`, `+3`: conta em cima do atual. É o gesto da mesa ("tomei 7"), e é o motivo de o campo existir
- *   além dos botões de ±1/±5 — um dano de 23 são vinte e três cliques ou um "-23";
- * - `12`: valor exato, o "voltei pra 12" depois de uma cura que o mestre já somou;
+ * - `-7`, `+3`: conta em cima do atual, o gesto da mesa — um dano de 23 são vinte e três cliques ou
+ *   um "-23";
+ * - `12`: valor exato;
  * - `12/40`: os dois de uma vez, como toda ficha em papel escreve e como a importação lê.
  *
- * O resultado sempre volta PRESO ao intervalo: "-50" num PV 12 dá zero, não -38.
+ * O resultado volta sempre PRESO ao intervalo: "-50" num PV 12 dá zero, não -38.
  */
 export function lerEntradaDeRecurso(
   texto: string,

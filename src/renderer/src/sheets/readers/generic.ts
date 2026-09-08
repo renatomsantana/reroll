@@ -409,22 +409,14 @@ function camposSemRepetidos(fields: SheetImportField[]): SheetImportField[] {
 }
 
 /**
- * Nome do personagem: primeiro um campo cujo rótulo diga isso, depois o nome do arquivo. O nome do
- * arquivo é palpite bom na prática (quem guarda ficha em PDF salva como "Riebeck.pdf") e melhor que
- * deixar em branco: o campo da conferência é editável, então errar custa uma correção de dois
- * segundos, e não sugerir custa a pessoa digitar tudo.
- */
-/**
  * A leitura RENDEU alguma coisa? É o que decide se o nome do arquivo pode servir de palpite (ver
- * `nomeDeArquivoComoPalpite`), e é UMA regra pros dois caminhos do genérico — a revisão de código
- * pegou duas fórmulas diferentes, uma por caminho, que já tinham divergido.
+ * `nomeDeArquivoComoPalpite`), e é UMA regra pros dois caminhos do genérico — a revisão pegou duas
+ * fórmulas diferentes, uma por caminho, que já tinham divergido.
  *
- * Três sinais, qualquer um basta: um campo importado, uma rolagem, ou uma LINHA DE CONTEÚDO na
- * página (quatro palavras ou mais que não sejam o título impresso). A ficha datilografada tem prosa,
- * e ali o palpite é bom; a ficha em branco de Kids on Bikes tem UM "X" de caixinha marcada; um
- * formulário em branco tem cinquenta campos vazios; e um modelo achatado tem "KIDS ON BIKES" sobre
- * "CHARACTER SHEET" e mais nada. Esta régua já foi "doze letras na página", e o modelo com o título
- * impresso passava por ela com doze letras exatas.
+ * Três sinais, qualquer um basta: um campo importado, uma rolagem, ou uma LINHA DE CONTEÚDO na página
+ * (quatro palavras ou mais que não sejam o título impresso). A ficha datilografada tem prosa; a em
+ * branco de Kids on Bikes tem UM "X" de caixinha; um formulário em branco tem cinquenta campos
+ * vazios. Esta régua já foi "doze letras na página", e o modelo com o título passava com doze exatas.
  */
 const PALAVRAS_MINIMAS = 4
 
@@ -435,20 +427,16 @@ function leuAlgumaCoisa(sheet: PdfSheet, fields: SheetImportField[], presets: Sh
 }
 
 /**
- * O documento é um MODELO IMPRESSO em branco, e não a ficha de alguém?
- *
- * Duas formas, e as duas custaram um personagem fantasma:
+ * O documento é um MODELO IMPRESSO em branco, e não a ficha de alguém? Duas formas, e as duas
+ * custaram um personagem fantasma:
  *
  * - FORMULÁRIO com todos os campos vazios, por mais texto impresso que tenha: a ficha oficial de
- *   Pathfinder 2e traz instruções de quatro palavras em toda caixa, e ganhava
- *   "RemasterPlayerCoreCharacterSheet Form Fillable" como nome de personagem;
+ *   Pathfinder 2e traz instruções de quatro palavras em toda caixa;
  * - o MESMO modelo salvo SEM formulário: 668 fragmentos em quatro páginas de rótulos e instruções,
- *   nenhum par "Rótulo: valor" e nenhuma rolagem. O app criava "RemasterPlayerCoreCharacterSheet"
- *   com 2.792 caracteres do formulário em branco no bloco de história.
+ *   nenhum par "Rótulo: valor" e nenhuma rolagem, e 2.792 caracteres indo pro bloco de história.
  *
- * A régua do segundo caso é a DENSIDADE, a mesma de `pareceAnotacaoSobreImagem`: quem escreve a
- * ficha no Word põe poucas linhas na página e merece o palpite pelo nome do arquivo ("Elias -
- * ficha.pdf"); um modelo impresso enche a página e não rende nada.
+ * A régua do segundo caso é a DENSIDADE, a mesma de `pareceAnotacaoSobreImagem`: quem escreve a ficha
+ * no Word põe poucas linhas na página; um modelo impresso enche a página e não rende nada.
  */
 function ehModeloImpressoEmBranco(
   sheet: PdfSheet,
@@ -477,9 +465,9 @@ function acharNome(sheet: PdfSheet, fields: SheetImportField[], readerId: string
  * O nome do ARQUIVO como último recurso, e não sempre.
  *
  * Quando um leitor DEDICADO reconheceu o sistema e mesmo assim não achou nome escrito, o arquivo é
- * quase certamente a ficha em branco baixada do site, e o nome dele é o título dela: o app propunha
- * criar um personagem chamado "Ordem Paranormal - Ficha de Personagem Editável". Vazio é melhor —
- * a conferência não deixa confirmar sem nome, então a pessoa digita o dela.
+ * quase certamente a ficha em branco baixada do site, e o nome dele é o TÍTULO dela: nasciam
+ * personagens chamados "Ordem Paranormal - Ficha de Personagem Editável". Vazio é melhor — a lista
+ * mostra "Personagem N" e a Ficha abre com o cursor no campo do nome.
  *
  * No GENÉRICO o palpite continua: ali ninguém reconheceu nada, e "Elias - ficha.pdf" é o único
  * indício que existe.
@@ -499,13 +487,13 @@ function nomeDeArquivoComoPalpite(fileName: string, readerId: string, leuAlgo: b
 
 /**
  * O valor do campo cujo RÓTULO diz que ali mora o nome do personagem ("Nome", "Personagem",
- * "Character"…); vazio quando não há nenhum, e quem chama decide o que fazer. Separada de `acharNome`
- * porque os dois caminhos do leitor genérico precisam dela e só um tinha.
+ * "Character"…); vazio quando não há nenhum. Separada de `acharNome` porque os dois caminhos do
+ * genérico precisam dela e só um tinha.
  */
 /**
  * "Character Sheet" e "Ficha de personagem" começam como o rótulo do nome e são o TÍTULO da ficha. A
- * palavra que denuncia é "sheet"/"ficha", e não "character"/"personagem", que são exatamente os
- * rótulos legítimos do campo de nome ("Personagem" em Ordem Paranormal, "Character Name" em D&D).
+ * palavra que denuncia é "sheet"/"ficha", e não "character"/"personagem", que são os rótulos
+ * legítimos do campo de nome ("Personagem" em Ordem, "Character Name" em D&D).
  */
 const ROTULO_DE_TITULO = /\b(ficha|sheet)\b/i
 

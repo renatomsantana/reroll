@@ -205,16 +205,10 @@ describe('leitor genérico — a ficha que ninguém previu', () => {
     })
 
     /**
-     * Quando NADA foi lido, não se propõe nome nenhum — nem o do arquivo.
-     *
-     * O palpite pelo nome do arquivo existe e continua valendo ("Elias - ficha.pdf" é indício de
-     * verdade), mas ele pressupõe que exista uma ficha atrás dele. Medido na varredura das fichas
-     * reais: a ficha EM BRANCO de Kids on Bikes é uma arte achatada — zero campos de formulário e
-     * zero rótulos impressos —, e o app propunha criar um personagem chamado "Ficha Kids on Bikes"
-     * com a ficha vazia. Quem confirmasse sem ler a tela ficava com um personagem-título.
-     *
-     * Sem nome proposto, a tela de conferência não deixa confirmar, e ela é quem diz que não veio
-     * nada. É a mesma regra que os leitores dedicados já seguiam.
+     * Quando NADA foi lido, não se propõe nome nenhum — nem o do arquivo. O palpite pelo nome do
+     * arquivo continua valendo ("Elias - ficha.pdf" é indício de verdade), mas ele pressupõe que
+     * exista uma ficha atrás dele: a ficha EM BRANCO de Kids on Bikes é uma arte achatada, com zero
+     * campos e zero rótulos, e o app propunha criar um personagem chamado "Ficha Kids on Bikes".
      */
     it('ficha que não rendeu NADA não propõe o nome do arquivo como personagem', () => {
       const lido = readSheet({
@@ -434,13 +428,10 @@ describe('leitor de Ordem Paranormal', () => {
     /**
      * O bug mais caro do importador até agora, e invisível na ficha em branco.
      *
-     * No PDF real de Ordem Paranormal os nomes de campo se REPETEM: `INT` aparece 11 vezes, `PRE`
-     * 10, `AGI` 8. A primeira é o atributo; as outras são a coluna de atributo de cada perícia, que
-     * a ficha batizou igual. Um índice por nome fica com a ÚLTIMA, que é sempre uma perícia — e o
-     * sintoma não foi um valor errado, foi os cinco atributos SUMIREM da importação.
-     *
-     * Só apareceu ao testar com valores preenchidos: em branco todos valiam "0" e tanto fazia qual
-     * fosse lido.
+     * No PDF real de Ordem Paranormal os nomes de campo se REPETEM: `INT` aparece 11 vezes, `PRE` 10,
+     * `AGI` 8. A primeira é o atributo; as outras são a coluna de atributo de cada perícia. Um índice
+     * por nome fica com a ÚLTIMA, que é sempre uma perícia — e o sintoma não foi valor errado, foi os
+     * cinco atributos SUMIREM. Em branco todos valiam "0" e tanto fazia qual fosse lido.
      */
     const comRepetidos = ficha(
       [
@@ -499,16 +490,12 @@ describe('leitor de Ordem Paranormal', () => {
   })
 
   /**
-   * A grade de PERÍCIAS, que é o pedaço da ficha que mais quase deu errado.
+   * A grade de PERÍCIAS, o pedaço da ficha que mais quase deu errado: o nome de cada perícia não é
+   * campo, é texto impresso, e o vizinho mais próximo do campo é a abreviação do atributo ("AGI"),
+   * não o nome ("ACROBACIA"). A primeira versão produzia quarenta linhas "PRE = 0".
    *
-   * O nome de cada perícia não é campo — é texto impresso —, e o vizinho mais próximo do campo é a
-   * abreviação do atributo ("AGI"), não o nome ("ACROBACIA"). A primeira versão do importador
-   * produzia por isso quarenta linhas "PRE = 0", e as perícias acabaram ficando de fora com um aviso
-   * na tela até dar pra medir o arquivo real.
-   *
-   * As coordenadas daqui são as MEDIDAS do PDF de Ordem Paranormal: nome em x≈349, abreviação em
-   * x≈447, campo em x≈476. É o que faz este teste valer alguma coisa — com números inventados ele
-   * passaria sem provar que a régua serve pra ficha de verdade.
+   * As coordenadas daqui são as MEDIDAS do PDF: nome em x≈349, abreviação em x≈447, campo em x≈476.
+   * Com números inventados este teste passaria sem provar que a régua serve pra ficha de verdade.
    */
   function periciaNaGrade(linha: number, nome: string, valor: string, y: number): {
     fields: PdfField[]

@@ -27,17 +27,15 @@ import { DICE_REGISTRY, AVAILABLE_DICE_TYPES } from '../dice-defs/registry'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
 
 /**
- * O dado sai da BOCA da torre ao lado da bandeja (ver `tossDieFromMouth.ts`) e tem que acabar
- * DENTRO do hexágono — este é o teste que separa "a torre parece certa na tela" de "o dado
- * realmente cai onde deveria".
+ * O dado sai da BOCA da torre ao lado da bandeja (ver `tossDieFromMouth.ts`) e tem que acabar DENTRO
+ * do hexágono — é o teste que separa "a torre parece certa na tela" de "o dado cai onde deveria".
  *
- * Duas coisas específicas deste lançamento que o teste da bandeja (`diceEscape.test.ts`) não cobre:
+ * Duas coisas que o teste da bandeja (`diceEscape.test.ts`) não cobre:
  *
- * 1. o ponto de partida é fixo e fica FORA do hexágono, 0.35 acima do topo da parede. Um impulso
- *    fraco demais e o dado despenca do lado de fora, na grama, em vez de entrar;
+ * 1. o ponto de partida é fixo e fica FORA do hexágono, 0.35 acima do topo da parede — impulso fraco
+ *    demais e o dado despenca na grama;
  * 2. todos os dados saem do MESMO buraco. Sem o intervalo de `MOUTH_RELEASE_INTERVAL_MS` eles
- *    nasceriam sobrepostos, e o impulso de separação do solver arremessa corpos sobrepostos com
- *    força absurda.
+ *    nasceriam sobrepostos, e o solver arremessa corpos sobrepostos com força absurda.
  */
 interface TestDie {
   body: RAPIER.RigidBody
@@ -92,15 +90,13 @@ function simulate(world: RAPIER.World, dice: TestDie[], sides: PhysicalDiceSides
     dice.forEach((die, index) => {
       if (!die.released || settled.has(index)) return
       /**
-       * Tempo em fase de ENTRADA, contabilizado como o app faz (ver `DiceCanvasMulti`).
+       * Tempo em fase de ENTRADA, contabilizado como o app faz (ver `DiceCanvasMulti`). Passar `0`
+       * aqui — o que este teste fazia — DESLIGA o resgate de `ENTRY_FORCE_PUSH_TIMEOUT_MS`: um dado
+       * que sai e não cruza pra dentro fica com os grupos de "entrando", que não colidem com a
+       * parede, e cai pelo vazio (o diagnóstico achou um em y = -4672, com 41 cutucadas).
        *
-       * Passar `0` aqui — o que este teste fazia — DESLIGA o resgate de
-       * `ENTRY_FORCE_PUSH_TIMEOUT_MS`. Um dado que sai e não cruza pra dentro fica com os grupos de
-       * "entrando", que não colidem com a parede, e cai pelo vazio: o diagnóstico achou um em
-       * y = -4672, com 41 cutucadas, e o teste relatando "14 de 15 assentaram".
-       *
-       * Era esta a origem da instabilidade destes testes desde 18/08 — não física indeterminada, e
-       * sim o teste desligando a rede de segurança que a produção tem.
+       * Era esta a origem da instabilidade destes testes desde 18/08: o teste desligando a rede de
+       * segurança que a produção tem.
        */
       clampLinearVelocity(die.body, WORLD_CONFIG.maxLinearSpeed)
       const entrando =
@@ -194,16 +190,13 @@ describe('lançamento pela boca da torre ao lado da bandeja', () => {
   )
 
   /**
-   * O lançamento tem que ATRAVESSAR a bandeja, não só entrar nela. É a regressão do que o usuário
-   * reportou como "colidindo muito": com o teto de velocidade do arremesso normal (5.5), a conta
-   * `distância / tempo` era cortada em quase todo lançamento e os dados caíam amontoados no canto da
-   * torre. Medido antes e depois — a distância média da boca subiu de ~6.9 pra ~8.7.
+   * O lançamento tem que ATRAVESSAR a bandeja, não só entrar nela. É a regressão do "colidindo muito":
+   * com o teto de velocidade do arremesso normal (5.5), a conta `distância / tempo` era cortada em
+   * quase todo lançamento e os dados caíam amontoados no canto da torre — a distância média da boca
+   * subiu de ~6.9 pra ~8.7.
    *
-   * TRÊS ROLAGENS, e a média sobre as três. A primeira versão media UMA rolagem contra um limite
-   * tirado da média de muitas, e falhava sozinha de vez em quando (peguei uma em 7.33 contra o limite
-   * de 7.5): quinze dados caindo é uma amostra pequena, e a média de uma rolagem só passeia bem mais
-   * que a média geral. Com 45 amostras a conta fica onde deveria — e o limite continua bem acima dos
-   * ~6.9 que o ajuste antigo produzia, que é o que o teste existe pra impedir de voltar.
+   * TRÊS ROLAGENS, e a média sobre as três: a primeira versão media UMA rolagem contra um limite
+   * tirado da média de muitas, e falhava sozinha de vez em quando (7.33 contra o limite de 7.5).
    */
   it('os dados se espalham pela bandeja em vez de amontoar no canto da torre', () => {
     const world = createPhysicsWorld()
