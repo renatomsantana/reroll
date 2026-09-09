@@ -7,6 +7,8 @@ import { NotesProvider } from './hooks/useNotes'
 import { DialogoProvider } from './components/common/Dialogo'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import './styles/global.css'
+// Depois do global de propósito: a passada de celular só AJUSTA o que ele já definiu.
+import './styles/celular.css'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>

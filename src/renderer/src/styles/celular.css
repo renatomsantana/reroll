@@ -1,0 +1,164 @@
+/**
+ * A PASSADA DE CELULAR: o que muda quando a tela é estreita ou o dedo é o ponteiro.
+ *
+ * Mora num arquivo só, e não espalhada pelos CSS de cada componente, porque é UM conjunto — a
+ * decisão "isto aqui é um app de mesa aberto numa mão só" toca a barra de título, as abas, a cena,
+ * as barras de recurso e o rodapé ao mesmo tempo, e lida em oito arquivos ela desapareceria.
+ *
+ * Dois gatilhos, e eles são DIFERENTES de propósito:
+ *
+ * - `max-width`: é o CELULAR EM PÉ, e vale igual no Electron com a janela estreita;
+ * - `pointer: coarse`: é o DEDO, em qualquer tamanho de tela. É o que decide alvo de toque e o que
+ *   esconde dica de tecla — um tablet de 1024px de largura não tem Esc pra fechar nada.
+ *
+ * A estética não muda: continua o cinza chapado com degrau de 2px (ver `global.css`). O que muda é
+ * o TAMANHO do que se acerta com o dedo e o que sobra na tela depois de a cena caber.
+ */
+
+/* ---------------------------------------------------------------------------------------------
+ * A JANELA, quando ela é a tela inteira do aparelho.
+ */
+
+/**
+ * `100dvh` no lugar de `100vh`: no navegador de celular, `vh` conta a tela COM a barra de endereço
+ * recolhida, então `100vh` é mais alto que o visível e o rodapé fica embaixo dela até a pessoa
+ * rolar. `dvh` é a altura de agora. O `100vh` fica antes como reserva pro navegador que não conhece
+ * `dvh` (e no Electron os dois dão no mesmo, que a janela não tem barra que some).
+ */
+@supports (height: 100dvh) {
+  .app-window {
+    height: 100dvh;
+  }
+}
+
+/**
+ * O RECORTE DA TELA (notch, ilha, cantos arredondados, a barra de gestos embaixo). O `index.html`
+ * da web pede `viewport-fit=cover`, que estende a página até as bordas físicas — sem isto o título
+ * fica por baixo do relógio do sistema e o rodapé por baixo da barra de gestos.
+ *
+ * Só o topo e o rodapé: as laterais são zero em pé, e descontá-las estreitaria a cena à toa.
+ */
+@media (max-width: 640px) {
+  .titlebar {
+    padding-top: env(safe-area-inset-top, 0);
+    height: calc(30px + env(safe-area-inset-top, 0));
+  }
+
+  .statusbar {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    height: calc(18px + env(safe-area-inset-bottom, 0));
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * O DEDO: alvos de toque e o que só existe pra quem tem teclado.
+ */
+
+/**
+ * 32px de lado nos botões pequenos. A recomendação das duas plataformas é 44pt (Apple) e 48dp
+ * (Android); 32 é o meio-termo assumido, porque estes botões vêm em FILA — os "−" e "+" das barras
+ * de recurso ficam a 3px um do outro, e 48px cada empurraria o número da barra pra fora da linha
+ * num aparelho de 360px. O que resolve o resto é o espaço entre eles, logo abaixo.
+ *
+ * Alvo INVISÍVEL: o degrau de 2px e o desenho continuam do tamanho que eram (`background-clip` não
+ * serve aqui porque a borda é a moldura do 98), o que cresce é a área que aceita o toque, via
+ * padding. Por isso `box-sizing` está explícito: sem ele o padding somaria à largura fixa.
+ */
+@media (pointer: coarse) {
+  .barra-passo,
+  .titlebar-btn,
+  .hud-condicao-remover {
+    box-sizing: border-box;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /*
+   * Os botões do CARTÃO do personagem param em 28px, e não em 32. Eles são três em fila no
+   * cabeçalho de um cartão de 200px, e com 32 cada não sobrava largura pro nome: "Personagem 1"
+   * saía como "P." na foto de 390px. 28 ainda é alvo de dedo e devolve 12px ao nome.
+   */
+  .hud-botao {
+    box-sizing: border-box;
+    min-width: 28px;
+    min-height: 28px;
+  }
+
+  .barras-compactas {
+    gap: 8px;
+  }
+
+  .barra-recurso {
+    height: 32px;
+  }
+
+  .barra-valor,
+  .barra-entrada {
+    min-height: 28px;
+  }
+
+  /*
+   * A dica de teclado do rodapé ("Enter/Espaço ROLL! · WASD move a câmera · Esc fecha") não tem o
+   * que dizer pra quem toca a tela, e era ela que estourava a linha do rodapé no celular, passando
+   * por cima do crédito. Some, e o crédito fica com a linha inteira.
+   */
+  .statusbar-shortcuts {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * A TELA ESTREITA: o que precisa caber em 360px de largura.
+ */
+
+@media (max-width: 640px) {
+  /* A margem do miolo era 12/14px; em tela estreita cada pixel de largura é da cena. */
+  .app-main {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  /*
+   * As ABAS quebravam em duas linhas ("Ficha (beta)" sozinha ocupava duas). Fonte um ponto menor e
+   * respiro menor nas laterais fazem as quatro caberem numa linha só num aparelho de 360px, que é
+   * o mais estreito que ainda se vende.
+   */
+  .toolbar-tab {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  /*
+   * A CENA é o que a pessoa veio ver, e 420px de altura mínima num celular de 640px de altura útil
+   * deixavam a mesa espremida entre o painel de rolagem e o resultado. Em tela estreita ela passa a
+   * ser proporcional à tela — 45% da altura visível —, com um piso que ainda mostra a mesa inteira.
+   */
+  .dice-roller-3d-canvas,
+  .dice-roller-3d-placeholder {
+    min-height: min(45dvh, 420px);
+  }
+
+  /*
+   * O CARTÃO DO PERSONAGEM flutua sobre a cena, e com 236px numa tela de 360 ele cobria dois terços
+   * da mesa (medido em `out/olhar-web/celular.png`). Passa a ocupar metade da largura da cena, com
+   * um piso pra caber o nome e as barras.
+   */
+  .hud {
+    width: min(58%, 236px);
+    min-width: 196px;
+  }
+
+  .hud-mini {
+    width: min(44%, 180px);
+    min-width: 150px;
+  }
+
+  /*
+   * O RETRATO cede os 12px que faltavam pro nome — no cabeçalho de um cartão estreito ele é a
+   * moldura, não o conteúdo. As barras e as condições logo abaixo continuam do tamanho que eram.
+   */
+  .hud-retrato {
+    width: 32px;
+    height: 32px;
+  }
+}
