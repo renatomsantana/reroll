@@ -1,0 +1,99 @@
+apply plugin: 'com.android.application'
+
+// =================================================================================================
+// A VERSÃO SAI DO `package.json`, e não daqui.
+//
+// A Play Store EXIGE que o `versionCode` cresça a cada envio, e recusa o pacote com um número já
+// usado — sem dizer qual foi o último. Manter o número à mão em dois lugares (aqui e no
+// `package.json`) é garantir que um dia eles discordem, e o dia em que isso acontece é o dia do
+// lançamento.
+//
+// `versionName` é o que a pessoa lê na loja ("1.1.4"). `versionCode` é o inteiro que só a loja usa,
+// e a conta é `maior * 10000 + menor * 100 + correção`: 1.1.4 vira 10104, e 1.2.0 vira 10200, que é
+// maior. A conta aguenta menor e correção até 99, que é folga de sobra pra este app.
+def pacote = new groovy.json.JsonSlurper().parse(file('../../package.json'))
+def partesDaVersao = (pacote.version =~ /^(\d+)\.(\d+)\.(\d+)/)
+if (!partesDaVersao) {
+    throw new GradleException("versão do package.json ilegível pro Android: ${pacote.version}")
+}
+def versaoDoApp = pacote.version
+def codigoDaVersao = partesDaVersao[0][1].toInteger() * 10000 + partesDaVersao[0][2].toInteger() * 100 + partesDaVersao[0][3].toInteger()
+
+android {
+    namespace = "com.renato.reroll.android"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.renato.reroll.android"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode codigoDaVersao
+        versionName versaoDoApp
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    /*
+     * A CHAVE DE ASSINATURA vem de `android/keystore.properties`, um arquivo que NÃO está no
+     * repositório (ver o `.gitignore` da pasta) e que você cria uma vez — o passo a passo está em
+     * `COMO-PUBLICAR-NA-PLAY-STORE.txt`.
+     *
+     * Sem o arquivo, o `assembleRelease` continua rodando e sai um pacote NÃO ASSINADO: dá pra
+     * conferir que o projeto compila sem ter chave nenhuma, e o pacote não assinado a Play Store
+     * recusa na porta, então não há risco de subir o errado.
+     */
+    def arquivoDaChave = rootProject.file('keystore.properties')
+    if (arquivoDaChave.exists()) {
+        def chave = new Properties()
+        arquivoDaChave.withInputStream { chave.load(it) }
+        signingConfigs {
+            release {
+                storeFile file(chave['storeFile'])
+                storePassword chave['storePassword']
+                keyAlias chave['keyAlias']
+                keyPassword chave['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (arquivoDaChave.exists()) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

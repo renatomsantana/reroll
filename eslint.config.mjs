@@ -26,7 +26,10 @@ import globals from 'globals'
 export default tseslint.config(
   {
     // Nada de conferir o que não é fonte: saída de build, instaladores, dependências.
-    ignores: ['out/**', 'release/**', 'release2/**', 'node_modules/**', 'dist/**', '*.tsbuildinfo']
+    // `android/**` é o projeto nativo do Capacitor: código gerado por ferramenta, mais uma CÓPIA do
+    // bundle da web em `assets/public/` — cinco mil erros de um arquivo que já foi conferido na
+    // origem. O que é nosso ali é o `build.gradle`, que não é JavaScript.
+    ignores: ['out/**', 'release/**', 'release2/**', 'release-steam/**', 'android/**', 'node_modules/**', 'dist/**', '*.tsbuildinfo']
   },
 
   js.configs.recommended,
