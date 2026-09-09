@@ -64,7 +64,36 @@ const servidor = createServer((pedido, resposta) => {
 
 const problemas = []
 
-async function fotografar(url, nome, largura, altura) {
+/**
+ * O DEDO. Metade da passada de celular (`styles/celular.css`) está atrás de `pointer: coarse` — o
+ * alvo de toque de 32px, a barra de recurso mais alta, a dica de teclado que some —, e uma janela
+ * de Electron num PC responde `pointer: fine`: sem ajuda, essas regras não entram na foto.
+ *
+ * O jeito óbvio seria emular o aparelho pelo depurador (`Emulation.setEmulatedMedia`), e ele NÃO
+ * FUNCIONA aqui: com a janela offscreen, `setDeviceMetricsOverride` derruba o renderer ("crashpad:
+ * not connected") e `setEmulatedMedia` pendura o processo antes da foto — os dois medidos.
+ *
+ * Então o caminho é este: LER as regras do próprio arquivo de produção e injetá-las sem a media
+ * query. Não é uma imitação escrita à mão que envelhece — é o mesmo texto, e uma regra nova no
+ * bloco aparece na próxima foto sem ninguém tocar aqui.
+ */
+async function aplicarRegrasDeToque(conteudos) {
+  const css = await fs.readFile(join(RAIZ, 'src', 'renderer', 'src', 'styles', 'celular.css'), 'utf8')
+  const abertura = css.indexOf('@media (pointer: coarse)')
+  if (abertura < 0) throw new Error('não achei o bloco `@media (pointer: coarse)` em celular.css')
+  // Conta chaves a partir da primeira: o bloco tem regras aninhadas, e `indexOf('}')` pegaria a
+  // primeira delas.
+  const inicio = css.indexOf('{', abertura)
+  let profundidade = 0
+  let fim = inicio
+  for (; fim < css.length; fim++) {
+    if (css[fim] === '{') profundidade++
+    else if (css[fim] === '}' && --profundidade === 0) break
+  }
+  await conteudos.insertCSS(css.slice(inicio + 1, fim))
+}
+
+async function fotografar(url, nome, largura, altura, celular = false) {
   const win = new BrowserWindow({
     show: false,
     width: largura,
@@ -87,6 +116,10 @@ async function fotografar(url, nome, largura, altura) {
     console.warn(`[${nome}] loadURL reclamou (${causa.code ?? causa}), tentando de novo`)
     await win.loadURL(url).catch((deNovo) => console.warn(`[${nome}] de novo: ${deNovo.code ?? deNovo}`))
   }
+  if (celular) {
+    // Depois do load: `insertCSS` vale pro documento que está de pé.
+    await aplicarRegrasDeToque(win.webContents).catch((causa) => problemas.push(`[${nome}] regras de toque: ${causa.message ?? causa}`))
+  }
   // O arranque tem splash (com duração própria) + cena 3D; dez segundos atravessam os dois.
   await new Promise((r) => setTimeout(r, 10_000))
   console.log(`[${nome}] fotografando ${win.webContents.getURL()}`)
@@ -104,7 +137,7 @@ app
     const url = `http://127.0.0.1:${servidor.address().port}/`
     mkdirSync(SAIDA, { recursive: true })
     await fotografar(url, 'desktop', 1280, 800)
-    await fotografar(url, 'celular', 390, 844)
+    await fotografar(url, 'celular', 390, 844, true)
     servidor.close()
     if (problemas.length > 0) {
       console.error('A versão web abriu com problemas:')
