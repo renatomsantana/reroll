@@ -1,0 +1,130 @@
+COMO PUBLICAR O REROLL NA PLAY STORE
+====================================
+
+O que já está pronto aqui, o que falta instalar na máquina e o que a Google cobra.
+Escrito em 09/09/2026.
+
+
+O QUE JÁ ESTÁ PRONTO
+--------------------
+
+O app de Android existe e é a MESMA versão web, embrulhada pelo Capacitor: os arquivos de
+`out/web/` viajam dentro do pacote e o WebView os abre de um endereço local. Não há segunda
+implementação de nada — vale a mesma regra da web (ver COMO-RODAR-NA-WEB.md), que é rodar os
+módulos do processo principal sobre shims.
+
+    npm run android:sync     compila a web e joga tudo pra dentro do projeto Android
+    npm run android:aab      gera o pacote da loja (.aab)   <- precisa do que está abaixo
+    npm run android:apk      gera um .apk pra instalar na mão e testar
+    npm run android:abrir    abre o projeto no Android Studio
+    npm run icon:android     refaz os ícones a partir de build/icons/base.png
+
+Escolhido Capacitor e não TWA (o atalho que embrulha um site publicado) por dois motivos que pesam
+mais que a simplicidade dele: o TWA exige o site NO AR, com hospedagem pra manter, e só funciona
+offline se houver service worker. Com o Capacitor, o app abre no avião.
+
+O que foi feito pro app se comportar como app de celular, e não como site num quadro:
+
+- LAYOUT DE TOQUE (`src/renderer/src/styles/celular.css`): alvo de dedo de 32px, tela contando o
+  recorte do aparelho (notch e barra de gestos), as abas numa linha só, a dica de teclado somindo,
+  a cena proporcional à altura visível;
+- SALVAR ARQUIVO (`src/web/plataformaDoAndroid.ts`): no WebView do Android um download de `blob:`
+  NÃO FAZ NADA — sem erro, sem arquivo. Exportar o personagem, os presets ou o PDF diria "pronto" e
+  não teria feito nada, e exportar é o backup de verdade. Agora grava no cache e abre a folha de
+  compartilhamento do Android (Drive, WhatsApp, Arquivos, o que a pessoa tiver);
+- BOTÃO VOLTAR (`src/web/botaoVoltarDoAndroid.ts`): fecha o modal aberto em vez de fechar o app.
+  O padrão do Capacitor sairia do Reroll no meio do combate porque a pessoa quis fechar o histórico;
+- ÍCONES: os cinco tamanhos mais a camada do ícone adaptativo, tirados do mesmo d20 do executável;
+- VERSÃO: o `versionCode` e o `versionName` saem do `package.json` (ver o comentário em
+  `android/app/build.gradle`). A Play Store recusa pacote com `versionCode` repetido e não diz qual
+  foi o último, então esse número não pode depender de ninguém lembrar de trocar.
+
+
+O QUE FALTA INSTALAR NESTA MÁQUINA
+----------------------------------
+
+Nada disso está aqui hoje — conferido: sem Java, sem Android SDK, sem Gradle.
+
+O caminho curto é instalar o ANDROID STUDIO (developer.android.com/studio), que traz junto o JDK e o
+SDK e sabe gerar o .aab por menu. São uns 4 GB no disco e uns 20 minutos de instalação.
+
+Depois de instalar, uma vez só:
+
+1. Abrir o Android Studio, deixar ele baixar o SDK 36 (é o que o projeto pede — ver
+   `android/variables.gradle`);
+2. `npm run android:abrir`, que abre este projeto lá dentro;
+3. deixar o Gradle sincronizar (a primeira vez baixa umas centenas de MB).
+
+Daí em diante `npm run android:aab` funciona pelo terminal.
+
+
+A CHAVE DE ASSINATURA
+---------------------
+
+Crie UMA VEZ, e guarde como se fosse documento — porque é:
+
+    keytool -genkey -v -keystore android\reroll.jks -keyalg RSA -keysize 2048 -validity 10000 -alias reroll
+
+(o `keytool` vem com o JDK do Android Studio; se o comando não for encontrado, ele está em
+`...\Android Studio\jbr\bin\keytool.exe`.)
+
+Depois copie `android/keystore.properties.exemplo` pra `android/keystore.properties` e preencha as
+senhas. Os dois arquivos da chave estão no `.gitignore` — o repositório é público, e com essa chave
+qualquer um publica um update do Reroll no aparelho de quem instalou.
+
+GUARDE UMA CÓPIA DO .jks FORA DO COMPUTADOR. Perdida a chave, o app publicado não recebe update
+nunca mais; a saída é publicar OUTRO app, do zero, e pedir pra todo mundo reinstalar. A Google não
+abre exceção.
+
+(Existe a Play App Signing, em que a Google guarda a chave final e você assina só o envio. Vale a
+pena ligar — mas a chave de ENVIO continua sendo sua e continua valendo tudo que está escrito aqui.)
+
+
+O QUE A GOOGLE COBRA, E QUANTO TEMPO DEMORA
+-------------------------------------------
+
+- US$ 25, uma vez, pra conta de desenvolvedor. Não é por app.
+- Verificação de identidade: documento e endereço. Leva alguns dias.
+- E o que trava de verdade: CONTA PESSOAL (não empresa) criada nos últimos anos precisa de um TESTE
+  FECHADO com pelo menos 12 testadores, rodando por 14 DIAS SEGUIDOS, antes de poder pedir acesso à
+  produção. Doze pessoas com conta Google, aceitando o convite e mantendo o app instalado. Comece
+  por aí: é o item mais longo e o único que não depende de você.
+- Cada envio passa por revisão, de horas a alguns dias.
+
+Some tudo e conte com um mês entre "paguei" e "está na loja", com sorte.
+
+
+A FICHA DA LOJA
+---------------
+
+- Ícone 512 x 512 (já gerado em `build/icone-play-store-512.png`)
+- Imagem de destaque 1024 x 500
+- Pelo menos 2 capturas de celular; recomendam 4 a 8. Servem as de
+  `out/olhar-web/celular.png`, mas vale tirar com a ficha preenchida e uma rolagem na tela
+- Descrição curta (80 caracteres) e completa (4000)
+- POLÍTICA DE PRIVACIDADE numa URL pública. É obrigatória, mesmo o app não coletando nada. No caso
+  do Reroll o texto é curto e verdadeiro: nada sai do aparelho, os dados ficam no armazenamento do
+  próprio app, não há conta, não há servidor, não há anúncio
+- Formulário de Segurança de Dados: responder que não coleta nem compartilha nada
+- Classificação etária pelo questionário
+- Declarar que não tem anúncio
+
+
+O QUE EU NÃO CONSEGUI TESTAR
+----------------------------
+
+Sem o SDK do Android na máquina, nada disto rodou num aparelho de verdade. O que está conferido é
+que o projeto foi gerado, que os plugins registraram (`@capacitor/app`, `@capacitor/filesystem`,
+`@capacitor/share`), que a web compila com eles dentro e que a lógica do botão voltar passa nos
+testes. Falta:
+
+1. Ver a cena 3D rodando no WebView de um celular de verdade — é o maior risco do projeto inteiro.
+   O `three.js` com física roda bem num PC; num aparelho de entrada pode ficar pesado, e o remédio
+   (menos dados na mesa, sombra mais simples) só dá pra calibrar medindo lá;
+2. Importar um PDF de ficha pelo seletor de arquivo do Android;
+3. Exportar e ver a folha de compartilhamento abrir com o arquivo certo;
+4. A cena com o aparelho DEITADO (o app não trava orientação hoje);
+5. Voltar, minimizar e voltar pro app no meio de uma rolagem.
+
+Quando o Android Studio estiver instalado, `npm run android:apk` gera um .apk que dá pra instalar
+no seu celular por cabo e conferir esses cinco pontos numa sentada.

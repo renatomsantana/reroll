@@ -16,12 +16,22 @@ import { configurarArmazemDeArquivos } from './shims/fs'
 import { configurarPlataformaDeArquivos, configurarVersaoDoApp } from './shims/electron'
 import { criarArmazemDoNavegador } from './armazemDoNavegador'
 import { plataformaDoNavegador } from './seletorDeArquivos'
+import { ehAppNativo, plataformaDoAndroid } from './plataformaDoAndroid'
+import { ligarBotaoVoltar } from './botaoVoltarDoAndroid'
 import './web.css'
 
 ;(globalThis as { Buffer?: unknown }).Buffer = BufferDoNavegador
 configurarArmazemDeArquivos(criarArmazemDoNavegador())
-configurarPlataformaDeArquivos(plataformaDoNavegador)
+/*
+ * A MESMA página, dois jeitos de salvar arquivo: no navegador é download, no app de Android é a
+ * folha de compartilhamento — lá o download de `blob:` não faz nada (ver `plataformaDoAndroid.ts`).
+ * Abrir arquivo é igual nos dois.
+ */
+configurarPlataformaDeArquivos(ehAppNativo() ? plataformaDoAndroid : plataformaDoNavegador)
 configurarVersaoDoApp(__VERSAO_DO_APP__)
+
+// O botão VOLTAR do aparelho, que sem isto fecharia o app em vez de fechar o modal aberto.
+if (ehAppNativo()) ligarBotaoVoltar()
 
 const { montarApiWeb } = await import('./api')
 window.api = await montarApiWeb()
