@@ -4,9 +4,10 @@
  * `global.css`).
  *
  * A COR SEGUE A VIDA: verde cheia, amarelo nos 40%, vermelho nos 15% (ver `corDoPreenchimento`), e
- * `--recurso-cor` é a de cheia — o verde padrão ou a que a pessoa escolheu no editor. O ESTADO
- * também pinta o NÚMERO, oliva no aviso e bordô no perigo, que é o que se lê quando a barra está
- * curta demais pra cor dela dizer alguma coisa.
+ * `--recurso-cor` é a de cheia — o padrão (verde, ou marinho se a barra é de mana) ou a que a pessoa
+ * escolheu no editor. A de MANA não avermelha: fica azul e vai clareando a cada ponto gasto. O
+ * ESTADO também pinta o NÚMERO, oliva no aviso e bordô no perigo, que é o que se lê quando a barra
+ * está curta demais pra cor dela dizer alguma coisa.
  *
  * Uma linha FINA de 16px por barra: é a versão que mora no HUD sobre a cena e na janelinha do modo
  * compacto (as duas casas das barras). As medidas fecham com `ALTURA_DA_BARRA_COMPACTA` em
