@@ -51,6 +51,74 @@ export function corPelaSoma(nome: string): string {
  */
 export const VERDE_DE_VIDA_CHEIA = '#008000'
 
+/**
+ * MANA CHEIA é AZUL — o marinho da paleta de 16 (pedido dele, 08/09/2026: "PM é azul e vai ficando
+ * mais clarinho quando diminui"). Vale pro que se gasta pra conjurar em qualquer sistema: PM de
+ * Tormenta, PE de Ordem, MP, e os espaços de magia por círculo de D&D (ver `recursoDeMana`).
+ *
+ * Mana não avermelha: ficar sem PM não é ficar perto da morte, e pintar de vermelho uma barra de
+ * magia daria o mesmo susto que a de vida. O que ela faz é DESBOTAR — ver `clarearPeloGasto`.
+ */
+export const AZUL_DE_MANA_CHEIA = '#000080'
+
+/**
+ * O quanto uma barra de mana chega a clarear: a luminosidade do último ponto. 0,75 sobre o marinho
+ * dá `#8080ff`, que ainda se lê como azul e ainda aparece por cima do trilho branco — com 0,9 o
+ * último ponto sumia no fundo (medido com `olharHud.mjs`).
+ */
+const LUZ_DO_ULTIMO_PONTO = 0.75
+
+function paraHsl(cor: string): { h: number; s: number; l: number } {
+  const r = parseInt(cor.slice(1, 3), 16) / 255
+  const g = parseInt(cor.slice(3, 5), 16) / 255
+  const b = parseInt(cor.slice(5, 7), 16) / 255
+  const maior = Math.max(r, g, b)
+  const menor = Math.min(r, g, b)
+  const l = (maior + menor) / 2
+  const distancia = maior - menor
+  if (distancia === 0) return { h: 0, s: 0, l }
+  const s = distancia / (1 - Math.abs(2 * l - 1))
+  const h =
+    maior === r ? ((g - b) / distancia + (g < b ? 6 : 0)) : maior === g ? (b - r) / distancia + 2 : (r - g) / distancia + 4
+  return { h: h * 60, s, l }
+}
+
+function deHsl(h: number, s: number, l: number): string {
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = l - c / 2
+  const faixa = Math.floor(((h % 360) + 360) % 360 / 60)
+  const [r, g, b] = [
+    [c, x, 0],
+    [x, c, 0],
+    [0, c, x],
+    [0, x, c],
+    [x, 0, c],
+    [c, 0, x]
+  ][faixa]
+  const byte = (v: number): string => Math.round((v + m) * 255).toString(16).padStart(2, '0')
+  return `#${byte(r)}${byte(g)}${byte(b)}`
+}
+
+/**
+ * A ESCALA DA MANA: a MESMA cor, só mais clara quanto mais gasta. O grau vai de 0 (cheia, a cor de
+ * repouso) a 1 (o último ponto, `LUZ_DO_ULTIMO_PONTO`).
+ *
+ * Clareia pelo HSL — sobe a LUMINOSIDADE e guarda o matiz e a saturação —, e não misturando com
+ * branco: misturar tira a saturação junto e o marinho vira um cinza-azulado que não parece mais
+ * mana. Assim funciona pra qualquer cor que a pessoa escolha no editor, não só pro azul.
+ *
+ * Uma cor CHAPADA por nível, como a escala do estresse: continua Windows 98.
+ */
+export function clarearPeloGasto(cor: string, grau: number): string {
+  const base = ehCorHex(cor) ? cor : AZUL_DE_MANA_CHEIA
+  const preso = Number.isFinite(grau) ? Math.min(1, Math.max(0, grau)) : 0
+  const { h, s, l } = paraHsl(base)
+  // Cor já clara (a pessoa escolheu um pastel) não escurece pra "clarear": fica onde está.
+  const alvo = Math.max(l, LUZ_DO_ULTIMO_PONTO)
+  return deHsl(h, s, l + (alvo - l) * preso)
+}
+
 /** A cor padrão de uma condição: pelo nome, sempre a mesma. "Machucado" é bordô em toda ficha. */
 export function corPadraoDaCondicao(nome: string): string {
   const limpo = nome.trim().toLowerCase()

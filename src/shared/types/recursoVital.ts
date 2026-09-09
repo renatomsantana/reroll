@@ -1,4 +1,4 @@
-import { VERDE_DE_VIDA_CHEIA, corDaEscalaDeEstresse, ehCorHex } from './cor'
+import { AZUL_DE_MANA_CHEIA, VERDE_DE_VIDA_CHEIA, clarearPeloGasto, corDaEscalaDeEstresse, ehCorHex } from './cor'
 
 /**
  * RECURSO VITAL: o que o personagem gasta e recupera durante a sessão — PV, PE, Sanidade, HP, o que
@@ -20,8 +20,9 @@ export interface RecursoVital {
   maximo: number
   /**
    * Cor da barra escolhida pela pessoa, `#rrggbb` — "a pessoa decide a cor também". AUSENTE é o
-   * normal, e aí vale o verde de vida cheia (`VERDE_DE_VIDA_CHEIA`). Escolhida ou padrão, é a cor de
-   * CHEIA: a barra cai pro amarelo e pro vermelho por cima dela.
+   * normal, e aí o padrão sai do que a barra mede: azul se é mana (`AZUL_DE_MANA_CHEIA`), verde no
+   * resto (`VERDE_DE_VIDA_CHEIA`). Escolhida ou padrão, é a cor de CHEIA: a barra cai pro amarelo e
+   * pro vermelho por cima dela, ou desbota, se é de mana.
    */
   cor?: string
   /**
@@ -43,9 +44,33 @@ export function recursoSobePorPadrao(nome: string): boolean {
   return NOME_QUE_SOBE.test(nome.trim())
 }
 
-/** A cor de VIDA CHEIA desta barra: a que a pessoa escolheu, ou o verde padrão. */
-export function corDoRecurso(recurso: Pick<RecursoVital, 'cor'>): string {
-  return recurso.cor ?? VERDE_DE_VIDA_CHEIA
+/**
+ * Barra de MANA: o que se gasta pra conjurar, com o nome que cada sistema dá. PM em Tormenta, PE em
+ * Ordem, MP e mana nos de língua inglesa, Esforço em quem escreve por extenso.
+ *
+ * É o NOME INTEIRO, e não um pedaço: "Pontos de Vida" tem "de" e "pontos" como qualquer outro, e um
+ * teste frouxo pintaria de azul a barra errada. "PE" é PE de Ordem, e é a única sigla ambígua da
+ * lista — em toda ficha que o app lê ela é energia, nunca vida.
+ */
+const NOME_DE_MANA = /^(pm|pe|mp|mana|magia|m[áa]gica|esfor[çc]o|energia|mana points?|magic points?|pontos? de (mana|magia|esfor[çc]o|energia))$/i
+/**
+ * Os ESPAÇOS DE MAGIA por círculo de D&D e de Pathfinder ("Espaços de 1º círculo", "3rd level spell
+ * slots"): uma barra por círculo, e é gasto de conjuração como o PM — o mesmo azul desbotando.
+ */
+const NOME_DE_ESPACO_DE_MAGIA = /espa[çc]os?\s+de\s+(magia|\d)|c[íi]rculo|spell\s+slots?|slots?\s+de\s+magia/i
+
+export function recursoDeMana(nome: string): boolean {
+  const limpo = nome.trim()
+  return NOME_DE_MANA.test(limpo) || NOME_DE_ESPACO_DE_MAGIA.test(limpo)
+}
+
+/**
+ * A cor de CHEIA desta barra: a que a pessoa escolheu, ou o padrão do que ela mede — AZUL pra mana
+ * (`recursoDeMana`) e VERDE pro resto.
+ */
+export function corDoRecurso(recurso: Pick<RecursoVital, 'nome' | 'cor'>): string {
+  if (recurso.cor) return recurso.cor
+  return recursoDeMana(recurso.nome) ? AZUL_DE_MANA_CHEIA : VERDE_DE_VIDA_CHEIA
 }
 
 /**
@@ -102,7 +127,7 @@ export function criarRecurso(nome: string, maximo: number, atual = maximo): Recu
  * - `maximo`/`atual` que não são número finito: viram zero (e o atual, preso ao máximo);
  * - `id` repetido ou ausente: ganha um novo. Dois recursos com o mesmo id fariam o clique no "−" de
  *   um mexer nos dois;
- * - `cor` fora do formato: ausente, e a barra volta pro verde de vida cheia;
+ * - `cor` fora do formato: ausente, e a barra volta pro padrão (verde, ou azul se é mana);
  * - `sobe` que não é booleano: decidido pelo NOME (`recursoSobePorPadrao`), o que faz um `notes.json`
  *   antigo já mostrar "Torso 0/5" subindo. Um `false` gravado é a pessoa desmarcando, e fica;
  * - acima do teto de itens: os primeiros ficam. Ver `MAXIMO_DE_RECURSOS`.
@@ -182,17 +207,27 @@ export function estadoDoRecurso(recurso: Pick<RecursoVital, 'atual' | 'maximo' |
 }
 
 /**
- * A cor com que o PREENCHIMENTO da barra é pintado agora: VERDE cheia, AMARELO nos 40%, VERMELHO nos
- * 15% — as três da paleta de 16 do Windows. É a escala de qualquer jogo, e é a que se lê de relance.
+ * A cor com que o PREENCHIMENTO da barra é pintado agora, e são TRÊS escalas, uma por tipo de barra:
  *
- * O verde é só o PADRÃO: barra com cor escolhida no editor usa a cor dela como "vida cheia", e cai
- * pro amarelo e pro vermelho do mesmo jeito. A barra que SOBE não tem cor de repouso — cada nível é
- * um degrau do amarelo ao vermelho (ver `corDaEscalaDeEstresse`).
+ * - VIDA e o resto que desce: VERDE cheia, AMARELO nos 40%, VERMELHO nos 15% — as três da paleta de
+ *   16 do Windows. É a escala de qualquer jogo, e é a que se lê de relance;
+ * - MANA (`recursoDeMana`): AZUL sempre, só mais CLARO a cada ponto gasto. Ficar sem PM não é ficar
+ *   perto da morte, e o vermelho ali daria um susto que não é o caso;
+ * - a que SOBE: cada nível é um degrau do amarelo ao vermelho (ver `corDaEscalaDeEstresse`).
+ *
+ * O verde e o azul são só o PADRÃO: barra com cor escolhida no editor usa a cor dela como cheia, e
+ * cai (ou desbota) por cima dela.
  */
-export function corDoPreenchimento(recurso: Pick<RecursoVital, 'cor' | 'atual' | 'maximo' | 'sobe'>): string {
+export function corDoPreenchimento(recurso: Pick<RecursoVital, 'nome' | 'cor' | 'atual' | 'maximo' | 'sobe'>): string {
   if (recurso.sobe) {
     if (recurso.maximo <= 1 || recurso.atual <= 1) return corDaEscalaDeEstresse(recurso.atual >= recurso.maximo && recurso.maximo > 0 ? 1 : 0)
     return corDaEscalaDeEstresse((recurso.atual - 1) / (recurso.maximo - 1))
+  }
+  if (recursoDeMana(recurso.nome)) {
+    // O grau anda por PONTO, e não pela fração: assim a escala inteira cabe num PM de 3 tanto quanto
+    // num de 40 — cheia é a cor de repouso e o ÚLTIMO ponto é o mais claro, como na do estresse.
+    const passos = recurso.maximo - 1
+    return clarearPeloGasto(corDoRecurso(recurso), passos > 0 ? (recurso.maximo - recurso.atual) / passos : 0)
   }
   const estado = estadoDoRecurso(recurso)
   if (estado === 'perigo') return '#ff0000'

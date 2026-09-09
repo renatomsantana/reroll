@@ -5,6 +5,7 @@ import {
   corDoRecurso,
   criarRecurso,
   estadoDoRecurso,
+  recursoDeMana,
   recursoSobePorPadrao,
   fundirRecursos,
   lerEntradaDeRecurso,
@@ -155,7 +156,7 @@ describe('a barra que sobe (estresse, dano por região)', () => {
   })
 
   it('o preenchimento sobe do amarelo ao vermelho, um degrau por ponto: 1 amarelo, 3 laranja, 5 vermelho', () => {
-    const torso = (atual: number) => corDoPreenchimento({ atual, maximo: 5, sobe: true })
+    const torso = (atual: number) => corDoPreenchimento({ nome: 'Torso', atual, maximo: 5, sobe: true })
     expect(torso(1)).toBe('#ffff00')
     expect(torso(2)).toBe('#ffbf00')
     expect(torso(3)).toBe('#ff8000')
@@ -163,30 +164,74 @@ describe('a barra que sobe (estresse, dano por região)', () => {
     expect(torso(5)).toBe('#ff0000')
     // Vazia ainda é amarela (não aparece: largura zero), e mais níveis dão mais degraus.
     expect(torso(0)).toBe('#ffff00')
-    expect(corDoPreenchimento({ atual: 15, maximo: 30, sobe: true })).toBe('#ff8400')
+    expect(corDoPreenchimento({ nome: 'Estresse', atual: 15, maximo: 30, sobe: true })).toBe('#ff8400')
   })
 
   it('a barra que desce é VERDE cheia, AMARELA nos 40% e VERMELHA nos 15%', () => {
-    expect(corDoPreenchimento({ atual: 45, maximo: 45 })).toBe('#008000')
-    expect(corDoPreenchimento({ atual: 41, maximo: 100 })).toBe('#008000')
-    expect(corDoPreenchimento({ atual: 40, maximo: 100 })).toBe('#ffff00')
-    expect(corDoPreenchimento({ atual: 16, maximo: 100 })).toBe('#ffff00')
-    expect(corDoPreenchimento({ atual: 15, maximo: 100 })).toBe('#ff0000')
-    expect(corDoPreenchimento({ atual: 0, maximo: 100 })).toBe('#ff0000')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 45, maximo: 45 })).toBe('#008000')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 41, maximo: 100 })).toBe('#008000')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 40, maximo: 100 })).toBe('#ffff00')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 16, maximo: 100 })).toBe('#ffff00')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 15, maximo: 100 })).toBe('#ff0000')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 0, maximo: 100 })).toBe('#ff0000')
     // O verde é o PADRÃO: a cor escolhida no editor é a de cheia, e daí desce igual.
-    expect(corDoPreenchimento({ cor: '#0000ff', atual: 90, maximo: 100 })).toBe('#0000ff')
-    expect(corDoPreenchimento({ cor: '#0000ff', atual: 30, maximo: 100 })).toBe('#ffff00')
-    expect(corDoPreenchimento({ cor: '#0000ff', atual: 10, maximo: 100 })).toBe('#ff0000')
+    expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 90, maximo: 100 })).toBe('#0000ff')
+    expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 30, maximo: 100 })).toBe('#ffff00')
+    expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 10, maximo: 100 })).toBe('#ff0000')
   })
 
   /**
-   * A cor de cheia não sai mais do NOME. Havia um padrão por nome (PV bordô, PE marinho, Sanidade
-   * roxo) e ele deixava toda barra cheia com cara de perigo; o pedido de 08/09/2026 é a escala de
-   * jogo, verde → amarelo → vermelho, e o nome não entra nela.
+   * A cor de cheia é VERDE em tudo que desce, com UMA exceção: mana é azul (ver o bloco abaixo). O
+   * padrão por nome que existia antes — PV bordô, PE marinho, Sanidade roxo — deixava toda barra
+   * cheia com cara de perigo, e saiu no pedido de 08/09/2026.
    */
   it('a cor de cheia é o verde padrão, ou a que a pessoa escolheu', () => {
-    expect(corDoRecurso({})).toBe('#008000')
-    expect(corDoRecurso({ cor: '#800080' })).toBe('#800080')
+    expect(corDoRecurso({ nome: 'PV' })).toBe('#008000')
+    expect(corDoRecurso({ nome: 'Sanidade' })).toBe('#008000')
+    expect(corDoRecurso({ nome: 'PV', cor: '#800080' })).toBe('#800080')
+  })
+})
+
+/**
+ * A barra de MANA, pedido dele em 08/09/2026: "PM é azul e vai ficando mais clarinho quando
+ * diminui". Azul de repouso e um degrau mais claro por ponto gasto — sem amarelo e sem vermelho,
+ * porque acabar o PM não é estar perto da morte.
+ */
+describe('a barra de mana (PM, PE, espaços de magia)', () => {
+  it('é decidida pelo nome, e o nome INTEIRO: PV e Sanidade não entram', () => {
+    for (const nome of ['PM', 'pm', 'PE', 'MP', 'Mana', 'Magia', 'Esforço', 'Pontos de Mana', 'Magic Points', 'Espaços de 1º círculo', '3rd level spell slots']) {
+      expect(recursoDeMana(nome), nome).toBe(true)
+    }
+    for (const nome of ['PV', 'HP', 'Pontos de Vida', 'Sanidade', 'Determinação', 'Torso', 'Carga']) {
+      expect(recursoDeMana(nome), nome).toBe(false)
+    }
+  })
+
+  it('o preenchimento é o azul clareando, um degrau por ponto — cheia marinho, o último ponto claro', () => {
+    const pm = (atual: number) => corDoPreenchimento({ nome: 'PM', atual, maximo: 5 })
+    // Marinho, azul, azul puro, e daí clareando: o matiz é o MESMO nos cinco, só a luz sobe.
+    expect(pm(5)).toBe('#000080')
+    expect(pm(4)).toBe('#0000c0')
+    expect(pm(3)).toBe('#0000ff')
+    expect(pm(2)).toBe('#4040ff')
+    expect(pm(1)).toBe('#8080ff')
+    // Continua AZUL no fim: mana baixa não é a barra de vida gritando.
+    expect(pm(0)).toBe('#8080ff')
+    // A escala inteira cabe em qualquer tamanho de reserva, como a do estresse.
+    expect(corDoPreenchimento({ nome: 'PM', atual: 15, maximo: 15 })).toBe('#000080')
+    expect(corDoPreenchimento({ nome: 'PM', atual: 8, maximo: 15 })).toBe('#0000ff')
+    expect(corDoPreenchimento({ nome: 'PM', atual: 1, maximo: 15 })).toBe('#8080ff')
+    // Reserva de um ponto só não tem degrau nenhum: fica na cor de cheia.
+    expect(corDoPreenchimento({ nome: 'Espaços de 5º círculo', atual: 1, maximo: 1 })).toBe('#000080')
+  })
+
+  it('a cor escolhida no editor é a de cheia, e é ELA que clareia', () => {
+    expect(corDoRecurso({ nome: 'PM' })).toBe('#000080')
+    expect(corDoRecurso({ nome: 'PM', cor: '#800000' })).toBe('#800000')
+    expect(corDoPreenchimento({ nome: 'PM', cor: '#800000', atual: 5, maximo: 5 })).toBe('#800000')
+    expect(corDoPreenchimento({ nome: 'PM', cor: '#800000', atual: 1, maximo: 5 })).toBe('#ff8080')
+    // Cor já clara não escurece pra "clarear": fica onde está.
+    expect(corDoPreenchimento({ nome: 'PM', cor: '#c0c0ff', atual: 1, maximo: 5 })).toBe('#c0c0ff')
   })
 })
 
