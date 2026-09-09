@@ -1,0 +1,24 @@
+// =================================================================================================
+// O QUE ENTRA NO DEPOT: a pasta inteira que `npm run dist:steam` gerou, sem escolher arquivo.
+//
+// É a lista curta porque a escolha do que entra já foi feita no `electron-builder.yml` (o `files`
+// com três pastas nomeadas, e o comentário de lá explica por quê). Aqui, tudo que sobrou vai.
+//
+// O mesmo DepotID do `app_build.vdf` — os dois têm que bater.
+"DepotBuildConfig"
+{
+	"DepotID"	"SEU_DEPOTID"
+
+	"contentroot"	"..\\release-steam\\win-unpacked"
+
+	"FileMapping"
+	{
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"recursive"	"1"
+	}
+
+	// Símbolos de depuração não têm o que fazer na máquina de quem joga, e o `--dir` do
+	// electron-builder chega a deixar um `.pdb` do Electron pra trás dependendo da versão.
+	"FileExclusion"	"*.pdb"
+}

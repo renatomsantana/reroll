@@ -1,4 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
+import { readFileSync } from 'fs'
+import { dirname, join } from 'path'
 import { autoUpdater } from 'electron-updater'
 import { IpcChannels } from '@shared/ipcChannels'
 import type { UpdateStatus } from '@shared/types/update'
@@ -131,6 +133,16 @@ export function registerUpdateHandlers(janela: () => BrowserWindow | null): void
     return
   }
 
+  /**
+   * A build da STEAM também não se atualiza sozinha, e por um motivo mais forte que o da portátil:
+   * a Steam MANDA na pasta do jogo. Ela conhece cada arquivo pelo hash do depot, e "verificar
+   * integridade dos arquivos" desfaz o que o `electron-updater` tivesse escrito.
+   */
+  if (ehBuildDaSteam()) {
+    setStatus({ state: 'steam' })
+    return
+  }
+
   // NÃO baixa sozinho: encontrar a versão nova é uma coisa, gastar a internet de alguém é outra.
   // Quem começa o download é `IpcChannels.updateDownload`, e só depois de duas confirmações.
   autoUpdater.autoDownload = false
@@ -222,12 +234,38 @@ export function ehBuildPortatil(): boolean {
 }
 
 /**
+ * É a build da STEAM? A resposta está num arquivo `canal.txt` ao lado do executável, posto pelo
+ * `electron-builder.steam.yml` (`extraFiles`) e por nada mais.
+ *
+ * É o ARQUIVO, e não a variável `SteamAppId` que o cliente da Steam exporta ao abrir o jogo: a
+ * pergunta aqui não é "quem me abriu", é "de que canal esta cópia veio". Quem abre o `Reroll.exe`
+ * direto da pasta da Steam, pelo Explorer, tem a mesma instalação gerenciada pela Steam e não pode
+ * se atualizar por fora do mesmo jeito.
+ *
+ * Lido UMA vez e guardado: isto é perguntado a cada checagem periódica, e o disco não muda de ideia
+ * durante a execução.
+ */
+let canalDaCopia: string | null = null
+
+export function ehBuildDaSteam(): boolean {
+  if (canalDaCopia === null) {
+    try {
+      canalDaCopia = readFileSync(join(dirname(app.getPath('exe')), 'canal.txt'), 'utf8').trim().toLowerCase()
+    } catch {
+      // Nenhum arquivo é o normal: build de instalador, portátil e `npm run dev` não têm canal.
+      canalDaCopia = ''
+    }
+  }
+  return canalDaCopia === 'steam'
+}
+
+/**
  * Uma falha aqui é ROTINA, não exceção: computador sem internet, GitHub fora do ar, release ainda não
  * publicada. Vira uma linha de estado nas Preferências e nada mais — nunca um diálogo de erro por
  * cima do app de quem só queria rolar dados.
  */
 async function checkForUpdates(): Promise<void> {
-  if (!app.isPackaged || ehBuildPortatil()) return
+  if (!app.isPackaged || ehBuildPortatil() || ehBuildDaSteam()) return
   try {
     await autoUpdater.checkForUpdates()
   } catch (error) {

@@ -9,6 +9,9 @@ dist/
 # juntas passam de 1 GB, e o que sai delas é publicado como anexo de release, não versionado.
 release/
 release2/
+# A pasta que vai pro depot da Steam (`npm run dist:steam`): 328 MB do mesmo Electron.
+release-steam/
+release-dir/
 
 # Cache incremental do TypeScript: muda a cada build e não diz nada a ninguém.
 *.tsbuildinfo
