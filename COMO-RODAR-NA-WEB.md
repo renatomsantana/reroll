@@ -47,12 +47,25 @@ o único jeito de a versão web quebrar sem ninguém notar.
 - Salvar arquivo vira download; abrir arquivo vira o seletor do navegador.
 - Não há janelinha compacta flutuando sobre outros programas (o modo compacto muda só o layout).
 - Instalável no celular: "Adicionar à tela inicial" (tem manifest). Ainda não funciona offline
-  (não há service worker — fica pra passada mobile).
+  (não há service worker) — mas quem quiser o Reroll offline no celular tem o APP DE ANDROID, que
+  leva os arquivos dentro (ver `COMO-PUBLICAR-NA-PLAY-STORE.txt`).
+
+## O layout de celular
+
+Feito em 09/09/2026, e mora em `src/renderer/src/styles/celular.css` — um arquivo só, porque é um
+conjunto: `max-width` decide o que muda em tela estreita e `pointer: coarse` decide o que muda pro
+dedo (um tablet largo também não tem Esc pra fechar nada). Entram `100dvh`, o recorte de tela dos
+celulares, alvo de toque de 32px e a cena proporcional à altura visível.
+
+`npx electron scripts/olharVersaoWeb.mjs` fotografa os dois tamanhos, e a foto do celular sai COM as
+regras de toque: o script lê o bloco `@media (pointer: coarse)` do próprio arquivo e injeta sem a
+media query, porque emular o aparelho pelo depurador derruba ou pendura a janela offscreen (os dois
+medidos, ver o comentário lá).
 
 ## O que falta pra chamar de lançado
 
-1. **Layout de celular**: o app ABRE e roda no celular (ver `out/olhar-web/celular.png`), mas em
-   tela estreita o bloco do personagem sobrepõe os controles de rolagem — precisa da passada de
-   layout pra toque/tela pequena.
-2. **Service worker** se quiser offline / PWA completo.
-3. Decidir hospedagem e testar num celular de verdade (toque, desempenho da cena 3D).
+1. **Service worker** se quiser offline / PWA completo. Não é urgente: quem quer offline instala o
+   app de Android.
+2. Decidir hospedagem.
+3. Testar num celular de verdade — principalmente o desempenho da cena 3D, que é o maior risco e o
+   único que não dá pra medir daqui.
