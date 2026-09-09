@@ -52,6 +52,13 @@ export function corPelaSoma(nome: string): string {
 export const VERDE_DE_VIDA_CHEIA = '#008000'
 
 /**
+ * O segundo degrau da queda: o VERDE CLARO da paleta de 16, de 69% a 40% ("100% até 70% verde, 69
+ * até 40 verde claro", 09/09/2026). Ainda é verde — ninguém se assusta —, mas é OUTRO verde, e é o
+ * que faz meia vida parecer meia vida em vez de vida cheia.
+ */
+export const VERDE_CLARO_DE_ARRANHAO = '#00ff00'
+
+/**
  * MANA CHEIA é AZUL — o marinho da paleta de 16 (pedido dele, 08/09/2026: "PM é azul e vai ficando
  * mais clarinho quando diminui"). Vale pro que se gasta pra conjurar em qualquer sistema: PM de
  * Tormenta, PE de Ordem, MP, e os espaços de magia por círculo de D&D (ver `recursoDeMana`).

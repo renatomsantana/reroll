@@ -118,8 +118,10 @@ describe('fundirRecursos — reimportar a ficha', () => {
 describe('estadoDoRecurso', () => {
   it('barra que desce: nos 40% avisa, nos 15% é perigo, máximo zero é normal', () => {
     expect(estadoDoRecurso({ atual: 45, maximo: 45 })).toBe('normal')
-    expect(estadoDoRecurso({ atual: 41, maximo: 100 })).toBe('normal')
-    expect(estadoDoRecurso({ atual: 40, maximo: 100 })).toBe('aviso')
+    // 40% ainda é o verde claro: o aviso começa em 39%, que é o piso da faixa amarela.
+    expect(estadoDoRecurso({ atual: 40, maximo: 100 })).toBe('normal')
+    expect(estadoDoRecurso({ atual: 2, maximo: 5 })).toBe('normal')
+    expect(estadoDoRecurso({ atual: 39, maximo: 100 })).toBe('aviso')
     expect(estadoDoRecurso({ atual: 16, maximo: 100 })).toBe('aviso')
     expect(estadoDoRecurso({ atual: 15, maximo: 100 })).toBe('perigo')
     expect(estadoDoRecurso({ atual: 0, maximo: 45 })).toBe('perigo')
@@ -167,15 +169,28 @@ describe('a barra que sobe (estresse, dano por região)', () => {
     expect(corDoPreenchimento({ nome: 'Estresse', atual: 15, maximo: 30, sobe: true })).toBe('#ff8400')
   })
 
-  it('a barra que desce é VERDE cheia, AMARELA nos 40% e VERMELHA nos 15%', () => {
+  /**
+   * As quatro faixas dele, dá pra ler direto na tabela: "100% até 70% verde, 69 até 40 verde claro,
+   * 39 até 15 amarelo, 15 até 1 vermelhão".
+   */
+  it('a barra que desce anda pelas quatro faixas: 70% verde, 40% verde claro, 15% amarelo, daí vermelho', () => {
+    const pv = (atual: number) => corDoPreenchimento({ nome: 'PV', atual, maximo: 100 })
+    expect(pv(100)).toBe('#008000')
+    expect(pv(70)).toBe('#008000')
+    expect(pv(69)).toBe('#00ff00')
+    expect(pv(40)).toBe('#00ff00')
+    expect(pv(39)).toBe('#ffff00')
+    expect(pv(16)).toBe('#ffff00')
+    expect(pv(15)).toBe('#ff0000')
+    expect(pv(1)).toBe('#ff0000')
+    expect(pv(0)).toBe('#ff0000')
+    // Cheia é cheia em qualquer tamanho de barra, e os limites caem certo numa reserva pequena.
     expect(corDoPreenchimento({ nome: 'PV', atual: 45, maximo: 45 })).toBe('#008000')
-    expect(corDoPreenchimento({ nome: 'PV', atual: 41, maximo: 100 })).toBe('#008000')
-    expect(corDoPreenchimento({ nome: 'PV', atual: 40, maximo: 100 })).toBe('#ffff00')
-    expect(corDoPreenchimento({ nome: 'PV', atual: 16, maximo: 100 })).toBe('#ffff00')
-    expect(corDoPreenchimento({ nome: 'PV', atual: 15, maximo: 100 })).toBe('#ff0000')
-    expect(corDoPreenchimento({ nome: 'PV', atual: 0, maximo: 100 })).toBe('#ff0000')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 7, maximo: 10 })).toBe('#008000')
+    expect(corDoPreenchimento({ nome: 'PV', atual: 2, maximo: 5 })).toBe('#00ff00')
     // O verde é o PADRÃO: a cor escolhida no editor é a de cheia, e daí desce igual.
     expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 90, maximo: 100 })).toBe('#0000ff')
+    expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 50, maximo: 100 })).toBe('#00ff00')
     expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 30, maximo: 100 })).toBe('#ffff00')
     expect(corDoPreenchimento({ nome: 'PV', cor: '#0000ff', atual: 10, maximo: 100 })).toBe('#ff0000')
   })
