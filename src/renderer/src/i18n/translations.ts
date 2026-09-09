@@ -257,6 +257,7 @@ export interface TranslationDict {
     updateError: string
     /** A build portátil não se atualiza sozinha (ver `updater.ts`). */
     updatePortable: string
+    updateSteam: string
     reset: string
     close: string
   }
@@ -719,6 +720,7 @@ export const translations: Record<Language, TranslationDict> = {
         'Instalando a versão {version}. O Reroll vai fechar e abrir sozinho em alguns segundos: nesse intervalo a tela fica sem ele. Não desligue o computador.',
       updateError: 'Não deu pra procurar atualizações agora.',
       updatePortable: 'Versão portátil: ela não se atualiza sozinha. A versão nova se baixa na página de releases do Reroll no GitHub.',
+      updateSteam: 'Versão da Steam: quem atualiza é a Steam, na sua biblioteca.',
       debugMode: 'Modo debug',
       debugModeHint: 'Mostra colisores, normais de face, confiança da leitura e FPS por cima da cena 3D.',
       reset: 'Restaurar padrões',
@@ -1146,6 +1148,7 @@ export const translations: Record<Language, TranslationDict> = {
         'Installing version {version}. Reroll will close and reopen by itself in a few seconds: the screen sits without it in between. Do not turn the computer off.',
       updateError: "Couldn't check for updates right now.",
       updatePortable: 'Portable build: it does not update itself. Download the new version from the Reroll releases page on GitHub.',
+      updateSteam: 'Steam build: Steam updates it from your library.',
       debugMode: 'Debug mode',
       debugModeHint: 'Shows colliders, face normals, reading confidence and FPS over the 3D scene.',
       reset: 'Reset to defaults',

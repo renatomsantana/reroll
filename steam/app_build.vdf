@@ -1,0 +1,32 @@
+// =================================================================================================
+// O QUE O STEAMCMD SOBE. Um "build" é uma leva de depots subindo junta.
+//
+// Troque as DUAS linhas marcadas com SEU_ pelos números que o painel do Steamworks te der (o AppID
+// aparece no topo da página do app; o DepotID em SteamPipe > Depots). Enquanto estiverem assim, o
+// steamcmd recusa o arquivo — é de propósito, número errado sobe build no app de outra pessoa.
+//
+// Rode a partir da pasta `steam/`:
+//
+//     steamcmd +login SUA_CONTA +run_app_build "%CD%\app_build.vdf" +quit
+//
+// Os caminhos são relativos a ESTE arquivo. `contentroot` é a pasta que `npm run dist:steam`
+// escreve: o que estiver lá dentro é exatamente o que a pessoa recebe.
+"appbuild"
+{
+	"appid"		"SEU_APPID"
+	"desc"		"Reroll"
+
+	// Onde o steamcmd deixa log e cache do upload. Não é conteúdo do jogo; pode apagar quando quiser.
+	"buildoutput"	"..\\release-steam\\steamcmd"
+	"contentroot"	"..\\release-steam\\win-unpacked"
+
+	// VAZIO de propósito: a build sobe e fica PARADA, esperando você marcar como ativa no painel.
+	// Escrever "default" aqui publicaria pra quem comprou no segundo em que o upload terminasse,
+	// sem ninguém ter aberto o app depois de empacotado.
+	"setlive"	""
+
+	"depots"
+	{
+		"SEU_DEPOTID"	"depot_build.vdf"
+	}
+}

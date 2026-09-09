@@ -1,0 +1,43 @@
+# =================================================================================================
+# A BUILD DA STEAM.
+#
+#     npm run dist:steam
+#
+# Sai uma PASTA (`release-steam/win-unpacked/`), e não um instalador — é ela que sobe pro depot. A
+# Steam faz o papel do instalador: ela copia a pasta pra máquina de quem comprou, cria o atalho e
+# troca os arquivos quando sai versão nova.
+#
+# Tudo que não está aqui vem do `electron-builder.yml` pelo `extends`: ícone, fuses, idiomas, a
+# lista de três pastas do `files`. Este arquivo só diz o que muda POR SER da Steam, e é curto de
+# propósito — duas configurações completas lado a lado divergem no primeiro descuido.
+extends: electron-builder.yml
+
+directories:
+  # Pasta própria: `release/` é a do instalador que vai pros amigos, e as duas juntas confundiriam
+  # qual pasta é qual na hora de subir o depot.
+  output: release-steam
+
+win:
+  icon: build/icon.ico
+  target:
+    # SÓ `dir`. Nada de NSIS (a Steam não roda instalador de terceiro no jogo instalado) e nada de
+    # portátil (o lançador portátil descompacta num temporário a cada abertura, e a Steam mediria
+    # tempo de jogo de um processo que não é o jogo).
+    - target: dir
+      arch:
+        - x64
+
+# ---------------------------------------------------------------------------------------------
+# SEM AUTO-UPDATE. `publish: null` tira o bloco do GitHub da build, e com ele o `app-update.yml`
+# que o `electron-updater` lê em tempo de execução.
+#
+# Isso é METADE do desligamento, e a metade que não basta: sem o arquivo, o updater não sabe pra
+# onde perguntar, mas ainda tentaria e cairia num erro na tela de Preferências. A outra metade é o
+# `canal.txt` logo abaixo, que faz o app SABER que é da Steam e nem chegar a perguntar.
+publish: null
+
+# O canal desta cópia, ao lado do executável (`extraFiles`, e não `extraResources`, que iria pra
+# `resources/`). É o que `ehBuildDaSteam()` lê no arranque. Ver o comentário lá em `updater.ts`.
+extraFiles:
+  - from: build/steam/canal.txt
+    to: canal.txt

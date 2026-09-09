@@ -11,6 +11,12 @@ export type UpdateStatus =
   | { state: 'idle' }
   /** A build PORTÁTIL (um .exe, sem instalador): não tem como se trocar sozinha — a nova se baixa no GitHub. */
   | { state: 'portable' }
+  /**
+   * A build da STEAM. Quem troca os arquivos é o cliente da Steam, pelo depot; um app que se
+   * atualiza por fora sobrescreveria a instalação que a Steam acha que conhece, e a verificação de
+   * integridade dela desfaria isso na primeira checagem. Ver `ehBuildDaSteam`.
+   */
+  | { state: 'steam' }
   | { state: 'checking' }
   /** Já está na versão mais recente. */
   | { state: 'upToDate' }

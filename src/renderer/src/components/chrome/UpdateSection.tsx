@@ -45,6 +45,8 @@ export function UpdateSection() {
         return t.settings.updateError
       case 'portable':
         return t.settings.updatePortable
+      case 'steam':
+        return t.settings.updateSteam
       default:
         return ''
     }
@@ -80,7 +82,9 @@ export function UpdateSection() {
           <Button variant="primary" onClick={handleUpdate}>
             {t.settings.updateNow}
           </Button>
-        ) : status.state === 'portable' ? null : (
+        ) : /* Sem botão nas builds que não se atualizam sozinhas: procurar acharia a versão nova e
+               não teria o que fazer com ela. A linha de estado acima diz quem atualiza. */
+        status.state === 'portable' || status.state === 'steam' ? null : (
           <Button variant="secondary" disabled={isBusy} onClick={() => void window.api.update.check()}>
             {t.settings.checkUpdates}
           </Button>

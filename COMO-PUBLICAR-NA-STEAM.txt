@@ -1,0 +1,124 @@
+COMO PUBLICAR O REROLL NA STEAM
+===============================
+
+O que já está pronto aqui e o que só dá pra fazer com a conta na mão. Escrito em 09/09/2026.
+
+
+O QUE JÁ ESTÁ PRONTO
+--------------------
+
+    npm run dist:steam
+
+Sai `release-steam/win-unpacked/` — 328 MB, e é ISSO que sobe pro depot. É uma pasta, e não um
+instalador: quem instala é a Steam.
+
+Três coisas dessa build são diferentes da que vai pros amigos, e as três são exigência da Steam:
+
+1. NÃO SE ATUALIZA SOZINHA. Quem troca os arquivos é o cliente da Steam. O app sabe disso: vai um
+   `canal.txt` ao lado do `Reroll.exe`, e nas Preferências, no lugar do botão de procurar
+   atualização, aparece "Versão da Steam: quem atualiza é a Steam, na sua biblioteca".
+
+   Isso não é frescura de arrumação. A Steam conhece cada arquivo do jogo pelo hash; se o app se
+   atualizasse por fora, o "verificar integridade dos arquivos" desfaria tudo, e quem comprou ficaria
+   num vaivém sem explicação.
+
+2. SEM INSTALADOR. Nada de NSIS e nada de build portátil.
+
+3. SEM PEDIR ADMINISTRADOR. Já era assim (ver `allowElevation: false` no `electron-builder.yml`).
+
+Os arquivos de upload estão em `steam/`, com os números pra trocar marcados como SEU_APPID e
+SEU_DEPOTID.
+
+
+O QUE CUSTA, E QUANTO TEMPO DEMORA
+----------------------------------
+
+- US$ 100 por app, uma vez (Steam Direct). Volta pra você em créditos depois que o app faturar
+  US$ 1.000.
+- Depois de pagar, a Steam impõe UMA ESPERA de 30 dias antes de o app poder ser lançado. Não dá pra
+  pular, então esse relógio começa a correr no dia do pagamento.
+- A página da loja tem que estar publicada e aprovada ANTES da data de lançamento (eles pedem
+  algumas semanas de antecedência).
+- Cadastro fiscal e bancário: como brasileiro você preenche um W-8BEN. Sem isso a conta fica de pé
+  mas não recebe.
+
+Ou seja: do dia em que você paga até o dia em que dá pra vender, conte com uns dois meses. O que dá
+pra fazer sem pagar nada é tudo que está neste repositório.
+
+
+PASSO A PASSO
+-------------
+
+1. Criar a conta Steamworks em partner.steamgames.com e pagar os US$ 100 do app. No fim disso você
+   tem um APPID (um número de 6 ou 7 dígitos).
+
+2. No painel do app: SteamPipe > Depots. Já vem um depot criado; anote o DEPOTID dele.
+
+3. Abrir `steam/app_build.vdf` e `steam/depot_build.vdf` e trocar SEU_APPID e SEU_DEPOTID pelos dois
+   números. É só isso que falta nesses arquivos.
+
+4. Baixar o SteamCMD (developer.valvesoftware.com/wiki/SteamCMD). Não precisa do SDK inteiro.
+
+5. Empacotar e subir:
+
+       npm run dist:steam
+       cd steam
+       steamcmd +login SUA_CONTA +run_app_build "%CD%\app_build.vdf" +quit
+
+   A build sobe e fica PARADA. O `setlive` está vazio de propósito — publicar no segundo em que o
+   upload termina é como sobe build sem ninguém ter aberto.
+
+6. No painel, em SteamPipe > Builds, marcar a build nova como ativa no ramo `default`.
+
+7. Instalação > Lançamento geral: o executável é `Reroll.exe`, sem argumento nenhum, sistema
+   Windows 64 bits.
+
+8. Publicar as alterações (o painel tem um botão de "publicar" separado; nada do que você mexeu vale
+   antes de apertar).
+
+
+O QUE A FICHA DA LOJA PEDE
+--------------------------
+
+Isto é arte, e é o que costuma travar o lançamento — não é o código.
+
+- Capsule pequena, 462 x 174
+- Capsule de cabeçalho, 460 x 215
+- Capsule principal, 616 x 353
+- Capsule vertical, 374 x 448
+- Biblioteca: capsule 600 x 900, cabeçalho 460 x 215, logo 1280 x 720, fundo 3840 x 1240
+- Pelo menos 5 capturas de tela em 1920 x 1080
+- Um vídeo é opcional na regra e praticamente obrigatório na prática
+
+O painel mostra o tamanho exigido ao lado de cada campo, e a Valve muda essa lista de vez em quando
+— confira lá antes de mandar fazer a arte.
+
+Fora a arte: descrição curta e longa, tags, idiomas (o app tem português e inglês), preço,
+classificação etária e o questionário de conteúdo.
+
+
+DUAS DECISÕES QUE SÓ VOCÊ PODE TOMAR
+------------------------------------
+
+1. É JOGO OU É SOFTWARE? O Reroll é uma ferramenta de mesa, não um jogo com começo e fim. A Steam
+   tem a categoria Software (Utilitários), e é onde ele encaixa melhor — mas a vitrine de jogos vende
+   muito mais. Vale olhar como os outros roladores e fichas de RPG que já estão lá se cadastraram.
+
+2. TEM CONCORRENTE GRÁTIS. Rolador de dados é coisa que se acha de graça no navegador. O que o
+   Reroll tem de diferente é a ficha, os presets, o histórico e a cena 3D com o dado de verdade — a
+   página da loja precisa mostrar isso na primeira imagem, não o dado girando.
+
+
+O QUE FICOU DE FORA, E POR QUÊ
+------------------------------
+
+- OVERLAY DA STEAM (Shift+Tab por cima do jogo): não funciona sem ligar o SDK da Steam no app, e o
+  SDK só dá pra testar com um AppID em mãos. Não prometa na página da loja.
+- CONQUISTAS E NUVEM DA STEAM: mesma coisa. A nuvem tem uma versão sem SDK (Steam Auto-Cloud), que é
+  só apontar a pasta `%APPDATA%\Reroll` no painel — essa dá pra ligar sem tocar no código, e é a que
+  eu ligaria primeiro, porque salva os personagens de quem trocar de PC.
+- TEMPO DE JOGO e a lista de amigos funcionam sozinhos, sem SDK nenhum.
+
+Quando você tiver o AppID, o que falta pra ligar o SDK é: `steam_appid.txt` ao lado do executável
+durante o desenvolvimento, o `steamworks.js` nas dependências e a inicialização no processo main. É
+meia hora de trabalho, mas nenhuma dela dá pra testar antes.

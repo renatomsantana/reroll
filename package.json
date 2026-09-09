@@ -19,6 +19,7 @@
     "test": "vitest run",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:dir": "electron-vite build && electron-builder --dir",
+    "dist:steam": "electron-vite build && electron-builder --dir --win --config electron-builder.steam.yml --publish never",
     "icon:generate": "node scripts/generate-icon.mjs"
   },
   "devDependencies": {
