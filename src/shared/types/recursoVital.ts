@@ -1,4 +1,4 @@
-import { AZUL_DE_MANA_CHEIA, VERDE_DE_VIDA_CHEIA, clarearPeloGasto, corDaEscalaDeEstresse, ehCorHex } from './cor'
+import { AZUL_DE_MANA_CHEIA, VERDE_CLARO_DE_ARRANHAO, VERDE_DE_VIDA_CHEIA, clarearPeloGasto, corDaEscalaDeEstresse, ehCorHex } from './cor'
 
 /**
  * RECURSO VITAL: o que o personagem gasta e recupera durante a sessão — PV, PE, Sanidade, HP, o que
@@ -29,7 +29,8 @@ export interface RecursoVital {
    * A barra SOBE: começa vazia e o perigo é ENCHER. É o estresse de Oblívio (o dano por região,
    * "Torso 0/5"), a corrupção, a fadiga, a carga — "oblívio deixa o estresse subindo, tipo 1 amarelo
    * ... 5 vermelhasso, com vários níveis de cor". Ausente, a barra DESCE como PV: cheia é o normal, e
-   * ela amarela nos 40% e avermelha nos 15%. Quem decide é o nome, e a pessoa troca no editor.
+   * ela desce pelas quatro faixas de cor (ver `FRACAO_DE_VERDE_CLARO`). Quem decide é o nome, e a
+   * pessoa troca no editor.
    */
   sobe?: boolean
 }
@@ -186,31 +187,51 @@ export function fundirRecursos(
 export type EstadoDoRecurso = 'normal' | 'aviso' | 'perigo'
 
 /**
- * O estado de relance. Barra que DESCE (PV, PM) avisa nos 40% e é perigo nos 15% — as duas linhas que
- * ele pediu ("vai mudando de cor para amarela em 40% e vermelha em 15%"), no lugar da metade e do
- * quarto da spec. Barra que SOBE tem o espelho, 60% e 85%, porque ali o pior caso é cheia. Máximo
- * zero é "normal" de propósito: não há proporção a julgar, e pintar de perigo uma barra que ninguém
- * preencheu seria alarme falso.
+ * AS QUATRO FAIXAS da barra que DESCE, em fração do máximo, como ele as ditou (09/09/2026): "100%
+ * até 70% verde, 69 até 40 verde claro, 39 até 15 amarelo, 15 até 1 vermelhão". Cada limite é o
+ * PISO da sua faixa — 70% ainda é verde, 40% ainda é verde claro —, e o 15% aparece nas duas últimas
+ * linhas da fala: fica com o VERMELHO, que é o que ele já tinha pedido antes ("vermelha em 15%").
+ *
+ * São quatro e não duas porque a queda tem que dar pra ler ANTES de virar emergência: com só verde e
+ * amarelo, metade da vida e 41% eram a mesma cor.
  */
+export const FRACAO_DE_VERDE_CLARO = 0.7
 export const FRACAO_DE_AVISO = 0.4
 export const FRACAO_DE_PERIGO = 0.15
 
+/** Erro de arredondamento de divisão (40/100 não é exatamente 0,4 em ponto flutuante). */
+const FOLGA = 1e-9
+
+/**
+ * O estado de relance, que é o que pinta o NÚMERO da barra (oliva no aviso, bordô no perigo) — as
+ * quatro faixas de cima em três, porque o verde e o verde claro são os dois "ainda dá".
+ *
+ * Barra que SOBE tem o ESPELHO, 60% e 85%, porque ali o pior caso é cheia; e o limite ali é
+ * INCLUSIVO (60% cheio já avisa) enquanto o de quem desce é o piso da faixa (40% ainda não avisa):
+ * dos dois lados a dúvida cai pro lado de quem está pior.
+ *
+ * Máximo zero é "normal" de propósito: não há proporção a julgar, e pintar de perigo uma barra que
+ * ninguém preencheu seria alarme falso.
+ */
 export function estadoDoRecurso(recurso: Pick<RecursoVital, 'atual' | 'maximo' | 'sobe'>): EstadoDoRecurso {
   if (recurso.maximo <= 0) return 'normal'
   const fracao = recurso.atual / recurso.maximo
-  // A distância do pior caso, nos dois sentidos: vazia pra quem desce, cheia pra quem sobe.
-  const gravidade = recurso.sobe ? fracao : 1 - fracao
-  const folga = 1e-9
-  if (gravidade >= 1 - FRACAO_DE_PERIGO - folga) return 'perigo'
-  if (gravidade >= 1 - FRACAO_DE_AVISO - folga) return 'aviso'
+  if (recurso.sobe) {
+    if (fracao >= 1 - FRACAO_DE_PERIGO - FOLGA) return 'perigo'
+    if (fracao >= 1 - FRACAO_DE_AVISO - FOLGA) return 'aviso'
+    return 'normal'
+  }
+  if (fracao <= FRACAO_DE_PERIGO + FOLGA) return 'perigo'
+  if (fracao < FRACAO_DE_AVISO - FOLGA) return 'aviso'
   return 'normal'
 }
 
 /**
  * A cor com que o PREENCHIMENTO da barra é pintado agora, e são TRÊS escalas, uma por tipo de barra:
  *
- * - VIDA e o resto que desce: VERDE cheia, AMARELO nos 40%, VERMELHO nos 15% — as três da paleta de
- *   16 do Windows. É a escala de qualquer jogo, e é a que se lê de relance;
+ * - VIDA e o resto que desce: as QUATRO faixas — verde até 70%, VERDE CLARO até 40%, AMARELO até
+ *   15%, VERMELHO daí pra baixo (ver `FRACAO_DE_VERDE_CLARO`). Todas da paleta de 16 do Windows, e é
+ *   a escala de qualquer jogo: dá pra ler de relance, sem olhar o número;
  * - MANA (`recursoDeMana`): AZUL sempre, só mais CLARO a cada ponto gasto. Ficar sem PM não é ficar
  *   perto da morte, e o vermelho ali daria um susto que não é o caso;
  * - a que SOBE: cada nível é um degrau do amarelo ao vermelho (ver `corDaEscalaDeEstresse`).
@@ -232,6 +253,9 @@ export function corDoPreenchimento(recurso: Pick<RecursoVital, 'nome' | 'cor' | 
   const estado = estadoDoRecurso(recurso)
   if (estado === 'perigo') return '#ff0000'
   if (estado === 'aviso') return '#ffff00'
+  // Máximo zero não tem proporção pra julgar: fica na cor de cheia, como no estado.
+  const fracao = recurso.maximo > 0 ? recurso.atual / recurso.maximo : 1
+  if (fracao < FRACAO_DE_VERDE_CLARO - FOLGA) return VERDE_CLARO_DE_ARRANHAO
   return corDoRecurso(recurso)
 }
 

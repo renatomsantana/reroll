@@ -167,12 +167,14 @@ describe('as barras de recurso', () => {
     expect(gravacoes.filter((g) => pv(g).atual !== 30)).toHaveLength(0)
   })
 
-  it('cor de estado: nos 40% avisa e o preenchimento amarela; cor fixa é a cor de cheia', async () => {
+  it('cor de estado: 67% já é verde claro, 25% avisa e amarela; cor fixa é a cor de cheia', async () => {
     await montar()
     const pvEl = screen.getByRole('progressbar', { name: 'PV' }).parentElement!
     expect(pvEl.className).toContain('barra-normal')
-    // PV 30 de 45 (67%): cheia o bastante, e vida cheia é VERDE.
-    expect(pvEl.style.getPropertyValue('--recurso-preenchido')).toBe('#008000')
+    // PV 30 de 45 (67%): já saiu da faixa de cheia (70%), e o segundo degrau é o VERDE CLARO. Ainda
+    // é "normal" pro número, que é o ponto das duas faixas verdes.
+    expect(pvEl.style.getPropertyValue('--recurso-preenchido')).toBe('#00ff00')
+    expect(pvEl.style.getPropertyValue('--recurso-cor')).toBe('#008000')
     const sanEl = screen.getByRole('progressbar', { name: 'Sanidade' }).parentElement!
     // 10 de 40 = 25%: abaixo dos 40% é aviso, acima dos 15% ainda não é perigo.
     expect(sanEl.className).toContain('barra-aviso')
