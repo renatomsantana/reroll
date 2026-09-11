@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
-import { arranjoDaInclusao, raioInscrito } from './inclusaoDeResina'
+import { arranjoDaInclusao, FLORES, FOLHAS, raioInscrito } from './inclusaoDeResina'
 import { buildPolyhedronGeometry } from '../geometry/buildPolyhedronGeometry'
 import { D4_VERTICES } from '../dice-defs/d4'
 import { D20_FACE_INPUTS, D20_VERTICES } from '../dice-defs/d20'
@@ -52,9 +52,17 @@ describe('o arranjo das inclusões', () => {
 
   it('tem flor e folha, e escala com o raio', () => {
     const arranjo = arranjoDaInclusao(0.5, 24)
-    expect(arranjo.some((i) => i.tipo.startsWith('flor'))).toBe(true)
-    expect(arranjo.some((i) => i.tipo === 'folha')).toBe(true)
+    const flores = arranjo.filter((i) => (FLORES as readonly string[]).includes(i.tipo))
+    const folhas = arranjo.filter((i) => (FOLHAS as readonly string[]).includes(i.tipo))
+    expect(flores.length).toBeGreaterThanOrEqual(3)
+    expect(folhas.length).toBeGreaterThanOrEqual(3)
     const dobro = arranjoDaInclusao(1, 24)
     expect(dobro[0].tamanho).toBeCloseTo(arranjo[0].tamanho * 2, 6)
+  })
+
+  it('os sete tipos de dado juntos usam mais de um formato de flor', () => {
+    // Sementes = contagem de vértices de cada dado; o que importa é que a mistura varie entre eles.
+    const formatos = new Set([8, 12, 24, 36, 60, 120, 240].flatMap((semente) => arranjoDaInclusao(1, semente).map((i) => i.tipo)))
+    expect(formatos.size).toBeGreaterThanOrEqual(6)
   })
 })
