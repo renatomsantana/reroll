@@ -62,6 +62,9 @@ const estado = {
   /** A próxima imagem que o "Escolher foto" devolve (fase RETRATO); `null` = a foto de teste de sempre. */
   fotoParaEscolher: null,
   pdfParaAbrir: null,
+  /** O que as Preferências mostram de versão e de atualização; `null` = o de teste. */
+  versao: null,
+  updateStatus: null,
   ultimoApply: null
 }
 const notasDoAtivo = () => estado.notas.get(estado.profiles.activeId) ?? NOTAS_VAZIAS()
@@ -177,8 +180,8 @@ const HANDLERS = {
   'window:maximize': () => undefined,
   'window:close': () => undefined,
   'scene:pickBackgroundImage': () => null,
-  'app:getVersion': () => '0.0.0-teste',
-  'update:getStatus': () => ({ state: 'idle' }),
+  'app:getVersion': () => estado.versao ?? '0.0.0-teste',
+  'update:getStatus': () => estado.updateStatus ?? { state: 'idle' },
   'update:check': () => undefined,
   'update:download': () => undefined,
   'update:installNow': () => undefined
@@ -1123,6 +1126,83 @@ async function faseCaderno() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase VITRINE: as capturas de 1920×1080 que a página da Steam pede (mínimo de cinco). Não   */
+/* prova nada além de "a ficha entrou": fotografa o app com um personagem de verdade, a ficha  */
+/* do Vincenzo (Ordem Paranormal), com barras em níveis diferentes e um retrato dos avatares.  */
+/* ------------------------------------------------------------------------------------------ */
+const SESSAO_DA_VITRINE = [
+  'Chegamos na clínica às 23h. A recepção estava vazia e o elevador só desce até o -2.',
+  '',
+  'Investigação no porão: 10 (Veterano). Achei o diário do Dr. Amaral atrás do armário de remédios.',
+  'O diário fala de um "paciente zero" que nunca saiu do quarto 7.',
+  '',
+  'Combate com o Zumbi do quarto 7: pistola acertou (1d12 = 9), martelo errou.',
+  'Tomei 14 de dano. PV 51/65. Sanidade caiu 2 depois de ver o que tinha dentro do armário.',
+  '',
+  'Pendências pra próxima sessão:',
+  '- voltar com a lanterna boa',
+  '- perguntar pro Guga sobre o ritual da página 3',
+  '- Carga: 18/30, dá pra levar mais uma mochila'
+].join('\n')
+async function faseVitrine() {
+  console.log('\n=== VITRINE (capturas 1920×1080 pra página da loja) ===')
+  const avatares = JSON.parse(readFileSync(join(RAIZ, 'scripts', 'avatares.json'), 'utf8'))
+  const tamanho = { largura: 1920, altura: 1080 }
+  const arquivo = 'ficha vincenzo.pdf'
+  estado.versao = JSON.parse(readFileSync(join(RAIZ, 'package.json'), 'utf8')).version
+  estado.updateStatus = { state: 'steam' }
+  estado.profiles = { profiles: [{ id: 'p1', name: '', system: '', photo: avatares.Lorenzo, createdAt: 1 }], activeId: 'p1' }
+  // Uma sessão de jogo escrita, com data de hoje: o caderno vazio "criado em 1969" não é vitrine.
+  estado.notas = new Map([['p1', { ...NOTAS_VAZIAS(), pages: [{ id: 'd1', title: 'Sessão 1: o porão da clínica', text: SESSAO_DA_VITRINE, createdAt: Date.now() }] }]])
+  estado.presets = new Map([['p1', []]])
+  estado.pdfParaAbrir = { nome: arquivo, bytes: new Uint8Array(readFileSync(join(RAIZ, 'Fichas RPG', arquivo))) }
+  await abrirApp({ displayMode: '3d' }, tamanho)
+  await aba('Ficha')
+  await clicar('Importar ficha (PDF)')
+  await confirmarImportacaoDeFicha(undefined, undefined, { semTemCerteza: true })
+  const importou = await esperarAte(`!!document.querySelector('.sheet-import-feito')`, 60000, 250)
+  checar(importou, `${arquivo}: a ficha entrou pra vitrine`)
+  await espera(600)
+  await clicar('Entendi')
+  await espera(400)
+  await foto('vitrine-3-ficha')
+  const paginas = (estado.paginas.get('p1') ?? []).length
+  if (paginas > 0 && (await clicar(`Mostrar as ${paginas} páginas`))) {
+    await espera(800)
+    await foto('vitrine-4-ficha-original')
+  }
+  await aba('Rolagem')
+  await espera(400)
+  await limparGrupos()
+  await clicar('d20')
+  // Até seis tentativas: a captura da loja é uma rolagem comum; um 20 vira a captura do crítico.
+  for (let tentativa = 0; tentativa < 6; tentativa++) {
+    const antes = await js(`document.querySelector('.dice-roller-3d-result').textContent`)
+    await clicar('ROLAR')
+    await espera(700)
+    if (tentativa === 0) await foto('vitrine-1-rolando')
+    await esperarAte(`(() => { const t = document.querySelector('.dice-roller-3d-result').textContent; return t !== ${JSON.stringify(antes)} && /Total/.test(t) })()`, 20000, 200)
+    await espera(400)
+    const r = await lerResultado()
+    if (r.critico) await foto('vitrine-2-critico')
+    else if (!r.falha) { await foto('vitrine-1-rolagem'); break }
+    await espera(300)
+  }
+  await aba('Estilo')
+  await espera(600)
+  await foto('vitrine-5-estilo')
+  await aba('Anotações')
+  await espera(400)
+  await foto('vitrine-6-anotacoes')
+  await aba('Rolagem')
+  await js(`document.querySelector('.toolbar-settings-btn')?.click(); 'ok'`)
+  await espera(700)
+  await foto('vitrine-7-preferencias')
+  estado.versao = null
+  estado.updateStatus = null
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase FICHAS.                                                                                */
 /* ------------------------------------------------------------------------------------------ */
 
@@ -1274,6 +1354,7 @@ app.whenReady().then(async () => {
   // `FICHA=milo npx electron scripts/testarNoApp.mjs fichas` importa só as fichas cujo nome casa (pra olhar uma).
   if (FASES.includes('fichas')) await faseFichas(undefined, process.env.FICHA ? new RegExp(process.env.FICHA, 'i') : undefined)
   // A décima leva fabricada (`ESCREVER_PDFS=1 npx vitest run corpusDePdfs` escreve em Fichas RPG/testes/).
+  if (FASES.includes('vitrine')) await faseVitrine()
   if (FASES.includes('fabricados')) await faseFichas(join(RAIZ, 'Fichas RPG', 'testes'), /^7[0-3]-.*\.pdf$/i, { '73-foto-no-campo.pdf': 'retrato', '70-hp-mp-em-ingles.pdf': null })
   console.log(falhas === 0 ? '\nTudo passou no app compilado.' : `\n${falhas} checagem(ns) falharam.`)
   if (win && !win.isDestroyed()) win.destroy()

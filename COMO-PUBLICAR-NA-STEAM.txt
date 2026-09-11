@@ -93,6 +93,17 @@ Isto é arte, e é o que costuma travar o lançamento — não é o código.
 O painel mostra o tamanho exigido ao lado de cada campo, e a Valve muda essa lista de vez em quando
 — confira lá antes de mandar fazer a arte.
 
+AS CAPTURAS JÁ SAEM DAQUI. O harness tem uma fase só pra isso:
+
+    npx electron-vite build && npx electron scripts/testarNoApp.mjs vitrine
+
+Deixa sete PNGs de 1920 x 1080 em `out/testar-no-app/vitrine-*.png` (a leva de 11/09/2026 está
+copiada em `release-steam/capturas/`): a cena 3D rolando e com o resultado, a Ficha importada e a
+ficha original em PDF, a aba Estilo, as Anotações com uma sessão escrita e as Preferências com o
+texto da Steam. O personagem é o Vincenzo (ficha de Ordem Paranormal da pasta `Fichas RPG/`) com o
+avatar de letra, sem foto de banco de imagens, porque a página é pública. Se quiser outra ficha ou
+outra cena, é só mexer na fase `faseVitrine` do script.
+
 Fora a arte: descrição curta e longa, tags, idiomas (o app tem português e inglês), preço,
 classificação etária e o questionário de conteúdo.
 
