@@ -4,6 +4,7 @@ import { drawNumberGlyph, numericColorToCss } from '../materials/createNumberTex
 import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
 import { createNumberAtlasTexture, remapGeometryUvsToAtlas } from '../materials/createNumberAtlas'
 import { getCachedTexture, type DiceTextureCache } from '../materials/textureCache'
+import { montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
 
 export interface D6VisualOptions {
   bodyColor?: number
@@ -23,6 +24,8 @@ export function buildD6Visual(options: D6VisualOptions = {}): THREE.Mesh {
   const bodyColor = options.bodyColor ?? 0xf2ead6
   const numberColor = options.numberColor ?? '#1a1a1a'
   const bodyColorCss = numericColorToCss(bodyColor)
+  const resina = options.material === 'resin'
+  const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
 
   const geometry = new THREE.BoxGeometry(
     D6_DEFINITION.scale,
@@ -34,19 +37,20 @@ export function buildD6Visual(options: D6VisualOptions = {}): THREE.Mesh {
   // `BoxGeometry` já vêm na mesma ordem de `D6_DEFINITION.faces`, então a face de índice N
   // continua sendo a de valor `faces[N].value`, agora numa célula do atlas em vez de numa
   // textura própria.
-  const cacheKey = `atlas|d6|${numberColor}|${bodyColorCss}|0.8`
+  const cacheKey = `atlas|d6|${numberColor}|${bodyColorCss}|0.8|${opacidadeDoCorpo}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
     createNumberAtlasTexture(D6_DEFINITION.faces.length, bodyColorCss, (ctx, faceIndex, cellPx) => {
       drawNumberGlyph(ctx, D6_DEFINITION.faces[faceIndex].value, cellPx, {
         numberColor,
         fontHeightFraction: 0.8
       })
-    })
+    }, opacidadeDoCorpo)
   )
   remapGeometryUvsToAtlas(geometry, D6_DEFINITION.faces.length)
 
   const mesh = new THREE.Mesh(geometry, createDiceMaterial({ map, finish: options.material }))
   mesh.castShadow = true
   mesh.receiveShadow = true
+  if (resina) montarDadoDeResina(mesh, options.textureCache)
   return mesh
 }

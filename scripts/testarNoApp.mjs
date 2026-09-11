@@ -1126,6 +1126,40 @@ async function faseCaderno() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
+/* Fase RESINA: o acabamento "Resina com flor" (corpo translúcido com flores dentro). Prova    */
+/* que o botão grava a preferência e fotografa a prévia da aba Estilo e a rolagem, pra olhar.  */
+/* ------------------------------------------------------------------------------------------ */
+async function faseResina() {
+  console.log('\n=== RESINA COM FLOR ===')
+  const prefs = { displayMode: '3d', diceMaterial: 'glass', diceBodyColor: '#1d8f8a', diceNumberColor: '#b87333', cameraMode: 'dice' }
+  await abrirApp(prefs, { largura: 1300, altura: 800 })
+  await aba('Estilo')
+  await espera(400)
+  const botao = await clicar('Resina com flor')
+  checar(botao, 'a aba Estilo tem o botão "Resina com flor"')
+  await espera(600)
+  const gravado = await js(`JSON.parse(localStorage.getItem('rolador-settings') || '{}').diceMaterial`)
+  checar(gravado === 'resin', `o botão grava diceMaterial=resin (gravou ${JSON.stringify(gravado)})`)
+  const legenda = await js(`(document.querySelector('.style-tab-preview-caption') || {}).textContent || ''`)
+  checar(/Resina com flor/.test(legenda), `a legenda da prévia diz o acabamento: "${legenda.trim()}"`)
+  await foto('resina-estilo-d20')
+  // A prévia do d6, que é o dado da referência.
+  await js(`Array.from(document.querySelectorAll('[role=option]')).find((e) => e.textContent.trim() === 'd6')?.click(); 'ok'`)
+  await espera(700)
+  await foto('resina-estilo-d6')
+  await aba('Rolagem')
+  await espera(400)
+  await limparGrupos()
+  await clicar('d6')
+  await js(`Array.from(document.querySelectorAll('.dice-roller-3d-group-chip button')).find((b) => b.textContent.trim() === '+')?.click()`)
+  await clicar('d20')
+  const r = await rolarNaCena()
+  checar(r.assentou && r.valores.length === 3, `três dados de resina assentam e são lidos: ${r.assentou ? `[${r.valores}] em ${r.ms}ms` : 'não assentou'}`)
+  await espera(500)
+  await foto('resina-rolagem')
+}
+
+/* ------------------------------------------------------------------------------------------ */
 /* Fase VITRINE: as capturas de 1920×1080 que a página da Steam pede (mínimo de cinco). Não   */
 /* prova nada além de "a ficha entrou": fotografa o app com um personagem de verdade, a ficha  */
 /* do Vincenzo (Ordem Paranormal), com barras em níveis diferentes e um retrato dos avatares.  */
@@ -1354,6 +1388,7 @@ app.whenReady().then(async () => {
   // `FICHA=milo npx electron scripts/testarNoApp.mjs fichas` importa só as fichas cujo nome casa (pra olhar uma).
   if (FASES.includes('fichas')) await faseFichas(undefined, process.env.FICHA ? new RegExp(process.env.FICHA, 'i') : undefined)
   // A décima leva fabricada (`ESCREVER_PDFS=1 npx vitest run corpusDePdfs` escreve em Fichas RPG/testes/).
+  if (FASES.includes('resina')) await faseResina()
   if (FASES.includes('vitrine')) await faseVitrine()
   if (FASES.includes('fabricados')) await faseFichas(join(RAIZ, 'Fichas RPG', 'testes'), /^7[0-3]-.*\.pdf$/i, { '73-foto-no-campo.pdf': 'retrato', '70-hp-mp-em-ingles.pdf': null })
   console.log(falhas === 0 ? '\nTudo passou no app compilado.' : `\n${falhas} checagem(ns) falharam.`)

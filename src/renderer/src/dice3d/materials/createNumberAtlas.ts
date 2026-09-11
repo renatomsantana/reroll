@@ -43,7 +43,9 @@ export function atlasGridFor(faceCount: number): AtlasGrid {
 export function createNumberAtlasTexture(
   faceCount: number,
   bodyColor: string,
-  drawCell: (ctx: CanvasRenderingContext2D, faceIndex: number, cellPx: number) => void
+  drawCell: (ctx: CanvasRenderingContext2D, faceIndex: number, cellPx: number) => void,
+  /** Alfa do fundo (o corpo do dado); 1 = opaco. A resina pinta o corpo a 55% e o número por cima a 100%. */
+  bodyOpacity = 1
 ): THREE.CanvasTexture {
   const { columns, rows, cellPx } = atlasGridFor(faceCount)
   const canvas = document.createElement('canvas')
@@ -58,7 +60,9 @@ export function createNumberAtlasTexture(
   // fecha exata) — mesmo motivo de sempre: a cor do corpo é a textura, não `material.color`
   // (ver `createNumberTexture.ts`).
   ctx.fillStyle = bodyColor
+  ctx.globalAlpha = bodyOpacity
   ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.globalAlpha = 1
 
   for (let faceIndex = 0; faceIndex < faceCount; faceIndex++) {
     const column = faceIndex % columns

@@ -5,6 +5,7 @@ import { numericColorToCss } from '../materials/createNumberTexture'
 import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
 import { createNumberAtlasTexture, remapGeometryUvsToAtlas } from '../materials/createNumberAtlas'
 import { getCachedTexture, type DiceTextureCache } from '../materials/textureCache'
+import { montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
 
 export interface D4VisualOptions {
   bodyColor?: number
@@ -136,16 +137,19 @@ export function buildD4Visual(options: D4VisualOptions = {}): THREE.Mesh {
   // Atlas único com as 4 faces (ver `createNumberAtlas.ts`). A chave inclui os 3 números de
   // cada face porque é o conteúdo desenhado que muda de face pra face — no d4 não existe "o
   // número da face", cada uma mostra os números dos outros três vértices.
-  const cacheKey = `atlas|d4|${numberColor}|${bodyColorCss}`
+  const resina = options.material === 'resin'
+  const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
+  const cacheKey = `atlas|d4|${numberColor}|${bodyColorCss}|${opacidadeDoCorpo}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
     createNumberAtlasTexture(faceCorners.length, bodyColorCss, (ctx, faceIndex, cellPx) => {
       drawD4FaceCell(ctx, faceCorners[faceIndex], numberColor, cellPx)
-    })
+    }, opacidadeDoCorpo)
   )
   remapGeometryUvsToAtlas(geometry, faceCorners.length)
 
   const mesh = new THREE.Mesh(geometry, createDiceMaterial({ map, finish: options.material }))
   mesh.castShadow = true
   mesh.receiveShadow = true
+  if (resina) montarDadoDeResina(mesh, options.textureCache)
   return mesh
 }

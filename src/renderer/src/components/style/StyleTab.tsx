@@ -20,7 +20,7 @@ import { TrayPreview } from './TrayPreview'
 import { TrayShapeIcon } from './TrayShapeIcon'
 import './StyleTab.css'
 
-const MATERIAL_OPTIONS: DiceMaterialFinish[] = ['matte', 'metallic', 'plastic', 'glass']
+const MATERIAL_OPTIONS: DiceMaterialFinish[] = ['matte', 'metallic', 'plastic', 'glass', 'resin']
 
 type PaletteFamilyId = 'metal' | 'gem' | 'matte' | 'plastic'
 /** O que a roda de cores está editando em cada seção — dado (corpo/número) ou cena (parede/chão/fundo). */
