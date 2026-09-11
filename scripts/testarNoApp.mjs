@@ -847,7 +847,7 @@ async function faseFoto() {
 }
 
 /* ------------------------------------------------------------------------------------------ */
-/* Fase RETRATO: a foto nos QUATRO lugares (Ficha, crachá da Rolagem, HUD, seletor), com       */
+/* Fase RETRATO: a foto nos QUATRO lugares (Ficha, crachá das Anotações, HUD, seletor), com    */
 /* imagens de formato difícil: alta, larga, minúscula, enorme, com transparência.              */
 /* ------------------------------------------------------------------------------------------ */
 /** Desenha uma "foto" no renderer: fundo colorido e um rosto (círculo claro) perto do topo. */
@@ -882,7 +882,7 @@ async function medirFoto(seletor) {
 }
 const LUGARES = [
   ['Ficha', '.sheet-profile-photo'],
-  ['crachá da Rolagem', '.profile-badge-photo'],
+  ['crachá das Anotações', '.profile-badge-photo'],
   ['HUD', '.hud-retrato'],
   ['seletor de personagem', '.profile-select-photo']
 ]
@@ -893,9 +893,11 @@ async function conferirOsQuatroLugares(rotulo) {
   await esperarAte(`!!document.querySelector('.profile-select-option')`, 3000)
   medidas['seletor de personagem'] = await medirFoto('.profile-select-option .profile-select-photo')
   await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`)
+  await aba('Anotações')
+  await espera(300)
+  medidas['crachá das Anotações'] = await medirFoto('.profile-badge-photo')
   await aba('Rolagem')
   await espera(300)
-  medidas['crachá da Rolagem'] = await medirFoto('.profile-badge-photo')
   medidas.HUD = await medirFoto('.hud-retrato')
   for (const [lugar] of LUGARES) {
     const m = medidas[lugar]
