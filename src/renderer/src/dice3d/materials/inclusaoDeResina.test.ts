@@ -52,15 +52,15 @@ describe('o arranjo das inclusões', () => {
 
   it('tem flor e folha, e escala com o raio', () => {
     const arranjo = arranjoDaInclusao(0.5, 24)
-    const flores = arranjo.filter((i) => (FLORES as readonly string[]).includes(i.tipo))
-    const folhas = arranjo.filter((i) => (FOLHAS as readonly string[]).includes(i.tipo))
+    const flores = arranjo.filter((i) => i.tipo in FLORES)
+    const folhas = arranjo.filter((i) => i.tipo in FOLHAS)
     expect(flores.length).toBeGreaterThanOrEqual(3)
     expect(folhas.length).toBeGreaterThanOrEqual(3)
     const dobro = arranjoDaInclusao(1, 24)
     expect(dobro[0].tamanho).toBeCloseTo(arranjo[0].tamanho * 2, 6)
   })
 
-  it('os sete tipos de dado juntos usam mais de um formato de flor', () => {
+  it('os sete tipos de dado juntos usam mais de uma planta', () => {
     // Sementes = contagem de vértices de cada dado; o que importa é que a mistura varie entre eles.
     const formatos = new Set([8, 12, 24, 36, 60, 120, 240].flatMap((semente) => arranjoDaInclusao(1, semente).map((i) => i.tipo)))
     expect(formatos.size).toBeGreaterThanOrEqual(6)

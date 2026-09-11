@@ -150,6 +150,6 @@ export function buildD4Visual(options: D4VisualOptions = {}): THREE.Mesh {
   const mesh = new THREE.Mesh(geometry, createDiceMaterial({ map, finish: options.material }))
   mesh.castShadow = true
   mesh.receiveShadow = true
-  if (resina) montarDadoDeResina(mesh, options.textureCache)
+  if (resina) montarDadoDeResina(mesh)
   return mesh
 }
