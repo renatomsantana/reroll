@@ -22,6 +22,10 @@ export function disposeMesh(mesh: THREE.Mesh): void {
   for (const material of materials) {
     disposeMaterial(material)
   }
+  // O dado de resina tem filhos (a casca de trás e as inclusões, ver `inclusaoDeResina.ts`).
+  for (const filho of mesh.children) {
+    if (filho instanceof THREE.Mesh) disposeMesh(filho)
+  }
 }
 
 function disposeMaterial(material: THREE.Material): void {

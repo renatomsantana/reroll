@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export type DiceMaterialFinish = 'matte' | 'metallic' | 'plastic' | 'glass'
+export type DiceMaterialFinish = 'matte' | 'metallic' | 'plastic' | 'glass' | 'resin'
 
 export interface CreateDiceMaterialOptions {
   map: THREE.Texture
@@ -59,6 +59,22 @@ export function createDiceMaterial({ map, finish = 'matte' }: CreateDiceMaterial
         roughness: 0.05,
         transparent: true,
         opacity: 0.8,
+        envMapIntensity: 1.0
+      })
+    case 'resin':
+      /**
+       * A RESINA COM FLOR (ver `inclusaoDeResina.ts`). Diferente do vidro, a transparência não
+       * está em `opacity`: está pintada no ATLAS, corpo a 55% e número a 100%, e é isso que deixa
+       * o número inteiro por cima da flor. `depthWrite` desligado porque as inclusões são filhas
+       * desta malha e ficam atrás da face da frente; com o z-buffer escrito, elas sumiriam.
+       */
+      return new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        map,
+        metalness: 0,
+        roughness: 0.05,
+        transparent: true,
+        depthWrite: false,
         envMapIntensity: 1.0
       })
     case 'matte':

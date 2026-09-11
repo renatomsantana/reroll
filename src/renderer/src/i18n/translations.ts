@@ -272,7 +272,7 @@ export interface TranslationDict {
     applyDefaultToAllHint: string
     defaultColorOption: string
     material: string
-    materialOptions: { matte: string; metallic: string; plastic: string; glass: string }
+    materialOptions: { matte: string; metallic: string; plastic: string; glass: string; resin: string }
     /** Legenda da prévia 3D e das duas seções em que a aba se divide. */
     preview: string
     sectionDice: string
@@ -742,7 +742,8 @@ export const translations: Record<Language, TranslationDict> = {
         matte: 'Fosco',
         metallic: 'Metálico',
         plastic: 'Plástico',
-        glass: 'Vidro'
+        glass: 'Vidro',
+        resin: 'Resina com flor'
       },
       preview: 'Prévia',
       sectionDice: 'Dados',
@@ -1170,7 +1171,8 @@ export const translations: Record<Language, TranslationDict> = {
         matte: 'Matte',
         metallic: 'Metallic',
         plastic: 'Plastic',
-        glass: 'Glass'
+        glass: 'Glass',
+        resin: 'Resin with flower'
       },
       preview: 'Preview',
       sectionDice: 'Dice',
