@@ -1143,10 +1143,12 @@ async function faseResina() {
   const legenda = await js(`(document.querySelector('.style-tab-preview-caption') || {}).textContent || ''`)
   checar(/Resina com flor/.test(legenda), `a legenda da prévia diz o acabamento: "${legenda.trim()}"`)
   await foto('resina-estilo-d20')
-  // A prévia do d6, que é o dado da referência.
-  await js(`Array.from(document.querySelectorAll('[role=option]')).find((e) => e.textContent.trim() === 'd6')?.click(); 'ok'`)
-  await espera(700)
-  await foto('resina-estilo-d6')
+  // A prévia do d6 (o dado da referência), do d8 e do d12: cada tipo tem a sua mistura de flores.
+  for (const dado of ['d6', 'd8', 'd12']) {
+    await js(`Array.from(document.querySelectorAll('[role=option]')).find((e) => e.textContent.trim() === ${JSON.stringify(dado)})?.click(); 'ok'`)
+    await espera(700)
+    await foto(`resina-estilo-${dado}`)
+  }
   await aba('Rolagem')
   await espera(400)
   await limparGrupos()
