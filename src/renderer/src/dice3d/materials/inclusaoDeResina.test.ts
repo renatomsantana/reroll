@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
-import { arranjoDaInclusao, FLORES, FOLHAS, raioInscrito } from './inclusaoDeResina'
+import { raioInscrito } from './inclusaoDeResina'
+import { alcance, cabecaDaFlor, ESPECIES, geradorDe, jardim, planta } from './florDeResina'
 import { buildPolyhedronGeometry } from '../geometry/buildPolyhedronGeometry'
 import { D4_VERTICES } from '../dice-defs/d4'
 import { D20_FACE_INPUTS, D20_VERTICES } from '../dice-defs/d20'
@@ -33,36 +34,40 @@ describe('o raio inscrito', () => {
   })
 })
 
-describe('o arranjo das inclusões', () => {
-  it('cabe inteiro dentro da esfera inscrita, contando a diagonal de cada plano', () => {
-    for (const semente of [8, 24, 36, 60, 120]) {
-      for (const inclusao of arranjoDaInclusao(1, semente)) {
-        const alcance = inclusao.posicao.length() + (inclusao.tamanho * Math.SQRT2) / 2
-        expect(alcance).toBeLessThanOrEqual(1)
-      }
+describe('o jardim de resina', () => {
+  it('cabe inteiro dentro da esfera inscrita, em todas as sementes dos sete dados', () => {
+    // Sementes = contagem de vértices de cada geometria; qualquer número serve, mas estes são os reais.
+    for (const semente of [8, 24, 36, 60, 120, 240, 1000]) {
+      expect(alcance(jardim(1, semente))).toBeLessThan(1)
     }
   })
 
-  it('é o mesmo arranjo pra mesma semente, então trocar a cor não rearruma a flor', () => {
-    const primeiro = arranjoDaInclusao(0.3, 24)
-    const segundo = arranjoDaInclusao(0.3, 24)
-    expect(primeiro.map((i) => i.posicao.toArray())).toEqual(segundo.map((i) => i.posicao.toArray()))
-    expect(arranjoDaInclusao(0.3, 36).map((i) => i.posicao.toArray())).not.toEqual(primeiro.map((i) => i.posicao.toArray()))
+  it('é o mesmo jardim pra mesma semente, então trocar a cor não replanta o dado', () => {
+    const a = alcance(jardim(0.3, 24))
+    const b = alcance(jardim(0.3, 24))
+    expect(a).toBe(b)
+    expect(alcance(jardim(0.3, 36))).not.toBe(a)
   })
 
-  it('tem flor e folha, e escala com o raio', () => {
-    const arranjo = arranjoDaInclusao(0.5, 24)
-    const flores = arranjo.filter((i) => i.tipo in FLORES)
-    const folhas = arranjo.filter((i) => i.tipo in FOLHAS)
-    expect(flores.length).toBeGreaterThanOrEqual(3)
-    expect(folhas.length).toBeGreaterThanOrEqual(3)
-    const dobro = arranjoDaInclusao(1, 24)
-    expect(dobro[0].tamanho).toBeCloseTo(arranjo[0].tamanho * 2, 6)
+  it('tem volume: os vértices de uma cabeça de flor não ficam num plano só', () => {
+    const cabeca = cabecaDaFlor(ESPECIES['margarida-lilas'], 1, geradorDe(7))
+    cabeca.updateMatrixWorld(true)
+    const alturas: number[] = []
+    const p = new THREE.Vector3()
+    cabeca.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return
+      const pos = obj.geometry.getAttribute('position')
+      for (let i = 0; i < pos.count; i++) alturas.push(p.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld).y)
+    })
+    expect(Math.max(...alturas) - Math.min(...alturas)).toBeGreaterThan(0.2)
   })
 
-  it('os sete tipos de dado juntos usam mais de uma planta', () => {
-    // Sementes = contagem de vértices de cada dado; o que importa é que a mistura varie entre eles.
-    const formatos = new Set([8, 12, 24, 36, 60, 120, 240].flatMap((semente) => arranjoDaInclusao(1, semente).map((i) => i.tipo)))
-    expect(formatos.size).toBeGreaterThanOrEqual(6)
+  it('a planta tem caule, raízes, folhas e a cabeça: mais de dez malhas', () => {
+    const p = planta(ESPECIES['flor-rosa'], 1, 0.4, geradorDe(3))
+    let malhas = 0
+    p.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) malhas++
+    })
+    expect(malhas).toBeGreaterThan(10)
   })
 })
