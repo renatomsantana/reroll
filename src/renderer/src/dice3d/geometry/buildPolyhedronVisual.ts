@@ -61,6 +61,6 @@ export function buildPolyhedronVisual(
   const mesh = new THREE.Mesh(geometry, createDiceMaterial({ map, finish: options.material }))
   mesh.castShadow = true
   mesh.receiveShadow = true
-  if (resina) montarDadoDeResina(mesh, options.flores)
+  if (resina) montarDadoDeResina(mesh, bodyColorCss, options.flores)
   return mesh
 }

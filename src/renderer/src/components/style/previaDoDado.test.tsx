@@ -90,6 +90,7 @@ vi.mock('three', () => {
     WebGLRenderer: class {
       domElement = document.createElement('canvas')
       setPixelRatio = vi.fn()
+      setClearColor = vi.fn()
       setSize = vi.fn()
       render = vi.fn()
       dispose = vi.fn()
