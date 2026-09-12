@@ -103,6 +103,10 @@ vi.mock('three', () => {
     Vector3,
     Box3,
     Sphere,
+    // `setClearColor` da prévia recebe uma cor; o valor não importa aqui.
+    Color: class {
+      constructor(..._args: unknown[]) {}
+    },
     MathUtils: { degToRad: (graus: number) => (graus * Math.PI) / 180 }
   }
 })
