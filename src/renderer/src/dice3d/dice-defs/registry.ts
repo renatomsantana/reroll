@@ -24,6 +24,8 @@ export interface DiceVisualOptions {
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina (CSS hex). */
   flores?: [string, string]
+  /** A cor do glitter do dado de resina com glitter (CSS hex). */
+  glitter?: string
   /** Ver `textureCache.ts` — opcional, reduz regeração de textura entre dados idênticos da mesma leva de construção (ex.: vários dados do mesmo tipo numa rolagem). */
   textureCache?: DiceTextureCache
 }

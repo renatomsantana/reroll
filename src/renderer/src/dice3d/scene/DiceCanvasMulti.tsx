@@ -214,6 +214,8 @@ export interface DiceCanvasMultiProps {
   /** As cores da flor 1 e da flor 2 do dado de resina (CSS hex). Só valem com `material` = resin. */
   flor1?: string
   flor2?: string
+  /** A cor do glitter do dado de resina com glitter (CSS hex). */
+  glitterColor?: string
   /** Cor da parede da bandeja (hex numérico). Aplicada na cena existente, sem remount. */
   wallColor?: number
   /** Cor de fundo da cena (hex numérico). */
@@ -710,6 +712,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       material,
       flor1,
       flor2,
+      glitterColor,
       wallColor,
       backgroundColor,
       floorColor,
@@ -803,6 +806,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     const flores: [string, string] | undefined = flor1 && flor2 ? [flor1, flor2] : undefined
     const floresRef = useRef(flores)
     floresRef.current = flores
+    const glitterRef = useRef(glitterColor)
+    glitterRef.current = glitterColor
     // Espelhado em ref pelo mesmo motivo dos de cima: o efeito de montagem roda uma vez só e
     // congelaria a cor do primeiro render.
     const towerColorsRef = useRef(towerColors)
@@ -1001,6 +1006,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             numberColor: colors?.numberColor,
             material,
             flores,
+          glitter: glitterColor,
             textureCache: mountTextureCache
           })
           assentarDadoDaPrateleira(mesh, entry.definition, positions[i])
@@ -1525,6 +1531,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
               numberColor: colors?.numberColor,
               material,
               flores,
+          glitter: glitterColor,
               textureCache: mountTextureCache
             })
             scene.add(mesh)
@@ -1668,6 +1675,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           numberColor: dieColors?.numberColor,
           material: currentMaterial,
           flores: currentFlores,
+          glitter: glitterRef.current,
           textureCache
         })
         scene.add(mesh)
@@ -1787,6 +1795,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             numberColor: colors?.numberColor,
             material,
             flores: floresRef.current,
+          glitter: glitterRef.current,
             textureCache: rebuildTextureCache
           })
           syncMeshToBody(newMesh, die.body)
@@ -1816,6 +1825,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
               numberColor: colors?.numberColor,
               material,
               flores: floresRef.current,
+          glitter: glitterRef.current,
               textureCache: rebuildTextureCache
             })
             assentarDadoDaPrateleira(newMesh, entry.definition, positions[i])
@@ -1840,7 +1850,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
 
       return () => window.clearTimeout(timeoutId)
        
-    }, [diceColors, material, flor1, flor2, wallColor, backgroundColor, floorColor, backgroundImage])
+    }, [diceColors, material, flor1, flor2, glitterColor, wallColor, backgroundColor, floorColor, backgroundImage])
 
     /**
      * Cor da torre em efeito próprio. Ela morava no efeito acima, que não depende de `towerColors`,

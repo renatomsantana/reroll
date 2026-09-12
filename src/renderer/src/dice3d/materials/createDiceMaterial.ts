@@ -1,6 +1,11 @@
 import * as THREE from 'three'
 
-export type DiceMaterialFinish = 'matte' | 'metallic' | 'plastic' | 'glass' | 'resin'
+export type DiceMaterialFinish = 'matte' | 'metallic' | 'plastic' | 'glass' | 'resin' | 'glitter'
+
+/** Os dois temas de resina compartilham a casca translúcida; muda só o que vai dentro. */
+export function ehResina(finish: DiceMaterialFinish | undefined): boolean {
+  return finish === 'resin' || finish === 'glitter'
+}
 
 export interface CreateDiceMaterialOptions {
   map: THREE.Texture
@@ -62,6 +67,7 @@ export function createDiceMaterial({ map, finish = 'matte' }: CreateDiceMaterial
         envMapIntensity: 1.0
       })
     case 'resin':
+    case 'glitter':
       /**
        * A RESINA COM FLOR (ver `inclusaoDeResina.ts`). Diferente do vidro, a transparência não
        * está em `opacity`: está pintada no ATLAS, corpo a 55% e número a 100%, e é isso que deixa

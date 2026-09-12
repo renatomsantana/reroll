@@ -38,6 +38,8 @@ interface StylePreviewProps {
   /** As cores da flor 1 e da flor 2 do dado de resina. */
   flor1: string
   flor2: string
+  /** A cor do glitter do dado de resina com glitter. */
+  glitterColor: string
 }
 
 /**
@@ -47,7 +49,7 @@ interface StylePreviewProps {
  * bandeja/torre) — só um `requestAnimationFrame` girando o dado devagar, então o custo extra de
  * ter uma segunda cena WebGL rodando é pequeno (nada de física, nada de múltiplos dados).
  */
-export function StylePreview({ sides, bodyColor, numberColor, material, flor1, flor2 }: StylePreviewProps) {
+export function StylePreview({ sides, bodyColor, numberColor, material, flor1, flor2, glitterColor }: StylePreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const meshRef = useRef<THREE.Mesh | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -196,6 +198,7 @@ export function StylePreview({ sides, bodyColor, numberColor, material, flor1, f
         numberColor,
         material,
         flores: [flor1, flor2],
+        glitter: glitterColor,
         textureCache: cache
       })
       if (meshRef.current) {
@@ -242,7 +245,7 @@ export function StylePreview({ sides, bodyColor, numberColor, material, flor1, f
     const timeoutId = window.setTimeout(rebuild, COLOR_UPDATE_DEBOUNCE_MS)
     return () => window.clearTimeout(timeoutId)
     // `geracaoDaCena` na lista é o que conserta a prévia vazia — ver o comentário da declaração.
-  }, [sides, bodyColor, numberColor, material, flor1, flor2, geracaoDaCena])
+  }, [sides, bodyColor, numberColor, material, flor1, flor2, glitterColor, geracaoDaCena])
 
   return <div ref={containerRef} className="style-preview" />
 }

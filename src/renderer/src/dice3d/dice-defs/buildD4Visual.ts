@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { D4_DEFINITION, D4_FACE_INPUTS, D4_VERTICES } from './d4'
 import { cross, dot, normalize, orientFaceOutward, subtract } from '../geometry/polyhedronMath'
 import { numericColorToCss } from '../materials/createNumberTexture'
-import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
+import { createDiceMaterial, ehResina, type DiceMaterialFinish } from '../materials/createDiceMaterial'
 import { createNumberAtlasTexture, remapGeometryUvsToAtlas } from '../materials/createNumberAtlas'
 import { getCachedTexture, type DiceTextureCache } from '../materials/textureCache'
 import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
@@ -13,6 +13,8 @@ export interface D4VisualOptions {
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina. */
   flores?: [string, string]
+  /** A cor do glitter do dado de resina com glitter. */
+  glitter?: string
   /** Ver `textureCache.ts` — opcional, reduz regeração de textura entre dados idênticos da mesma leva de construção. */
   textureCache?: DiceTextureCache
 }
@@ -139,7 +141,7 @@ export function buildD4Visual(options: D4VisualOptions = {}): THREE.Mesh {
   // Atlas único com as 4 faces (ver `createNumberAtlas.ts`). A chave inclui os 3 números de
   // cada face porque é o conteúdo desenhado que muda de face pra face — no d4 não existe "o
   // número da face", cada uma mostra os números dos outros três vértices.
-  const resina = options.material === 'resin'
+  const resina = ehResina(options.material)
   const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
   const corDoCorpo = resina ? corDoCorpoDeResina(bodyColorCss) : bodyColorCss
   const cacheKey = `atlas|d4|${numberColor}|${bodyColorCss}|${opacidadeDoCorpo}`
@@ -153,6 +155,6 @@ export function buildD4Visual(options: D4VisualOptions = {}): THREE.Mesh {
   const mesh = new THREE.Mesh(geometry, createDiceMaterial({ map, finish: options.material }))
   mesh.castShadow = true
   mesh.receiveShadow = true
-  if (resina) montarDadoDeResina(mesh, options.flores)
+  if (resina && options.material) montarDadoDeResina(mesh, options.material, { flores: options.flores, glitter: options.glitter })
   return mesh
 }

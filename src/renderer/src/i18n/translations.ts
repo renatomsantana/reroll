@@ -272,7 +272,7 @@ export interface TranslationDict {
     applyDefaultToAllHint: string
     defaultColorOption: string
     material: string
-    materialOptions: { matte: string; metallic: string; plastic: string; glass: string; resin: string }
+    materialOptions: { matte: string; metallic: string; plastic: string; glass: string; resin: string; glitter: string }
     /** Legenda da prévia 3D e das duas seções em que a aba se divide. */
     preview: string
     sectionDice: string
@@ -296,6 +296,7 @@ export interface TranslationDict {
       /** As duas flores do dado de resina. */
       flower1: string
       flower2: string
+      glitter: string
       wall: string
       floor: string
       background: string
@@ -746,7 +747,8 @@ export const translations: Record<Language, TranslationDict> = {
         metallic: 'Metálico',
         plastic: 'Plástico',
         glass: 'Vidro',
-        resin: 'Resina com flor'
+        resin: 'Resina com flor',
+        glitter: 'Resina com glitter'
       },
       preview: 'Prévia',
       sectionDice: 'Dados',
@@ -767,6 +769,7 @@ export const translations: Record<Language, TranslationDict> = {
         number: 'Número',
         flower1: 'Flor 1',
         flower2: 'Flor 2',
+        glitter: 'Glitter',
         wall: 'Parede',
         floor: 'Veludo',
         background: 'Fundo',
@@ -1177,7 +1180,8 @@ export const translations: Record<Language, TranslationDict> = {
         metallic: 'Metallic',
         plastic: 'Plastic',
         glass: 'Glass',
-        resin: 'Resin with flower'
+        resin: 'Resin with flower',
+        glitter: 'Resin with glitter'
       },
       preview: 'Preview',
       sectionDice: 'Dice',
@@ -1198,6 +1202,7 @@ export const translations: Record<Language, TranslationDict> = {
         number: 'Number',
         flower1: 'Flower 1',
         flower2: 'Flower 2',
+        glitter: 'Glitter',
         wall: 'Wall',
         floor: 'Velvet',
         background: 'Background',

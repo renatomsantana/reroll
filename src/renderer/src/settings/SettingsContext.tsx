@@ -8,6 +8,7 @@ import { DEFAULT_APP_ICON_ID, isValidAppIconId } from '@shared/appIcons'
 import type { Language } from '@shared/types/idioma'
 import { CHAVES_DA_APARENCIA, type AparenciaDoPersonagem } from '@shared/types/aparencia'
 import { COR_PADRAO_DA_FLOR_1, COR_PADRAO_DA_FLOR_2 } from '@renderer/dice3d/materials/florDeResina'
+import { COR_PADRAO_DO_GLITTER } from '@renderer/dice3d/materials/glitterDeResina'
 
 export type ThemeMode = 'day' | 'night'
 
@@ -223,6 +224,8 @@ interface Settings {
   /** As cores da flor 1 (grande) e da flor 2 (pequena) do acabamento "Resina com flor" (CSS hex). */
   resinFlower1: string
   resinFlower2: string
+  /** A cor dos flocos do acabamento "Resina com glitter" (CSS hex). */
+  glitterColor: string
   /**
    * Cor do corpo e do número por TIPO de dado (chave = lados), sobrepondo a cor global só nos tipos
    * presentes aqui. Pedido dele depois de a prateleira decorativa mostrar todos os tipos lado a lado
@@ -309,6 +312,7 @@ const DEFAULT_SETTINGS: Settings = {
   diceMaterial: 'matte',
   resinFlower1: COR_PADRAO_DA_FLOR_1,
   resinFlower2: COR_PADRAO_DA_FLOR_2,
+  glitterColor: COR_PADRAO_DO_GLITTER,
   diceColorOverrides: {},
   /**
    * A bandeja de fábrica que o usuário definiu: "o padrão sempre vai ser paredes marrons cor
@@ -410,6 +414,7 @@ interface SettingsContextValue extends Settings {
   setDiceMaterial: (value: DiceMaterialFinish) => void
   setResinFlower1: (value: string) => void
   setResinFlower2: (value: string) => void
+  setGlitterColor: (value: string) => void
   setDiceColorOverride: (sides: number, bodyColor: string, numberColor: string) => void
   clearDiceColorOverride: (sides: number) => void
   setWallColor: (value: string) => void
@@ -619,6 +624,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setDiceMaterial: (diceMaterial) => setSettings((prev) => ({ ...prev, diceMaterial })),
       setResinFlower1: (resinFlower1) => setSettings((prev) => ({ ...prev, resinFlower1 })),
       setResinFlower2: (resinFlower2) => setSettings((prev) => ({ ...prev, resinFlower2 })),
+      setGlitterColor: (glitterColor) => setSettings((prev) => ({ ...prev, glitterColor })),
       setDiceColorOverride: (sides, bodyColor, numberColor) =>
         setSettings((prev) => ({
           ...prev,
