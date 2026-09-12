@@ -62,7 +62,7 @@ describe('o jardim de resina', () => {
     expect(Math.max(...alturas) - Math.min(...alturas)).toBeGreaterThan(0.2)
   })
 
-  it('a planta tem caule, raízes, folhas e a cabeça: mais de dez malhas', () => {
+  it('a planta tem caule, folhas e a cabeça: mais de dez malhas', () => {
     const p = planta(FORMAS.rosa, '#ea7fb0', 1, 0.4, geradorDe(3))
     let malhas = 0
     p.traverse((obj) => {

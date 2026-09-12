@@ -4,7 +4,7 @@ import { drawNumberGlyph, numericColorToCss } from '../materials/createNumberTex
 import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
 import { createNumberAtlasTexture, remapGeometryUvsToAtlas } from '../materials/createNumberAtlas'
 import { getCachedTexture, type DiceTextureCache } from '../materials/textureCache'
-import { montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
+import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
 
 export interface D6VisualOptions {
   bodyColor?: number
@@ -28,6 +28,7 @@ export function buildD6Visual(options: D6VisualOptions = {}): THREE.Mesh {
   const bodyColorCss = numericColorToCss(bodyColor)
   const resina = options.material === 'resin'
   const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
+  const corDoCorpo = resina ? corDoCorpoDeResina(bodyColorCss) : bodyColorCss
 
   const geometry = new THREE.BoxGeometry(
     D6_DEFINITION.scale,
@@ -41,7 +42,7 @@ export function buildD6Visual(options: D6VisualOptions = {}): THREE.Mesh {
   // textura própria.
   const cacheKey = `atlas|d6|${numberColor}|${bodyColorCss}|0.8|${opacidadeDoCorpo}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
-    createNumberAtlasTexture(D6_DEFINITION.faces.length, bodyColorCss, (ctx, faceIndex, cellPx) => {
+    createNumberAtlasTexture(D6_DEFINITION.faces.length, corDoCorpo, (ctx, faceIndex, cellPx) => {
       drawNumberGlyph(ctx, D6_DEFINITION.faces[faceIndex].value, cellPx, {
         numberColor,
         fontHeightFraction: 0.8

@@ -5,7 +5,7 @@ import { numericColorToCss } from '../materials/createNumberTexture'
 import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
 import { createNumberAtlasTexture, remapGeometryUvsToAtlas } from '../materials/createNumberAtlas'
 import { getCachedTexture, type DiceTextureCache } from '../materials/textureCache'
-import { montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
+import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
 
 export interface D4VisualOptions {
   bodyColor?: number
@@ -141,9 +141,10 @@ export function buildD4Visual(options: D4VisualOptions = {}): THREE.Mesh {
   // número da face", cada uma mostra os números dos outros três vértices.
   const resina = options.material === 'resin'
   const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
+  const corDoCorpo = resina ? corDoCorpoDeResina(bodyColorCss) : bodyColorCss
   const cacheKey = `atlas|d4|${numberColor}|${bodyColorCss}|${opacidadeDoCorpo}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
-    createNumberAtlasTexture(faceCorners.length, bodyColorCss, (ctx, faceIndex, cellPx) => {
+    createNumberAtlasTexture(faceCorners.length, corDoCorpo, (ctx, faceIndex, cellPx) => {
       drawD4FaceCell(ctx, faceCorners[faceIndex], numberColor, cellPx)
     }, opacidadeDoCorpo)
   )

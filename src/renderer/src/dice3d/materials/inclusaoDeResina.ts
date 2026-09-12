@@ -24,11 +24,23 @@ import { jardim } from './florDeResina'
 
 /**
  * Quanto do corpo se vê através. Começou em 0,55; ele pediu "mais transparente" na primeira olhada
- * (11/09/2026) e foi pra 0,4; gostou do jardim e pediu "15% menos opaco": 0,34.
+ * (11/09/2026) e foi pra 0,4; gostou do jardim e pediu "15% menos opaco": 0,34; depois "menos 10,
+ * mas mantém a cor": 0,31, com a cor do corpo saturada por `corDoCorpoDeResina` pra compensar.
  */
-export const OPACIDADE_DO_CORPO_DE_RESINA = 0.34
+export const OPACIDADE_DO_CORPO_DE_RESINA = 0.31
 /** A parede de trás, mais fraca ainda: o número dela aparece espelhado e não pode disputar a leitura. */
-const OPACIDADE_DA_CASCA_DE_TRAS = 0.26
+const OPACIDADE_DA_CASCA_DE_TRAS = 0.23
+
+/**
+ * A cor que o atlas pinta no corpo da resina. Com menos alfa, a mesma cor tinge menos e o dado ia
+ * ficando cinza-esverdeado; saturar 30% e escurecer 6% devolve o tom que a pessoa escolheu na roda,
+ * visto ATRAVÉS da transparência. Só vale pra resina; os outros acabamentos pintam a cor crua.
+ */
+export function corDoCorpoDeResina(css: string): string {
+  const hsl = { h: 0, s: 0, l: 0 }
+  new THREE.Color(css).getHSL(hsl)
+  return `#${new THREE.Color().setHSL(hsl.h, Math.min(1, hsl.s * 1.3), hsl.l * 0.94).getHexString()}`
+}
 
 const ORDEM_CASCA_DE_TRAS = 0
 const ORDEM_CASCA_DA_FRENTE = 2
