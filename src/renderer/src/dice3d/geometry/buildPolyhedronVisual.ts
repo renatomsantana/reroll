@@ -6,7 +6,7 @@ import { drawNumberGlyph, numericColorToCss } from '../materials/createNumberTex
 import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
 import { createNumberAtlasTexture, remapGeometryUvsToAtlas } from '../materials/createNumberAtlas'
 import { getCachedTexture, type DiceTextureCache } from '../materials/textureCache'
-import { montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
+import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
 
 export interface PolyhedronVisualOptions {
   bodyColor?: number
@@ -36,6 +36,7 @@ export function buildPolyhedronVisual(
   const scale = options.scale ?? 1
   const resina = options.material === 'resin'
   const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
+  const corDoCorpo = resina ? corDoCorpoDeResina(bodyColorCss) : bodyColorCss
 
   const { geometry, faces } = buildPolyhedronGeometry(vertices, faceInputs)
   geometry.scale(scale, scale, scale)
@@ -48,7 +49,7 @@ export function buildPolyhedronVisual(
    */
   const cacheKey = `atlas|${faces.map((f) => f.value).join(',')}|${numberColor}|${bodyColorCss}|${POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION}|${opacidadeDoCorpo}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
-    createNumberAtlasTexture(faces.length, bodyColorCss, (ctx, faceIndex, cellPx) => {
+    createNumberAtlasTexture(faces.length, corDoCorpo, (ctx, faceIndex, cellPx) => {
       drawNumberGlyph(ctx, faces[faceIndex].value, cellPx, {
         numberColor,
         fontHeightFraction: POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION

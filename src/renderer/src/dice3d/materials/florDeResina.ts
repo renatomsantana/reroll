@@ -210,12 +210,11 @@ export function cabecaDaFlor(especie: FormaDeFlor, cor: string, raio: number, so
 const COR_DA_FOLHA = new THREE.Color('#2f9c96')
 const NERVURA = new THREE.Color('#1b6a66')
 const COR_DO_CAULE = new THREE.Color('#4f7a4a')
-const COR_DA_RAIZ = new THREE.Color('#c9b08a')
 
 /**
- * UMA PLANTA INTEIRA, de pé: raízes de `-altura/2` até um pouco abaixo, caule subindo com uma
- * ondulação, duas ou três folhas ao longo dele e a cabeça da flor no topo, levemente inclinada.
- * Cabe num cilindro de raio `raioDaFlor` e altura `altura` em volta da origem.
+ * UMA PLANTA INTEIRA, de pé: caule subindo com uma ondulação, duas ou três folhas ao longo dele e a
+ * cabeça da flor no topo, levemente inclinada. Cabe num cilindro de raio `raioDaFlor` e altura
+ * `altura` em volta da origem.
  */
 export function planta(especie: FormaDeFlor, cor: string, altura: number, raioDaFlor: number, sorteio: Sorteio): THREE.Group {
   const grupo = new THREE.Group()
@@ -233,23 +232,7 @@ export function planta(especie: FormaDeFlor, cor: string, altura: number, raioDa
   pontos[0].z = 0
   grupo.add(tubo(pontos, raioDoCaule, COR_DO_CAULE))
 
-  // As raízes: uma principal descendo e quatro finas abrindo pros lados, todas com tremida.
-  const raizes = 1 + 4
-  for (let r = 0; r < raizes; r++) {
-    const principal = r === 0
-    const comprimento = altura * (principal ? 0.16 : 0.08 + sorteio() * 0.08)
-    const direcao = new THREE.Vector3(principal ? 0 : Math.cos((r / 4) * Math.PI * 2 + sorteio()), -1, principal ? 0 : Math.sin((r / 4) * Math.PI * 2 + sorteio())).normalize()
-    const pts: THREE.Vector3[] = []
-    for (let i = 0; i <= 3; i++) {
-      const t = i / 3
-      pts.push(
-        new THREE.Vector3(0, pe, 0)
-          .addScaledVector(direcao, comprimento * t)
-          .add(new THREE.Vector3((sorteio() - 0.5) * altura * 0.03 * t, 0, (sorteio() - 0.5) * altura * 0.03 * t))
-      )
-    }
-    grupo.add(tubo(pts, raioDoCaule * (principal ? 0.8 : 0.4), COR_DA_RAIZ))
-  }
+  // Sem raízes: tinha uma principal e quatro finas, e ele pediu pra tirar ("tira as raízes da flor").
 
   /**
    * As folhas: duas ou três, saindo do caule na METADE DE BAIXO e apontando pra fora quase na
@@ -278,12 +261,10 @@ export function planta(especie: FormaDeFlor, cor: string, altura: number, raioDa
 }
 
 /**
- * O JARDIM de um dado: a flor 1 grande, a flor 2 pequena (de outra forma) e uma folha solta, todas
- * dentro da esfera inscrita de raio `raio`. As três são giradas em bloco pra não ficar sempre de
- * pé (flor seca em resina fica na posição em que caiu).
- *
- * As três peças não se tocam: a pequena fica a 0,45R do lado da grande, abaixo da cabeça dela, e a
- * folha solta fica embaixo, do lado oposto, longe das duas cabeças.
+ * O JARDIM de um dado: a flor 1 grande e a flor 2 pequena (de outra forma), dentro da esfera
+ * inscrita de raio `raio`. As duas são giradas em bloco pra não ficar sempre de pé (flor seca em
+ * resina fica na posição em que caiu). A pequena fica a 0,45R do lado da grande, abaixo da cabeça
+ * dela, sem se tocarem. A folha solta que havia aqui saiu a pedido dele.
  */
 export function jardim(raio: number, semente: number, cores: [string, string] = [COR_PADRAO_DA_FLOR_1, COR_PADRAO_DA_FLOR_2]): THREE.Group {
   const sorteio = geradorDe(semente)
@@ -302,11 +283,6 @@ export function jardim(raio: number, semente: number, cores: [string, string] = 
   pequena.position.set(raio * 0.38, -raio * 0.22, raio * 0.18)
   pequena.rotation.z = -0.4
   grupo.add(pequena)
-
-  const solta = malha(folha(raio * 0.45, raio * 0.2, 0.3, 0.4, COR_DA_FOLHA, NERVURA))
-  solta.position.set(-raio * 0.3, -raio * 0.4, raio * 0.28)
-  solta.rotation.set(sorteio() * Math.PI, sorteio() * Math.PI, sorteio() * Math.PI)
-  grupo.add(solta)
 
   grupo.rotation.set((sorteio() - 0.5) * 1.2, sorteio() * Math.PI * 2, (sorteio() - 0.5) * 1.2)
   return grupo
