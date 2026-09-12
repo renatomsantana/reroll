@@ -17,8 +17,6 @@ export const CHAVES_DA_APARENCIA = [
   'diceColorOverrides',
   'resinFlower1',
   'resinFlower2',
-  'moonColor',
-  'crystalColor',
   'wallColor',
   'backgroundColor',
   'floorColor',

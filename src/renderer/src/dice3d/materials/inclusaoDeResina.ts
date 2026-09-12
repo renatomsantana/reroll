@@ -1,15 +1,5 @@
 import * as THREE from 'three'
 import { jardim } from './florDeResina'
-import { ceu } from './luasECristais'
-import type { DiceMaterialFinish } from './createDiceMaterial'
-
-/** O que a pessoa escolheu pra dentro do dado. */
-export interface OpcoesDaResina {
-  /** As cores da flor 1 e da flor 2 (tema flor). */
-  flores?: [string, string]
-  /** As cores da lua e do cristal (tema luas e cristais). */
-  luas?: [string, string]
-}
 
 /**
  * O DADO DE RESINA COM FLOR: um corpo translúcido com um jardim em 3D lá dentro (ver
@@ -92,7 +82,7 @@ export function raioInscrito(geometry: THREE.BufferGeometry): number {
  * O material da malha já tem que ser o de resina (`createDiceMaterial` com `resin`), e o atlas já
  * tem que ter o corpo pintado com alfa; aqui só entra o que é filho.
  */
-export function montarDadoDeResina(mesh: THREE.Mesh, tema: DiceMaterialFinish, opcoes: OpcoesDaResina = {}): void {
+export function montarDadoDeResina(mesh: THREE.Mesh, flores?: [string, string]): void {
   const material = mesh.material as THREE.MeshPhysicalMaterial
   mesh.renderOrder = ORDEM_CASCA_DA_FRENTE
 
@@ -103,8 +93,7 @@ export function montarDadoDeResina(mesh: THREE.Mesh, tema: DiceMaterialFinish, o
   cascaDeTras.renderOrder = ORDEM_CASCA_DE_TRAS
   mesh.add(cascaDeTras)
 
-  // A semente é a contagem de vértices: cada tipo de dado tem o seu arranjo, sempre o mesmo.
+  // A semente é a contagem de vértices: cada tipo de dado tem o seu jardim, sempre o mesmo.
   const raio = raioInscrito(mesh.geometry)
-  const semente = mesh.geometry.getAttribute('position').count
-  mesh.add(tema === 'lunar' ? ceu(raio, semente, opcoes.luas) : jardim(raio, semente, opcoes.flores))
+  mesh.add(jardim(raio, mesh.geometry.getAttribute('position').count, flores))
 }

@@ -1155,16 +1155,6 @@ async function faseResina() {
     await espera(700)
     await foto(`resina-estilo-${dado}`)
   }
-  // O segundo tema: luas e cristais. Troca os alvos da roda, e a prévia mostra o céu.
-  checar(await clicar('Luas e cristais'), 'a aba Estilo tem o botão "Luas e cristais"')
-  await espera(600)
-  const alvosLunares = await js(`Array.from(document.querySelectorAll('.style-tab-targets button')).map((b) => b.textContent.trim())`)
-  checar(alvosLunares.includes('Lua') && alvosLunares.includes('Cristal') && !alvosLunares.includes('Flor 1'), `com luas e cristais, a roda troca as flores por Lua e Cristal: ${JSON.stringify(alvosLunares)}`)
-  for (const dado of ['d20', 'd6']) {
-    await js(`Array.from(document.querySelectorAll('[role=option]')).find((e) => e.textContent.trim() === ${JSON.stringify(dado === 'd20' ? 'Padrão' : dado)})?.click(); 'ok'`)
-    await espera(700)
-    await foto(`lunar-estilo-${dado}`)
-  }
   await aba('Rolagem')
   await espera(400)
   await limparGrupos()
@@ -1172,7 +1162,7 @@ async function faseResina() {
   await js(`Array.from(document.querySelectorAll('.dice-roller-3d-group-chip button')).find((b) => b.textContent.trim() === '+')?.click()`)
   await clicar('d20')
   const r = await rolarNaCena()
-  checar(r.assentou && r.valores.length === 3, `três dados de luas e cristais assentam e são lidos: ${r.assentou ? `[${r.valores}] em ${r.ms}ms` : 'não assentou'}`)
+  checar(r.assentou && r.valores.length === 3, `três dados de resina assentam e são lidos: ${r.assentou ? `[${r.valores}] em ${r.ms}ms` : 'não assentou'}`)
   await espera(500)
   await foto('resina-rolagem')
 }
