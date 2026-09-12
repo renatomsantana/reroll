@@ -3,7 +3,7 @@ import type { Vector3Tuple } from '@shared/types/dice3d'
 import type { PolyhedronFaceInput } from './polyhedronMath'
 import { buildPolyhedronGeometry, POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION } from './buildPolyhedronGeometry'
 import { drawNumberGlyph, numericColorToCss } from '../materials/createNumberTexture'
-import { createDiceMaterial, ehResina, type DiceMaterialFinish } from '../materials/createDiceMaterial'
+import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
 import { createNumberAtlasTexture, remapGeometryUvsToAtlas } from '../materials/createNumberAtlas'
 import { getCachedTexture, type DiceTextureCache } from '../materials/textureCache'
 import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
@@ -15,8 +15,6 @@ export interface PolyhedronVisualOptions {
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina. */
   flores?: [string, string]
-  /** As cores da lua e do cristal do dado de resina com luas e cristais. */
-  luas?: [string, string]
   /** Ver `textureCache.ts` — opcional, reduz regeração de textura entre dados idênticos da mesma leva de construção. */
   textureCache?: DiceTextureCache
 }
@@ -36,7 +34,7 @@ export function buildPolyhedronVisual(
   const numberColor = options.numberColor ?? '#1a1a1a'
   const bodyColorCss = numericColorToCss(bodyColor)
   const scale = options.scale ?? 1
-  const resina = ehResina(options.material)
+  const resina = options.material === 'resin'
   const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
   const corDoCorpo = resina ? corDoCorpoDeResina(bodyColorCss) : bodyColorCss
 
@@ -63,6 +61,6 @@ export function buildPolyhedronVisual(
   const mesh = new THREE.Mesh(geometry, createDiceMaterial({ map, finish: options.material }))
   mesh.castShadow = true
   mesh.receiveShadow = true
-  if (resina && options.material) montarDadoDeResina(mesh, options.material, { flores: options.flores, luas: options.luas })
+  if (resina) montarDadoDeResina(mesh, options.flores)
   return mesh
 }

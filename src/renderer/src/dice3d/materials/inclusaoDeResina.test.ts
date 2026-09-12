@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { raioInscrito } from './inclusaoDeResina'
 import { alcance, cabecaDaFlor, FORMAS, geradorDe, jardim, planta } from './florDeResina'
-import { ceu, cristal, lua } from './luasECristais'
 import { buildPolyhedronGeometry } from '../geometry/buildPolyhedronGeometry'
 import { D4_VERTICES } from '../dice-defs/d4'
 import { D20_FACE_INPUTS, D20_VERTICES } from '../dice-defs/d20'
@@ -61,25 +60,6 @@ describe('o jardim de resina', () => {
       for (let i = 0; i < pos.count; i++) alturas.push(p.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld).y)
     })
     expect(Math.max(...alturas) - Math.min(...alturas)).toBeGreaterThan(0.2)
-  })
-
-  it('o céu de luas e cristais cabe na esfera inscrita, em todas as sementes dos sete dados', () => {
-    for (const semente of [8, 24, 36, 60, 120, 240, 1000]) {
-      expect(alcance(ceu(1, semente))).toBeLessThan(1)
-    }
-  })
-
-  it('o cristal tem corpo e ponta, e a lua é uma crescente extrudada com volume', () => {
-    let malhas = 0
-    cristal(1, 0.2, '#9b5de5').traverse((obj) => {
-      if (obj instanceof THREE.Mesh && obj.geometry.getAttribute('position')) malhas++
-    })
-    expect(malhas).toBeGreaterThanOrEqual(2)
-    const l = lua(1, 0.3, '#f3dd9c')
-    l.geometry.computeBoundingBox()
-    const caixa = l.geometry.boundingBox as THREE.Box3
-    expect(caixa.max.z - caixa.min.z).toBeGreaterThan(0.3)
-    expect(caixa.max.x - caixa.min.x).toBeLessThan(2)
   })
 
   it('a planta tem caule, folhas e a cabeça: mais de dez malhas', () => {
