@@ -47,6 +47,20 @@ interface StylePreviewProps {
  * bandeja/torre) — só um `requestAnimationFrame` girando o dado devagar, então o custo extra de
  * ter uma segunda cena WebGL rodando é pequeno (nada de física, nada de múltiplos dados).
  */
+/** A primeira cor de fundo opaca subindo do elemento pelos pais; cinza do 98 se nenhum tiver. */
+function corDeFundoOpaca(elemento: HTMLElement): THREE.Color {
+  let atual: HTMLElement | null = elemento
+  while (atual) {
+    const fundo = getComputedStyle(atual).backgroundColor
+    const partes = fundo.match(/[\d.]+/g)
+    if (partes && partes.length >= 3 && (partes.length === 3 || Number(partes[3]) > 0)) {
+      return new THREE.Color(Number(partes[0]) / 255, Number(partes[1]) / 255, Number(partes[2]) / 255)
+    }
+    atual = atual.parentElement
+  }
+  return new THREE.Color('#c0c0c0')
+}
+
 export function StylePreview({ sides, bodyColor, numberColor, material, flor1, flor2 }: StylePreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const meshRef = useRef<THREE.Mesh | null>(null)
@@ -121,6 +135,13 @@ export function StylePreview({ sides, bodyColor, numberColor, material, flor1, f
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(previewPixelRatio())
+    /**
+     * Fundo OPACO na cor do painel, e não transparente: a tinta do dado de resina multiplica o que
+     * está atrás dela (ver `inclusaoDeResina.ts`), e sobre um canvas transparente não há o que
+     * multiplicar, o dado saía sem cor. A cor vem do CSS de quem envolve a prévia, então o tema
+     * (dia/noite) continua mandando.
+     */
+    renderer.setClearColor(corDeFundoOpaca(container), 1)
     container.appendChild(renderer.domElement)
 
     const environment = setupDiceEnvironment(scene, renderer)
