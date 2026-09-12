@@ -1131,7 +1131,7 @@ async function faseCaderno() {
 /* ------------------------------------------------------------------------------------------ */
 async function faseResina() {
   console.log('\n=== RESINA COM FLOR ===')
-  const prefs = { displayMode: '3d', diceMaterial: 'glass', diceBodyColor: '#1d8f8a', diceNumberColor: '#b87333', cameraMode: 'dice' }
+  const prefs = { displayMode: '3d', diceMaterial: 'glass', diceBodyColor: '#1d8f8a', diceNumberColor: '#b87333', resinFlower1: '#f2c94c', resinFlower2: '#e04a4a', cameraMode: 'dice' }
   await abrirApp(prefs, { largura: 1300, altura: 800 })
   await aba('Estilo')
   await espera(400)
@@ -1142,6 +1142,12 @@ async function faseResina() {
   checar(gravado === 'resin', `o botão grava diceMaterial=resin (gravou ${JSON.stringify(gravado)})`)
   const legenda = await js(`(document.querySelector('.style-tab-preview-caption') || {}).textContent || ''`)
   checar(/Resina com flor/.test(legenda), `a legenda da prévia diz o acabamento: "${legenda.trim()}"`)
+  // Com a resina, a roda de cores ganha os alvos das duas flores; fora dela, não existem.
+  const alvos = await js(`Array.from(document.querySelectorAll('.style-tab-targets button')).map((b) => b.textContent.trim())`)
+  checar(alvos.includes('Flor 1') && alvos.includes('Flor 2'), `a roda oferece as flores como alvo: ${JSON.stringify(alvos)}`)
+  checar(await clicar('Flor 2'), 'dá pra marcar "Flor 2" como alvo da roda')
+  const hexDaFlor2 = await js(`(document.querySelector('.color-wheel-hex input, input[value^="#"]') || {}).value || ''`)
+  checar(hexDaFlor2.toLowerCase() === '#e04a4a', `a roda mostra a cor gravada da flor 2 (${hexDaFlor2})`)
   await foto('resina-estilo-d20')
   // A prévia do d6 (o dado da referência), do d8 e do d12: cada tipo tem a sua mistura de flores.
   for (const dado of ['d6', 'd8', 'd12']) {

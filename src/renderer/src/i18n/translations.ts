@@ -293,6 +293,9 @@ export interface TranslationDict {
     colorTargets: {
       body: string
       number: string
+      /** As duas flores do dado de resina. */
+      flower1: string
+      flower2: string
       wall: string
       floor: string
       background: string
@@ -762,6 +765,8 @@ export const translations: Record<Language, TranslationDict> = {
       colorTargets: {
         body: 'Corpo',
         number: 'Número',
+        flower1: 'Flor 1',
+        flower2: 'Flor 2',
         wall: 'Parede',
         floor: 'Veludo',
         background: 'Fundo',
@@ -1191,6 +1196,8 @@ export const translations: Record<Language, TranslationDict> = {
       colorTargets: {
         body: 'Body',
         number: 'Number',
+        flower1: 'Flower 1',
+        flower2: 'Flower 2',
         wall: 'Wall',
         floor: 'Velvet',
         background: 'Background',

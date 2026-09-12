@@ -24,11 +24,11 @@ import { jardim } from './florDeResina'
 
 /**
  * Quanto do corpo se vê através. Começou em 0,55; ele pediu "mais transparente" na primeira olhada
- * (11/09/2026) e ficou em 0,4, que ainda tinge com a cor escolhida.
+ * (11/09/2026) e foi pra 0,4; gostou do jardim e pediu "15% menos opaco": 0,34.
  */
-export const OPACIDADE_DO_CORPO_DE_RESINA = 0.4
+export const OPACIDADE_DO_CORPO_DE_RESINA = 0.34
 /** A parede de trás, mais fraca ainda: o número dela aparece espelhado e não pode disputar a leitura. */
-const OPACIDADE_DA_CASCA_DE_TRAS = 0.3
+const OPACIDADE_DA_CASCA_DE_TRAS = 0.26
 
 const ORDEM_CASCA_DE_TRAS = 0
 const ORDEM_CASCA_DA_FRENTE = 2
@@ -68,7 +68,7 @@ export function raioInscrito(geometry: THREE.BufferGeometry): number {
  * O material da malha já tem que ser o de resina (`createDiceMaterial` com `resin`), e o atlas já
  * tem que ter o corpo pintado com alfa; aqui só entra o que é filho.
  */
-export function montarDadoDeResina(mesh: THREE.Mesh): void {
+export function montarDadoDeResina(mesh: THREE.Mesh, flores?: [string, string]): void {
   const material = mesh.material as THREE.MeshPhysicalMaterial
   mesh.renderOrder = ORDEM_CASCA_DA_FRENTE
 
@@ -81,5 +81,5 @@ export function montarDadoDeResina(mesh: THREE.Mesh): void {
 
   // A semente é a contagem de vértices: cada tipo de dado tem o seu jardim, sempre o mesmo.
   const raio = raioInscrito(mesh.geometry)
-  mesh.add(jardim(raio, mesh.geometry.getAttribute('position').count))
+  mesh.add(jardim(raio, mesh.geometry.getAttribute('position').count, flores))
 }

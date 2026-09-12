@@ -62,7 +62,13 @@ function superficie(
   return geometria
 }
 
+/**
+ * `color` abaixo do branco de propósito: a luz da cena (ambiente 0,6 + direcional 1,4 na prévia)
+ * soma perto de 2 e lavava a cor por vértice pra quase branco; a flor 2 vermelha saía rosa-pálido.
+ * O multiplicador devolve a cor que a pessoa escolheu na roda.
+ */
 const MATERIAL_DE_PLANTA = new THREE.MeshStandardMaterial({
+  color: 0x8c8c8c,
   vertexColors: true,
   side: THREE.DoubleSide,
   roughness: 0.75,
@@ -123,34 +129,45 @@ function tubo(pontos: THREE.Vector3[], raio: number, cor: THREE.Color): THREE.Me
   return malha(geometria)
 }
 
-export interface EspecieDeFlor {
+export interface FormaDeFlor {
   petalas: number
   aneis: 1 | 2
   /** Largura da pétala em fração do comprimento. */
   largura: number
-  base: string
-  ponta: string
-  miolo: string
 }
 
-/** As espécies. Lilás e rosa vivas como a foto de referência, mais uma branca miúda. */
-export const ESPECIES: Record<'margarida-lilas' | 'flor-rosa' | 'flor-branca', EspecieDeFlor> = {
-  'margarida-lilas': { petalas: 14, aneis: 1, largura: 0.28, base: '#8f62c9', ponta: '#c7a4ee', miolo: '#f0c23a' },
-  'flor-rosa': { petalas: 8, aneis: 2, largura: 0.55, base: '#c8407e', ponta: '#f29ac2', miolo: '#f6d35e' },
-  'flor-branca': { petalas: 6, aneis: 1, largura: 0.5, base: '#e6dcc8', ponta: '#fbf7ee', miolo: '#e8a43c' }
+/**
+ * As FORMAS. A cor não mora aqui: vem das preferências (a pessoa escolhe a cor da flor 1 e da flor
+ * 2 na aba Estilo, ao lado da cor do corpo e do número). Da cor escolhida saem a base (mais escura)
+ * e a ponta (mais clara) da pétala; o miolo é sempre amarelo.
+ */
+export const FORMAS: Record<'margarida' | 'rosa' | 'singela', FormaDeFlor> = {
+  margarida: { petalas: 14, aneis: 1, largura: 0.28 },
+  rosa: { petalas: 8, aneis: 2, largura: 0.55 },
+  singela: { petalas: 6, aneis: 1, largura: 0.5 }
 }
 
-export type NomeDaEspecie = keyof typeof ESPECIES
+export type NomeDaForma = keyof typeof FORMAS
+
+/** Cores padrão das duas flores: lilás e rosa vivas, como a foto de referência. */
+export const COR_PADRAO_DA_FLOR_1 = '#b48ae0'
+export const COR_PADRAO_DA_FLOR_2 = '#ea7fb0'
+const COR_DO_MIOLO = new THREE.Color('#f0c23a')
+
+/** Base e ponta da pétala a partir de UMA cor escolhida: 78% dela na base, 30% do caminho pro branco na ponta. */
+function tonsDaPetala(cor: string): { base: THREE.Color; ponta: THREE.Color } {
+  const c = new THREE.Color(cor)
+  return { base: c.clone().multiplyScalar(0.78), ponta: c.clone().lerp(new THREE.Color('#ffffff'), 0.3) }
+}
 
 /**
  * A CABEÇA DA FLOR: um anel (ou dois) de pétalas em volta de um miolo achatado, no plano XZ, olhando
  * pra +Y. `raio` é o alcance da ponta da pétala. Cada pétala inclina e curva um pouco diferente,
  * porque um anel perfeito lê como plástico.
  */
-export function cabecaDaFlor(especie: EspecieDeFlor, raio: number, sorteio: Sorteio): THREE.Group {
+export function cabecaDaFlor(especie: FormaDeFlor, cor: string, raio: number, sorteio: Sorteio): THREE.Group {
   const grupo = new THREE.Group()
-  const base = new THREE.Color(especie.base)
-  const ponta = new THREE.Color(especie.ponta)
+  const { base, ponta } = tonsDaPetala(cor)
   const raioDoMiolo = raio * 0.22
   for (let anel = 0; anel < especie.aneis; anel++) {
     const escala = anel === 0 ? 1 : 0.66
@@ -174,7 +191,7 @@ export function cabecaDaFlor(especie: EspecieDeFlor, raio: number, sorteio: Sort
   // O miolo: uma esfera achatada, mais escura na borda.
   const miolo = new THREE.SphereGeometry(raioDoMiolo, 14, 8)
   miolo.scale(1, 0.45, 1)
-  const corDoMiolo = new THREE.Color(especie.miolo)
+  const corDoMiolo = COR_DO_MIOLO
   const borda = corDoMiolo.clone().multiplyScalar(0.7)
   const n = miolo.getAttribute('position').count
   const pos = miolo.getAttribute('position')
@@ -200,7 +217,7 @@ const COR_DA_RAIZ = new THREE.Color('#c9b08a')
  * ondulação, duas ou três folhas ao longo dele e a cabeça da flor no topo, levemente inclinada.
  * Cabe num cilindro de raio `raioDaFlor` e altura `altura` em volta da origem.
  */
-export function planta(especie: EspecieDeFlor, altura: number, raioDaFlor: number, sorteio: Sorteio): THREE.Group {
+export function planta(especie: FormaDeFlor, cor: string, altura: number, raioDaFlor: number, sorteio: Sorteio): THREE.Group {
   const grupo = new THREE.Group()
   const pe = -altura * 0.35
   const topo = altura * 0.4
@@ -234,21 +251,26 @@ export function planta(especie: EspecieDeFlor, altura: number, raioDaFlor: numbe
     grupo.add(tubo(pts, raioDoCaule * (principal ? 0.8 : 0.4), COR_DA_RAIZ))
   }
 
-  // As folhas: duas ou três, saindo do caule em alturas diferentes, apontando pra fora e pra cima.
+  /**
+   * As folhas: duas ou três, saindo do caule na METADE DE BAIXO e apontando pra fora quase na
+   * horizontal. A primeira versão subia até 75% do caule com a ponta pra cima, e a folha entrava
+   * pela cabeça da flor ("cuidado com as folhas, elas tão dentro das outras coisas"). A ponta mais
+   * alta agora fica em 0,14 da altura, e a cabeça começa em 0,4.
+   */
   const folhas = 2 + Math.floor(sorteio() * 2)
   for (let f = 0; f < folhas; f++) {
-    const t = 0.2 + (f / folhas) * 0.55
+    const t = 0.15 + (f / folhas) * 0.35
     const ponto = new THREE.CatmullRomCurve3(pontos).getPoint(t)
-    const L = altura * (0.28 + sorteio() * 0.12)
+    const L = altura * (0.22 + sorteio() * 0.08)
     const m = malha(folha(L, L * 0.42, 0.35, 0.3, COR_DA_FOLHA, NERVURA))
     m.position.copy(ponto)
     m.rotation.y = (f / folhas) * Math.PI * 2 + sorteio() * 1.2
-    m.rotation.z = 0.35 + sorteio() * 0.5
+    m.rotation.z = 0.15 + sorteio() * 0.25
     grupo.add(m)
   }
 
   // A cabeça, no topo, inclinada de leve.
-  const cabeca = cabecaDaFlor(especie, raioDaFlor, sorteio)
+  const cabeca = cabecaDaFlor(especie, cor, raioDaFlor, sorteio)
   cabeca.position.copy(pontos[pontos.length - 1])
   cabeca.rotation.set((sorteio() - 0.5) * 0.5, sorteio() * Math.PI * 2, (sorteio() - 0.5) * 0.5)
   grupo.add(cabeca)
@@ -256,30 +278,33 @@ export function planta(especie: EspecieDeFlor, altura: number, raioDaFlor: numbe
 }
 
 /**
- * O JARDIM de um dado: uma planta grande, uma pequena de outra espécie e uma folha solta, todas
+ * O JARDIM de um dado: a flor 1 grande, a flor 2 pequena (de outra forma) e uma folha solta, todas
  * dentro da esfera inscrita de raio `raio`. As três são giradas em bloco pra não ficar sempre de
  * pé (flor seca em resina fica na posição em que caiu).
+ *
+ * As três peças não se tocam: a pequena fica a 0,45R do lado da grande, abaixo da cabeça dela, e a
+ * folha solta fica embaixo, do lado oposto, longe das duas cabeças.
  */
-export function jardim(raio: number, semente: number): THREE.Group {
+export function jardim(raio: number, semente: number, cores: [string, string] = [COR_PADRAO_DA_FLOR_1, COR_PADRAO_DA_FLOR_2]): THREE.Group {
   const sorteio = geradorDe(semente)
-  const especies = Object.keys(ESPECIES) as NomeDaEspecie[]
-  const primeira = especies[Math.floor(sorteio() * especies.length)]
-  let segunda = especies[Math.floor(sorteio() * especies.length)]
-  if (segunda === primeira) segunda = especies[(especies.indexOf(primeira) + 1) % especies.length]
+  const formas = Object.keys(FORMAS) as NomeDaForma[]
+  const primeira = formas[Math.floor(sorteio() * formas.length)]
+  let segunda = formas[Math.floor(sorteio() * formas.length)]
+  if (segunda === primeira) segunda = formas[(formas.indexOf(primeira) + 1) % formas.length]
 
   const grupo = new THREE.Group()
   // A planta grande: altura 1,3R (de -0,45R a +0,52R com a flor), flor de raio 0,42R.
-  const grande = planta(ESPECIES[primeira], raio * 1.3, raio * 0.42, sorteio)
-  grande.position.set(-raio * 0.08, -raio * 0.05, 0)
+  const grande = planta(FORMAS[primeira], cores[0], raio * 1.3, raio * 0.42, sorteio)
+  grande.position.set(-raio * 0.1, -raio * 0.05, 0)
   grupo.add(grande)
 
-  const pequena = planta(ESPECIES[segunda], raio * 0.8, raio * 0.26, sorteio)
-  pequena.position.set(raio * 0.32, -raio * 0.15, raio * 0.2)
-  pequena.rotation.z = -0.35
+  const pequena = planta(FORMAS[segunda], cores[1], raio * 0.75, raio * 0.24, sorteio)
+  pequena.position.set(raio * 0.38, -raio * 0.22, raio * 0.18)
+  pequena.rotation.z = -0.4
   grupo.add(pequena)
 
-  const solta = malha(folha(raio * 0.5, raio * 0.22, 0.3, 0.4, COR_DA_FOLHA, NERVURA))
-  solta.position.set(raio * 0.05, raio * 0.3, -raio * 0.35)
+  const solta = malha(folha(raio * 0.45, raio * 0.2, 0.3, 0.4, COR_DA_FOLHA, NERVURA))
+  solta.position.set(-raio * 0.3, -raio * 0.4, raio * 0.28)
   solta.rotation.set(sorteio() * Math.PI, sorteio() * Math.PI, sorteio() * Math.PI)
   grupo.add(solta)
 

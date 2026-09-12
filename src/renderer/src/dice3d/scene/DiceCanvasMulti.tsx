@@ -211,6 +211,9 @@ export interface DiceCanvasMultiProps {
   diceColors: Record<number, { bodyColor: number; numberColor: string }>
   /** Acabamento do dado (fosco, metálico, plástico, vidro). Aplicado no mesh existente, sem remount. */
   material?: DiceMaterialFinish
+  /** As cores da flor 1 e da flor 2 do dado de resina (CSS hex). Só valem com `material` = resin. */
+  flor1?: string
+  flor2?: string
   /** Cor da parede da bandeja (hex numérico). Aplicada na cena existente, sem remount. */
   wallColor?: number
   /** Cor de fundo da cena (hex numérico). */
@@ -705,6 +708,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       autoRoll,
       diceColors,
       material,
+      flor1,
+      flor2,
       wallColor,
       backgroundColor,
       floorColor,
@@ -794,6 +799,10 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     diceColorsRef.current = diceColors
     const materialRef = useRef(material)
     materialRef.current = material
+    /** As duas cores da flor, como par; `undefined` cai no padrão do jardim. */
+    const flores: [string, string] | undefined = flor1 && flor2 ? [flor1, flor2] : undefined
+    const floresRef = useRef(flores)
+    floresRef.current = flores
     // Espelhado em ref pelo mesmo motivo dos de cima: o efeito de montagem roda uma vez só e
     // congelaria a cor do primeiro render.
     const towerColorsRef = useRef(towerColors)
@@ -991,6 +1000,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             bodyColor: colors?.bodyColor,
             numberColor: colors?.numberColor,
             material,
+            flores,
             textureCache: mountTextureCache
           })
           assentarDadoDaPrateleira(mesh, entry.definition, positions[i])
@@ -1514,6 +1524,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
               bodyColor: colors?.bodyColor,
               numberColor: colors?.numberColor,
               material,
+              flores,
               textureCache: mountTextureCache
             })
             scene.add(mesh)
@@ -1645,6 +1656,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       const hud = hudRef.current
       const colors = diceColorsRef.current
       const currentMaterial = materialRef.current
+      const currentFlores = floresRef.current
       const textureCache = getGlobalDiceTextureCache()
 
       diceRef.current = sidesList.map((sides, i) => {
@@ -1655,6 +1667,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           bodyColor: dieColors?.bodyColor,
           numberColor: dieColors?.numberColor,
           material: currentMaterial,
+          flores: currentFlores,
           textureCache
         })
         scene.add(mesh)
@@ -1773,6 +1786,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             bodyColor: colors?.bodyColor,
             numberColor: colors?.numberColor,
             material,
+            flores: floresRef.current,
             textureCache: rebuildTextureCache
           })
           syncMeshToBody(newMesh, die.body)
@@ -1801,6 +1815,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
               bodyColor: colors?.bodyColor,
               numberColor: colors?.numberColor,
               material,
+              flores: floresRef.current,
               textureCache: rebuildTextureCache
             })
             assentarDadoDaPrateleira(newMesh, entry.definition, positions[i])
@@ -1825,7 +1840,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
 
       return () => window.clearTimeout(timeoutId)
        
-    }, [diceColors, material, wallColor, backgroundColor, floorColor, backgroundImage])
+    }, [diceColors, material, flor1, flor2, wallColor, backgroundColor, floorColor, backgroundImage])
 
     /**
      * Cor da torre em efeito próprio. Ela morava no efeito acima, que não depende de `towerColors`,

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { METAL_PRESETS } from '@renderer/settings/metalPresets'
 import { GEM_PRESETS } from '@renderer/settings/gemPresets'
@@ -24,7 +24,8 @@ const MATERIAL_OPTIONS: DiceMaterialFinish[] = ['matte', 'metallic', 'plastic', 
 
 type PaletteFamilyId = 'metal' | 'gem' | 'matte' | 'plastic'
 /** O que a roda de cores está editando em cada seção — dado (corpo/número) ou cena (parede/chão/fundo). */
-type DiceColorTarget = 'body' | 'number'
+/** `flower1`/`flower2` só aparecem com o acabamento "Resina com flor": são as cores das duas flores lá dentro. */
+type DiceColorTarget = 'body' | 'number' | 'flower1' | 'flower2'
 /**
  * O FUNDO é o papel de parede da cena — o que aparece atrás/acima da mesa. Ele chegou a sair daqui
  * ("a cor do fundo não mexe, tira essa opção"), porque mexer nele não mudava nada do que estava à
@@ -87,6 +88,8 @@ export function StyleTab() {
     diceBodyColor,
     diceNumberColor,
     diceMaterial,
+    resinFlower1,
+    resinFlower2,
     diceColorOverrides,
     wallColor,
     floorColor,
@@ -102,6 +105,8 @@ export function StyleTab() {
     setDiceBodyColor,
     setDiceNumberColor,
     setDiceMaterial,
+    setResinFlower1,
+    setResinFlower2,
     setDiceColorOverride,
     clearDiceColorOverride,
     setWallColor,
@@ -146,6 +151,18 @@ export function StyleTab() {
   const selectedOverride = selectedDiceType === 'default' ? undefined : diceColorOverrides[selectedDiceType]
   const selectedBodyColor = selectedOverride?.bodyColor ?? diceBodyColor
   const selectedNumberColor = selectedOverride?.numberColor ?? diceNumberColor
+  /** Os alvos do dado: corpo e número sempre; as duas flores só com a resina. */
+  const diceTargets: DiceColorTarget[] = diceMaterial === 'resin' ? ['body', 'number', 'flower1', 'flower2'] : ['body', 'number']
+  const diceTargetColors: Record<DiceColorTarget, string> = {
+    body: selectedBodyColor,
+    number: selectedNumberColor,
+    flower1: resinFlower1,
+    flower2: resinFlower2
+  }
+  // Saiu da resina com uma flor marcada: a roda volta pro corpo, senão editaria uma cor que não se vê.
+  useEffect(() => {
+    if (diceMaterial !== 'resin' && (diceTarget === 'flower1' || diceTarget === 'flower2')) setDiceTarget('body')
+  }, [diceMaterial, diceTarget])
   const previewSides = selectedDiceType === 'default' ? 20 : selectedDiceType
 
   /** Tipos que têm cor própria gravada — são eles que "não mudam" quando a cor padrão muda. */
@@ -211,20 +228,19 @@ export function StyleTab() {
   }
 
   /** Cor que a roda mostra e edita: depende da seção aberta e do alvo marcado nela. */
-  const wheelColor =
-    section === 'scene'
-      ? sceneColors[sceneTarget]
-      : diceTarget === 'body'
-        ? selectedBodyColor
-        : selectedNumberColor
+  const wheelColor = section === 'scene' ? sceneColors[sceneTarget] : diceTargetColors[diceTarget]
 
   function handleWheelChange(hex: string): void {
     if (section === 'scene') {
       setSceneColors[sceneTarget](hex)
     } else if (diceTarget === 'body') {
       handleSelectedColorChange(hex, selectedNumberColor)
-    } else {
+    } else if (diceTarget === 'number') {
       handleSelectedColorChange(selectedBodyColor, hex)
+    } else if (diceTarget === 'flower1') {
+      setResinFlower1(hex)
+    } else {
+      setResinFlower2(hex)
     }
   }
 
@@ -350,6 +366,8 @@ export function StyleTab() {
                 bodyColor={selectedBodyColor}
                 numberColor={selectedNumberColor}
                 material={diceMaterial}
+                flor1={resinFlower1}
+                flor2={resinFlower2}
               />
               <p className="style-tab-preview-caption">
                 {selectedDiceType === 'default'
@@ -404,7 +422,7 @@ export function StyleTab() {
             </div>
           ) : (
             <div className="style-tab-targets">
-              {(['body', 'number'] as DiceColorTarget[]).map((target) => (
+              {diceTargets.map((target) => (
                 <Button
                   key={target}
                   selected={diceTarget === target}
@@ -412,7 +430,7 @@ export function StyleTab() {
                 >
                   <span
                     className="style-tab-type-swatch"
-                    style={{ background: target === 'body' ? selectedBodyColor : selectedNumberColor }}
+                    style={{ background: diceTargetColors[target] }}
                   />
                   {t.styleTab.colorTargets[target]}
                 </Button>
