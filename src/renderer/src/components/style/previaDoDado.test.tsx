@@ -136,7 +136,7 @@ async function deixarPassarOsDoisQuadros() {
 
 describe('a prévia do dado na aba Estilo', () => {
   it('cria o dado sozinha, sem ninguém mexer em cor nem em tipo', async () => {
-    render(<StylePreview sides={20} bodyColor="#ff0000" numberColor="#ffffff" material="matte" flor1="#b48ae0" flor2="#ea7fb0" />)
+    render(<StylePreview sides={20} bodyColor="#ff0000" numberColor="#ffffff" material="matte" flor1="#b48ae0" flor2="#ea7fb0" glitterColor="#e0b23c" />)
 
     /**
      * ANTES dos quadros o dado ainda não existe, e isso é esperado: é justamente o adiamento que

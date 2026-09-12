@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { raioInscrito } from './inclusaoDeResina'
 import { alcance, cabecaDaFlor, FORMAS, geradorDe, jardim, planta } from './florDeResina'
+import { flocosDeGlitter, glitter } from './glitterDeResina'
 import { buildPolyhedronGeometry } from '../geometry/buildPolyhedronGeometry'
 import { D4_VERTICES } from '../dice-defs/d4'
 import { D20_FACE_INPUTS, D20_VERTICES } from '../dice-defs/d20'
@@ -60,6 +61,13 @@ describe('o jardim de resina', () => {
       for (let i = 0; i < pos.count; i++) alturas.push(p.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld).y)
     })
     expect(Math.max(...alturas) - Math.min(...alturas)).toBeGreaterThan(0.2)
+  })
+
+  it('o glitter cabe na esfera inscrita, floco por floco, contando o raio de cada um', () => {
+    for (const semente of [8, 24, 36, 60, 120, 240, 1000]) {
+      for (const floco of flocosDeGlitter(1, semente)) expect(floco.posicao.length() + floco.escala).toBeLessThan(1)
+    }
+    expect(glitter(1, 24).count).toBe(flocosDeGlitter(1, 24).length)
   })
 
   it('a planta tem caule, folhas e a cabeça: mais de dez malhas', () => {
