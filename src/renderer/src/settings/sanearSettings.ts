@@ -22,7 +22,7 @@ import { volumeValido } from '@renderer/audio/volume'
 const VALORES_FECHADOS = {
   themeSource: ['day', 'night', 'system'],
   language: ['pt-BR', 'en-US'],
-  diceMaterial: ['matte', 'metallic', 'plastic', 'glass', 'resin', 'glitter'],
+  diceMaterial: ['matte', 'metallic', 'plastic', 'glass', 'resin', 'lunar'],
   launchMode: ['tray', 'tower', 'towerDecor'],
   trayShape: [...TRAY_SHAPES],
   cameraMode: ['table', 'dice', 'free'],

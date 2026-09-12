@@ -49,7 +49,7 @@ describe('sanearPreferencias', () => {
     expect(sanearPreferencias({ cameraMode: 'orbital' })).toEqual({})
     expect(sanearPreferencias({ diceMaterial: 'glass' })).toEqual({ diceMaterial: 'glass' })
     expect(sanearPreferencias({ diceMaterial: 'resin' })).toEqual({ diceMaterial: 'resin' })
-    expect(sanearPreferencias({ diceMaterial: 'glitter' })).toEqual({ diceMaterial: 'glitter' })
+    expect(sanearPreferencias({ diceMaterial: 'lunar' })).toEqual({ diceMaterial: 'lunar' })
     expect(sanearPreferencias({ diceMaterial: 'madeira' })).toEqual({})
     expect(sanearPreferencias({ language: 'en-US' })).toEqual({ language: 'en-US' })
     expect(sanearPreferencias({ language: 'fr-FR' })).toEqual({})
