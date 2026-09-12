@@ -1,14 +1,14 @@
 import * as THREE from 'three'
 import { jardim } from './florDeResina'
-import { glitter } from './glitterDeResina'
+import { ceu } from './luasECristais'
 import type { DiceMaterialFinish } from './createDiceMaterial'
 
 /** O que a pessoa escolheu pra dentro do dado. */
 export interface OpcoesDaResina {
   /** As cores da flor 1 e da flor 2 (tema flor). */
   flores?: [string, string]
-  /** A cor dos flocos (tema glitter). */
-  glitter?: string
+  /** As cores da lua e do cristal (tema luas e cristais). */
+  luas?: [string, string]
 }
 
 /**
@@ -106,5 +106,5 @@ export function montarDadoDeResina(mesh: THREE.Mesh, tema: DiceMaterialFinish, o
   // A semente é a contagem de vértices: cada tipo de dado tem o seu arranjo, sempre o mesmo.
   const raio = raioInscrito(mesh.geometry)
   const semente = mesh.geometry.getAttribute('position').count
-  mesh.add(tema === 'glitter' ? glitter(raio, semente, opcoes.glitter) : jardim(raio, semente, opcoes.flores))
+  mesh.add(tema === 'lunar' ? ceu(raio, semente, opcoes.luas) : jardim(raio, semente, opcoes.flores))
 }

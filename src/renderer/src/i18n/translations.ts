@@ -272,7 +272,7 @@ export interface TranslationDict {
     applyDefaultToAllHint: string
     defaultColorOption: string
     material: string
-    materialOptions: { matte: string; metallic: string; plastic: string; glass: string; resin: string; glitter: string }
+    materialOptions: { matte: string; metallic: string; plastic: string; glass: string; resin: string; lunar: string }
     /** Legenda da prévia 3D e das duas seções em que a aba se divide. */
     preview: string
     sectionDice: string
@@ -296,7 +296,8 @@ export interface TranslationDict {
       /** As duas flores do dado de resina. */
       flower1: string
       flower2: string
-      glitter: string
+      moon: string
+      crystal: string
       wall: string
       floor: string
       background: string
@@ -748,7 +749,7 @@ export const translations: Record<Language, TranslationDict> = {
         plastic: 'Plástico',
         glass: 'Vidro',
         resin: 'Resina com flor',
-        glitter: 'Resina com glitter'
+        lunar: 'Luas e cristais'
       },
       preview: 'Prévia',
       sectionDice: 'Dados',
@@ -769,7 +770,8 @@ export const translations: Record<Language, TranslationDict> = {
         number: 'Número',
         flower1: 'Flor 1',
         flower2: 'Flor 2',
-        glitter: 'Glitter',
+        moon: 'Lua',
+        crystal: 'Cristal',
         wall: 'Parede',
         floor: 'Veludo',
         background: 'Fundo',
@@ -1181,7 +1183,7 @@ export const translations: Record<Language, TranslationDict> = {
         plastic: 'Plastic',
         glass: 'Glass',
         resin: 'Resin with flower',
-        glitter: 'Resin with glitter'
+        lunar: 'Moons and crystals'
       },
       preview: 'Preview',
       sectionDice: 'Dice',
@@ -1202,7 +1204,8 @@ export const translations: Record<Language, TranslationDict> = {
         number: 'Number',
         flower1: 'Flower 1',
         flower2: 'Flower 2',
-        glitter: 'Glitter',
+        moon: 'Moon',
+        crystal: 'Crystal',
         wall: 'Wall',
         floor: 'Velvet',
         background: 'Background',

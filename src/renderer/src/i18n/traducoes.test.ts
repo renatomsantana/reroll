@@ -50,7 +50,6 @@ const IGUAIS_DE_PROPOSITO = new Map<string, string>([
   ['roller.total', '"Total" se escreve igual nos dois'],
   ['presets.title', '"Presets" já é o termo usado em português no jargão de RPG'],
   ['styleTab.hex', '"Hex", do código de cor — igual nos dois'],
-  ['styleTab.colorTargets.glitter', '"Glitter" é a palavra usada em português também'],
   ['history.restEvent', 'só colchetes em volta do nome do descanso — não há palavra pra traduzir'],
   ['photoCrop.zoom', '"Zoom" se escreve igual nos dois'],
   ['settings.volume', '"Volume" se escreve igual nos dois'],

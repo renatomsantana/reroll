@@ -20,12 +20,12 @@ import { TrayPreview } from './TrayPreview'
 import { TrayShapeIcon } from './TrayShapeIcon'
 import './StyleTab.css'
 
-const MATERIAL_OPTIONS: DiceMaterialFinish[] = ['matte', 'metallic', 'plastic', 'glass', 'resin', 'glitter']
+const MATERIAL_OPTIONS: DiceMaterialFinish[] = ['matte', 'metallic', 'plastic', 'glass', 'resin', 'lunar']
 
 type PaletteFamilyId = 'metal' | 'gem' | 'matte' | 'plastic'
 /** O que a roda de cores está editando em cada seção — dado (corpo/número) ou cena (parede/chão/fundo). */
 /** `flower1`/`flower2` só aparecem com o acabamento "Resina com flor": são as cores das duas flores lá dentro. */
-type DiceColorTarget = 'body' | 'number' | 'flower1' | 'flower2' | 'glitter'
+type DiceColorTarget = 'body' | 'number' | 'flower1' | 'flower2' | 'moon' | 'crystal'
 /**
  * O FUNDO é o papel de parede da cena — o que aparece atrás/acima da mesa. Ele chegou a sair daqui
  * ("a cor do fundo não mexe, tira essa opção"), porque mexer nele não mudava nada do que estava à
@@ -90,7 +90,8 @@ export function StyleTab() {
     diceMaterial,
     resinFlower1,
     resinFlower2,
-    glitterColor,
+    moonColor,
+    crystalColor,
     diceColorOverrides,
     wallColor,
     floorColor,
@@ -108,7 +109,8 @@ export function StyleTab() {
     setDiceMaterial,
     setResinFlower1,
     setResinFlower2,
-    setGlitterColor,
+    setMoonColor,
+    setCrystalColor,
     setDiceColorOverride,
     clearDiceColorOverride,
     setWallColor,
@@ -155,18 +157,19 @@ export function StyleTab() {
   const selectedNumberColor = selectedOverride?.numberColor ?? diceNumberColor
   /** Os alvos do dado: corpo e número sempre; as duas flores só com a resina. */
   const diceTargets: DiceColorTarget[] =
-    diceMaterial === 'resin' ? ['body', 'number', 'flower1', 'flower2'] : diceMaterial === 'glitter' ? ['body', 'number', 'glitter'] : ['body', 'number']
+    diceMaterial === 'resin' ? ['body', 'number', 'flower1', 'flower2'] : diceMaterial === 'lunar' ? ['body', 'number', 'moon', 'crystal'] : ['body', 'number']
   const diceTargetColors: Record<DiceColorTarget, string> = {
     body: selectedBodyColor,
     number: selectedNumberColor,
     flower1: resinFlower1,
     flower2: resinFlower2,
-    glitter: glitterColor
+    moon: moonColor,
+    crystal: crystalColor
   }
   // Trocou de acabamento com um alvo que só existia nele: a roda volta pro corpo, senão editaria uma cor que não se vê.
   useEffect(() => {
     if ((diceTarget === 'flower1' || diceTarget === 'flower2') && diceMaterial !== 'resin') setDiceTarget('body')
-    if (diceTarget === 'glitter' && diceMaterial !== 'glitter') setDiceTarget('body')
+    if ((diceTarget === 'moon' || diceTarget === 'crystal') && diceMaterial !== 'lunar') setDiceTarget('body')
   }, [diceMaterial, diceTarget])
   const previewSides = selectedDiceType === 'default' ? 20 : selectedDiceType
 
@@ -246,8 +249,10 @@ export function StyleTab() {
       setResinFlower1(hex)
     } else if (diceTarget === 'flower2') {
       setResinFlower2(hex)
+    } else if (diceTarget === 'moon') {
+      setMoonColor(hex)
     } else {
-      setGlitterColor(hex)
+      setCrystalColor(hex)
     }
   }
 
@@ -375,7 +380,8 @@ export function StyleTab() {
                 material={diceMaterial}
                 flor1={resinFlower1}
                 flor2={resinFlower2}
-                glitterColor={glitterColor}
+                moonColor={moonColor}
+                crystalColor={crystalColor}
               />
               <p className="style-tab-preview-caption">
                 {selectedDiceType === 'default'

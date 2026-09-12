@@ -15,8 +15,8 @@ export interface PolyhedronVisualOptions {
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina. */
   flores?: [string, string]
-  /** A cor do glitter do dado de resina com glitter. */
-  glitter?: string
+  /** As cores da lua e do cristal do dado de resina com luas e cristais. */
+  luas?: [string, string]
   /** Ver `textureCache.ts` — opcional, reduz regeração de textura entre dados idênticos da mesma leva de construção. */
   textureCache?: DiceTextureCache
 }
@@ -63,6 +63,6 @@ export function buildPolyhedronVisual(
   const mesh = new THREE.Mesh(geometry, createDiceMaterial({ map, finish: options.material }))
   mesh.castShadow = true
   mesh.receiveShadow = true
-  if (resina && options.material) montarDadoDeResina(mesh, options.material, { flores: options.flores, glitter: options.glitter })
+  if (resina && options.material) montarDadoDeResina(mesh, options.material, { flores: options.flores, luas: options.luas })
   return mesh
 }

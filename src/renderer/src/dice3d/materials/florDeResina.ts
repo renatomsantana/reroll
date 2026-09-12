@@ -296,6 +296,7 @@ export function alcance(grupo: THREE.Object3D): number {
   grupo.traverse((obj) => {
     if (!(obj instanceof THREE.Mesh)) return
     const pos = obj.geometry.getAttribute('position')
+    if (!pos) return
     for (let i = 0; i < pos.count; i++) {
       p.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld)
       maior = Math.max(maior, p.length())
