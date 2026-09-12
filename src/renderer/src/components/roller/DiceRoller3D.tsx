@@ -304,6 +304,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     diceBodyColor,
     diceNumberColor,
     diceMaterial,
+    resinFlower1,
+    resinFlower2,
     diceColorOverrides,
     wallColor,
     backgroundColor,
@@ -1192,6 +1194,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           autoRoll={autoRollArm}
           diceColors={resolvedDiceColors}
           material={diceMaterial}
+          flor1={resinFlower1}
+          flor2={resinFlower2}
           wallColor={hexStringToNumber(wallColor)}
           backgroundColor={hexStringToNumber(backgroundColor)}
           floorColor={hexStringToNumber(floorColor)}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { raioInscrito } from './inclusaoDeResina'
-import { alcance, cabecaDaFlor, ESPECIES, geradorDe, jardim, planta } from './florDeResina'
+import { alcance, cabecaDaFlor, FORMAS, geradorDe, jardim, planta } from './florDeResina'
 import { buildPolyhedronGeometry } from '../geometry/buildPolyhedronGeometry'
 import { D4_VERTICES } from '../dice-defs/d4'
 import { D20_FACE_INPUTS, D20_VERTICES } from '../dice-defs/d20'
@@ -50,7 +50,7 @@ describe('o jardim de resina', () => {
   })
 
   it('tem volume: os vértices de uma cabeça de flor não ficam num plano só', () => {
-    const cabeca = cabecaDaFlor(ESPECIES['margarida-lilas'], 1, geradorDe(7))
+    const cabeca = cabecaDaFlor(FORMAS.margarida, '#b48ae0', 1, geradorDe(7))
     cabeca.updateMatrixWorld(true)
     const alturas: number[] = []
     const p = new THREE.Vector3()
@@ -63,7 +63,7 @@ describe('o jardim de resina', () => {
   })
 
   it('a planta tem caule, raízes, folhas e a cabeça: mais de dez malhas', () => {
-    const p = planta(ESPECIES['flor-rosa'], 1, 0.4, geradorDe(3))
+    const p = planta(FORMAS.rosa, '#ea7fb0', 1, 0.4, geradorDe(3))
     let malhas = 0
     p.traverse((obj) => {
       if (obj instanceof THREE.Mesh) malhas++

@@ -13,6 +13,8 @@ export interface PolyhedronVisualOptions {
   numberColor?: string
   scale?: number
   material?: DiceMaterialFinish
+  /** As cores da flor 1 e da flor 2 do dado de resina. */
+  flores?: [string, string]
   /** Ver `textureCache.ts` — opcional, reduz regeração de textura entre dados idênticos da mesma leva de construção. */
   textureCache?: DiceTextureCache
 }
@@ -58,6 +60,6 @@ export function buildPolyhedronVisual(
   const mesh = new THREE.Mesh(geometry, createDiceMaterial({ map, finish: options.material }))
   mesh.castShadow = true
   mesh.receiveShadow = true
-  if (resina) montarDadoDeResina(mesh)
+  if (resina) montarDadoDeResina(mesh, options.flores)
   return mesh
 }
