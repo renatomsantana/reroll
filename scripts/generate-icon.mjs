@@ -1,8 +1,13 @@
-import { mkdir, readdir, writeFile } from 'fs/promises'
+import { execFile } from 'child_process'
+import { mkdir, readdir, rm, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
+import { platform } from 'os'
+import { promisify } from 'util'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 import pngToIco from 'png-to-ico'
+
+const execFileAsync = promisify(execFile)
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const buildDir = join(__dirname, '..', 'build')
@@ -60,6 +65,32 @@ async function main() {
     await writeFile(join(iconsDir, png.replace(/\.png$/, '.ico')), colorIco)
   }
   console.log(`${pngs.length} ícones de atalho gerados em build/icons/*.ico`)
+
+  /**
+   * `.icns` pro ícone do app no macOS (Dock, Finder, Launchpad). `iconutil` só existe no macOS —
+   * em CI do Windows este passo é pulado, e o `.icns` que já estiver em `build/` (versionado) segue
+   * valendo até alguém rodar `icon:generate` numa máquina Mac de novo.
+   */
+  if (platform() === 'darwin') {
+    const iconset = join(buildDir, 'icon.iconset')
+    await mkdir(iconset, { recursive: true })
+    const icnsSizes = [16, 32, 64, 128, 256, 512]
+    await Promise.all(
+      icnsSizes.flatMap((size) => [
+        sharp(SOURCE_ICON)
+          .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toFile(join(iconset, `icon_${size}x${size}.png`)),
+        sharp(SOURCE_ICON)
+          .resize(size * 2, size * 2, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toFile(join(iconset, `icon_${size}x${size}@2x.png`))
+      ])
+    )
+    await execFileAsync('iconutil', ['-c', 'icns', iconset, '-o', join(buildDir, 'icon.icns')])
+    await rm(iconset, { recursive: true, force: true })
+    console.log(`build/icon.icns (a partir de ${SOURCE_ICON})`)
+  }
 }
 
 main().catch((error) => {

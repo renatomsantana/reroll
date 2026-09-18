@@ -18,6 +18,7 @@
     "check": "npm run typecheck && npm run lint && npm test",
     "test": "vitest run",
     "dist:win": "electron-vite build && electron-builder --win",
+    "dist:mac": "electron-vite build && electron-builder --mac",
     "dist:dir": "electron-vite build && electron-builder --dir",
     "dist:steam": "electron-vite build && electron-builder --dir --win --config electron-builder.steam.yml --publish never",
     "icon:generate": "node scripts/generate-icon.mjs",

@@ -81,6 +81,15 @@ win:
         - x64
 portable:
   artifactName: ${productName}-Portatil-${version}.${ext}
+# Build de macOS pra uso local (Dock) — sem assinatura nem notarização, então não serve pra
+# distribuir: o Gatekeeper vai barrar em qualquer Mac que não seja o que compilou.
+mac:
+  icon: build/icon.icns
+  category: public.app-category.games
+  target:
+    - target: dir
+      arch:
+        - arm64
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

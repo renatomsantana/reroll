@@ -47,7 +47,7 @@ export function drawNumberGlyph(
   size: number,
   options: { numberColor?: string; fontHeightFraction?: number; label?: string } = {}
 ): void {
-  const numberColor = options.numberColor ?? '#1a1a1a'
+  const numberColor = options.numberColor ?? '#ffffff'
   const label = options.label ?? String(value)
   // Números de 2 dígitos (10-20) são bem mais LARGOS que os de 1 dígito na mesma altura de
   // fonte — ver comentário original em `createNumberTexture`.
@@ -67,8 +67,8 @@ export function createNumberTexture(
   options: NumberTextureOptions = {}
 ): THREE.CanvasTexture {
   const size = options.size ?? 256
-  const numberColor = options.numberColor ?? '#1a1a1a'
-  const bodyColor = options.bodyColor ?? '#f2ead6'
+  const numberColor = options.numberColor ?? '#ffffff'
+  const bodyColor = options.bodyColor ?? '#e01818'
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size

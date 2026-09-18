@@ -23,8 +23,8 @@ export interface D6VisualOptions {
  * declarado na definição por construção, não por coincidência ou ajuste manual.
  */
 export function buildD6Visual(options: D6VisualOptions = {}): THREE.Mesh {
-  const bodyColor = options.bodyColor ?? 0xf2ead6
-  const numberColor = options.numberColor ?? '#1a1a1a'
+  const bodyColor = options.bodyColor ?? 0xe01818
+  const numberColor = options.numberColor ?? '#ffffff'
   const bodyColorCss = numericColorToCss(bodyColor)
   const resina = options.material === 'resin'
   const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1

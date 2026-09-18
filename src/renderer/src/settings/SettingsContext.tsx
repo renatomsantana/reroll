@@ -291,21 +291,21 @@ interface Settings {
   palettesVisible: boolean
 }
 
-/** Mesmos padrões já hardcoded em `buildD6Visual`/`buildPolyhedronVisual`/`buildD4Visual` (0xf2ead6 / '#1a1a1a') e em `createScene.ts` (parede/fundo). */
+/** Mesmos padrões já hardcoded em `buildD6Visual`/`buildPolyhedronVisual`/`buildD4Visual` (0xe01818 / '#ffffff') e em `createScene.ts` (parede/fundo). */
 const DEFAULT_SETTINGS: Settings = {
   /**
-   * 'day' e não 'system' como padrão: a estética do app é a do Windows 98, que é clara por
-   * natureza, e é ela que quem abre o Reroll pela primeira vez deve ver. Quem quiser acompanhar o
-   * sistema escolhe — é uma opção, não uma suposição sobre o gosto de quem instalou.
+   * 'night' e não 'system' como padrão: é o modo que quem abre o Reroll pela primeira vez deve
+   * ver. Quem quiser acompanhar o sistema, ou prefere o modo dia, escolhe — é uma opção, não uma
+   * suposição sobre o gosto de quem instalou.
    */
-  themeSource: 'day',
+  themeSource: 'night',
   fontId: 'tahoma',
   language: 'pt-BR',
   soundEnabled: true,
   volume: VOLUME_PADRAO,
   compactMode: false,
-  diceBodyColor: '#f2ead6',
-  diceNumberColor: '#1a1a1a',
+  diceBodyColor: '#e01818',
+  diceNumberColor: '#ffffff',
   diceMaterial: 'matte',
   resinFlower1: COR_PADRAO_DA_FLOR_1,
   resinFlower2: COR_PADRAO_DA_FLOR_2,

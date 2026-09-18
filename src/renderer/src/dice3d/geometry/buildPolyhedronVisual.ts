@@ -30,8 +30,8 @@ export function buildPolyhedronVisual(
   faceInputs: PolyhedronFaceInput[],
   options: PolyhedronVisualOptions = {}
 ): THREE.Mesh {
-  const bodyColor = options.bodyColor ?? 0xf2ead6
-  const numberColor = options.numberColor ?? '#1a1a1a'
+  const bodyColor = options.bodyColor ?? 0xe01818
+  const numberColor = options.numberColor ?? '#ffffff'
   const bodyColorCss = numericColorToCss(bodyColor)
   const scale = options.scale ?? 1
   const resina = options.material === 'resin'

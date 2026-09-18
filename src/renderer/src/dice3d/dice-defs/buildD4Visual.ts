@@ -70,8 +70,8 @@ function drawD4FaceCell(
 }
 
 export function buildD4Visual(options: D4VisualOptions = {}): THREE.Mesh {
-  const bodyColor = options.bodyColor ?? 0xf2ead6
-  const numberColor = options.numberColor ?? '#1a1a1a'
+  const bodyColor = options.bodyColor ?? 0xe01818
+  const numberColor = options.numberColor ?? '#ffffff'
 
   const positions: number[] = []
   const uvs: number[] = []

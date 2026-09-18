@@ -61,9 +61,9 @@ export function DieFace({ sides, value }: DieFaceProps) {
   return (
     <svg className="die-face" viewBox="0 0 100 100" role="img" aria-label={`${value}`}>
       {/*
-        O contorno na cor do número não é enfeite: a cor de fábrica do corpo é um creme (#f2ead6)
-        que, sobre o painel branco do widget, sumiria sem uma borda. `stroke-linejoin: round`
-        arredonda as pontas do triângulo e do losango, que sem isso viram agulhas.
+        O contorno na cor do número não é enfeite: sem uma borda, um corpo claro sumiria sobre o
+        painel branco do widget. `stroke-linejoin: round` arredonda as pontas do triângulo e do
+        losango, que sem isso viram agulhas.
       */}
       {forma.pontos ? (
         <polygon
