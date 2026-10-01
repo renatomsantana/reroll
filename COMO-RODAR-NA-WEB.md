@@ -12,9 +12,12 @@ npm run preview:web    # serve o out/web/ pra conferir o build
 npx electron scripts/olharVersaoWeb.mjs   # fotografa o build em janela oculta (desktop + celular)
 ```
 
-Pra publicar: `out/web/` é um site estático completo — qualquer hospedagem serve (GitHub Pages,
-Netlify, um Apache). Só precisa ser **https** (ou localhost): o `crypto.randomUUID` e a área de
-transferência exigem contexto seguro.
+Pra publicar: `out/web/` é um site estático completo — qualquer hospedagem serve. Só precisa ser
+**https** (ou localhost): o `crypto.randomUUID` e a área de transferência exigem contexto seguro.
+
+A hospedagem escolhida é o **GitHub Pages**, em https://renatomsantana.github.io/reroll/. O
+`.github/workflows/site.yml` compila e publica sozinho a cada push na `main`. Na primeira vez, em
+Settings → Pages do repositório, "Source" tem de estar em "GitHub Actions".
 
 ## Como funciona (a decisão importante)
 
@@ -66,6 +69,5 @@ medidos, ver o comentário lá).
 
 1. **Service worker** se quiser offline / PWA completo. Não é urgente: quem quer offline instala o
    app de Android.
-2. Decidir hospedagem.
-3. Testar num celular de verdade — principalmente o desempenho da cena 3D, que é o maior risco e o
+2. Testar num celular de verdade — principalmente o desempenho da cena 3D, que é o maior risco e o
    único que não dá pra medir daqui.

@@ -1,0 +1,65 @@
+# A VERSÃO WEB no GitHub Pages: https://renatomsantana.github.io/reroll/
+#
+# Todo push na `main` recompila o `out/web/` e troca o site inteiro por ele. Não há etapa manual
+# como a do `release.yml` porque aqui não existe o problema que ela resolve: a página não se instala
+# na máquina de ninguém, e um site quebrado se conserta com o próximo push.
+#
+# O build é o mesmo `npm run build:web` da mão (ver `COMO-RODAR-NA-WEB.md`). Os caminhos do build
+# são relativos (`base: './'` no `vite.web.config.ts`), por isso ele funciona na subpasta `/reroll/`
+# sem nenhuma configuração a mais.
+#
+# PRIMEIRA VEZ: em Settings → Pages do repositório, "Source" tem de estar em "GitHub Actions".
+
+name: Site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Dois pushes seguidos não publicam fora de ordem: o segundo espera o primeiro terminar.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  compilar:
+    # Linux, diferente do `ci.yml`: aqui só se gera arquivo estático, não se confere o app do Windows.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # O binário do Electron (~100 MB) não entra no site; pular o download só encurta a instalação.
+      - name: Instalar dependências
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Compilar a versão web
+        run: npm run build:web
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out/web
+
+  publicar:
+    needs: compilar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicacao.outputs.page_url }}
+
+    steps:
+      - id: publicacao
+        uses: actions/deploy-pages@v4
