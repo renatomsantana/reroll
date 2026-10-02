@@ -4,9 +4,7 @@ import { useDialogo } from '@renderer/components/common/Dialogo'
 import { useNotes } from '@renderer/hooks/useNotes'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import type { Language } from '@shared/types/idioma'
-import { useProfiles } from '@renderer/settings/ProfilesContext'
 import { TAMANHO_MAXIMO_DA_ANOTACAO } from '@shared/types/notes'
-import { ProfileBadge } from '../common/ProfileBadge'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
 import { EditorDeAnotacoesRich, type EditorDeAnotacoesRichHandle, type RichFormatState, visibleText } from './EditorDeAnotacoesRich'
@@ -46,9 +44,6 @@ export function NotesTab() {
   const { language } = useSettings()
   const { notes, saveError, loadError, updatePage, goToPage, addPage, removePage } =
     useNotes()
-  const profiles = useProfiles()
-  const indiceDoAtivo = Math.max(0, profiles.profiles.findIndex((p) => p.id === profiles.activeId))
-
   const page = notes.pages[notes.currentPage]
   const dayLabel = t.notesTab.dayNumber.replace('{n}', String(notes.currentPage + 1))
   const editorRef = useRef<EditorDeAnotacoesRichHandle>(null)
@@ -80,22 +75,6 @@ export function NotesTab() {
 
   return (
     <Card className="notes-tab">
-      {/*
-        DE QUEM É ESTE CADERNO — o crachá do personagem ativo, e não o seletor.
-
-        O seletor chegou a morar aqui: quando a Ficha saiu da interface no fechamento do alfa, o app
-        ficou sem nenhuma porta pra trocar de personagem, e as Anotações receberam a dele. Com a
-        Ficha de volta no beta, o usuário decidiu onde cada coisa fica: a TROCA só na Ficha, e as
-        Anotações só lembram de quem se trata — "fotinha, nome e sobrenome". Ver `ProfileBadge.tsx`.
-      */}
-      <div className="notes-profile">
-        <ProfileBadge
-          profile={profiles.active}
-          fallbackName={t.notesTab.profileUnnamed.replace('{n}', String(indiceDoAtivo + 1))}
-          emptyPhotoLabel={t.notesTab.profilePhotoEmpty}
-        />
-      </div>
-
       <div className="notes-toolbar">
         <button
           type="button"

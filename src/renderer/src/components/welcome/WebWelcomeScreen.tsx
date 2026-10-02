@@ -33,7 +33,9 @@ export function WebWelcomeScreen({ appIconId, onEnterBoard }: WebWelcomeScreenPr
               ))}
             </h1>
             <p className="web-welcome-copy">Seu rolador de dados,<br />do jeitinho que você quer.</p>
-            <p className="web-welcome-detail">Personalize seus dados, bandeja e estojo. O seu tabuleiro fica salvo neste navegador.</p>
+            <p className="web-welcome-detail">
+              Seu tabuleiro fica salvo<br />neste navegador.
+            </p>
             <button className="web-welcome-action" type="button" onClick={onEnterBoard} autoFocus>
               Vá para seu tabuleiro
             </button>
