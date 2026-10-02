@@ -128,7 +128,7 @@
   font-weight: bold;
 }
 
-/** "Dados" × "Mesa e bandeja": os dois assuntos da aba, um por vez. */
+/** Dados, mesa e background: um assunto por vez. */
 .style-tab-sections {
   display: flex;
   gap: 4px;
@@ -136,6 +136,16 @@
 
 .style-tab-sections .btn {
   flex: 1;
+}
+
+/** Prévia do papel de parede da cena, inclusive quando uma imagem já foi escolhida. */
+.style-tab-background-preview {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  border: 2px inset var(--win-highlight);
+  background-position: center;
+  background-size: cover;
 }
 
 /** O que a roda está editando (corpo/número, ou parede/chão/fundo) — três botões precisam caber em 272px, daí o recuo curto. */

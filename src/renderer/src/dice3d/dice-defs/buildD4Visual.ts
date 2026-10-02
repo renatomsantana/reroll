@@ -1,7 +1,9 @@
 import * as THREE from 'three'
+import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 import { D4_DEFINITION, D4_FACE_INPUTS, D4_VERTICES } from './d4'
 import { cross, dot, normalize, orientFaceOutward, subtract } from '../geometry/polyhedronMath'
 import { numericColorToCss } from '../materials/createNumberTexture'
+import { diceNumberFontCss } from '../materials/diceNumberFonts'
 import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
 import { createNumberAtlasTexture, remapGeometryUvsToAtlas } from '../materials/createNumberAtlas'
 import { getCachedTexture, type DiceTextureCache } from '../materials/textureCache'
@@ -10,6 +12,7 @@ import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } 
 export interface D4VisualOptions {
   bodyColor?: number
   numberColor?: string
+  numberFont?: DiceNumberFontId
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina. */
   flores?: [string, string]
@@ -50,13 +53,14 @@ function drawD4FaceCell(
   ctx: CanvasRenderingContext2D,
   corners: CornerLabel[],
   numberColor: string,
-  cellPx: number
+  cellPx: number,
+  numberFont: DiceNumberFontId
 ): void {
   // O fundo na cor do corpo já foi pintado pelo atlas inteiro (ver `createNumberAtlas.ts`) —
   // aqui só entram os 3 números. `corners` guarda a posição em fração da célula (0..1), então
   // funciona pra qualquer resolução de célula que o atlas escolher.
   ctx.fillStyle = numberColor
-  ctx.font = `bold ${Math.round(cellPx * 0.22)}px sans-serif`
+  ctx.font = `bold ${Math.round(cellPx * 0.22)}px ${diceNumberFontCss(numberFont)}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
@@ -72,6 +76,7 @@ function drawD4FaceCell(
 export function buildD4Visual(options: D4VisualOptions = {}): THREE.Mesh {
   const bodyColor = options.bodyColor ?? 0xe01818
   const numberColor = options.numberColor ?? '#ffffff'
+  const numberFont = options.numberFont ?? 'rounded'
 
   const positions: number[] = []
   const uvs: number[] = []
@@ -142,10 +147,10 @@ export function buildD4Visual(options: D4VisualOptions = {}): THREE.Mesh {
   const resina = options.material === 'resin'
   const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
   const corDoCorpo = resina ? corDoCorpoDeResina(bodyColorCss) : bodyColorCss
-  const cacheKey = `atlas|d4|${numberColor}|${bodyColorCss}|${opacidadeDoCorpo}`
+  const cacheKey = `atlas|d4|${numberColor}|${numberFont}|${bodyColorCss}|${opacidadeDoCorpo}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
     createNumberAtlasTexture(faceCorners.length, corDoCorpo, (ctx, faceIndex, cellPx) => {
-      drawD4FaceCell(ctx, faceCorners[faceIndex], numberColor, cellPx)
+      drawD4FaceCell(ctx, faceCorners[faceIndex], numberColor, cellPx, numberFont)
     }, opacidadeDoCorpo)
   )
   remapGeometryUvsToAtlas(geometry, faceCorners.length)

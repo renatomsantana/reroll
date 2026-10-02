@@ -1,3 +1,5 @@
+import { REROLL_WEB } from './buildTarget'
+
 /**
  * O QUE ESTÁ PRONTO NA `main` MAS AINDA NÃO VAI PROS TESTADORES.
  *
@@ -13,7 +15,8 @@
  * importação não propõe barras — mas as barras que a ficha traz continuam GRAVADAS no
  * `notes.json`, só não aparecem: no dia em que o HUD for liberado, elas já estão lá.
  */
-export const HUD_LIBERADO = true
+/** O HUD continua no app instalado; no site ele não entra na tela de rolagem. */
+export const HUD_LIBERADO = !REROLL_WEB
 
 /**
  * Duas linhas das Preferências GUARDADAS a pedido dele (05/09/2026: "tira o como resultado aparece,
@@ -38,10 +41,10 @@ export const INTERRUPTOR_DE_SOM_NAS_PREFERENCIAS = false
 
 /**
  * PERSONAGENS À VONTADE, a regra do dono: "EU o DONO posso ter quantos personagens quiser, OS OUTROS
- * usuários apenas 3, eles são bloqueados e recebem um aviso".
+ * usuários têm um personagem, guardado no navegador, e são bloqueados ao tentar criar outro.
  *
  * Ligado (a `main`, o cliente dele): o teto de criação é o do disco. Desligado (o branch `lancamento`):
- * o teto volta a TRÊS, duro, com o botão "Novo personagem" avisando pelo diálogo do app e a importação
+ * o teto volta a UM, duro, com o botão "Novo personagem" avisando pelo diálogo do app e a importação
  * travando o OK com o mesmo motivo. Quem decide o valor é `MAX_PROFILES`, derivado daqui.
  */
-export const PERSONAGENS_LIBERADOS = true
+export const PERSONAGENS_LIBERADOS = !REROLL_WEB

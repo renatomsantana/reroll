@@ -12,6 +12,20 @@
  */
 import type { ArmazemDeArquivos } from './shims/fs'
 
+/**
+ * Pede ao navegador que trate os dados do Reroll como persistentes. Sem isso, IndexedDB continua
+ * guardando tudo normalmente, mas o browser pode apagar dados de sites pouco usados quando falta
+ * espaço no dispositivo. A permissão é uma sugestão: alguns navegadores a concedem de imediato,
+ * outros decidem pela frequência de uso, e a recusa nunca impede o app de abrir.
+ */
+export async function pedirPersistenciaDoNavegador(): Promise<void> {
+  try {
+    await navigator.storage?.persist?.()
+  } catch {
+    // Privacidade do navegador não pode impedir a rolagem nem o acesso aos dados já existentes.
+  }
+}
+
 export function criarArmazemDoNavegador(nomeDoBanco = 'reroll-web'): ArmazemDeArquivos {
   let aberto: Promise<IDBDatabase> | null = null
 

@@ -1,35 +1,16 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useDialogo } from '@renderer/components/common/Dialogo'
 import { useNotes } from '@renderer/hooks/useNotes'
-import { FONT_OPTIONS, useSettings } from '@renderer/settings/SettingsContext'
+import { useSettings } from '@renderer/settings/SettingsContext'
 import type { Language } from '@shared/types/idioma'
 import { useProfiles } from '@renderer/settings/ProfilesContext'
-import { TAMANHO_MAXIMO_DA_ANOTACAO, textoDeAnotacaoLimitado } from '@shared/types/notes'
-import { FontSelect, type FontSelectValue } from '../chrome/FontSelect'
+import { TAMANHO_MAXIMO_DA_ANOTACAO } from '@shared/types/notes'
 import { ProfileBadge } from '../common/ProfileBadge'
 import { Button } from '../common/Button'
 import { Card } from '../common/Card'
-import { CampoDeCaderno } from './CampoDeCaderno'
+import { EditorDeAnotacoesRich, type EditorDeAnotacoesRichHandle, type RichFormatState, visibleText } from './EditorDeAnotacoesRich'
 import './NotesTab.css'
-
-/**
- * O bloco guarda a fonte como FAMÍLIA CSS (`"Comic Sans MS", cursive`), e o seletor trabalha com o
- * ID da fonte. Estas duas funções fazem a ponte.
- *
- * Guardar a família, e não o id, é o formato que já está gravado no `notes.json` de quem usa o app —
- * mudar isso exigiria migrar arquivo por um ganho nenhum. O preço é este par de conversões, e um
- * detalhe honesto: quem tiver gravada uma das cinco fontes da lista ANTIGA das anotações (ela tinha
- * cadeias de reserva próprias, e uma Arial que nem existe nas Preferências) não vai bater com
- * nenhuma família daqui e cai em "fonte padrão". É uma vez só, na primeira abertura.
- */
-function familyToFontId(family: string): FontSelectValue {
-  return FONT_OPTIONS.find((font) => font.family === family)?.id ?? ''
-}
-
-function fontIdToFamily(id: FontSelectValue): string {
-  return FONT_OPTIONS.find((font) => font.id === id)?.family ?? ''
-}
 
 /**
  * A data de criação, no formato do idioma da interface (21/08/2026 em português, 08/21/2026 em
@@ -63,13 +44,15 @@ export function NotesTab() {
   const t = useTranslation()
   const dialogo = useDialogo()
   const { language } = useSettings()
-  const { notes, saveError, loadError, updateField, updatePage, goToPage, addPage, removePage } =
+  const { notes, saveError, loadError, updatePage, goToPage, addPage, removePage } =
     useNotes()
   const profiles = useProfiles()
   const indiceDoAtivo = Math.max(0, profiles.profiles.findIndex((p) => p.id === profiles.activeId))
 
   const page = notes.pages[notes.currentPage]
   const dayLabel = t.notesTab.dayNumber.replace('{n}', String(notes.currentPage + 1))
+  const editorRef = useRef<EditorDeAnotacoesRichHandle>(null)
+  const [formatState, setFormatState] = useState<RichFormatState>({ bold: false, italic: false, underline: false })
 
   /**
    * A LISTA ROLA ATÉ A SESSÃO ABERTA. Problema que a lista cria e as setas ◀ ▶ não tinham: com vinte
@@ -85,13 +68,8 @@ export function NotesTab() {
     aberturaRef.current?.scrollIntoView({ block: 'nearest' })
   }, [notes.currentPage])
 
-  /** A formatação da barra vale pro diário inteiro. */
-  const textStyle: CSSProperties = {
-    fontFamily: notes.font || undefined,
-    fontWeight: notes.bold ? 'bold' : undefined,
-    fontStyle: notes.italic ? 'italic' : undefined,
-    textDecoration: notes.underline ? 'underline' : undefined,
-    color: notes.color || undefined
+  function format(command: 'bold' | 'italic' | 'underline' | 'foreColor', value?: string): void {
+    editorRef.current?.format(command, value)
   }
 
   function handleRemovePage(): void {
@@ -119,37 +97,30 @@ export function NotesTab() {
       </div>
 
       <div className="notes-toolbar">
-        {/*
-          O MESMO seletor das Preferências, e não um `<select>` nativo — que era o que faltava pras
-          caveirinhas do Sans e do Papyrus aparecerem aqui: `<option>` não desenha imagem em navegador
-          nenhum, e é por isso que aquele componente existe (ver `FontSelect.tsx`).
-        */}
-        <FontSelect
-          value={familyToFontId(notes.font)}
-          onChange={(value) => updateField('font', fontIdToFamily(value))}
-          defaultLabel={t.notesTab.fontDefault}
-        />
         <button
           type="button"
-          className={`fmt-btn fmt-btn-bold ${notes.bold ? 'active' : ''}`}
+          className={`fmt-btn fmt-btn-bold ${formatState.bold ? 'active' : ''}`}
           title={t.notesTab.boldLabel}
-          onClick={() => updateField('bold', !notes.bold)}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => format('bold')}
         >
           B
         </button>
         <button
           type="button"
-          className={`fmt-btn fmt-btn-italic ${notes.italic ? 'active' : ''}`}
+          className={`fmt-btn fmt-btn-italic ${formatState.italic ? 'active' : ''}`}
           title={t.notesTab.italicLabel}
-          onClick={() => updateField('italic', !notes.italic)}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => format('italic')}
         >
           I
         </button>
         <button
           type="button"
-          className={`fmt-btn fmt-btn-underline ${notes.underline ? 'active' : ''}`}
+          className={`fmt-btn fmt-btn-underline ${formatState.underline ? 'active' : ''}`}
           title={t.notesTab.underlineLabel}
-          onClick={() => updateField('underline', !notes.underline)}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => format('underline')}
         >
           U
         </button>
@@ -157,19 +128,9 @@ export function NotesTab() {
           type="color"
           className="notes-color-input"
           title={t.notesTab.colorLabel}
-          value={notes.color || '#000000'}
-          onChange={(e) => updateField('color', e.target.value)}
+          defaultValue="#000000"
+          onChange={(e) => format('foreColor', e.target.value)}
         />
-        {notes.color && (
-          <button
-            type="button"
-            className="fmt-btn fmt-btn-color-reset"
-            title={t.notesTab.colorReset}
-            onClick={() => updateField('color', '')}
-          >
-            ↺
-          </button>
-        )}
         {loadError && <span className="notes-save-error">{t.notesTab.loadError}</span>}
         {saveError && <span className="notes-save-error">{t.notesTab.saveError}</span>}
       </div>
@@ -255,10 +216,10 @@ export function NotesTab() {
               ✕
             </Button>
           </div>
-          {/* Clicar numa pauta vazia leva o cursor pra ela: ver `CampoDeCaderno`. */}
-          <CampoDeCaderno
-            className="notes-textarea"
+          <EditorDeAnotacoesRich
+            ref={editorRef}
             value={page.text}
+            richText={page.richText === true}
             /*
              * O TETO da sessão (ver `TAMANHO_MAXIMO_DA_ANOTACAO`): o `maxLength` para a digitação
              * no limite, e o corte no `onChange` cobre o que entra por outro caminho (arrastar
@@ -266,16 +227,16 @@ export function NotesTab() {
              * só não cresce mais.
              */
             maxLength={TAMANHO_MAXIMO_DA_ANOTACAO}
-            onChangeText={(texto) => updatePage({ text: textoDeAnotacaoLimitado(texto) })}
-            style={textStyle}
+            onChange={(text) => updatePage({ text, richText: true })}
+            onFormatStateChange={setFormatState}
           />
           {/* O contador diz onde se está ANTES de o campo parar de aceitar — cheio, avisa em cor. */}
           <div
             className={`notes-contador ${
-              page.text.length >= TAMANHO_MAXIMO_DA_ANOTACAO ? 'notes-contador-cheio' : ''
+              visibleText(page.richText ? page.text : page.text.replaceAll('\n', '<br>')).length >= TAMANHO_MAXIMO_DA_ANOTACAO ? 'notes-contador-cheio' : ''
             }`}
           >
-            {page.text.length}/{TAMANHO_MAXIMO_DA_ANOTACAO}
+            {visibleText(page.richText ? page.text : page.text.replaceAll('\n', '<br>')).length}/{TAMANHO_MAXIMO_DA_ANOTACAO}
           </div>
         </div>
       </div>

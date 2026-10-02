@@ -9,6 +9,7 @@ import type { MetalPreset } from '@renderer/settings/metalPresets'
 import { AVAILABLE_DICE_TYPES } from '@renderer/dice3d/dice-defs/registry'
 import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
+import { REROLL_WEB } from '@shared/buildTarget'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useDialogo } from '@renderer/components/common/Dialogo'
 import { Button } from '../common/Button'
@@ -18,9 +19,13 @@ import { StylePreview } from './StylePreview'
 import { TRAY_SHAPES } from '@renderer/dice3d/geometry/trayShape'
 import { TrayPreview } from './TrayPreview'
 import { TrayShapeIcon } from './TrayShapeIcon'
+import { DICE_NUMBER_FONT_OPTIONS } from '@renderer/dice3d/materials/diceNumberFonts'
 import './StyleTab.css'
 
-const MATERIAL_OPTIONS: DiceMaterialFinish[] = ['matte', 'metallic', 'plastic', 'glass', 'resin']
+/** A resina com flores fica no desktop; a publicação web oferece os quatro acabamentos mais leves. */
+const MATERIAL_OPTIONS: DiceMaterialFinish[] = REROLL_WEB
+  ? ['matte', 'metallic', 'plastic', 'glass']
+  : ['matte', 'metallic', 'plastic', 'glass', 'resin']
 
 type PaletteFamilyId = 'metal' | 'gem' | 'matte' | 'plastic'
 /** O que a roda de cores está editando em cada seção — dado (corpo/número) ou cena (parede/chão/fundo). */
@@ -36,13 +41,12 @@ type DiceColorTarget = 'body' | 'number' | 'flower1' | 'flower2'
 type SceneColorTarget =
   | 'wall'
   | 'floor'
+  | 'caseWall'
+  | 'caseFloor'
   | 'background'
-  | 'towerStone'
-  | 'towerRoof'
-  | 'towerFlag'
-  | 'towerDoor'
 
-const SCENE_TARGETS: SceneColorTarget[] = ['wall', 'floor', 'background']
+const SCENE_TARGETS: SceneColorTarget[] = ['wall', 'floor']
+const CASE_TARGETS: SceneColorTarget[] = ['caseWall', 'caseFloor']
 /**
  * Os alvos da torre ficam em GRUPO SEPARADO, e não emendados em `SCENE_TARGETS`: os dois escrevem no
  * MESMO `sceneTarget`, então a roda continua sendo uma só, editando quem estiver marcado em qualquer
@@ -51,8 +55,6 @@ const SCENE_TARGETS: SceneColorTarget[] = ['wall', 'floor', 'background']
  * A razão de separar é LARGURA: a fileira de botões foi dimensionada pra três ou quatro, e são SETE
  * alvos no total — numa fileira só, transbordam da janela padrão.
  */
-const TOWER_TARGETS: SceneColorTarget[] = ['towerStone', 'towerRoof', 'towerFlag', 'towerDoor']
-
 /**
  * As quatro famílias de cor prontas, com o acabamento que cada uma pressupõe. Antes elas eram
  * QUATRO seções empilhadas, visualmente idênticas — quase cinquenta quadradinhos anônimos em
@@ -72,7 +74,7 @@ function sameColor(a: string, b: string): boolean {
 }
 
 /**
- * Aba própria pra estilizar dados e bandeja — antes essas opções viviam espremidas no modal de
+ * Aba própria pra estilizar dados, bandeja e estojo — antes essas opções viviam espremidas no modal de
  * Preferências, que ficou pequeno conforme a lista cresceu. A largura se divide em duas partes:
  *
  * - COLUNA FIXA da esquerda: o seletor de seção e a PRÉVIA, que ocupa toda a altura que sobra
@@ -87,42 +89,38 @@ export function StyleTab() {
   const {
     diceBodyColor,
     diceNumberColor,
+    diceNumberFont,
     diceMaterial,
     resinFlower1,
     resinFlower2,
     diceColorOverrides,
     wallColor,
+    caseWallColor,
     floorColor,
+    caseFloorColor,
     backgroundColor,
-    launchMode,
     trayShape,
-    towerStoneColor,
-    towerRoofColor,
-    towerFlagColor,
-    towerDoorColor,
     backgroundImage,
     palettesVisible,
     setDiceBodyColor,
     setDiceNumberColor,
+    setDiceNumberFont,
     setDiceMaterial,
     setResinFlower1,
     setResinFlower2,
     setDiceColorOverride,
     clearDiceColorOverride,
     setWallColor,
+    setCaseWallColor,
     setFloorColor,
+    setCaseFloorColor,
     setBackgroundColor,
-    setLaunchMode,
     setTrayShape,
-    setTowerStoneColor,
-    setTowerRoofColor,
-    setTowerFlagColor,
-    setTowerDoorColor,
     setBackgroundImage,
     setPalettesVisible
   } = useSettings()
   const [backgroundImageError, setBackgroundImageError] = useState(false)
-  const [section, setSection] = useState<'dice' | 'scene'>('dice')
+  const [section, setSection] = useState<'dice' | 'scene' | 'background'>('dice')
   const [paletteFamily, setPaletteFamily] = useState<PaletteFamilyId>('metal')
   /** Nome do preset sob o mouse — alimenta a legenda embaixo da grade, pra dar nome às cores sem precisar de um rótulo embaixo de cada quadradinho (doze rótulos numa linha não cabem). */
   const [hoveredPreset, setHoveredPreset] = useState<string | null>(null)
@@ -146,8 +144,6 @@ export function StyleTab() {
    *    continuam escolhíveis nesse modo — as cores ficam gravadas esperando a torre voltar —, e sem
    *    esta segunda regra pintar as quatro seria escolher no escuro, que é exatamente o que ele viu.
    */
-  const towerVisivelNaPrevia = launchMode !== 'tray' || TOWER_TARGETS.includes(sceneTarget)
-
   const selectedOverride = selectedDiceType === 'default' ? undefined : diceColorOverrides[selectedDiceType]
   const selectedBodyColor = selectedOverride?.bodyColor ?? diceBodyColor
   const selectedNumberColor = selectedOverride?.numberColor ?? diceNumberColor
@@ -191,24 +187,23 @@ export function StyleTab() {
   const activeTray = TRAY_PRESETS.find(
     (preset) => sameColor(preset.wallColor, wallColor) && sameColor(preset.floorColor, floorColor)
   )
+  const activeCase = TRAY_PRESETS.find(
+    (preset) => sameColor(preset.wallColor, caseWallColor) && sameColor(preset.floorColor, caseFloorColor)
+  )
 
   const sceneColors: Record<SceneColorTarget, string> = {
     wall: wallColor,
     floor: floorColor,
-    background: backgroundColor,
-    towerStone: towerStoneColor,
-    towerRoof: towerRoofColor,
-    towerFlag: towerFlagColor,
-    towerDoor: towerDoorColor
+    caseWall: caseWallColor,
+    caseFloor: caseFloorColor,
+    background: backgroundColor
   }
   const setSceneColors: Record<SceneColorTarget, (value: string) => void> = {
     wall: setWallColor,
     floor: setFloorColor,
-    background: setBackgroundColor,
-    towerStone: setTowerStoneColor,
-    towerRoof: setTowerRoofColor,
-    towerFlag: setTowerFlagColor,
-    towerDoor: setTowerDoorColor
+    caseWall: setCaseWallColor,
+    caseFloor: setCaseFloorColor,
+    background: setBackgroundColor
   }
 
   /**
@@ -228,10 +223,10 @@ export function StyleTab() {
   }
 
   /** Cor que a roda mostra e edita: depende da seção aberta e do alvo marcado nela. */
-  const wheelColor = section === 'scene' ? sceneColors[sceneTarget] : diceTargetColors[diceTarget]
+  const wheelColor = section === 'dice' ? diceTargetColors[diceTarget] : sceneColors[sceneTarget]
 
   function handleWheelChange(hex: string): void {
-    if (section === 'scene') {
+    if (section !== 'dice') {
       setSceneColors[sceneTarget](hex)
     } else if (diceTarget === 'body') {
       handleSelectedColorChange(hex, selectedNumberColor)
@@ -319,6 +314,9 @@ export function StyleTab() {
           <Button selected={section === 'scene'} onClick={() => setSection('scene')}>
             {t.styleTab.sectionScene}
           </Button>
+          <Button selected={section === 'background'} onClick={() => setSection('background')}>
+            {t.styleTab.sectionBackground}
+          </Button>
         </div>
 
         {/*
@@ -334,12 +332,9 @@ export function StyleTab() {
               <TrayPreview
                 wallColor={wallColor}
                 floorColor={floorColor}
+                caseWallColor={caseWallColor}
+                caseFloorColor={caseFloorColor}
                 trayShape={trayShape}
-                showTower={towerVisivelNaPrevia}
-                towerStoneColor={towerStoneColor}
-                towerRoofColor={towerRoofColor}
-                towerFlagColor={towerFlagColor}
-                towerDoorColor={towerDoorColor}
               />
               {/*
                 A legenda diz o que está montado ali — "Hexágono · Torre rolando" —, e não o nome da
@@ -348,23 +343,24 @@ export function StyleTab() {
               */}
               <p className="style-tab-preview-caption">
                 {t.styleTab.trayShapes[trayShape]}
-                {' · '}
-                {t.styleTab.launchModeOptions[launchMode].title}
-                {/*
-                  A torre em cena no modo SEM torre contradiz a própria legenda, e a contradição
-                  seria lida como bug. Ela está ali emprestada, pra pintar — e a linha diz isso.
-                */}
-                {towerVisivelNaPrevia && launchMode === 'tray' && (
-                  <span className="style-tab-preview-note">{t.styleTab.towerForColorOnly}</span>
-                )}
               </p>
             </>
+          ) : section === 'background' ? (
+            <div
+              className="style-tab-background-preview"
+              style={{
+                backgroundColor,
+                backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined
+              }}
+              aria-label={t.styleTab.sectionBackground}
+            />
           ) : (
             <>
               <StylePreview
                 sides={previewSides}
                 bodyColor={selectedBodyColor}
                 numberColor={selectedNumberColor}
+                numberFont={diceNumberFont}
                 material={diceMaterial}
                 flor1={resinFlower1}
                 flor2={resinFlower2}
@@ -414,11 +410,15 @@ export function StyleTab() {
                 </div>
               </div>
               <div className="style-tab-target-row">
-                <span className="style-tab-target-caption">{t.styleTab.targetsTower}</span>
+                <span className="style-tab-target-caption">{t.styleTab.targetsCase}</span>
                 <div className="style-tab-targets style-tab-targets-grid">
-                  {TOWER_TARGETS.map((target) => renderSceneTarget(target))}
+                  {CASE_TARGETS.map((target) => renderSceneTarget(target))}
                 </div>
               </div>
+            </div>
+          ) : section === 'background' ? (
+            <div className="style-tab-targets">
+              {renderSceneTarget('background')}
             </div>
           ) : (
             <div className="style-tab-targets">
@@ -491,6 +491,17 @@ export function StyleTab() {
                     onClick={() => setDiceMaterial(finish)}
                   >
                     {t.styleTab.materialOptions[finish]}
+                  </Button>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="style-group">
+              <legend>{t.styleTab.numberFont}</legend>
+              <div className="style-tab-grid-2">
+                {DICE_NUMBER_FONT_OPTIONS.map((font) => (
+                  <Button key={font.id} selected={diceNumberFont === font.id} onClick={() => setDiceNumberFont(font.id)}>
+                    {t.styleTab.numberFontOptions[font.id]}
                   </Button>
                 ))}
               </div>
@@ -585,47 +596,6 @@ export function StyleTab() {
             </fieldset>
 
             {/*
-              ONDE OS DADOS SÃO ROLADOS, em lista com uma frase por opção — antes eram três botões
-              lado a lado dizendo só "Sem torre", "Torre rolando" e "Torre de enfeite", e a
-              diferença entre os dois últimos não se adivinha por nome nenhum.
-
-              A frase diz o que ACONTECE com o dado em cada um, que é a pergunta que a pessoa tem na
-              cabeça ao escolher. Escolher a lista do 98 em vez dos botões não é gosto: com uma
-              descrição embaixo do título, três botões em relevo lado a lado viram três blocos de
-              texto disputando a largura, enquanto a lista empilha e dá a linha inteira a cada um.
-            */}
-            <fieldset className="style-group">
-              <legend>{t.styleTab.launchMode}</legend>
-              <div
-                className="style-tab-list style-tab-modes"
-                role="radiogroup"
-                aria-label={t.styleTab.launchMode}
-              >
-                {(['tray', 'tower', 'towerDecor'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    role="radio"
-                    aria-checked={launchMode === mode}
-                    className={`style-tab-list-item style-tab-mode ${
-                      launchMode === mode ? 'style-tab-list-item-selected' : ''
-                    }`}
-                    onClick={() => setLaunchMode(mode)}
-                  >
-                    <span className="style-tab-mode-text">
-                      <span className="style-tab-mode-title">
-                        {t.styleTab.launchModeOptions[mode].title}
-                      </span>
-                      <span className="style-tab-mode-description">
-                        {t.styleTab.launchModeOptions[mode].description}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-
-            {/*
               O modo de CÂMERA morava aqui e saiu a pedido do usuário ("não gostei de ser no
               estilo"): virou um trio de ícones sobrepostos na própria cena 3D
               (`CameraModeSwitch.tsx`). Faz sentido — é um controle que se mexe OLHANDO a cena, e
@@ -670,22 +640,55 @@ export function StyleTab() {
             </fieldset>
 
             <fieldset className="style-group">
-              <legend>{t.styleTab.backgroundImage}</legend>
-              <div className="style-tab-options-row">
-                <Button onClick={() => void handlePickBackgroundImage()}>
-                  {t.styleTab.backgroundImagePick}
-                </Button>
-                {backgroundImage && (
-                  <Button onClick={() => setBackgroundImage(null)}>
-                    {t.styleTab.backgroundImageClear}
-                  </Button>
-                )}
+              <legend>{t.styleTab.casePresets}</legend>
+              <div className="style-tab-swatches" onMouseLeave={() => setHoveredPreset(null)}>
+                {TRAY_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={`style-tab-swatch ${
+                      activeCase?.id === preset.id ? 'style-tab-swatch-active' : ''
+                    }`}
+                    style={{
+                      background: `linear-gradient(135deg, ${preset.wallColor} 0 50%, ${preset.floorColor} 50% 100%)`
+                    }}
+                    title={preset.label}
+                    aria-label={preset.label}
+                    aria-pressed={activeCase?.id === preset.id}
+                    onMouseEnter={() => setHoveredPreset(preset.label)}
+                    onFocus={() => setHoveredPreset(preset.label)}
+                    onClick={() => {
+                      setCaseWallColor(preset.wallColor)
+                      setCaseFloorColor(preset.floorColor)
+                    }}
+                  />
+                ))}
               </div>
-              {backgroundImageError && (
-                <p className="style-tab-error">{t.styleTab.backgroundImageError}</p>
-              )}
+              <p className="style-tab-swatch-caption">
+                {hoveredPreset ?? activeCase?.label ?? t.styleTab.paletteEmpty}
+              </p>
             </fieldset>
+
           </>
+        )}
+
+        {section === 'background' && (
+          <fieldset className="style-group">
+            <legend>{t.styleTab.backgroundImage}</legend>
+            <div className="style-tab-options-row">
+              <Button onClick={() => void handlePickBackgroundImage()}>
+                {t.styleTab.backgroundImagePick}
+              </Button>
+              {backgroundImage && (
+                <Button onClick={() => setBackgroundImage(null)}>
+                  {t.styleTab.backgroundImageClear}
+                </Button>
+              )}
+            </div>
+            {backgroundImageError && (
+              <p className="style-tab-error">{t.styleTab.backgroundImageError}</p>
+            )}
+          </fieldset>
         )}
       </div>
     </Card>

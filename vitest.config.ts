@@ -2,6 +2,9 @@ import { resolve } from 'path'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  define: {
+    __REROLL_WEB__: false
+  },
   resolve: {
     alias: {
       '@renderer': resolve(__dirname, 'src/renderer/src'),

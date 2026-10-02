@@ -1,0 +1,213 @@
+.web-welcome {
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px));
+  box-sizing: border-box;
+  background: var(--win-desktop);
+}
+
+.web-welcome-window {
+  width: min(100%, 940px);
+  overflow: hidden;
+  background: var(--win-face);
+  box-shadow:
+    inset 1px 1px 0 var(--win-highlight),
+    inset -1px -1px 0 var(--win-shadow-dark),
+    8px 8px 0 rgb(0 0 0 / 24%);
+  padding: 2px;
+}
+
+.web-welcome-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  background: linear-gradient(90deg, var(--win-titlebar-from), var(--win-titlebar-to));
+  color: var(--win-titlebar-text);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.web-welcome-titlebar-icon {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.web-welcome-content {
+  display: grid;
+  grid-template-columns: minmax(290px, 0.9fr) minmax(340px, 1.1fr);
+  align-items: center;
+  min-height: 410px;
+}
+
+.web-welcome-visual {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  padding: 42px;
+  background:
+    linear-gradient(135deg, rgb(0 0 0 / 11%) 25%, transparent 25%) 0 0 / 8px 8px,
+    var(--win-input-bg);
+  border-right: 2px groove var(--win-highlight);
+}
+
+.web-welcome-die-stage {
+  display: grid;
+  place-items: center;
+  width: min(100%, 290px);
+  aspect-ratio: 1;
+}
+
+.web-welcome-die {
+  width: min(100%, 250px);
+  height: auto;
+  aspect-ratio: 1;
+  display: block;
+}
+
+.web-welcome-copy-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 48px 56px;
+}
+
+.web-welcome-kicker {
+  margin: 0 0 8px;
+  color: var(--win-text-muted);
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+}
+
+.web-welcome-wordmark {
+  display: flex;
+  margin: 0;
+  color: #e01818;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(48px, 7vw, 66px);
+  font-style: italic;
+  font-weight: bold;
+  letter-spacing: -0.07em;
+  line-height: 1;
+  text-shadow: 2px 2px 0 #690308;
+}
+
+/* A luz sempre parte do R e visita cada letra até o L final. */
+.web-welcome-wordmark span {
+  display: inline-block;
+  animation: web-welcome-letter 3.9s ease-in-out infinite;
+  animation-delay: calc(var(--letter-index) * 130ms);
+}
+
+.web-welcome-copy {
+  max-width: 360px;
+  margin: 16px 0 6px;
+  color: var(--win-text);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(18px, 2.5vw, 25px);
+  font-weight: bold;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.web-welcome-detail {
+  max-width: 360px;
+  margin: 8px 0 26px;
+  color: var(--win-text-muted);
+  font-size: 13px;
+  line-height: 1.48;
+}
+
+.web-welcome-action {
+  min-width: 212px;
+  min-height: 38px;
+  padding: 7px 14px;
+  border: 0;
+  background: var(--win-face);
+  box-shadow:
+    inset 1px 1px 0 var(--win-highlight),
+    inset -1px -1px 0 var(--win-shadow-dark),
+    inset 2px 2px 0 #dfdfdf,
+    inset -2px -2px 0 var(--win-shadow);
+  color: var(--win-text);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.web-welcome-action:active {
+  box-shadow:
+    inset -1px -1px 0 var(--win-highlight),
+    inset 1px 1px 0 var(--win-shadow-dark);
+  padding: 8px 13px 6px 15px;
+}
+
+.web-welcome-action:focus-visible {
+  outline: 1px dotted var(--win-text);
+  outline-offset: -5px;
+}
+
+@keyframes web-welcome-letter {
+  0%, 12%, 100% { color: #e01818; text-shadow: 2px 2px 0 #690308; transform: translateY(0); }
+  4%, 8% { color: #fff; text-shadow: 0 0 12px #fff, 2px 2px 0 #690308; transform: translateY(-3px); }
+}
+
+@media (max-width: 680px) {
+  .web-welcome {
+    padding: 12px;
+  }
+
+  .web-welcome-window {
+    width: 100%;
+  }
+
+  .web-welcome-content {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .web-welcome-visual {
+    min-height: 240px;
+    padding: 22px;
+    border-right: 0;
+    border-bottom: 2px groove var(--win-highlight);
+  }
+
+  .web-welcome-die-stage {
+    width: 220px;
+  }
+
+  .web-welcome-die {
+    width: 190px;
+  }
+
+  .web-welcome-copy-area {
+    align-items: center;
+    padding: 28px 24px 30px;
+    text-align: center;
+  }
+
+  .web-welcome-copy,
+  .web-welcome-detail {
+    max-width: 330px;
+  }
+}
+
+@media (pointer: coarse) {
+  .web-welcome-action {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .web-welcome-wordmark span {
+    animation: none;
+  }
+}

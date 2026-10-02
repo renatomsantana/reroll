@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   main: {
+    define: {
+      __REROLL_WEB__: false
+    },
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
@@ -12,6 +15,9 @@ export default defineConfig({
     }
   },
   preload: {
+    define: {
+      __REROLL_WEB__: false
+    },
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
@@ -20,6 +26,9 @@ export default defineConfig({
     }
   },
   renderer: {
+    define: {
+      __REROLL_WEB__: false
+    },
     root: 'src/renderer',
     /**
      * O `.glb` da torre (`assets/models/torre.glb`) é ASSET, não código.

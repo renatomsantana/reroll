@@ -13,8 +13,11 @@ export const WORLD_CONFIG = {
   gravity: -13,
   /** Passos fixos de física por segundo. Mais alto = colisão rápida mais estável, mais CPU. */
   physicsStepsPerSecond: 60,
-  /** `World.numSolverIterations` (padrão do Rapier é 4). Mais alto = contato mais rígido, mais CPU. */
-  solverIterations: 4,
+  /**
+   * Mais iterações deixam o Rapier separar corretamente os contatos de uma bandeja cheia no mesmo
+   * passo. Com 4, dados que chegavam juntos ainda podiam parecer atravessados por alguns quadros.
+   */
+  solverIterations: 8,
   /** Teto de passos num frame só, pra um frame lento não virar espiral da morte. */
   maxStepsPerFrame: 5,
   /**

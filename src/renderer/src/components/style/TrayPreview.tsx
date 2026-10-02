@@ -40,6 +40,8 @@ const CAMERA_DIRECTION = new THREE.Vector3(0, 16, 23).normalize()
 interface TrayPreviewProps {
   wallColor: string
   floorColor: string
+  caseWallColor: string
+  caseFloorColor: string
   /** A prévia mostra a FORMA escolhida — se ela mostrasse hexágono sempre, ensinaria errado. */
   trayShape: TrayShape
   /**
@@ -47,12 +49,12 @@ interface TrayPreviewProps {
    * não estava em cena — as quatro cores eram escolhidas no escuro. Quem decide é `StyleTab`, por dois
    * motivos: a torre está na mesa de verdade, ou a pessoa está pintando uma peça dela.
    */
-  showTower: boolean
+  showTower?: boolean
   /** As quatro peças pintáveis, em cor CSS — a conversão pra hex numérico é feita aqui dentro. */
-  towerStoneColor: string
-  towerRoofColor: string
-  towerFlagColor: string
-  towerDoorColor: string
+  towerStoneColor?: string
+  towerRoofColor?: string
+  towerFlagColor?: string
+  towerDoorColor?: string
 }
 
 /**
@@ -194,12 +196,14 @@ export function frameCamera(camera: THREE.PerspectiveCamera, stage: THREE.Group)
 export function TrayPreview({
   wallColor,
   floorColor,
+  caseWallColor,
+  caseFloorColor,
   trayShape,
-  showTower,
-  towerStoneColor,
-  towerRoofColor,
-  towerFlagColor,
-  towerDoorColor
+  showTower = false,
+  towerStoneColor = '#45423a',
+  towerRoofColor = '#2f3542',
+  towerFlagColor = '#b03030',
+  towerDoorColor = '#4a3520'
 }: TrayPreviewProps) {
   /**
    * Memorizado porque é DEPENDÊNCIA de efeito: montado a cada render, o objeto seria sempre novo e
@@ -307,7 +311,7 @@ export function TrayPreview({
      * escura. Vem de `DiceCanvasMulti.tsx` e é montado AQUI, e não dentro de `createTrayPreview`,
      * porque `createScene.ts` não pode importar de volta sem fechar um ciclo.
      */
-    caseRef.current = buildCase(stage, wallColor, floorColor)
+    caseRef.current = buildCase(stage, caseWallColor, caseFloorColor)
 
     /**
      * A torre é montada com as MESMAS funções da cena de verdade, e recebe os lados da bandeja: ela
@@ -365,13 +369,18 @@ export function TrayPreview({
     const wall = hexStringToNumber(wallColor)
     const floor = hexStringToNumber(floorColor)
     trayRef.current?.updateColors(wall, floor)
+  }, [wallColor, floorColor])
+
+  useEffect(() => {
+    const caseWall = hexStringToNumber(caseWallColor)
+    const caseFloor = hexStringToNumber(caseFloorColor)
     // O estojo também troca de cor no lugar agora (`updateColors` em `ShelfCaseHandle`). Antes ele
     // era reconstruído inteiro — geometria, materiais e as texturas de madeira 512×512 refeitas
     // pixel a pixel — a cada mudança de cor, com um debounce só pra segurar o estrago enquanto o
     // seletor era arrastado. Sem reconstrução não sobra nada pra segurar: a prévia acompanha o
     // seletor no mesmo frame.
-    caseRef.current?.updateColors(floor, wall)
-  }, [wallColor, floorColor])
+    caseRef.current?.updateColors(caseFloor, caseWall)
+  }, [caseWallColor, caseFloorColor])
 
   /**
    * Mesma ideia pras quatro cores da torre: `updateColors` tinge os materiais que já existem, então

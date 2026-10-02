@@ -50,7 +50,7 @@ export const TETO_DE_PERSONAGENS_NO_DISCO = 15
  * Vale na CRIAÇÃO e não na leitura — `normalizeProfiles` nunca corta a lista, porque um arquivo
  * restaurado de backup não pode perder personagem por causa de um número que mudou.
  */
-export const MAX_PROFILES = PERSONAGENS_LIBERADOS ? TETO_DE_PERSONAGENS_NO_DISCO : 3
+export const MAX_PROFILES = PERSONAGENS_LIBERADOS ? TETO_DE_PERSONAGENS_NO_DISCO : 1
 
 export function createProfile(name = '', system = ''): Profile {
   return { id: crypto.randomUUID(), name, system, photo: null, createdAt: Date.now() }

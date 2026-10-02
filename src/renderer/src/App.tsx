@@ -28,6 +28,7 @@ import { HudDoPersonagem } from '@renderer/components/hud/HudDoPersonagem'
 import { DescansoEditorModal } from '@renderer/components/recursos/DescansoEditorModal'
 import { aplicarDescanso, resumoDoDescanso, type Descanso } from '@shared/types/descanso'
 import { HUD_LIBERADO } from '@shared/liberacoes'
+import { REROLL_WEB } from '@shared/buildTarget'
 import type { RecursoVital } from '@shared/types/recursoVital'
 import { rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
 import { useDialogo } from '@renderer/components/common/Dialogo'
@@ -39,18 +40,31 @@ import { NotesTab } from '@renderer/components/notes/NotesTab'
 import { StyleTab } from '@renderer/components/style/StyleTab'
 import { UpdatePrompt } from '@renderer/components/chrome/UpdatePrompt'
 import { SplashScreen } from '@renderer/components/splash/SplashScreen'
+import { WebWelcomeScreen } from '@renderer/components/welcome/WebWelcomeScreen'
 import './App.css'
 
 /** Lista vazia e ESTÁVEL pra quando o HUD não está liberado: mesma referência a cada render. */
 const SEM_BARRAS: RecursoVital[] = []
+const WEB_WELCOME_STORAGE_KEY = 'reroll-web-welcome-seen-v1'
+
+function webWelcomeJaFoiVista(): boolean {
+  if (!REROLL_WEB) return true
+  if (window.location.search.includes('welcome=1')) return false
+  try {
+    return window.localStorage.getItem(WEB_WELCOME_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 export default function App() {
-  const { soundEnabled, compactMode, launchMode, autoCopyRolls, copyMarkdown, critSoundEnabled } = useSettings()
+  const { soundEnabled, compactMode, launchMode, autoCopyRolls, copyMarkdown, critSoundEnabled, appIconId } = useSettings()
   const t = useTranslation()
   const dialogo = useDialogo()
   const profiles = useProfiles()
   const indiceDoAtivo = Math.max(0, profiles.profiles.findIndex((p) => p.id === profiles.activeId))
-  const [showSplash, setShowSplash] = useState(true)
+  const [showSplash, setShowSplash] = useState(() => !REROLL_WEB)
+  const [showWebWelcome, setShowWebWelcome] = useState(() => !webWelcomeJaFoiVista())
   const [activeTab, setActiveTab] = useState<AppTab>('roll')
   const [settingsOpen, setSettingsOpen] = useState(false)
   /** Histórico de rolagens (ver `HistoryModal`): abre pelo botão ao lado do ROLAR e pelas Preferências. */
@@ -140,6 +154,19 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showSplash, compactMode, activeTab, isCreating, editingPreset, settingsOpen, modalDasBarrasAberto])
+
+  function entrarNoTabuleiro() {
+    try {
+      window.localStorage.setItem(WEB_WELCOME_STORAGE_KEY, '1')
+    } catch {
+      // Sem armazenamento disponível, a pessoa ainda entra normalmente nesta sessão.
+    }
+    setShowWebWelcome(false)
+  }
+
+  if (showWebWelcome) {
+    return <WebWelcomeScreen appIconId={appIconId} onEnterBoard={entrarNoTabuleiro} />
+  }
 
   if (showSplash) {
     return (

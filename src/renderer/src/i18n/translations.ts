@@ -273,10 +273,13 @@ export interface TranslationDict {
     defaultColorOption: string
     material: string
     materialOptions: { matte: string; metallic: string; plastic: string; glass: string; resin: string }
+    numberFont: string
+    numberFontOptions: { rounded: string; classic: string; serif: string; mono: string; rune: string }
     /** Legenda da prévia 3D e das duas seções em que a aba se divide. */
     preview: string
     sectionDice: string
     sectionScene: string
+    sectionBackground: string
     /** Paletas prontas: um seletor de família (metal/gema/fosco/plástico) no lugar de quatro listas idênticas empilhadas. */
     palettes: string
     paletteFamilies: { metal: string; gem: string; matte: string; plastic: string }
@@ -298,6 +301,8 @@ export interface TranslationDict {
       flower2: string
       wall: string
       floor: string
+      caseWall: string
+      caseFloor: string
       background: string
       /** As quatro peças da torre ao lado da bandeja (`createTowerBesideTray.ts`). */
       towerStone: string
@@ -307,8 +312,10 @@ export interface TranslationDict {
     }
     /** Legendas das duas fileiras de alvos de cor da cena — bandeja e torre, ver `StyleTab`. */
     targetsTray: string
+    targetsCase: string
     targetsTower: string
     trayPresets: string
+    casePresets: string
     /** Rótulos do seletor de modo de lançamento, na aba Estilo (`StyleTab.tsx`). */
     /** Forma da bandeja e os nomes das quatro. */
     trayShape: string
@@ -748,9 +755,12 @@ export const translations: Record<Language, TranslationDict> = {
         glass: 'Vidro',
         resin: 'Resina com flor'
       },
+      numberFont: 'Fonte dos números',
+      numberFontOptions: { rounded: 'Arredondada', classic: 'Clássica', serif: 'Serifada', mono: 'Técnica', rune: 'Rúnica' },
       preview: 'Prévia',
       sectionDice: 'Dados',
-      sectionScene: 'Mesa e bandeja',
+      sectionScene: 'Bandeja e estojo',
+      sectionBackground: 'Background',
       palettes: 'Paletas prontas',
       paletteFamilies: {
         metal: 'Metálicas',
@@ -769,6 +779,8 @@ export const translations: Record<Language, TranslationDict> = {
         flower2: 'Flor 2',
         wall: 'Parede',
         floor: 'Veludo',
+        caseWall: 'Tampa',
+        caseFloor: 'Veludo',
         background: 'Fundo',
         towerStone: 'Pedra',
         towerRoof: 'Bico',
@@ -776,8 +788,10 @@ export const translations: Record<Language, TranslationDict> = {
         towerDoor: 'Porta'
       },
       targetsTray: 'Bandeja',
+      targetsCase: 'Estojo',
       targetsTower: 'Torre',
       trayPresets: 'Estilos de bandeja prontos',
+      casePresets: 'Paletas do estojo',
       trayShape: 'Formato da bandeja',
       towerForColorOnly: 'torre em cena só pra você escolher a cor',
       trayShapes: { triangle: 'Triângulo', square: 'Quadrado', hexagon: 'Hexágono', circle: 'Círculo' },
@@ -1179,9 +1193,12 @@ export const translations: Record<Language, TranslationDict> = {
         glass: 'Glass',
         resin: 'Resin with flower'
       },
+      numberFont: 'Number font',
+      numberFontOptions: { rounded: 'Rounded', classic: 'Classic', serif: 'Serif', mono: 'Technical', rune: 'Runic' },
       preview: 'Preview',
       sectionDice: 'Dice',
-      sectionScene: 'Table & tray',
+      sectionScene: 'Tray & case',
+      sectionBackground: 'Background',
       palettes: 'Ready-made palettes',
       paletteFamilies: {
         metal: 'Metal',
@@ -1200,6 +1217,8 @@ export const translations: Record<Language, TranslationDict> = {
         flower2: 'Flower 2',
         wall: 'Wall',
         floor: 'Velvet',
+        caseWall: 'Lid',
+        caseFloor: 'Velvet',
         background: 'Background',
         towerStone: 'Stone',
         towerRoof: 'Spire',
@@ -1207,8 +1226,10 @@ export const translations: Record<Language, TranslationDict> = {
         towerDoor: 'Door'
       },
       targetsTray: 'Tray',
+      targetsCase: 'Case',
       targetsTower: 'Tower',
       trayPresets: 'Ready-made tray styles',
+      casePresets: 'Case palettes',
       trayShape: 'Tray shape',
       towerForColorOnly: 'tower shown only so you can pick its colour',
       trayShapes: { triangle: 'Triangle', square: 'Square', hexagon: 'Hexagon', circle: 'Circle' },

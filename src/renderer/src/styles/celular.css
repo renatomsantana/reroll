@@ -162,3 +162,139 @@
     height: 32px;
   }
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * TABLETS E CELULARES: conteúdo de duas colunas vira leitura vertical antes de cortar.
+ */
+
+@media (max-width: 900px) {
+  /* No iPad em pé, duas colunas deixam cada campo estreito demais para edição. */
+  .notes-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .notes-column {
+    min-height: auto;
+  }
+
+  .sheet-row {
+    flex-wrap: wrap;
+  }
+
+  .sheet-row > .sheet-group {
+    min-width: min(100%, 260px);
+  }
+}
+
+@media (max-width: 640px) {
+  /* A área real da WebGL também tinha mínimo de 420px; reduzir só o invólucro não resolvia. */
+  .dice-roller-3d-canvas,
+  .dice-canvas-container,
+  .dice-roller-3d-placeholder,
+  .dice-roller-3d-quick {
+    min-height: clamp(260px, 45dvh, 360px);
+  }
+
+  /* No espaço de um telefone, o botão passa para baixo e continua confortável para o polegar. */
+  .dice-roller-3d-roll-body {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dice-roller-3d-roll-btn {
+    width: 100%;
+    min-height: 40px;
+    margin-left: 0;
+  }
+
+  .dice-roller-3d-quick-total {
+    font-size: 56px;
+  }
+
+  /* Mantém as quatro abas e a engrenagem na largura da tela, sem criar corte lateral. */
+  .toolbar {
+    gap: 3px;
+    padding-inline: 3px;
+  }
+
+  .toolbar-tabs {
+    min-width: 0;
+    gap: 1px;
+  }
+
+  .toolbar-tab {
+    min-width: 0;
+    gap: 3px;
+    white-space: nowrap;
+  }
+
+  .toolbar-tab-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .toolbar-settings-btn {
+    flex: 0 0 28px;
+  }
+
+  /* Modais usam quase toda a tela, respeitando os recortes físicos do aparelho. */
+  .modal-overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding:
+      calc(12px + env(safe-area-inset-top, 0))
+      12px
+      calc(12px + env(safe-area-inset-bottom, 0));
+  }
+
+  .settings-panel,
+  .history-modal,
+  .dialogo,
+  .preset-editor-modal,
+  .recurso-editor-modal,
+  .descanso-modal {
+    width: 100%;
+    max-width: none;
+    max-height: none;
+  }
+
+  .settings-panel-field {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .settings-panel-field select {
+    width: 100%;
+  }
+
+  .sheet-tab,
+  .notes-tab {
+    padding: 8px;
+  }
+
+  .sheet-profile {
+    flex-wrap: wrap;
+  }
+
+  .sheet-profile-photo,
+  .sheet-photo-recortar {
+    width: 88px;
+    height: 88px;
+  }
+
+  .sheet-photo-recortar {
+    height: auto;
+  }
+}
+
+@media (pointer: coarse) {
+  /* Arrastar a câmera não seleciona a página nem disputa o gesto com a rolagem vertical fora dela. */
+  .dice-canvas-container {
+    touch-action: none;
+  }
+
+  .web-welcome-action {
+    min-height: 44px;
+  }
+}

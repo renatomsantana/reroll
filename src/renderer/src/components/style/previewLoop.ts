@@ -13,7 +13,6 @@ import type * as THREE from 'three'
  * em TODO `requestAnimationFrame`, na taxa do monitor, o tempo inteiro em que a aba estava aberta.
  */
 const PREVIEW_FPS = 30
-const FRAME_INTERVAL_MS = 1000 / PREVIEW_FPS
 
 /**
  * Teto de 1.5 em vez de 2. A prévia é um quadrado de uns 240 px: a 2× ela renderiza 480×480 e a
@@ -33,9 +32,10 @@ export function previewPixelRatio(): number {
  * Electron mantém o laço rodando em algumas situações. O relógio é reiniciado ao voltar, pra não dar
  * um salto de rotação proporcional ao tempo escondida. Devolve a função que para o laço.
  */
-export function startPreviewLoop(render: (deltaSeconds: number) => void): () => void {
+export function startPreviewLoop(render: (deltaSeconds: number) => void, fps = PREVIEW_FPS): () => void {
   let frameId = 0
   let lastDrawnAt = performance.now()
+  const frameIntervalMs = 1000 / fps
 
   function tick() {
     frameId = requestAnimationFrame(tick)
@@ -46,7 +46,9 @@ export function startPreviewLoop(render: (deltaSeconds: number) => void): () => 
       return
     }
     const elapsed = now - lastDrawnAt
-    if (elapsed < FRAME_INTERVAL_MS) return
+    // O rAF de 60 Hz oscila por alguns décimos de milissegundo. Sem esta folga, 16,5 ms falha
+    // contra o alvo de 16,67 e a prévia de 60 FPS cai para 30 alternando quadros.
+    if (elapsed < frameIntervalMs - 0.75) return
 
     lastDrawnAt = now
     render(elapsed / 1000)

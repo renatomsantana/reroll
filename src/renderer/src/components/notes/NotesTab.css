@@ -212,6 +212,21 @@
   background-attachment: local;
 }
 
+/** O diário rico parece a mesma folha pautada, mas guarda a formatação em cada trecho. */
+.notes-rich-editor {
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  /* A folha acompanha a janela: cinza do layout no dia e grafite no modo noite. */
+  background-color: var(--win-window-bg);
+  color: var(--win-text);
+  outline: none;
+}
+
+.notes-rich-editor:focus {
+  box-shadow: inset 0 0 0 1px var(--win-accent);
+}
+
 /**
  * AS DUAS COLUNAS: sessões à esquerda, texto à direita — a forma que o usuário pediu ("algo como o
  * Obsidian"). A moldura continua Windows 98; o que veio do Obsidian é o arranjo, não a aparência.

@@ -34,7 +34,7 @@ import {
 } from '@renderer/dice3d/scene/DiceCanvasMulti'
 import { AVAILABLE_DICE_TYPES } from '@renderer/dice3d/dice-defs/registry'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
-import type { DisplayMode, LaunchMode } from '@renderer/settings/SettingsContext'
+import type { DisplayMode } from '@renderer/settings/SettingsContext'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { playRollSound } from '@renderer/audio/rollSound'
@@ -123,23 +123,6 @@ const DEFAULT_GROUPS: DiceGroup[] = [{ sides: 20, count: 1 }]
  * cair pela metade do limite geral da cena pra nunca estourar `MAX_SIMULTANEOUS_DICE`.
  */
 const ADVANTAGE_MAX_COUNT = Math.floor(MAX_SIMULTANEOUS_DICE / 2)
-
-/**
- * Atraso (ms) entre clicar em "Rolar" e o som tocar, pra soar junto do impacto dos dados na bandeja
- * em vez do instante do clique.
- *
- * É menor pela torre porque são dois tempos de voo: de lá o dado nasce na boca, logo acima da borda,
- * e cai direto no hexágono; no arremesso de cima ele nasce entre 6 e 8 de altura e cruza a bandeja
- * antes de bater. O da torre saiu por ouvido, em duas rodadas (800ms ainda soou tarde), e fica um
- * pouco ANTES do primeiro impacto de propósito — o ruído de uma torre começa antes de o dado tocar a
- * bandeja. Abaixo de ~540ms o som antecede qualquer coisa na tela.
- */
-const ROLL_SOUND_DELAY_MS = 1200
-const TOWER_ROLL_SOUND_DELAY_MS = 400
-
-function rollSoundDelay(launchMode: LaunchMode): number {
-  return launchMode === 'tower' ? TOWER_ROLL_SOUND_DELAY_MS : ROLL_SOUND_DELAY_MS
-}
 
 /** Agrupa uma lista achatada de resultados individuais de volta por tipo de dado, na ordem em que cada tipo apareceu primeiro. */
 function groupRollsBySides(rolls: { sides: number; value: number }[]): DiceGroupResult[] {
@@ -303,19 +286,17 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const {
     diceBodyColor,
     diceNumberColor,
+    diceNumberFont,
     diceMaterial,
     resinFlower1,
     resinFlower2,
     diceColorOverrides,
     wallColor,
+    caseWallColor,
     backgroundColor,
     floorColor,
+    caseFloorColor,
     backgroundImage,
-    towerStoneColor,
-    towerRoofColor,
-    towerFlagColor,
-    towerDoorColor,
-    launchMode,
     trayShape,
     cameraMode,
     debugMode,
@@ -333,15 +314,6 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
    * outro.
    */
   const [efeitoDeCritico, setEfeitoDeCritico] = useState<{ key: string; tipo: 'critico' | 'falha' } | null>(null)
-  /** Timer do delay do som de rolagem (ver `ROLL_SOUND_DELAY_MS`) — guardado só pra poder cancelar no unmount, evitando tocar som depois que o componente já saiu de tela (troca de aba durante o delay). */
-  const rollSoundTimeoutRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
-    }
-  }, [])
-
   /**
    * Cor do corpo/número resolvida POR TIPO de dado — mescla o override individual
    * (`diceColorOverrides`, editado na aba Estilo) com a cor global, sempre com uma entrada pra
@@ -521,7 +493,6 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
        * por cima é só arremessar de novo. A TORRE continua recusando: lá a rolagem é uma FILA, e
        * cortá-la no meio deixa dados presos no estado de espera.
        */
-      if (isRolling && launchMode === 'tower') return
       /**
        * Guardado num ref, e não em estado: o resultado só existe quando os dados assentam, segundos
        * depois, e no meio disso o componente re-renderiza várias vezes. Num estado, o `finalizeResult`
@@ -576,17 +547,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       // Só marca; quem arremessa é o efeito abaixo, depois que os dados novos já entraram na cena
       // (ver `pendingPresetRollRef`). Vale pros dois modos desde que a torre parou de remontar.
       pendingPresetRollRef.current = true
-      // Som com atraso (ver `ROLL_SOUND_DELAY_MS`) — não em `finalizeResult`, que só roda
-      // quando os dados assentam segundos depois.
-      if (soundEnabled) {
-        if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
-        const diceCount = newGroups.reduce((sum, g) => sum + g.count, 0)
-        rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(diceCount), rollSoundDelay(launchMode))
-      }
     },
     rollFormula: (formula, sourceName) => {
-      // A mesma regra do `rollGroups`: a torre é uma fila, e cortá-la no meio prende dados.
-      if (isRolling && launchMode === 'tower') return
       sourceNameRef.current = sourceName
       // Fórmula não usa as regras da rolagem de sempre: manter e contar vêm por marca, prontas
       // (ver `resultadoParaRollResult`), e a explosão é da própria gramática (`!` no termo).
@@ -627,13 +589,6 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
       setIsRolling(true)
       setPresetRollSeq((n) => n + 1)
       pendingPresetRollRef.current = true
-      if (soundEnabled) {
-        if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
-        rollSoundTimeoutRef.current = window.setTimeout(
-          () => playRollSound(passo.pedido.quantidade),
-          rollSoundDelay(launchMode)
-        )
-      }
     }
   }))
 
@@ -785,13 +740,6 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         setOndaDeExplosao([{ sides: passo.pedido.lados, count: passo.pedido.quantidade }])
         pendingPresetRollRef.current = true
         setPresetRollSeq((n) => n + 1)
-        if (soundEnabled) {
-          if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
-          rollSoundTimeoutRef.current = window.setTimeout(
-            () => playRollSound(passo.pedido.quantidade),
-            rollSoundDelay(launchMode)
-          )
-        }
         return
       }
       sessaoDeFormulaRef.current = null
@@ -839,11 +787,6 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         setOndaDeExplosao(proximaOnda)
         pendingPresetRollRef.current = true
         setPresetRollSeq((n) => n + 1)
-        if (soundEnabled) {
-          if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
-          const quantos = proximaOnda.reduce((soma, g) => soma + g.count, 0)
-          rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(quantos), rollSoundDelay(launchMode))
-        }
         return
       }
 
@@ -914,12 +857,6 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
 
     setIsRolling(true)
     multiRef.current?.roll()
-    // Som com atraso (ver `ROLL_SOUND_DELAY_MS`), não no assentamento final (`finalizeResult`).
-    if (soundEnabled) {
-      if (rollSoundTimeoutRef.current !== null) window.clearTimeout(rollSoundTimeoutRef.current)
-      const diceCount = canvasGroups.reduce((sum, g) => sum + g.count, 0)
-      rollSoundTimeoutRef.current = window.setTimeout(() => playRollSound(diceCount), rollSoundDelay(launchMode))
-    }
   }
 
   useEffect(() => {
@@ -1186,27 +1123,27 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
            * `WebGLRenderer` novo (15ms), e o primeiro quadro recompila os shaders, num pico de 290ms.
            * É o "fica meio lagado quando bota mais dados" que ele reportou.
            */
-          key={`${debugMode}-${launchMode}-${trayShape}`}
+          key={`${debugMode}-${trayShape}`}
           ref={multiRef}
           groups={canvasGroups as { sides: PhysicalDiceSides; count: number }[]}
           onResult={handleMultiResult}
           onError={handleSceneError}
+          onFirstFloorImpact={(diceCount) => {
+            if (soundEnabled) playRollSound(diceCount)
+          }}
           autoRoll={autoRollArm}
           diceColors={resolvedDiceColors}
+          numberFont={diceNumberFont}
           material={diceMaterial}
           flor1={resinFlower1}
           flor2={resinFlower2}
           wallColor={hexStringToNumber(wallColor)}
           backgroundColor={hexStringToNumber(backgroundColor)}
           floorColor={hexStringToNumber(floorColor)}
-          towerColors={{
-            stone: hexStringToNumber(towerStoneColor),
-            roof: hexStringToNumber(towerRoofColor),
-            flag: hexStringToNumber(towerFlagColor),
-            door: hexStringToNumber(towerDoorColor)
-          }}
+          caseWallColor={hexStringToNumber(caseWallColor)}
+          caseFloorColor={hexStringToNumber(caseFloorColor)}
           backgroundImage={backgroundImage}
-          launchMode={launchMode}
+          launchMode="tray"
           traySides={TRAY_SHAPE_SIDES[trayShape]}
           debugMode={debugMode}
           caseOpen={caseOpen}
@@ -1278,7 +1215,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                     style={{ background: color.bg, color: color.text }}
                     title={`d${roll.sides}`}
                   >
-                    {roll.value}
+                    <span>{roll.value}</span>
+                    <small className="dice-roll-type">d{roll.sides}</small>
                   </span>
                 </span>
               )

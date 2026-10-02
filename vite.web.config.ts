@@ -25,7 +25,8 @@ export default defineConfig({
   // O `.glb` da torre é asset, não código — mesmo motivo do `electron.vite.config.ts`.
   assetsInclude: ['**/*.glb'],
   define: {
-    __VERSAO_DO_APP__: JSON.stringify(version)
+    __VERSAO_DO_APP__: JSON.stringify(version),
+    __REROLL_WEB__: true
   },
   resolve: {
     alias: {

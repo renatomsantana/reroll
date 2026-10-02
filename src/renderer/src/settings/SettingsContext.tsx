@@ -6,7 +6,9 @@ import { migrarPreferencias, sanearPreferencias } from './sanearSettings'
 import { VOLUME_PADRAO, definirVolume, volumeValido } from '@renderer/audio/volume'
 import { DEFAULT_APP_ICON_ID, isValidAppIconId } from '@shared/appIcons'
 import type { Language } from '@shared/types/idioma'
+import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 import { CHAVES_DA_APARENCIA, type AparenciaDoPersonagem } from '@shared/types/aparencia'
+import { REROLL_WEB } from '@shared/buildTarget'
 import { COR_PADRAO_DA_FLOR_1, COR_PADRAO_DA_FLOR_2 } from '@renderer/dice3d/materials/florDeResina'
 
 export type ThemeMode = 'day' | 'night'
@@ -75,7 +77,7 @@ export type DisplayMode = '3d' | 'quick'
  *    reserva dela é o que faz a exceção custar pouco — não a use como precedente.
  */
 export const FONT_OPTIONS = [
-  { id: 'tahoma', label: 'Tahoma (clássica)', family: "Tahoma, 'MS Sans Serif', Geneva, sans-serif" },
+  { id: 'tahoma', label: 'Tahoma', family: "Tahoma, 'MS Sans Serif', Geneva, sans-serif" },
   // Empacotada (`global.css`). O reserva é a Segoe UI, que SAIU do menu (segunda limpeza) e virou
   // reserva legítima, como a Consolas: existe em toda máquina Windows e não é mais opção da lista.
   { id: 'montserrat', label: 'Montserrat', family: "Montserrat, 'Segoe UI', Tahoma, sans-serif" },
@@ -219,6 +221,7 @@ interface Settings {
   compactMode: boolean
   diceBodyColor: string
   diceNumberColor: string
+  diceNumberFont: DiceNumberFontId
   diceMaterial: DiceMaterialFinish
   /** As cores da flor 1 (grande) e da flor 2 (pequena) do acabamento "Resina com flor" (CSS hex). */
   resinFlower1: string
@@ -231,9 +234,13 @@ interface Settings {
   diceColorOverrides: Record<number, { bodyColor: string; numberColor: string }>
   /** Cor da parede da bandeja (CSS hex) — substitui os temas prontos (cerca/floresta) removidos a pedido do usuário; cor livre igual à do dado. */
   wallColor: string
+  /** Casca do estojo, independente da madeira da bandeja. */
+  caseWallColor: string
   backgroundColor: string
   /** Cor do chão da bandeja — antes fixa (0x2b5b3f em `createScene.ts`), liberada pra customização junto do preset "Couro". */
   floorColor: string
+  /** Forro do estojo, independente do veludo da bandeja. */
+  caseFloorColor: string
   /**
    * Cores da torre que fica ao lado da bandeja (ver `createTowerBesideTray.ts`) — pedra, telhado
    * ("bico"), flâmula e porta. Só aparecem no modo torre; ficam guardadas de qualquer jeito, como
@@ -291,7 +298,7 @@ interface Settings {
   palettesVisible: boolean
 }
 
-/** Mesmos padrões já hardcoded em `buildD6Visual`/`buildPolyhedronVisual`/`buildD4Visual` (0xe01818 / '#ffffff') e em `createScene.ts` (parede/fundo). */
+/** Padrão da primeira abertura: vermelho da marca, números brancos e carvalho escuro. */
 const DEFAULT_SETTINGS: Settings = {
   /**
    * 'night' e não 'system' como padrão: é o modo que quem abre o Reroll pela primeira vez deve
@@ -306,18 +313,20 @@ const DEFAULT_SETTINGS: Settings = {
   compactMode: false,
   diceBodyColor: '#e01818',
   diceNumberColor: '#ffffff',
+  diceNumberFont: 'rounded',
   diceMaterial: 'matte',
   resinFlower1: COR_PADRAO_DA_FLOR_1,
   resinFlower2: COR_PADRAO_DA_FLOR_2,
   diceColorOverrides: {},
   /**
-   * A bandeja de fábrica que o usuário definiu: "o padrão sempre vai ser paredes marrons cor
-   * madeira, veludo azul e fundo preto — mas todos os usuários podem mudar". Os mesmos três valores
-   * estão em `createScene.ts` (`DEFAULT_*`), pra cena montada sem preferências cair no mesmo lugar.
+   * O visual da primeira abertura: carvalho escuro na bandeja e no estojo, veludo azul, fundo
+   * preto e os dados no vermelho da marca. `createScene.ts` espelha os valores de cena.
    */
-  wallColor: '#6b4a2a',
+  wallColor: '#3b2518',
+  caseWallColor: '#3b2518',
   backgroundColor: '#000000',
   floorColor: '#243b6b',
+  caseFloorColor: '#243b6b',
   // Espelham as `DEFAULT_TOWER_*` de `createTowerBesideTray.ts`, pra cena montada sem preferências
   // cair exatamente no mesmo lugar.
   towerStoneColor: '#45423a',
@@ -343,6 +352,11 @@ const DEFAULT_SETTINGS: Settings = {
 }
 
 const STORAGE_KEY = 'rolador-settings'
+
+/** A resina com flores continua no desktop, mas não faz parte do produto publicado na web. */
+function materialDisponivelNesteApp(material: DiceMaterialFinish): DiceMaterialFinish {
+  return REROLL_WEB && material === 'resin' ? 'matte' : material
+}
 
 /**
  * O que é APARÊNCIA DO PERSONAGEM e por isso é guardado por perfil (ver `shared/types/profile.ts`):
@@ -379,7 +393,10 @@ function loadLook(profileId: string): Partial<ProfileLook> | null {
     const raw = localStorage.getItem(lookStorageKey(profileId))
     // Mesma higiene do `loadInitial`: aqui moram `trayShape`, `launchMode` e `diceMaterial`, que são
     // os três campos de valor fechado da APARÊNCIA — e é por esta porta que eles chegam.
-    return raw ? sanearPreferencias(JSON.parse(raw) as ProfileLook) : null
+    if (!raw) return null
+    const look = sanearPreferencias(JSON.parse(raw) as ProfileLook)
+    if (look.diceMaterial) look.diceMaterial = materialDisponivelNesteApp(look.diceMaterial)
+    return look
   } catch {
     return null
   }
@@ -407,14 +424,17 @@ interface SettingsContextValue extends Settings {
   setCompactMode: (value: boolean) => void
   setDiceBodyColor: (value: string) => void
   setDiceNumberColor: (value: string) => void
+  setDiceNumberFont: (value: DiceNumberFontId) => void
   setDiceMaterial: (value: DiceMaterialFinish) => void
   setResinFlower1: (value: string) => void
   setResinFlower2: (value: string) => void
   setDiceColorOverride: (sides: number, bodyColor: string, numberColor: string) => void
   clearDiceColorOverride: (sides: number) => void
   setWallColor: (value: string) => void
+  setCaseWallColor: (value: string) => void
   setBackgroundColor: (value: string) => void
   setFloorColor: (value: string) => void
+  setCaseFloorColor: (value: string) => void
   setTowerStoneColor: (value: string) => void
   setTowerRoofColor: (value: string) => void
   setTowerFlagColor: (value: string) => void
@@ -487,6 +507,7 @@ function loadInitial(): Settings {
       // Só português por enquanto (ver o comentário no lugar do seletor, em `SettingsPanel.tsx`):
       // quem escolheu inglês antes volta pro português, senão fica numa língua sem botão pra sair.
       merged.language = 'pt-BR'
+      merged.diceMaterial = materialDisponivelNesteApp(merged.diceMaterial)
       return merged
     }
   } catch {
@@ -616,7 +637,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setDiceBodyColor: (diceBodyColor) => setSettings((prev) => ({ ...prev, diceBodyColor })),
       setDiceNumberColor: (diceNumberColor) =>
         setSettings((prev) => ({ ...prev, diceNumberColor })),
-      setDiceMaterial: (diceMaterial) => setSettings((prev) => ({ ...prev, diceMaterial })),
+      setDiceNumberFont: (diceNumberFont) => setSettings((prev) => ({ ...prev, diceNumberFont })),
+      setDiceMaterial: (diceMaterial) =>
+        setSettings((prev) => ({ ...prev, diceMaterial: materialDisponivelNesteApp(diceMaterial) })),
       setResinFlower1: (resinFlower1) => setSettings((prev) => ({ ...prev, resinFlower1 })),
       setResinFlower2: (resinFlower2) => setSettings((prev) => ({ ...prev, resinFlower2 })),
       setDiceColorOverride: (sides, bodyColor, numberColor) =>
@@ -631,8 +654,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           return { ...prev, diceColorOverrides: next }
         }),
       setWallColor: (wallColor) => setSettings((prev) => ({ ...prev, wallColor })),
+      setCaseWallColor: (caseWallColor) => setSettings((prev) => ({ ...prev, caseWallColor })),
       setBackgroundColor: (backgroundColor) => setSettings((prev) => ({ ...prev, backgroundColor })),
       setFloorColor: (floorColor) => setSettings((prev) => ({ ...prev, floorColor })),
+      setCaseFloorColor: (caseFloorColor) => setSettings((prev) => ({ ...prev, caseFloorColor })),
       setTowerStoneColor: (towerStoneColor) => setSettings((prev) => ({ ...prev, towerStoneColor })),
       setTowerRoofColor: (towerRoofColor) => setSettings((prev) => ({ ...prev, towerRoofColor })),
       setTowerFlagColor: (towerFlagColor) => setSettings((prev) => ({ ...prev, towerFlagColor })),
@@ -657,12 +682,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       resetSettings: () => setSettings(DEFAULT_SETTINGS),
       aparenciaAtual: () => pickLook(settings),
       aplicarAparencia: (aparencia) =>
-        setSettings((prev) => ({ ...prev, ...(sanearPreferencias(aparencia) as Partial<Settings>) })),
+        setSettings((prev) => {
+          const limpa = sanearPreferencias(aparencia) as Partial<Settings>
+          if (limpa.diceMaterial) limpa.diceMaterial = materialDisponivelNesteApp(limpa.diceMaterial)
+          return { ...prev, ...limpa }
+        }),
       gravarAparenciaDe: (profileId, aparencia) => {
         // Mesma higiene de `loadLook`: acabamento, forma e modo de lançamento desconhecidos caem fora
         // aqui, e o personagem novo fica com o que o app estava usando nesses campos.
         try {
-          localStorage.setItem(lookStorageKey(profileId), JSON.stringify(sanearPreferencias(aparencia)))
+          const limpa = sanearPreferencias(aparencia) as Partial<Settings>
+          if (limpa.diceMaterial) limpa.diceMaterial = materialDisponivelNesteApp(limpa.diceMaterial)
+          localStorage.setItem(lookStorageKey(profileId), JSON.stringify(limpa))
         } catch (causa) {
           console.error('Falha ao gravar a aparência do personagem importado:', causa)
         }

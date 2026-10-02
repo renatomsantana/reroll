@@ -443,10 +443,24 @@
 
 /** Valor de cada dado no resultado: plaquinha em relevo, no vocabulário do 98. */
 .dice-roll-value {
-  display: inline-block;
-  padding: 1px 8px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 1px 7px 2px;
   font-weight: bold;
   border: 2px outset var(--win-highlight);
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.dice-roll-type {
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: normal;
+  line-height: 1;
+  opacity: 0.82;
 }
 
 .dice-roller-3d-error {

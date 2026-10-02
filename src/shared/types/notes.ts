@@ -24,6 +24,8 @@ export interface NotesPage {
    */
   title: string
   text: string
+  /** `false` nos diários antigos (texto puro); vira `true` ao editar no novo campo rico. */
+  richText?: boolean
 }
 
 /**

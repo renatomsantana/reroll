@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 import type { Vector3Tuple } from '@shared/types/dice3d'
 import type { PolyhedronFaceInput } from './polyhedronMath'
 import { buildPolyhedronGeometry, POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION } from './buildPolyhedronGeometry'
@@ -11,6 +12,7 @@ import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } 
 export interface PolyhedronVisualOptions {
   bodyColor?: number
   numberColor?: string
+  numberFont?: DiceNumberFontId
   scale?: number
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina. */
@@ -32,6 +34,7 @@ export function buildPolyhedronVisual(
 ): THREE.Mesh {
   const bodyColor = options.bodyColor ?? 0xe01818
   const numberColor = options.numberColor ?? '#ffffff'
+  const numberFont = options.numberFont ?? 'rounded'
   const bodyColorCss = numericColorToCss(bodyColor)
   const scale = options.scale ?? 1
   const resina = options.material === 'resin'
@@ -47,12 +50,13 @@ export function buildPolyhedronVisual(
    * inclui os VALORES das faces na ordem em que aparecem, porque é essa ordem que define qual
    * número cai em qual célula do atlas.
    */
-  const cacheKey = `atlas|${faces.map((f) => f.value).join(',')}|${numberColor}|${bodyColorCss}|${POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION}|${opacidadeDoCorpo}`
+  const cacheKey = `atlas|${faces.map((f) => f.value).join(',')}|${numberColor}|${numberFont}|${bodyColorCss}|${POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION}|${opacidadeDoCorpo}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
     createNumberAtlasTexture(faces.length, corDoCorpo, (ctx, faceIndex, cellPx) => {
       drawNumberGlyph(ctx, faces[faceIndex].value, cellPx, {
         numberColor,
-        fontHeightFraction: POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION
+        fontHeightFraction: POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION,
+        numberFont
       })
     }, opacidadeDoCorpo)
   )

@@ -1,0 +1,5 @@
+# Hostinger/Apache: entrega o manifesto como tipo correto para a instalação pelo navegador.
+AddType application/manifest+json .webmanifest
+
+# Evita que o Apache tente listar uma pasta caso alguém acesse um diretório diretamente.
+Options -Indexes

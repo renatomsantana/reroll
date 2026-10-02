@@ -1,8 +1,9 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import type RAPIER from '@dimforge/rapier3d-compat'
+import RAPIER from '@dimforge/rapier3d-compat'
 import type { DiceDefinition, PhysicalDiceSides } from '@shared/types/dice3d'
+import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 import { createCamera } from './createCamera'
 import { CAMERA_CONFIG, TOWER_BESIDE_CAMERA_CONFIG } from '../config/sceneConfig'
 import {
@@ -198,6 +199,8 @@ export interface DiceCanvasMultiProps {
    * ficava travado em "Rolando..." pra sempre, com um `console.error` que ninguém vê.
    */
   onError?: (error: unknown) => void
+  /** Primeira batida de um dado desta rolagem no chão físico da bandeja. */
+  onFirstFloorImpact?: (diceCount: number) => void
   /**
    * O arremesso automático do mount conta como rolagem de verdade (relata resultado ao assentar):
    * é o clique num preset, que já É a ação de rolar. Sem isto (troca de tipo, quantidade, modo, cor
@@ -209,6 +212,7 @@ export interface DiceCanvasMultiProps {
    * mesclados; quem monta é `DiceRoller3D.tsx`. Vale pros dados de verdade e pra prateleira.
    */
   diceColors: Record<number, { bodyColor: number; numberColor: string }>
+  numberFont?: DiceNumberFontId
   /** Acabamento do dado (fosco, metálico, plástico, vidro). Aplicado no mesh existente, sem remount. */
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina (CSS hex). Só valem com `material` = resin. */
@@ -220,6 +224,9 @@ export interface DiceCanvasMultiProps {
   backgroundColor?: number
   /** Cor do chão da bandeja (hex numérico). */
   floorColor?: number
+  /** Cores da casca e do forro do estojo, independentes da bandeja. */
+  caseWallColor?: number
+  caseFloorColor?: number
   /** Cores da torre (pedra, telhado, flâmula, porta). Aplicadas na torre existente, sem remount. */
   towerColors?: TowerColors
   /** Imagem de fundo (data URL); sem ela vale `backgroundColor`. Também sem remount. */
@@ -705,14 +712,18 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       groups,
       onResult,
       onError,
+      onFirstFloorImpact,
       autoRoll,
       diceColors,
+      numberFont = 'rounded',
       material,
       flor1,
       flor2,
       wallColor,
       backgroundColor,
       floorColor,
+      caseWallColor,
+      caseFloorColor,
       backgroundImage,
       launchMode = 'tray',
       traySides = TRAY_CONFIG.wallSegments,
@@ -771,6 +782,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     const onErrorRef = useRef(onError)
     onErrorRef.current = onError
 
+    const onFirstFloorImpactRef = useRef(onFirstFloorImpact)
+    onFirstFloorImpactRef.current = onFirstFloorImpact
+
     const onCaseClickRef = useRef(onCaseClick)
     onCaseClickRef.current = onCaseClick
 
@@ -826,10 +840,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
      * Só fica `true` no primeiro `roll()` explícito, ou já nasce assim com `autoRoll` (preset).
      */
     const armedRef = useRef(autoRoll ?? false)
+    /** Uma rolagem produz um som só, mesmo se vários dados acertarem o chão no mesmo passo. */
+    const floorImpactReportedRef = useRef(false)
 
     useImperativeHandle(ref, () => ({
       roll: () => {
         armedRef.current = true
+        floorImpactReportedRef.current = false
         if (launchMode === 'tower') {
           // Refila tudo: cada dado volta pra fila e sai pela boca na sua vez, um a cada
           // `MOUTH_RELEASE_INTERVAL_MS` (nascem todos no mesmo ponto, o que os separa é o tempo).
@@ -934,8 +951,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         const positions = computeShelfPositions()
         const shelfCase = createShelfCaseMesh(
           positions[0].z,
-          floorColor ?? DEFAULT_FLOOR_COLOR,
-          wallColor ?? DEFAULT_WALL_COLOR
+          caseFloorColor ?? floorColor ?? DEFAULT_FLOOR_COLOR,
+          caseWallColor ?? wallColor ?? DEFAULT_WALL_COLOR
         )
         // Apoiado na MESA, que fica abaixo do chão da bandeja desde que a bandeja virou uma caixa
         // elevada (ver `TABLE_DROP` em `createScene.ts`) — sem isso o estojo fica flutuando.
@@ -999,6 +1016,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           const mesh = entry.buildVisual({
             bodyColor: colors?.bodyColor,
             numberColor: colors?.numberColor,
+            numberFont,
             material,
             flores,
             textureCache: mountTextureCache
@@ -1238,6 +1256,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
 
       let world: RAPIER.World | null = null
       let stepPhysics: ((deltaSeconds: number) => number) | null = null
+      let impactEvents: RAPIER.EventQueue | null = null
+      let floorColliderHandles = new Set<number>()
       const hud: DiceDebugHud | null = debugMode ? createDiceDebugHud(container) : null
       hudRef.current = hud
       let fpsSmoothed = 60
@@ -1327,6 +1347,29 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         }
       }
 
+      /** Drena a fila logo após `world.step()`: este é o quadro em que o chão freou o dado. */
+      function reportFirstFloorImpact() {
+        if (!impactEvents) return
+        impactEvents.drainContactForceEvents((event) => {
+          if (!armedRef.current || floorImpactReportedRef.current) return
+          const firstHandle = event.collider1()
+          const secondHandle = event.collider2()
+          const floorHandle = floorColliderHandles.has(firstHandle)
+            ? firstHandle
+            : floorColliderHandles.has(secondHandle)
+              ? secondHandle
+              : null
+          if (floorHandle === null) return
+          const dieHandle = floorHandle === firstHandle ? secondHandle : firstHandle
+          const isDie = diceRef.current.some(
+            (die) => die.body.numColliders() > 0 && die.body.collider(0).handle === dieHandle
+          )
+          if (!isDie) return
+          floorImpactReportedRef.current = true
+          onFirstFloorImpactRef.current?.(diceRef.current.length)
+        })
+      }
+
       let frameId: number
       let lastFrameTime = performance.now()
       /** Último instante em que a cena foi DESENHADA (ver o teto de quadros abaixo). */
@@ -1372,6 +1415,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
          */
         if (rolando && stepPhysics) {
           const simulatedSeconds = stepPhysics(deltaSeconds)
+          reportFirstFloorImpact()
           for (const die of diceRef.current) updateDie(die, simulatedSeconds)
         }
 
@@ -1511,7 +1555,9 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
            */
           world = createPhysicsWorld()
           worldRef.current = world
-          createBoundaryColliders(world, traySides)
+          const boundary = createBoundaryColliders(world, traySides)
+          floorColliderHandles = boundary.floorHandles
+          impactEvents = new RAPIER.EventQueue(true)
 
           const sidesList = flattenGroups(groups)
           const slots = computeSpawnSlots(sidesList.length, traySafeHalfExtent(traySides, SPAWN_CONFIG.slotSafeHalfExtent))
@@ -1519,10 +1565,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           diceRef.current = sidesList.map((sides, i) => {
             const entry = DICE_REGISTRY[sides]
             const body = entry.createBody(world as RAPIER.World)
+            body.collider(0).setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
+            body.collider(0).setContactForceEventThreshold(0.01)
             const colors = diceColors[sides]
             const mesh = entry.buildVisual({
               bodyColor: colors?.bodyColor,
               numberColor: colors?.numberColor,
+              numberFont,
               material,
               flores,
               textureCache: mountTextureCache
@@ -1576,7 +1625,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             }
           })
 
-          stepPhysics = createPhysicsStepper(world)
+          stepPhysics = createPhysicsStepper(world, impactEvents)
         })
         .catch((error: unknown) => {
           console.error('Falha ao inicializar o Rapier (física 3D):', error)
@@ -1611,6 +1660,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         trayRef.current = null
         towerBesideRef.current = null
         world?.free()
+        impactEvents?.free()
         worldRef.current = null
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1662,10 +1712,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
       diceRef.current = sidesList.map((sides, i) => {
         const entry = DICE_REGISTRY[sides]
         const body = entry.createBody(world)
+        body.collider(0).setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
+        body.collider(0).setContactForceEventThreshold(0.01)
         const dieColors = colors[sides]
         const mesh = entry.buildVisual({
           bodyColor: dieColors?.bodyColor,
           numberColor: dieColors?.numberColor,
+          numberFont,
           material: currentMaterial,
           flores: currentFlores,
           textureCache
@@ -1776,6 +1829,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         const wall = wallColor ?? DEFAULT_WALL_COLOR
         const background = backgroundColor ?? DEFAULT_BACKGROUND_COLOR
         const floor = floorColor ?? DEFAULT_FLOOR_COLOR
+        const caseWall = caseWallColor ?? wall
+        const caseFloor = caseFloorColor ?? floor
         const image = backgroundImage ?? null
         trayRef.current?.updateColors(wall, background, floor, image)
 
@@ -1785,6 +1840,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           const newMesh = entry.buildVisual({
             bodyColor: colors?.bodyColor,
             numberColor: colors?.numberColor,
+            numberFont,
             material,
             flores: floresRef.current,
             textureCache: rebuildTextureCache
@@ -1814,6 +1870,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             const newMesh = entry.buildVisual({
               bodyColor: colors?.bodyColor,
               numberColor: colors?.numberColor,
+              numberFont,
               material,
               flores: floresRef.current,
               textureCache: rebuildTextureCache
@@ -1834,13 +1891,25 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
            * dados da prateleira ficavam pendurados por baixo dele). Sem reconstrução, nada disso pode
            * acontecer.
            */
-          shelfCaseMeshRef.current?.updateColors(floor, wall)
+          shelfCaseMeshRef.current?.updateColors(caseFloor, caseWall)
         }
       }, COLOR_UPDATE_DEBOUNCE_MS)
 
       return () => window.clearTimeout(timeoutId)
        
-    }, [diceColors, material, flor1, flor2, wallColor, backgroundColor, floorColor, backgroundImage])
+    }, [
+      diceColors,
+      numberFont,
+      material,
+      flor1,
+      flor2,
+      wallColor,
+      backgroundColor,
+      floorColor,
+      caseWallColor,
+      caseFloorColor,
+      backgroundImage
+    ])
 
     /**
      * Cor da torre em efeito próprio. Ela morava no efeito acima, que não depende de `towerColors`,

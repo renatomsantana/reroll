@@ -128,7 +128,7 @@ export function useNotesState() {
 
   /** Muda um campo da página ABERTA (texto ou nome do dia). */
   const updatePage = useCallback(
-    (change: Partial<Pick<NotesPage, 'title' | 'text'>>) => {
+    (change: Partial<Pick<NotesPage, 'title' | 'text' | 'richText'>>) => {
       update((previous) => ({
         ...previous,
         pages: previous.pages.map((page, index) =>

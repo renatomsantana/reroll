@@ -14,7 +14,8 @@ import { applySceneBackground } from './applySceneBackground'
  * lisa; virou marrom porque hoje a cor escolhida manda no tom de verdade (ver `woodTint`), e uma
  * bandeja verde de fábrica seria resto de configuração antiga vazando na tela.
  */
-export const DEFAULT_WALL_COLOR = 0x6b4a2a
+/** Carvalho escuro: igual ao padrão de primeira abertura em `SettingsContext.tsx`. */
+export const DEFAULT_WALL_COLOR = 0x3b2518
 export const DEFAULT_BACKGROUND_COLOR = 0x000000
 export const DEFAULT_FLOOR_COLOR = 0x243b6b
 

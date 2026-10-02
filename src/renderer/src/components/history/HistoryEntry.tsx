@@ -83,7 +83,8 @@ export function HistoryEntry({ result }: { result: RollResult }) {
                     .join(', ')
                 }
               >
-                {roll.value}
+                <span>{roll.value}</span>
+                <small className="history-entry-roll-type">d{roll.sides}</small>
                 {/* A marca de explosão fica GRUDADA no número, e não no fim da linha: é aquele
                     dado que explodiu, não a rolagem inteira. */}
                 {roll.cadeia && <span className="history-entry-explodiu"><IconeReroll tamanho={12} /></span>}

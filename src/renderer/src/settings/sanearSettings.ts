@@ -1,5 +1,6 @@
 import { TRAY_SHAPES } from '@renderer/dice3d/geometry/trayShape'
 import { volumeValido } from '@renderer/audio/volume'
+import { DICE_NUMBER_FONT_IDS } from '@shared/types/diceNumberFont'
 
 /**
  * Higiene do que veio do `localStorage`.
@@ -23,6 +24,7 @@ const VALORES_FECHADOS = {
   themeSource: ['day', 'night', 'system'],
   language: ['pt-BR', 'en-US'],
   diceMaterial: ['matte', 'metallic', 'plastic', 'glass', 'resin'],
+  diceNumberFont: DICE_NUMBER_FONT_IDS,
   launchMode: ['tray', 'tower', 'towerDecor'],
   trayShape: [...TRAY_SHAPES],
   cameraMode: ['table', 'dice', 'free'],

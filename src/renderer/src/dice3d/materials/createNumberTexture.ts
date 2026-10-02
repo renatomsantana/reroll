@@ -1,4 +1,6 @@
 import * as THREE from 'three'
+import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
+import { diceNumberFontCss } from './diceNumberFonts'
 
 export interface NumberTextureOptions {
   numberColor?: string
@@ -9,6 +11,7 @@ export interface NumberTextureOptions {
   fontHeightFraction?: number
   /** Texto a desenhar, se for diferente do número em si (ex.: "00" na face de valor 0 do dado de dezenas do d100). */
   label?: string
+  numberFont?: DiceNumberFontId
 }
 
 /** `0xf2ead6` (numérico, formato THREE.Color) -> `'#f2ead6'` (CSS, formato canvas 2D). */
@@ -45,7 +48,7 @@ export function drawNumberGlyph(
   ctx: CanvasRenderingContext2D,
   value: number,
   size: number,
-  options: { numberColor?: string; fontHeightFraction?: number; label?: string } = {}
+  options: { numberColor?: string; fontHeightFraction?: number; label?: string; numberFont?: DiceNumberFontId } = {}
 ): void {
   const numberColor = options.numberColor ?? '#ffffff'
   const label = options.label ?? String(value)
@@ -56,7 +59,7 @@ export function drawNumberGlyph(
     (options.fontHeightFraction ?? DEFAULT_NUMBER_FONT_HEIGHT_FRACTION) * digitCountFactor
 
   ctx.fillStyle = numberColor
-  ctx.font = `bold ${Math.round(size * fontHeightFraction)}px sans-serif`
+  ctx.font = `bold ${Math.round(size * fontHeightFraction)}px ${diceNumberFontCss(options.numberFont)}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(label, size / 2, size / 2 + size * 0.03)
@@ -82,7 +85,8 @@ export function createNumberTexture(
   drawNumberGlyph(ctx, value, size, {
     numberColor,
     fontHeightFraction: options.fontHeightFraction,
-    label: options.label
+    label: options.label,
+    numberFont: options.numberFont
   })
 
   const texture = new THREE.CanvasTexture(canvas)

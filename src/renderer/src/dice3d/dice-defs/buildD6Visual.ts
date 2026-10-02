@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 import { D6_DEFINITION } from './d6'
 import { drawNumberGlyph, numericColorToCss } from '../materials/createNumberTexture'
 import { createDiceMaterial, type DiceMaterialFinish } from '../materials/createDiceMaterial'
@@ -9,6 +10,7 @@ import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } 
 export interface D6VisualOptions {
   bodyColor?: number
   numberColor?: string
+  numberFont?: DiceNumberFontId
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina. */
   flores?: [string, string]
@@ -25,6 +27,7 @@ export interface D6VisualOptions {
 export function buildD6Visual(options: D6VisualOptions = {}): THREE.Mesh {
   const bodyColor = options.bodyColor ?? 0xe01818
   const numberColor = options.numberColor ?? '#ffffff'
+  const numberFont = options.numberFont ?? 'rounded'
   const bodyColorCss = numericColorToCss(bodyColor)
   const resina = options.material === 'resin'
   const opacidadeDoCorpo = resina ? OPACIDADE_DO_CORPO_DE_RESINA : 1
@@ -40,12 +43,13 @@ export function buildD6Visual(options: D6VisualOptions = {}): THREE.Mesh {
   // `BoxGeometry` já vêm na mesma ordem de `D6_DEFINITION.faces`, então a face de índice N
   // continua sendo a de valor `faces[N].value`, agora numa célula do atlas em vez de numa
   // textura própria.
-  const cacheKey = `atlas|d6|${numberColor}|${bodyColorCss}|0.8|${opacidadeDoCorpo}`
+  const cacheKey = `atlas|d6|${numberColor}|${numberFont}|${bodyColorCss}|0.8|${opacidadeDoCorpo}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
     createNumberAtlasTexture(D6_DEFINITION.faces.length, corDoCorpo, (ctx, faceIndex, cellPx) => {
       drawNumberGlyph(ctx, D6_DEFINITION.faces[faceIndex].value, cellPx, {
         numberColor,
-        fontHeightFraction: 0.8
+        fontHeightFraction: 0.8,
+        numberFont
       })
     }, opacidadeDoCorpo)
   )

@@ -6,6 +6,7 @@ import { disposeScene, disposeMesh } from '@renderer/dice3d/scene/disposeScene'
 import type { DiceTextureCache } from '@renderer/dice3d/materials/textureCache'
 import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
+import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 import { disposePreviewRenderer, previewPixelRatio, startPreviewLoop } from './previewLoop'
 import './StylePreview.css'
 
@@ -34,6 +35,7 @@ interface StylePreviewProps {
   sides: PhysicalDiceSides
   bodyColor: string
   numberColor: string
+  numberFont?: DiceNumberFontId
   material: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina. */
   flor1: string
@@ -61,7 +63,7 @@ function corDeFundoOpaca(elemento: HTMLElement): THREE.Color {
   return new THREE.Color('#c0c0c0')
 }
 
-export function StylePreview({ sides, bodyColor, numberColor, material, flor1, flor2 }: StylePreviewProps) {
+export function StylePreview({ sides, bodyColor, numberColor, numberFont = 'rounded', material, flor1, flor2 }: StylePreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const meshRef = useRef<THREE.Mesh | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -163,10 +165,12 @@ export function StylePreview({ sides, bodyColor, numberColor, material, flor1, f
     const resizeObserver = new ResizeObserver(resize)
     resizeObserver.observe(container)
 
+    // A prévia do dado é uma malha só, sem física: 60 FPS tira o micro-travamento da rotação sem
+    // competir com a cena principal. A bandeja continua no teto econômico de 30 FPS.
     const stopLoop = startPreviewLoop((delta) => {
       if (meshRef.current) meshRef.current.rotation.y += delta * ROTATION_SPEED
       renderer.render(scene, camera)
-    })
+    }, 60)
 
     /**
      * O cache é capturado numa variável AQUI, e não lido de `.current` dentro da limpeza.
@@ -215,6 +219,7 @@ export function StylePreview({ sides, bodyColor, numberColor, material, flor1, f
       const mesh = entry.buildVisual({
         bodyColor: hexStringToNumber(bodyColor),
         numberColor,
+        numberFont,
         material,
         flores: [flor1, flor2],
         textureCache: cache
@@ -263,7 +268,7 @@ export function StylePreview({ sides, bodyColor, numberColor, material, flor1, f
     const timeoutId = window.setTimeout(rebuild, COLOR_UPDATE_DEBOUNCE_MS)
     return () => window.clearTimeout(timeoutId)
     // `geracaoDaCena` na lista é o que conserta a prévia vazia — ver o comentário da declaração.
-  }, [sides, bodyColor, numberColor, material, flor1, flor2, geracaoDaCena])
+  }, [sides, bodyColor, numberColor, numberFont, material, flor1, flor2, geracaoDaCena])
 
   return <div ref={containerRef} className="style-preview" />
 }

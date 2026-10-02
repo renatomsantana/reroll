@@ -15,11 +15,13 @@ import { buildPolyhedronVisual } from '../geometry/buildPolyhedronVisual'
 import { createPolyhedronBody } from '../physics/createPolyhedronBody'
 import type { DiceMaterialFinish } from '../materials/createDiceMaterial'
 import type { DiceTextureCache } from '../materials/textureCache'
+import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 
 /** Formato comum aceito por `buildD4Visual`/`buildD6Visual`/`buildPolyhedronVisual` — cor do corpo (hex numérico) e cor do número (string CSS). */
 export interface DiceVisualOptions {
   bodyColor?: number
   numberColor?: string
+  numberFont?: DiceNumberFontId
   /** Acabamento (Preferências ⚙️: fosco/metálico/plástico/vidro) — ver `createDiceMaterial.ts`. */
   material?: DiceMaterialFinish
   /** As cores da flor 1 e da flor 2 do dado de resina (CSS hex). */
