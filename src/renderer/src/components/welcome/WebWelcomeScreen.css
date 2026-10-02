@@ -101,8 +101,8 @@
 /* A luz sempre parte do R e visita cada letra até o L final. */
 .web-welcome-wordmark span {
   display: inline-block;
-  animation: web-welcome-letter 3.9s ease-in-out infinite;
-  animation-delay: calc(var(--letter-index) * 130ms);
+  animation: web-welcome-letter 2.7s ease-in-out infinite;
+  animation-delay: calc(var(--letter-index) * 115ms);
 }
 
 .web-welcome-copy {
@@ -163,8 +163,8 @@
 }
 
 @keyframes web-welcome-letter {
-  0%, 12%, 100% { color: #e01818; text-shadow: 2px 2px 0 #690308; transform: translateY(0); }
-  4%, 8% { color: #fff; text-shadow: 0 0 12px #fff, 2px 2px 0 #690308; transform: translateY(-3px); }
+  0%, 2%, 18%, 100% { color: #e01818; text-shadow: 2px 2px 0 #690308; transform: translateY(0); }
+  6%, 12% { color: #fff; text-shadow: 0 0 12px #fff, 2px 2px 0 #690308; transform: translateY(-3px); }
 }
 
 @media (max-width: 680px) {

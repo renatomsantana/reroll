@@ -4,7 +4,7 @@ import { DICE_REGISTRY } from '@renderer/dice3d/dice-defs/registry'
 import { topoDasLetrasNaFace } from '@renderer/dice3d/geometry/orientacaoDeVitrine'
 
 const RED = 0xe01818
-const LOOP_MS = 3900
+const LOOP_MS = 2700
 
 /** O mesmo mesh, números e material do d20 na bandeja, sem física nem cenário. */
 export function WelcomeDie3D() {
@@ -57,10 +57,11 @@ export function WelcomeDie3D() {
 
     let frame = 0
     const startedAt = performance.now()
+    const spinAxis = new THREE.Vector3(1, 0.35, 0.25).normalize()
     function render(now: number) {
       const progress = ((now - startedAt) % LOOP_MS) / LOOP_MS
       /*
-       * O giro começa e termina na pose `rest`: são exatamente três voltas completas no mesmo eixo,
+       * O giro começa e termina na pose `rest`: são exatamente duas voltas completas no mesmo eixo,
        * portanto não existe uma correção escondida puxando o dado para o 20. A curva suave
        * desacelera até zero e o último quarto do ciclo segura o resultado naturalmente.
        */
@@ -68,8 +69,8 @@ export function WelcomeDie3D() {
       const smooth = rolling * rolling * (3 - 2 * rolling)
       const voltasRestantes = 1 - smooth
       die.quaternion.copy(rest)
-      die.rotateOnAxis(new THREE.Vector3(1, 0.35, 0.25).normalize(), Math.PI * 6 * voltasRestantes)
-      die.position.y = Math.abs(Math.sin(rolling * Math.PI * 3)) * (1 - rolling) * 0.12
+      die.rotateOnAxis(spinAxis, Math.PI * 4 * voltasRestantes)
+      die.position.y = Math.abs(Math.sin(rolling * Math.PI * 2)) * (1 - rolling) * 0.12
       renderer.render(scene, camera)
       frame = requestAnimationFrame(render)
     }
