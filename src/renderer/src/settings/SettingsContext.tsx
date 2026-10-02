@@ -353,9 +353,9 @@ const DEFAULT_SETTINGS: Settings = {
 
 const STORAGE_KEY = 'rolador-settings'
 
-/** A resina com flores continua no desktop, mas não faz parte do produto publicado na web. */
+/** Acabamentos removidos das escolhas visíveis são traduzidos ao carregar preferências antigas. */
 function materialDisponivelNesteApp(material: DiceMaterialFinish): DiceMaterialFinish {
-  return REROLL_WEB && material === 'resin' ? 'matte' : material
+  return material === 'plastic' || (REROLL_WEB && material === 'resin') ? 'matte' : material
 }
 
 /**

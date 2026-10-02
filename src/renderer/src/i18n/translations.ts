@@ -274,15 +274,15 @@ export interface TranslationDict {
     material: string
     materialOptions: { matte: string; metallic: string; plastic: string; glass: string; resin: string }
     numberFont: string
-    numberFontOptions: { rounded: string; classic: string; serif: string; mono: string; rune: string }
+    numberFontOptions: { rounded: string; classic: string; serif: string; mono: string }
     /** Legenda da prévia 3D e das duas seções em que a aba se divide. */
     preview: string
     sectionDice: string
     sectionScene: string
     sectionBackground: string
-    /** Paletas prontas: um seletor de família (metal/gema/fosco/plástico) no lugar de quatro listas idênticas empilhadas. */
+    /** Paletas prontas: um seletor de família no lugar de listas idênticas empilhadas. */
     palettes: string
-    paletteFamilies: { metal: string; gem: string; matte: string; plastic: string }
+    paletteFamilies: { metal: string; gem: string; matte: string }
     paletteEmpty: string
     /**
      * Roda de cores (`ColorWheel.tsx`) e os alvos que ela edita. Os rótulos são de uma palavra
@@ -756,7 +756,7 @@ export const translations: Record<Language, TranslationDict> = {
         resin: 'Resina com flor'
       },
       numberFont: 'Fonte dos números',
-      numberFontOptions: { rounded: 'Arredondada', classic: 'Clássica', serif: 'Serifada', mono: 'Técnica', rune: 'Rúnica' },
+      numberFontOptions: { rounded: 'Arredondada', classic: 'Clássica', serif: 'Serifada', mono: 'Técnica' },
       preview: 'Prévia',
       sectionDice: 'Dados',
       sectionScene: 'Bandeja e estojo',
@@ -765,8 +765,7 @@ export const translations: Record<Language, TranslationDict> = {
       paletteFamilies: {
         metal: 'Metálicas',
         gem: 'Gemas',
-        matte: 'Foscas',
-        plastic: 'Plásticas'
+        matte: 'Foscas'
       },
       paletteEmpty: 'Passe o mouse pra ver o nome',
       colorWheel: 'Roda de cores',
@@ -1194,7 +1193,7 @@ export const translations: Record<Language, TranslationDict> = {
         resin: 'Resin with flower'
       },
       numberFont: 'Number font',
-      numberFontOptions: { rounded: 'Rounded', classic: 'Classic', serif: 'Serif', mono: 'Technical', rune: 'Runic' },
+      numberFontOptions: { rounded: 'Rounded', classic: 'Classic', serif: 'Serif', mono: 'Technical' },
       preview: 'Preview',
       sectionDice: 'Dice',
       sectionScene: 'Tray & case',
@@ -1203,8 +1202,7 @@ export const translations: Record<Language, TranslationDict> = {
       paletteFamilies: {
         metal: 'Metal',
         gem: 'Gem',
-        matte: 'Matte',
-        plastic: 'Plastic'
+        matte: 'Matte'
       },
       paletteEmpty: 'Hover a swatch to see its name',
       colorWheel: 'Color wheel',

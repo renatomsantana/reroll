@@ -6,11 +6,12 @@ import { ProfilesProvider } from './settings/ProfilesContext'
 import { NotesProvider } from './hooks/useNotes'
 import { DialogoProvider } from './components/common/Dialogo'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { carregarFontesDosDados } from './dice3d/materials/diceNumberFonts'
 import './styles/global.css'
 // Depois do global de propósito: a passada de celular só AJUSTA o que ele já definiu.
 import './styles/celular.css'
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+void carregarFontesDosDados().then(() => ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     {/* Os perfis ficam POR FORA: é o personagem aberto que decide quais cores o `SettingsProvider` carrega. */}
     <ProfilesProvider>
@@ -27,4 +28,4 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       </SettingsProvider>
     </ProfilesProvider>
   </React.StrictMode>
-)
+))

@@ -56,7 +56,7 @@ export function WelcomeDie3D() {
     resize()
 
     let frame = 0
-    let startedAt = performance.now()
+    const startedAt = performance.now()
     function render(now: number) {
       const progress = ((now - startedAt) % LOOP_MS) / LOOP_MS
       /*

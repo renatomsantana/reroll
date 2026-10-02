@@ -3,7 +3,6 @@ import { useSettings } from '@renderer/settings/SettingsContext'
 import { METAL_PRESETS } from '@renderer/settings/metalPresets'
 import { GEM_PRESETS } from '@renderer/settings/gemPresets'
 import { MATTE_PRESETS } from '@renderer/settings/mattePresets'
-import { PLASTIC_PRESETS } from '@renderer/settings/plasticPresets'
 import { TRAY_PRESETS } from '@renderer/settings/trayPresets'
 import type { MetalPreset } from '@renderer/settings/metalPresets'
 import { AVAILABLE_DICE_TYPES } from '@renderer/dice3d/dice-defs/registry'
@@ -22,12 +21,12 @@ import { TrayShapeIcon } from './TrayShapeIcon'
 import { DICE_NUMBER_FONT_OPTIONS } from '@renderer/dice3d/materials/diceNumberFonts'
 import './StyleTab.css'
 
-/** A resina com flores fica no desktop; a publicação web oferece os quatro acabamentos mais leves. */
+/** A resina com flores fica no desktop; plástico saiu do seletor de acabamento. */
 const MATERIAL_OPTIONS: DiceMaterialFinish[] = REROLL_WEB
-  ? ['matte', 'metallic', 'plastic', 'glass']
-  : ['matte', 'metallic', 'plastic', 'glass', 'resin']
+  ? ['matte', 'metallic', 'glass']
+  : ['matte', 'metallic', 'glass', 'resin']
 
-type PaletteFamilyId = 'metal' | 'gem' | 'matte' | 'plastic'
+type PaletteFamilyId = 'metal' | 'gem' | 'matte'
 /** O que a roda de cores está editando em cada seção — dado (corpo/número) ou cena (parede/chão/fundo). */
 /** `flower1`/`flower2` só aparecem com o acabamento "Resina com flor": são as cores das duas flores lá dentro. */
 type DiceColorTarget = 'body' | 'number' | 'flower1' | 'flower2'
@@ -56,16 +55,15 @@ const CASE_TARGETS: SceneColorTarget[] = ['caseWall', 'caseFloor']
  * alvos no total — numa fileira só, transbordam da janela padrão.
  */
 /**
- * As quatro famílias de cor prontas, com o acabamento que cada uma pressupõe. Antes elas eram
- * QUATRO seções empilhadas, visualmente idênticas — quase cinquenta quadradinhos anônimos em
+ * Famílias de cor prontas, com o acabamento que cada uma pressupõe. Antes elas eram
+ * seções empilhadas, visualmente idênticas — quase cinquenta quadradinhos anônimos em
  * sequência, sem nada dizendo onde uma família terminava e a outra começava. Agora é uma seção
  * só, com a família escolhida por botão.
  */
 const PALETTE_FAMILIES: { id: PaletteFamilyId; presets: MetalPreset[]; material: DiceMaterialFinish }[] = [
   { id: 'metal', presets: METAL_PRESETS, material: 'metallic' },
-  { id: 'gem', presets: GEM_PRESETS, material: 'plastic' },
-  { id: 'matte', presets: MATTE_PRESETS, material: 'matte' },
-  { id: 'plastic', presets: PLASTIC_PRESETS, material: 'plastic' }
+  { id: 'gem', presets: GEM_PRESETS, material: 'matte' },
+  { id: 'matte', presets: MATTE_PRESETS, material: 'matte' }
 ]
 
 /** Comparação de cor tolerante a caixa (`#D4AF37` vs `#d4af37`) — a roda de cores normaliza pra minúsculo, os presets são escritos à mão. */

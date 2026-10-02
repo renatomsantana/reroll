@@ -9,8 +9,7 @@ export interface GemPreset {
  * Combinações prontas inspiradas nos sets de dados "gema"/marmorizados que o usuário trouxe em
  * `ideias/` (roxo, vermelho-e-preto, azul, azul-e-roxo, verde-escuro, magenta — todos com
  * números dourados). Mesmo padrão de `metalPresets.ts`, mas sem forçar acabamento metálico —
- * essas cores ficam melhor com `plastic` (o brilho de verniz lembra a superfície polida/
- * translúcida dos dados de resina reais) do que com `matte` ou `metallic`. Não tenta reproduzir
+ * essas cores funcionam agora com o acabamento fosco. Não tenta reproduzir
  * o efeito marmorizado/swirl em si (precisaria de uma textura por face gerada com ruído — fora
  * de escopo por ora), só a paleta de cor sólida + número dourado.
  */

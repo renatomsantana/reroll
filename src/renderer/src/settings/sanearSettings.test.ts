@@ -50,6 +50,7 @@ describe('sanearPreferencias', () => {
     expect(sanearPreferencias({ diceMaterial: 'glass' })).toEqual({ diceMaterial: 'glass' })
     expect(sanearPreferencias({ diceMaterial: 'resin' })).toEqual({ diceMaterial: 'resin' })
     expect(sanearPreferencias({ diceMaterial: 'madeira' })).toEqual({})
+    expect(sanearPreferencias({ diceNumberFont: 'rune' })).toEqual({})
     expect(sanearPreferencias({ language: 'en-US' })).toEqual({ language: 'en-US' })
     expect(sanearPreferencias({ language: 'fr-FR' })).toEqual({})
   })
