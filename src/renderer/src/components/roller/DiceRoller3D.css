@@ -261,17 +261,18 @@
 }
 
 /*
- * O CLARÃO de crítico e falha: um segundo, no centro da cena, por cima do popup do total. Cores
+ * O CLARÃO de crítico e falha: 3,5 segundos, no centro da cena, por cima do popup do total. Cores
  * CHAPADAS da paleta do Windows (amarelo sobre preto no crítico, bordô no luto), sem degradê, que
  * leria como moderno. As partículas são oito quadradinhos que voam do centro ao longo de `--angulo`.
  */
 .dice-crit {
+  --dice-crit-duracao: 3.5s;
   position: absolute;
   top: 50%;
   left: 50%;
   z-index: 11;
   pointer-events: none;
-  animation: dice-crit-vida 1s linear forwards;
+  animation: dice-crit-vida var(--dice-crit-duracao) linear forwards;
 }
 
 .dice-crit-texto {
@@ -291,13 +292,13 @@
 .dice-crit-critico .dice-crit-texto {
   background: #000;
   color: #ffff00;
-  animation: dice-crit-pop 1s ease forwards;
+  animation: dice-crit-pop var(--dice-crit-duracao) ease forwards;
 }
 
 .dice-crit-falha .dice-crit-texto {
   background: #800000;
   color: #fff;
-  animation: dice-crit-treme 1s linear forwards;
+  animation: dice-crit-treme var(--dice-crit-duracao) linear forwards;
 }
 
 .dice-crit-faisca {
@@ -312,7 +313,7 @@
   animation: dice-crit-faisca 0.8s ease-out forwards;
 }
 
-/* O pai vive exatamente 1s — é o `animationend` DELE que limpa o estado, não o das faíscas. */
+/* O pai vive exatamente 3,5s — é o `animationend` DELE que limpa o estado, não o das faíscas. */
 @keyframes dice-crit-vida {
   from {
     opacity: 1;
@@ -327,14 +328,14 @@
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.5);
   }
-  15% {
+  5% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1.15);
   }
-  30% {
+  10% {
     transform: translate(-50%, -50%) scale(1);
   }
-  80% {
+  85% {
     opacity: 1;
   }
   100% {
@@ -348,23 +349,23 @@
     opacity: 0;
     transform: translate(-50%, -50%);
   }
-  10% {
+  3% {
     opacity: 1;
     transform: translate(calc(-50% - 6px), -50%);
   }
-  20% {
+  6% {
     transform: translate(calc(-50% + 6px), -50%);
   }
-  30% {
+  9% {
     transform: translate(calc(-50% - 4px), -50%);
   }
-  40% {
+  12% {
     transform: translate(calc(-50% + 4px), -50%);
   }
-  50% {
+  16% {
     transform: translate(-50%, -50%);
   }
-  80% {
+  85% {
     opacity: 1;
   }
   100% {

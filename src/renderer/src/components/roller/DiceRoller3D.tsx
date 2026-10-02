@@ -309,7 +309,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   } = useSettings()
   const multiRef = useRef<DiceCanvasMultiHandle>(null)
   /**
-   * O CLARÃO de crítico/falha sobre a cena (spec §3.7) — um segundo, sem bloquear nada, some no
+   * O CLARÃO de crítico/falha sobre a cena (spec §3.7) — 3,5 segundos, sem bloquear nada, some no
    * fim da animação CSS como o popup do total. `key` reinicia a animação num crítico seguido do
    * outro.
    */
@@ -1174,7 +1174,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         )}
         {/*
           O clarão de crítico/falha (spec §3.7): painel no centro da cena com oito faíscas quadradas
-          voando (crítico) ou o painel escuro tremendo (falha). Um segundo, `pointer-events: none`
+          voando (crítico) ou o painel escuro tremendo (falha). 3,5 segundos, `pointer-events: none`
           — nunca segura o número nem a próxima rolagem.
         */}
         {efeitoDeCritico && (
