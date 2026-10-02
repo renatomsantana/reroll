@@ -107,14 +107,6 @@
     U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Números da opção Arredondada: fonte empacotada para ter o mesmo desenho em qualquer navegador. */
-@font-face {
-  font-family: 'Fredoka';
-  font-style: normal;
-  font-weight: 300 700;
-  src: url('../assets/fonts/fredoka-variable.ttf') format('truetype');
-}
-
 :root {
   --font-family: Tahoma, 'MS Sans Serif', Geneva, sans-serif;
 
