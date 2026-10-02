@@ -11,6 +11,8 @@ interface ToolbarProps {
   onTabChange: (tab: AppTab) => void
   onOpenSettings: () => void
   showTabs: boolean
+  /** A Ficha fica no app instalado e pode ser escondida da versão pública. */
+  showSheet?: boolean
   /** Marca a engrenagem quando existe versão nova — é lá dentro que se atualiza (ver `UpdateSection`). */
   hasUpdate?: boolean
 }
@@ -20,6 +22,7 @@ export function Toolbar({
   onTabChange,
   onOpenSettings,
   showTabs,
+  showSheet = true,
   hasUpdate = false
 }: ToolbarProps) {
   const t = useTranslation()
@@ -59,6 +62,8 @@ export function Toolbar({
           >
             {t.tabs.style}
           </button>
+          {showSheet && (
+            <>
           {/*
             FICHA e ANOTAÇÕES são abas separadas a pedido do usuário. A ficha vem antes porque é o
             que o personagem É; as anotações são o que aconteceu com ele.
@@ -80,6 +85,8 @@ export function Toolbar({
           >
             {t.tabs.sheet}
           </button>
+            </>
+          )}
           <button
             type="button"
             role="tab"

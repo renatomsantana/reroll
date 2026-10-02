@@ -27,7 +27,7 @@ import { DescansoModal } from '@renderer/components/recursos/DescansoModal'
 import { HudDoPersonagem } from '@renderer/components/hud/HudDoPersonagem'
 import { DescansoEditorModal } from '@renderer/components/recursos/DescansoEditorModal'
 import { aplicarDescanso, resumoDoDescanso, type Descanso } from '@shared/types/descanso'
-import { HUD_LIBERADO } from '@shared/liberacoes'
+import { FICHA_LIBERADA, HUD_LIBERADO } from '@shared/liberacoes'
 import { REROLL_WEB } from '@shared/buildTarget'
 import type { RecursoVital } from '@shared/types/recursoVital'
 import { rotulosDoChat } from '@renderer/components/common/BotaoCopiar'
@@ -330,6 +330,7 @@ export default function App() {
         onTabChange={setActiveTab}
         onOpenSettings={() => setSettingsOpen(true)}
         showTabs={!compactMode}
+        showSheet={FICHA_LIBERADA}
         hasUpdate={updateStatus.state === 'available'}
       />
 
@@ -456,7 +457,7 @@ export default function App() {
                   <StyleTab />
                 </section>
               )}
-              {activeTab === 'sheet' && (
+              {FICHA_LIBERADA && activeTab === 'sheet' && (
                 <SheetTab
                   onRoll={handleSheetRoll}
                   /* Mesma trava da lista de presets — ver o comentário do `rollDisabled` de lá. */

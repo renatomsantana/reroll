@@ -18,6 +18,9 @@ import { REROLL_WEB } from './buildTarget'
 /** O HUD continua no app instalado; no site ele não entra na tela de rolagem. */
 export const HUD_LIBERADO = !REROLL_WEB
 
+/** A ficha completa continua no app instalado; a versão pública fica focada em rolagens, estilo e anotações. */
+export const FICHA_LIBERADA = !REROLL_WEB
+
 /**
  * Duas linhas das Preferências GUARDADAS a pedido dele (05/09/2026: "tira o como resultado aparece,
  * deixa aí se nós quiser outro dia mas tira por agora"; "e tira o copiar com negrito markdown"):
