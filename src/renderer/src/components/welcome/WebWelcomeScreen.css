@@ -116,12 +116,20 @@
   line-height: 1.15;
 }
 
+.web-welcome-customize {
+  margin: 8px 0 3px;
+  color: var(--win-text);
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
 .web-welcome-detail {
-  max-width: 280px;
-  margin: 8px 0 26px;
+  margin: 0 0 26px;
   color: var(--win-text-muted);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.4;
+  white-space: nowrap;
 }
 
 .web-welcome-action {
@@ -195,6 +203,7 @@
   }
 
   .web-welcome-copy,
+  .web-welcome-customize,
   .web-welcome-detail {
     max-width: 330px;
   }
