@@ -15,9 +15,9 @@ npx electron scripts/olharVersaoWeb.mjs   # fotografa o build em janela oculta (
 Pra publicar: `out/web/` é um site estático completo — qualquer hospedagem serve. Só precisa ser
 **https** (ou localhost): o `crypto.randomUUID` e a área de transferência exigem contexto seguro.
 
-A hospedagem escolhida é o **GitHub Pages**, em https://renatomsantana.github.io/reroll/. O
-`.github/workflows/site.yml` compila e publica sozinho a cada push na `main`. Na primeira vez, em
-Settings → Pages do repositório, "Source" tem de estar em "GitHub Actions".
+O site público usa a **Hostinger**, em https://reroll.com.br/. Para atualizar a versão publicada,
+gere um novo build e envie o conteúdo de `out/web/` para a hospedagem, conforme
+`COMO-PUBLICAR-NA-HOSTINGER.md`. O GitHub Pages foi desativado; pushes na `main` não publicam o site.
 
 ## Como funciona (a decisão importante)
 
