@@ -37,12 +37,18 @@ export const EditorDeAnotacoesRich = forwardRef<EditorDeAnotacoesRichHandle, Edi
   function EditorDeAnotacoesRich({ value, richText, maxLength, onChange, onFormatStateChange }, ref) {
     const editorRef = useRef<HTMLDivElement>(null)
     const lastValidHtmlRef = useRef('')
+    const lastEmittedHtmlRef = useRef<string | null>(null)
 
     useEffect(() => {
       const editor = editorRef.current
       if (!editor) return
       const html = richText ? sanitizeRichHtml(value) : escapeText(value)
-      if (editor.innerHTML !== html) editor.innerHTML = html
+      // O navegador pode manter <font color> enquanto o valor salvo vira <span style>.
+      // Reescrever o DOM após cada tecla por essa diferença manda o cursor para o começo.
+      // O valor vindo do próprio editor já está sanitizado; sincronizar o DOM só quando a
+      // anotação mudar por fora (troca de sessão, importação etc.).
+      if (lastEmittedHtmlRef.current !== html && editor.innerHTML !== html) editor.innerHTML = html
+      lastEmittedHtmlRef.current = null
       lastValidHtmlRef.current = html
     }, [value, richText])
 
@@ -63,6 +69,7 @@ export const EditorDeAnotacoesRich = forwardRef<EditorDeAnotacoesRichHandle, Edi
         return
       }
       lastValidHtmlRef.current = html
+      lastEmittedHtmlRef.current = html
       onChange(html)
       reportFormatState()
     }
@@ -143,13 +150,20 @@ export function sanitizeRichHtml(html: string): string {
     }
     const element = document.createElement(tag === 'strong' ? 'b' : tag === 'em' ? 'i' : tag === 'font' ? 'span' : tag)
     const color = node.style.color || node.getAttribute('color')
-    if (color && /^#[0-9a-f]{6}$/i.test(color)) element.style.color = color
+    // O navegador escreve `rgb(r, g, b)` ao aplicar foreColor, mesmo quando o seletor entregou
+    // `#rrggbb`. Aceitar só hex apagava a cor na primeira gravação do diário.
+    if (color && (/^#[0-9a-f]{6}$/i.test(color) || corRgbValida(color))) element.style.color = color
     node.childNodes.forEach((child) => copy(child, element))
     parent.append(element)
   }
 
   source.content.childNodes.forEach((node) => copy(node, output))
   return output.innerHTML
+}
+
+function corRgbValida(color: string): boolean {
+  const parts = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i.exec(color)
+  return parts !== null && parts.slice(1).every((part) => Number(part) <= 255)
 }
 
 export function visibleText(html: string): string {

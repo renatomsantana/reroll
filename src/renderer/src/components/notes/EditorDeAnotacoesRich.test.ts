@@ -17,5 +17,8 @@ describe('formatação das anotações', () => {
     expect(sanitizeRichHtml('<font color="#e01818">vermelho</font>')).toBe(
       '<span style="color: rgb(224, 24, 24);">vermelho</span>'
     )
+    expect(sanitizeRichHtml('<span style="color: rgb(224, 24, 24);">vermelho</span>')).toBe(
+      '<span style="color: rgb(224, 24, 24);">vermelho</span>'
+    )
   })
 })
