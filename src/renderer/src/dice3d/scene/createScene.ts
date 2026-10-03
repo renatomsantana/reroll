@@ -4,7 +4,7 @@ import { trayApothem, trayRotation } from '../geometry/trayShape'
 import { LIGHT_CONFIG } from '../config/sceneConfig'
 import { regularPolygonCircumradius } from '../physics/regularPolygon'
 import { createVelvetTextures } from './createVelvetNormalMap'
-import { createGrassTextures, GRASS_TILE_WORLD_SIZE } from './createGrassTexture'
+import { loadGrassTexture } from './createGrassTexture'
 import { createWoodTextures, WOOD_TABLE_REPEAT, WOOD_WALL_REPEAT } from './createWoodTexture'
 import { applySceneBackground } from './applySceneBackground'
 
@@ -75,9 +75,6 @@ export const GROUND_RADIUS = 16
 
 /** Espessura do tampo da mesa (a borda de madeira que aparece em volta da grama). */
 const TABLE_EDGE_HEIGHT = 0.55
-/** Repetições da textura de grama ao longo do diâmetro do tampo — ver `GRASS_TILE_WORLD_SIZE` (ladrilho grande justamente pra repetição não saltar aos olhos). */
-const GRASS_REPEAT = (GROUND_RADIUS * 2) / GRASS_TILE_WORLD_SIZE
-
 /**
  * A cor escolhida na aba Estilo vira TINTURA de madeira: é ela, e só ela, que manda no tom da
  * bandeja, da borda da mesa e do estojo; a textura entra por cima, quase branca, só desenhando veio
@@ -158,20 +155,23 @@ export interface TableHandle {
 export function createGroundPlane(edgeColor: number): TableHandle {
   const group = new THREE.Group()
 
-  const grass = createGrassTextures(GRASS_REPEAT)
   const topGeometry = new THREE.CircleGeometry(GROUND_RADIUS, 64)
   topGeometry.rotateX(-Math.PI / 2)
+  // Verde de transição enquanto o arquivo carrega; a mesa nunca pisca branca.
+  const topMaterial = new THREE.MeshStandardMaterial({
+    color: 0x355d38,
+    roughness: 1,
+    metalness: 0
+  })
   const top = new THREE.Mesh(
     topGeometry,
-    new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      map: grass.map,
-      normalMap: grass.normalMap,
-      normalScale: new THREE.Vector2(0.65, 0.65),
-      roughness: 1,
-      metalness: 0
-    })
+    topMaterial
   )
+  loadGrassTexture((grass) => {
+    topMaterial.map = grass
+    topMaterial.color.setHex(0xd5dfd5)
+    topMaterial.needsUpdate = true
+  })
   top.position.y = -0.03
   top.receiveShadow = true
   group.add(top)
