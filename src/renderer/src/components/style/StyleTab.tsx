@@ -133,6 +133,7 @@ export function StyleTab() {
   /** Qual das duas cores do dado a roda edita. Um alvo por vez: existe UMA roda na tela, e ela sempre mostra a cor de quem está marcado aqui. */
   const [diceTarget, setDiceTarget] = useState<DiceColorTarget>('body')
   const [sceneTarget, setSceneTarget] = useState<SceneColorTarget>('wall')
+  const caseFocus = sceneTarget === 'caseWall' || sceneTarget === 'caseFloor'
   /**
    * A TORRE aparece na prévia por dois motivos, e o segundo é o pedido do usuário ("consertar para
    * aparecer a preview da torre qnd pintarmos as cores"):
@@ -333,6 +334,8 @@ export function StyleTab() {
                 caseWallColor={caseWallColor}
                 caseFloorColor={caseFloorColor}
                 trayShape={trayShape}
+                caseFocus={caseFocus}
+                caseOpen={sceneTarget === 'caseFloor'}
               />
               {/*
                 A legenda diz o que está montado ali — "Hexágono · Torre rolando" —, e não o nome da
@@ -340,7 +343,9 @@ export function StyleTab() {
                 lançamento, o nome da seção era a única coisa da tela que não respondia a nada.
               */}
               <p className="style-tab-preview-caption">
-                {t.styleTab.trayShapes[trayShape]}
+                {caseFocus
+                  ? `${t.styleTab.targetsCase} · ${t.styleTab.colorTargets[sceneTarget]}`
+                  : t.styleTab.trayShapes[trayShape]}
               </p>
             </>
           ) : section === 'background' ? (

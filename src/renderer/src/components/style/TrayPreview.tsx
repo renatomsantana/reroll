@@ -14,6 +14,7 @@ import {
 import {
   computeShelfPositions,
   createShelfCaseMesh,
+  CASE_LID_OPEN_ANGLE,
   type ShelfCaseHandle
 } from '@renderer/dice3d/scene/DiceCanvasMulti'
 import { disposeScene } from '@renderer/dice3d/scene/disposeScene'
@@ -42,6 +43,10 @@ interface TrayPreviewProps {
   floorColor: string
   caseWallColor: string
   caseFloorColor: string
+  /** Ao editar o estojo, ele ocupa a prévia inteira para que o forro fique visível. */
+  caseFocus: boolean
+  /** Ao escolher o veludo, a tampa abre para mostrar o interior que está sendo pintado. */
+  caseOpen: boolean
   /** A prévia mostra a FORMA escolhida — se ela mostrasse hexágono sempre, ensinaria errado. */
   trayShape: TrayShape
   /**
@@ -62,9 +67,9 @@ interface TrayPreviewProps {
  * (`computeShelfPositions`) e apoiado na mesa (`TABLE_SURFACE_Y`), não no chão da bandeja. Sem os
  * dados dentro — a prévia é sobre a COR da caixa, e sete dados ali só disputariam atenção com ela.
  */
-function buildCase(stage: THREE.Group, wallColor: string, floorColor: string): ShelfCaseHandle {
+function buildCase(stage: THREE.Group, wallColor: string, floorColor: string, z: number): ShelfCaseHandle {
   const shelfCase = createShelfCaseMesh(
-    computeShelfPositions()[0].z,
+    z,
     hexStringToNumber(floorColor),
     hexStringToNumber(wallColor)
   )
@@ -198,6 +203,8 @@ export function TrayPreview({
   floorColor,
   caseWallColor,
   caseFloorColor,
+  caseFocus,
+  caseOpen,
   trayShape,
   showTower = false,
   towerStoneColor = '#45423a',
@@ -221,6 +228,8 @@ export function TrayPreview({
   const containerRef = useRef<HTMLDivElement>(null)
   const trayRef = useRef<TrayPreviewHandle | null>(null)
   const caseRef = useRef<ShelfCaseHandle | null>(null)
+  const caseOpenRef = useRef(caseOpen)
+  caseOpenRef.current = caseOpen
   const towerRef = useRef<TowerBesideTrayHandle | null>(null)
   /**
    * As cores do momento em que a torre for MONTADA. A montagem acontece no efeito de baixo, que não
@@ -264,7 +273,7 @@ export function TrayPreview({
      * bandeja e a presença da torre, porque a geometria das duas nasce na construção.
      */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trayShape, showTower])
+  }, [trayShape, showTower, caseFocus])
 
   /** Tudo o que a prévia precisa criar. Devolve a função que descarta. */
   function montarPrevia(container: HTMLDivElement): () => void {
@@ -298,33 +307,43 @@ export function TrayPreview({
     scene.add(ambient, directional)
 
     const sides = TRAY_SHAPE_SIDES[trayShape]
-    const tray = createTrayPreview(
-      hexStringToNumber(wallColor),
-      hexStringToNumber(floorColor),
-      sides
-    )
-    trayRef.current = tray
-    stage.add(tray.object)
+    if (!caseFocus) {
+      const tray = createTrayPreview(
+        hexStringToNumber(wallColor),
+        hexStringToNumber(floorColor),
+        sides
+      )
+      trayRef.current = tray
+      stage.add(tray.object)
+    }
 
     /**
      * O ESTOJO entra na prévia porque também é tingido pela cor de parede, numa versão bem mais
      * escura. Vem de `DiceCanvasMulti.tsx` e é montado AQUI, e não dentro de `createTrayPreview`,
      * porque `createScene.ts` não pode importar de volta sem fechar um ciclo.
      */
-    caseRef.current = buildCase(stage, caseWallColor, caseFloorColor)
+    caseRef.current = buildCase(
+      stage,
+      caseWallColor,
+      caseFloorColor,
+      caseFocus ? 0 : computeShelfPositions()[0].z
+    )
 
     /**
      * A torre é montada com as MESMAS funções da cena de verdade, e recebe os lados da bandeja: ela
      * encosta no meio de uma FACE, e onde as faces ficam depende da forma (ver `nearestFaceAngle`).
      * Trocar pra triângulo aqui move a torre exatamente como move lá.
      */
-    if (showTower) {
+    if (showTower && !caseFocus) {
       const tower = createTowerBesideTray(towerColorsRef.current, {}, sides)
       towerRef.current = tower
       stage.add(tower.group)
     }
 
+    // Enquadra também a tampa aberta; assim a animação não a corta na borda da prévia.
+    caseRef.current.lidPivot.rotation.x = -CASE_LID_OPEN_ANGLE
     frameCamera(camera, stage)
+    caseRef.current.lidPivot.rotation.x = 0
 
     function resize() {
       if (!container) return
@@ -344,8 +363,13 @@ export function TrayPreview({
      * enquanto na mesa de verdade ela mexe.
      */
     let segundos = 0
+    let lidProgress = 0
     const stopLoop = startPreviewLoop((delta) => {
       stage.rotation.y += delta * ROTATION_SPEED
+      const target = caseOpenRef.current ? 1 : 0
+      lidProgress = THREE.MathUtils.damp(lidProgress, target, 7, Math.min(delta, 0.1))
+      if (Math.abs(lidProgress - target) < 0.001) lidProgress = target
+      caseRef.current!.lidPivot.rotation.x = -CASE_LID_OPEN_ANGLE * lidProgress
       segundos += delta
       towerRef.current?.update(segundos)
       renderer.render(scene, camera)

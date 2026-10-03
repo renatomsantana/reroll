@@ -4,7 +4,7 @@ import * as THREE from 'three'
  * Grama procedural pro tampo da mesa ("algo como se fosse uma mesinha bonitinha de grama igual o
  * tabletop rpg"). A referência é o tapete de terreno de uma mesa de RPG, não um gramado fotorrealista.
  *
- * SEGUNDA versão, depois de ele ver a primeira e dizer "a grama tá bem falsa". O que denunciava:
+ * Depois de ele ver a primeira e dizer "a grama tá bem falsa", foram corrigidos:
  *
  * 1. o LADRILHO repetindo na cara — o tile de 256px se repetia a cada 2 unidades, então a mesma
  *    manchinha aparecia dezenas de vezes em fileira. Agora são 512px cobrindo 8 unidades;
@@ -14,6 +14,7 @@ import * as THREE from 'three'
  *    `anisotropy`, que o three limita sozinho ao máximo da placa;
  * 4. folhas todas do mesmo tamanho e cor, que agora variam em comprimento, largura, tom e inclinação.
  *
+ * Os tons claros e o relevo foram suavizados para o gramado não parecer manchado nem pedregoso.
  * Continua sem imagem externa e com sorteio determinístico, pra grama não mudar a cada remontagem.
  */
 
@@ -32,11 +33,11 @@ const CLUMP_COUNT = 260
 const BLADES_PER_CLUMP = 46
 /** Folhas soltas espalhadas por cima dos tufos, pra não virar um carimbo de moitas. */
 const LOOSE_BLADE_COUNT = 14000
-const NORMAL_STRENGTH = 2.4
+const NORMAL_STRENGTH = 1.4
 
 /** Terra por baixo: aparece nas falhas entre os tufos e é o que dá profundidade ao tapete. */
-const SOIL_BASE = '#33301f'
-const GRASS_BASE = '#3d6a2f'
+const SOIL_BASE = '#272c20'
+const GRASS_BASE = '#304d2d'
 
 /**
  * TRÊS famílias de folha, sorteadas por tufo, e é isto que separa grama de tapete sintético. A versão
@@ -49,11 +50,11 @@ const GRASS_BASE = '#3d6a2f'
  */
 const BLADE_FAMILIES = {
   /** Verde comum — a maioria do gramado. */
-  fresh: ['#2c5122', '#345a27', '#3c672d', '#447134', '#4d7d3a', '#578a41'],
+  fresh: ['#294526', '#31502b', '#385a31', '#406237', '#486b3d', '#507345'],
   /** Palha: moitas ressecadas. Tom fechado de propósito — palha clara demais vira mancha amarela chapada em vez de grama seca. */
-  dry: ['#4e4823', '#5b5429', '#68602f', '#756c37', '#827941', '#8f864c'],
+  dry: ['#41452c', '#4a5032', '#555a38', '#60633e', '#696c45', '#73764d'],
   /** Verde mais fechado e azulado, das partes que pegam menos sol. */
-  shade: ['#25441f', '#2b4d24', '#325628', '#3a602e', '#426b35', '#4a763c']
+  shade: ['#243e29', '#29472f', '#305035', '#37593a', '#3f6241', '#486b48']
 } as const
 type BladeFamily = keyof typeof BLADE_FAMILIES
 
@@ -77,9 +78,9 @@ function drawTonalNoise(ctx: CanvasRenderingContext2D, random: () => number): vo
   // Escalas bem separadas e contraste baixo: manchas próximas do tamanho dos tufos competiriam
   // com eles e voltariam a virar "sujeira" na textura.
   const layers = [
-    { count: 22, min: 140, max: 300, alpha: 0.26 },
-    { count: 60, min: 60, max: 140, alpha: 0.16 },
-    { count: 120, min: 20, max: 50, alpha: 0.1 }
+    { count: 22, min: 140, max: 300, alpha: 0.15 },
+    { count: 60, min: 60, max: 140, alpha: 0.09 },
+    { count: 120, min: 20, max: 50, alpha: 0.05 }
   ]
 
   for (const layer of layers) {
@@ -93,8 +94,8 @@ function drawTonalNoise(ctx: CanvasRenderingContext2D, random: () => number): vo
         gradient.addColorStop(
           0,
           lighter
-            ? `rgba(120,170,86,${layer.alpha})`
-            : `rgba(26,52,20,${layer.alpha})`
+            ? `rgba(95,135,78,${layer.alpha})`
+            : `rgba(23,42,25,${layer.alpha})`
         )
         gradient.addColorStop(1, 'rgba(0,0,0,0)')
         ctx.fillStyle = gradient
@@ -157,7 +158,7 @@ function drawBlade(
 /** Sorteia a família do tufo: a maioria verde comum, uma minoria de palha e de verde sombreado. */
 function pickFamily(random: () => number): BladeFamily {
   const roll = random()
-  if (roll > 0.9) return 'dry'
+  if (roll > 0.97) return 'dry'
   if (roll > 0.64) return 'shade'
   return 'fresh'
 }

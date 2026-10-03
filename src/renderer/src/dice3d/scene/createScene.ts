@@ -167,7 +167,7 @@ export function createGroundPlane(edgeColor: number): TableHandle {
       color: 0xffffff,
       map: grass.map,
       normalMap: grass.normalMap,
-      normalScale: new THREE.Vector2(1.1, 1.1),
+      normalScale: new THREE.Vector2(0.65, 0.65),
       roughness: 1,
       metalness: 0
     })

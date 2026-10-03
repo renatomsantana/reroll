@@ -370,7 +370,7 @@ const CASE_DICE_Y = CASE_INTERIOR_Y + CASE_LINING_THICKNESS
 const CASE_LID_SKIRT = 0.5
 const CASE_LID_THICKNESS = 0.08
 /** ~104°: passa da vertical o bastante pra tampa descansar aberta pra trás, em vez de ficar equilibrada em pé. */
-const CASE_LID_OPEN_ANGLE = Math.PI * 0.58
+export const CASE_LID_OPEN_ANGLE = Math.PI * 0.58
 
 /**
  * Teto de quadros por segundo da cena (ver o `tick`). 60 é o piso do que se lê como fluido num
