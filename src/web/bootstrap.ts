@@ -18,6 +18,7 @@ import { criarArmazemDoNavegador, pedirPersistenciaDoNavegador } from './armazem
 import { plataformaDoNavegador } from './seletorDeArquivos'
 import { ehAppNativo, plataformaDoAndroid } from './plataformaDoAndroid'
 import { ligarBotaoVoltar } from './botaoVoltarDoAndroid'
+import './analytics'
 import './web.css'
 
 ;(globalThis as { Buffer?: unknown }).Buffer = BufferDoNavegador
