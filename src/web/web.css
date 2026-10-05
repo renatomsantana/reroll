@@ -23,3 +23,48 @@ body {
   /* Toque sem o atraso do zoom por toque duplo; o zoom por pinça continua funcionando. */
   touch-action: manipulation;
 }
+
+.analytics-consent {
+  position: fixed;
+  bottom: calc(34px + env(safe-area-inset-bottom));
+  left: max(12px, env(safe-area-inset-left));
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100dvh - 64px);
+  overflow: auto;
+  z-index: 1000;
+  padding: 14px;
+  background: var(--win-window-bg);
+  color: var(--win-text);
+  border: 2px outset var(--win-highlight);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.analytics-consent[hidden] {
+  display: none;
+}
+
+.analytics-consent p {
+  margin: 0 0 12px;
+  text-wrap: pretty;
+}
+
+.analytics-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.analytics-consent-actions button {
+  min-height: 36px;
+}
+
+.analytics-privacy-button {
+  position: fixed;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(6px, env(safe-area-inset-bottom));
+  z-index: 1000;
+  padding: 3px 8px;
+  font-size: 10px;
+}
