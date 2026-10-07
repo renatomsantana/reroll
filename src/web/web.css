@@ -6,7 +6,7 @@
 
 /* Minimizar, maximizar e fechar não existem numa aba de navegador; o botão de modo compacto fica,
    porque esse é da interface (útil em tela pequena). */
-.titlebar-controls .titlebar-btn:not(.titlebar-btn-compact) {
+.titlebar-controls .titlebar-btn:not(.titlebar-btn-compact):not(.titlebar-btn-back) {
   display: none;
 }
 
@@ -23,4 +23,3 @@ body {
   /* Toque sem o atraso do zoom por toque duplo; o zoom por pinça continua funcionando. */
   touch-action: manipulation;
 }
-

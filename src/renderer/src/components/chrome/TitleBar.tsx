@@ -3,7 +3,7 @@ import { useSettings } from '@renderer/settings/SettingsContext'
 import { appIconImageSmall } from '@renderer/assets/icons'
 import './TitleBar.css'
 
-export function TitleBar() {
+export function TitleBar({ onBackToWelcome }: { onBackToWelcome?: () => void }) {
   const t = useTranslation()
   const { appIconId, compactMode, setCompactMode } = useSettings()
 
@@ -45,6 +45,18 @@ export function TitleBar() {
         {t.appTitle}
       </div>
       <div className="titlebar-controls">
+        {onBackToWelcome && (
+          <button
+            type="button"
+            className="titlebar-btn titlebar-btn-back"
+            aria-label="Voltar à página inicial do Reroll"
+            title="Voltar à página inicial do Reroll"
+            onClick={onBackToWelcome}
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
+            ←
+          </button>
+        )}
         <button
           type="button"
           className="titlebar-btn"

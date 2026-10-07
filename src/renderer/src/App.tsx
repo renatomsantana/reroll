@@ -324,7 +324,7 @@ export default function App() {
 
   return (
     <div className={`app-window ${compactMode ? 'app-window-compact' : ''}`}>
-      <TitleBar />
+      <TitleBar onBackToWelcome={REROLL_WEB ? () => setShowWebWelcome(true) : undefined} />
       <Toolbar
         activeTab={activeTab}
         onTabChange={setActiveTab}
