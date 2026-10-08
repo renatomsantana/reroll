@@ -5,7 +5,7 @@
     <!-- A mesma CSP do renderer do Electron (ver o comentário em `src/renderer/index.html`). -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cloud.umami.is; connect-src 'self' https://gateway.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'"
     />
     <!-- `viewport-fit=cover` por causa do recorte de tela dos celulares; `user-scalable` fica
          ligado de propósito (acessibilidade), o `touch-action` do web.css já segura o zoom por
@@ -14,6 +14,15 @@
     <meta name="theme-color" content="#101018" />
     <!-- Define o tema antes do CSS e do React para não piscar o fundo azul do modo Dia. -->
     <script src="./theme-init.js"></script>
+    <!-- Estatísticas sem cookies, restritas ao site publicado; não lê dados do tabuleiro. -->
+    <script
+      defer
+      src="https://cloud.umami.is/script.js"
+      data-website-id="8bd0acba-5a33-4e1b-ae4c-37e0ab357a10"
+      data-domains="reroll.com.br,www.reroll.com.br"
+      data-exclude-hash="true"
+      data-do-not-track="true"
+    ></script>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icone.png" />
     <title>Reroll</title>
