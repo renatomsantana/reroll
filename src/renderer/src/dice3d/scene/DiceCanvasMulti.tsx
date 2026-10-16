@@ -208,8 +208,8 @@ export interface DiceCanvasMultiProps {
   onError?: (error: unknown) => void
   /** Primeira batida de um dado desta rolagem no chão físico da bandeja. */
   onFirstFloorImpact?: (diceCount: number) => void
-  /** Primeira batida desta rolagem no chão OU em uma parede física da bandeja. */
-  onFirstBoundaryImpact?: () => void
+  /** Primeira batida desta rolagem em uma parede física da bandeja; o chão não conta. */
+  onFirstWallImpact?: () => void
   /**
    * O arremesso automático do mount conta como rolagem de verdade (relata resultado ao assentar):
    * é o clique num preset, que já É a ação de rolar. Sem isto (troca de tipo, quantidade, modo, cor
@@ -717,7 +717,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     onResult,
     onError,
     onFirstFloorImpact,
-    onFirstBoundaryImpact,
+    onFirstWallImpact,
     autoRoll,
     diceColors,
     numberFont = 'rounded',
@@ -792,8 +792,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
   const onFirstFloorImpactRef = useRef(onFirstFloorImpact)
   onFirstFloorImpactRef.current = onFirstFloorImpact
 
-  const onFirstBoundaryImpactRef = useRef(onFirstBoundaryImpact)
-  onFirstBoundaryImpactRef.current = onFirstBoundaryImpact
+  const onFirstWallImpactRef = useRef(onFirstWallImpact)
+  onFirstWallImpactRef.current = onFirstWallImpact
 
   const onCaseClickRef = useRef(onCaseClick)
   onCaseClickRef.current = onCaseClick
@@ -855,14 +855,14 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
   const armedRef = useRef(autoRoll ?? false)
   /** Uma rolagem produz um som só, mesmo se vários dados acertarem o chão no mesmo passo. */
   const floorImpactReportedRef = useRef(false)
-  /** Uma rolagem produz uma explosão só, na primeira parede ou chão atingido por qualquer dado. */
-  const boundaryImpactReportedRef = useRef(false)
+  /** Uma rolagem produz uma explosão só, na primeira parede atingida por qualquer dado. */
+  const wallImpactReportedRef = useRef(false)
 
   useImperativeHandle(ref, () => ({
     roll: () => {
       armedRef.current = true
       floorImpactReportedRef.current = false
-      boundaryImpactReportedRef.current = false
+      wallImpactReportedRef.current = false
       if (launchMode === 'tower') {
         // Refila tudo: cada dado volta pra fila e sai pela boca na sua vez, um a cada
         // `MOUTH_RELEASE_INTERVAL_MS` (nascem todos no mesmo ponto, o que os separa é o tempo).
@@ -1418,12 +1418,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         )
         if (!isDie) return
 
-        if (!boundaryImpactReportedRef.current) {
-          boundaryImpactReportedRef.current = true
-          onFirstBoundaryImpactRef.current?.()
+        const isFloorImpact = floorColliderHandles.has(boundaryHandle)
+        if (!isFloorImpact && !wallImpactReportedRef.current) {
+          wallImpactReportedRef.current = true
+          onFirstWallImpactRef.current?.()
         }
 
-        if (!floorImpactReportedRef.current && floorColliderHandles.has(boundaryHandle)) {
+        if (!floorImpactReportedRef.current && isFloorImpact) {
           floorImpactReportedRef.current = true
           onFirstFloorImpactRef.current?.(diceRef.current.length)
         }

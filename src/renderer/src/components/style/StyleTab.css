@@ -138,6 +138,36 @@
   flex: 1;
 }
 
+/*
+ * A novidade do lançamento aparece primeiro no caminho (Bandeja e estojo) e, lá dentro, ao lado do
+ * título exato da opção. É o mesmo aviso espelhado, não duas notificações diferentes.
+ */
+.style-tab-section-has-news {
+  position: relative;
+}
+
+.style-tab-section-news-dot {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+}
+
+.style-tab-section-news-dot,
+.style-tab-inline-news-dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--win-face);
+  border-radius: 50%;
+  background: #ed4245;
+  box-shadow: 0 0 0 1px var(--win-shadow-dark);
+}
+
+.style-tab-inline-news-dot {
+  display: inline-block;
+  margin-left: 7px;
+  vertical-align: 1px;
+}
+
 /** Prévia do papel de parede da cena, inclusive quando uma imagem já foi escolhida. */
 .style-tab-background-preview {
   width: 100%;

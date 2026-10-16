@@ -58,6 +58,8 @@ interface TrayPreviewProps {
    * motivos: a torre está na mesa de verdade, ou a pessoa está pintando uma peça dela.
    */
   showTower?: boolean
+  /** Ao pintar uma peça da torre, ela vira o centro da rotação e preenche a prévia. */
+  towerFocus?: boolean
   /** As quatro peças pintáveis, em cor CSS — a conversão pra hex numérico é feita aqui dentro. */
   towerStoneColor?: string
   towerRoofColor?: string
@@ -212,6 +214,7 @@ export function TrayPreview({
   caseOpen,
   trayShape,
   showTower = false,
+  towerFocus = false,
   towerStoneColor = '#45423a',
   towerRoofColor = '#2f3542',
   towerFlagColor = '#b03030',
@@ -278,7 +281,7 @@ export function TrayPreview({
      * bandeja e a presença da torre, porque a geometria das duas nasce na construção.
      */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trayShape, showTower, caseFocus, system])
+  }, [trayShape, showTower, towerFocus, caseFocus, system])
 
   /** Tudo o que a prévia precisa criar. Devolve a função que descarta. */
   function montarPrevia(container: HTMLDivElement): () => void {
@@ -348,7 +351,27 @@ export function TrayPreview({
 
     // Enquadra também a tampa aberta; assim a animação não a corta na borda da prévia.
     caseRef.current.lidPivot.rotation.x = -CASE_LID_OPEN_ANGLE
-    frameCamera(camera, stage)
+    if (towerFocus && towerRef.current) {
+      /**
+       * A torre nasce ao lado da bandeja. Ao editá-la, deslocamos o palco para o centro da própria
+       * torre antes de enquadrar somente ela; assim o giro continua mostrando todos os lados sem a
+       * construção orbitar pela prévia nem a bandeja obrigar a câmera a ficar longe.
+       */
+      const centroDaTorre = new THREE.Box3()
+        .setFromObject(towerRef.current.group)
+        .getCenter(new THREE.Vector3())
+      // A bandeja e o estojo escondidos deixam pedra, bico, bandeira e porta realmente legíveis.
+      if (trayRef.current) trayRef.current.object.visible = false
+      caseRef.current.group.visible = false
+      for (const child of stage.children) {
+        child.position.x -= centroDaTorre.x
+        child.position.z -= centroDaTorre.z
+      }
+      stage.updateMatrixWorld(true)
+      frameCamera(camera, towerRef.current.group)
+    } else {
+      frameCamera(camera, stage)
+    }
     caseRef.current.lidPivot.rotation.x = 0
 
     function resize() {

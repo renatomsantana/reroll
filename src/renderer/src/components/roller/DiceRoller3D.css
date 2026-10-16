@@ -218,8 +218,9 @@
 }
 
 .dice-impact-explosion img {
-  width: auto;
   /* Aproximadamente a altura de um dado na cena + 3 cm de efeito ao redor. */
+  display: block;
+  width: auto;
   height: calc(3cm + 48px);
   max-width: 88%;
   max-height: 88%;

@@ -47,12 +47,28 @@ import { contarTabuleiroAberto } from '@renderer/analytics/usoDoSite'
 /** Lista vazia e ESTÁVEL pra quando o HUD não está liberado: mesma referência a cada render. */
 const SEM_BARRAS: RecursoVital[] = []
 const WEB_WELCOME_STORAGE_KEY = 'reroll-web-welcome-seen-v1'
+const WEB_STYLE_NEWS_STORAGE_KEY = 'reroll-web-style-news-seen-v1'
+const WEB_LAUNCH_NEWS_STORAGE_KEY = 'reroll-web-launch-news-seen-v1'
 
 function webWelcomeJaFoiVista(): boolean {
   if (!REROLL_WEB) return true
   if (window.location.search.includes('welcome=1')) return false
   try {
     return window.localStorage.getItem(WEB_WELCOME_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Novidades do site usam uma chave por assunto. Assim a bolinha aparece também para quem já tinha
+ * aberto o Reroll antes deste update, e uma novidade futura pode ganhar outra chave sem ressuscitar
+ * avisos antigos. No app instalado elas não aparecem: esta chamada é da versão publicada.
+ */
+function novidadeWebJaFoiVista(storageKey: string): boolean {
+  if (!REROLL_WEB) return true
+  try {
+    return window.localStorage.getItem(storageKey) === '1'
   } catch {
     return false
   }
@@ -69,6 +85,8 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(() => !REROLL_WEB)
   const [showWebWelcome, setShowWebWelcome] = useState(() => !webWelcomeJaFoiVista())
   const [activeTab, setActiveTab] = useState<AppTab>('roll')
+  const [styleNewsSeen, setStyleNewsSeen] = useState(() => novidadeWebJaFoiVista(WEB_STYLE_NEWS_STORAGE_KEY))
+  const [launchNewsSeen, setLaunchNewsSeen] = useState(() => novidadeWebJaFoiVista(WEB_LAUNCH_NEWS_STORAGE_KEY))
   const [settingsOpen, setSettingsOpen] = useState(false)
   /** Histórico de rolagens (ver `HistoryModal`): abre pelo botão ao lado do ROLAR e pelas Preferências. */
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -169,6 +187,22 @@ export default function App() {
       // Sem armazenamento disponível, a pessoa ainda entra normalmente nesta sessão.
     }
     setShowWebWelcome(false)
+  }
+
+  function marcarNovidadeComoVista(storageKey: string, setSeen: (seen: boolean) => void): void {
+    try {
+      window.localStorage.setItem(storageKey, '1')
+    } catch {
+      // A bolinha some nesta sessão mesmo se o navegador estiver bloqueando armazenamento.
+    }
+    setSeen(true)
+  }
+
+  function trocarAba(tab: AppTab): void {
+    setActiveTab(tab)
+    if (tab === 'style' && !styleNewsSeen) {
+      marcarNovidadeComoVista(WEB_STYLE_NEWS_STORAGE_KEY, setStyleNewsSeen)
+    }
   }
 
   if (showWebWelcome) {
@@ -334,11 +368,12 @@ export default function App() {
       <TitleBar onBackToWelcome={REROLL_WEB ? () => setShowWebWelcome(true) : undefined} />
       <Toolbar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={trocarAba}
         onOpenSettings={() => setSettingsOpen(true)}
         showTabs={!compactMode}
         showSheet={FICHA_LIBERADA}
         hasUpdate={updateStatus.state === 'available'}
+        hasStyleNews={!styleNewsSeen}
       />
 
       {/*
@@ -462,7 +497,13 @@ export default function App() {
 
               {activeTab === 'style' && (
                 <section className="app-section">
-                  <StyleTab key={gameSystem} />
+                  <StyleTab
+                    key={gameSystem}
+                    showLaunchModeNews={!launchNewsSeen}
+                    onLaunchModeNewsSeen={() =>
+                      marcarNovidadeComoVista(WEB_LAUNCH_NEWS_STORAGE_KEY, setLaunchNewsSeen)
+                    }
+                  />
                 </section>
               )}
               {FICHA_LIBERADA && activeTab === 'sheet' && (

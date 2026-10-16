@@ -15,6 +15,8 @@ interface ToolbarProps {
   showSheet?: boolean
   /** Marca a engrenagem quando existe versão nova — é lá dentro que se atualiza (ver `UpdateSection`). */
   hasUpdate?: boolean
+  /** Bolinha de novidade da versão web; some quando a pessoa abre a aba Estilo. */
+  hasStyleNews?: boolean
 }
 
 export function Toolbar({
@@ -23,7 +25,8 @@ export function Toolbar({
   onOpenSettings,
   showTabs,
   showSheet = true,
-  hasUpdate = false
+  hasUpdate = false,
+  hasStyleNews = false
 }: ToolbarProps) {
   const t = useTranslation()
   /**
@@ -61,6 +64,7 @@ export function Toolbar({
             onClick={() => onTabChange('style')}
           >
             {t.tabs.style}
+            {hasStyleNews && <span className="toolbar-news-dot" aria-label="Novidade" />}
           </button>
           {showSheet && (
             <>

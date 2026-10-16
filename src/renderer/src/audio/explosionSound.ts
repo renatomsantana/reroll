@@ -7,8 +7,8 @@ let explosionAudio: HTMLAudioElement | null = null
 let stopTimer: number | null = null
 
 /**
- * Toca o boom no próprio quadro do primeiro impacto e o corta depois de 1,7 segundo. O GIF some
- * antes, em 0,7 segundo; separar os dois tempos deixa o impacto visual curto e a cauda grave soar.
+ * Toca o boom no próprio quadro do primeiro impacto na parede e o corta depois de 1,7 segundo. A animação
+ * visual some antes, em 0,7 segundo; separar os dois tempos deixa o impacto curto e a cauda grave soar.
  * Reiniciar antes disso também para o toque anterior, então nunca há dois booms somados.
  */
 export function playExplosionSound(): void {

@@ -53,7 +53,7 @@ const THROW_STRENGTH_MULTIPLIERS: Record<ThrowStrength, { speed: number; torque:
   forte: { speed: 1.35, torque: 1.65 },
   // A velocidade é o exagero; giro 4,8× fazia grupos de d20 se apoiarem uns nos outros e nunca
   // cruzarem o limiar de repouso. Ainda gira mais que Forte, sem deixar “Rolando...” eterno.
-  explosao: { speed: 4.4, torque: 2 }
+  explosao: { speed: 5.85, torque: 2.25 }
 }
 
 export function multiplicadoresDaForca(strength: ThrowStrength): {
@@ -82,8 +82,8 @@ const MOUTH_MAX_SPEED = 9.5
 
 /** Rajada curta do Forte pela torre; dura só até a primeira parede. */
 export const STRONG_TOWER_FLIGHT_SPEED = 24
-/** Modo propositalmente exagerado: quase o dobro do Forte, ainda contido pela parede e pelo CCD. */
-export const EXPLOSION_FLIGHT_SPEED = 46
+/** Modo propositalmente exagerado: 2,5× o Forte, ainda contido pela parede e pelo CCD. */
+export const EXPLOSION_FLIGHT_SPEED = 60
 
 export function velocidadeMaximaDoRicochete(strength: ThrowStrength): number {
   return strength === 'explosao' ? EXPLOSION_FLIGHT_SPEED : STRONG_TOWER_FLIGHT_SPEED

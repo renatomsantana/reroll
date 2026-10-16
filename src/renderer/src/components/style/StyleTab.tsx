@@ -88,7 +88,13 @@ function sameColor(a: string, b: string): boolean {
  *   só nos ~1000px restantes, o que esticava cada botão de "Fosco" numa barra larguíssima. Cada
  *   coluna tem ~250px, e o botão volta ao tamanho do rótulo.
  */
-export function StyleTab() {
+interface StyleTabProps {
+  /** O mesmo aviso aparece no caminho até o seletor e no título do próprio seletor. */
+  showLaunchModeNews?: boolean
+  onLaunchModeNewsSeen?: () => void
+}
+
+export function StyleTab({ showLaunchModeNews = false, onLaunchModeNewsSeen }: StyleTabProps) {
   const t = useTranslation()
   const dialogo = useDialogo()
   const {
@@ -337,8 +343,13 @@ export function StyleTab() {
           <Button selected={section === 'dice'} onClick={() => setSection('dice')}>
             {t.styleTab.sectionDice}
           </Button>
-          <Button selected={section === 'scene'} onClick={() => setSection('scene')}>
+          <Button
+            selected={section === 'scene'}
+            className={showLaunchModeNews ? 'style-tab-section-has-news' : undefined}
+            onClick={() => setSection('scene')}
+          >
             {t.styleTab.sectionScene}
+            {showLaunchModeNews && <span className="style-tab-section-news-dot" aria-label="Novidade" />}
           </Button>
           <Button selected={section === 'background'} onClick={() => setSection('background')}>
             {t.styleTab.sectionBackground}
@@ -365,6 +376,7 @@ export function StyleTab() {
                 caseFocus={caseFocus}
                 caseOpen={sceneTarget === 'caseFloor'}
                 showTower={launchMode !== 'tray' || towerFocus}
+                towerFocus={towerFocus}
                 towerStoneColor={towerStoneColor}
                 towerRoofColor={towerRoofColor}
                 towerFlagColor={towerFlagColor}
@@ -376,7 +388,9 @@ export function StyleTab() {
                 lançamento, o nome da seção era a única coisa da tela que não respondia a nada.
               */}
               <p className="style-tab-preview-caption">
-                {caseFocus ? (
+                {towerFocus ? (
+                  `${t.styleTab.targetsTower} · ${t.styleTab.colorTargets[sceneTarget]}`
+                ) : caseFocus ? (
                   `${t.styleTab.targetsCase} · ${t.styleTab.colorTargets[sceneTarget]}`
                 ) : (
                   <>
@@ -606,7 +620,10 @@ export function StyleTab() {
         {section === 'scene' && (
           <>
             <fieldset className="style-group">
-              <legend>{t.styleTab.launchMode}</legend>
+              <legend className="style-tab-launch-mode-legend">
+                {t.styleTab.launchMode}
+                {showLaunchModeNews && <span className="style-tab-inline-news-dot" aria-label="Novidade" />}
+              </legend>
               <div className="style-tab-list style-tab-modes" role="listbox" aria-label={t.styleTab.launchMode}>
                 {LAUNCH_MODES.map((mode) => (
                   <button
@@ -617,7 +634,10 @@ export function StyleTab() {
                     className={`style-tab-list-item style-tab-mode ${
                       launchMode === mode ? 'style-tab-list-item-selected' : ''
                     }`}
-                    onClick={() => setLaunchMode(mode)}
+                    onClick={() => {
+                      setLaunchMode(mode)
+                      onLaunchModeNewsSeen?.()
+                    }}
                   >
                     <span className="style-tab-mode-text">
                       <span className="style-tab-mode-title">{t.styleTab.launchModeOptions[mode].title}</span>

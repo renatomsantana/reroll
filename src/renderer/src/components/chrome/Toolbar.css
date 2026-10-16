@@ -64,6 +64,20 @@
   padding: 5px 14px 5px;
 }
 
+/** Aviso pequeno de recurso novo, no mesmo lugar em que o Discord marca algo não visto. */
+.toolbar-news-dot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--win-face);
+  border-radius: 50%;
+  background: #ed4245;
+  box-shadow: 0 0 0 1px var(--win-shadow-dark);
+}
+
 /**
  * O ícone é um SVG em `currentColor` (ver `IconeEngrenagem.tsx`), não mais o emoji ⚙️ — que era
  * prata e sumia no cinza do modo dia. `display: flex` centraliza o desenho no botão; com emoji, quem

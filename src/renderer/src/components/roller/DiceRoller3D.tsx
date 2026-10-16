@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -35,7 +36,7 @@ import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { playRollSound } from '@renderer/audio/rollSound'
 import { playExplosionSound } from '@renderer/audio/explosionSound'
-import { EXPLOSAO_PIXEL_ANIMACAO } from '@renderer/assets/effects'
+import { EXPLOSAO_PIXEL_GIF } from '@renderer/assets/effects'
 import { teclaVeioDeDigitacao } from '@renderer/utils/isTyping'
 import { TRAY_SHAPE_SIDES } from '@renderer/dice3d/geometry/trayShape'
 import { Button } from '../common/Button'
@@ -329,25 +330,64 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   const assimilacao = gameSystem === 'assimilacao'
   const multiRef = useRef<DiceCanvasMultiHandle>(null)
   /** Explosão de edição: uma por rolagem, removida 0,7s após a primeira batida. */
-  const [explosionKey, setExplosionKey] = useState<string | null>(null)
+  const [impactExplosion, setImpactExplosion] = useState<{ key: string; src: string } | null>(null)
   const explosionTimerRef = useRef<number | null>(null)
+  /** Uma rolagem pode tocar várias paredes: só o primeiro contato dispara o efeito. */
+  const explosionReportedForRollRef = useRef(false)
+  const explosionGifBytesRef = useRef<ArrayBuffer | null>(null)
+  const explosionObjectUrlRef = useRef<string | null>(null)
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    let cancelled = false
+    void fetch(EXPLOSAO_PIXEL_GIF)
+      .then((response) => response.arrayBuffer())
+      .then((bytes) => {
+        if (!cancelled) explosionGifBytesRef.current = bytes
+      })
+      .catch(() => {
+        // Se a pré-carga falhar, a URL importada continua sendo usada como fallback.
+      })
+
+    return () => {
+      cancelled = true
       if (explosionTimerRef.current !== null) window.clearTimeout(explosionTimerRef.current)
-    },
-    []
-  )
+      if (explosionObjectUrlRef.current) URL.revokeObjectURL(explosionObjectUrlRef.current)
+    }
+  }, [])
 
   function triggerImpactExplosion(): void {
-    setExplosionKey(`${performance.now()}`)
+    if (explosionReportedForRollRef.current) return
+    explosionReportedForRollRef.current = true
+
+    const key = `${performance.now()}`
+    if (explosionObjectUrlRef.current) {
+      URL.revokeObjectURL(explosionObjectUrlRef.current)
+      explosionObjectUrlRef.current = null
+    }
+
+    const bytes = explosionGifBytesRef.current
+    const src = bytes
+      ? URL.createObjectURL(new Blob([bytes], { type: 'image/gif' }))
+      : `${EXPLOSAO_PIXEL_GIF}?impact=${encodeURIComponent(key)}`
+    if (bytes) explosionObjectUrlRef.current = src
+
+    setImpactExplosion({ key, src })
     if (soundEnabled) playExplosionSound()
     if (explosionTimerRef.current !== null) window.clearTimeout(explosionTimerRef.current)
     explosionTimerRef.current = window.setTimeout(() => {
-      setExplosionKey(null)
+      setImpactExplosion(null)
+      if (explosionObjectUrlRef.current === src) {
+        URL.revokeObjectURL(src)
+        explosionObjectUrlRef.current = null
+      }
       explosionTimerRef.current = null
     }, 700)
   }
+
+  const rollPhysicalDice = useCallback((): void => {
+    explosionReportedForRollRef.current = false
+    multiRef.current?.roll()
+  }, [])
   /**
    * O CLARÃO de crítico/falha sobre a cena (spec §3.7) — 3,5 segundos, sem bloquear nada, some no
    * fim da animação CSS como o popup do total. `key` reinicia a animação num crítico seguido do
@@ -663,8 +703,8 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   useEffect(() => {
     if (!pendingPresetRollRef.current) return
     pendingPresetRollRef.current = false
-    multiRef.current?.roll()
-  }, [presetRollSeq])
+    rollPhysicalDice()
+  }, [presetRollSeq, rollPhysicalDice])
 
   const isSingleGroup = groups.length === 1
   const singleCount = isSingleGroup ? groups[0].count : 1
@@ -931,7 +971,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     }
 
     setIsRolling(true)
-    multiRef.current?.roll()
+    rollPhysicalDice()
   }
 
   useEffect(() => {
@@ -1267,7 +1307,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
             onFirstFloorImpact={(diceCount) => {
               if (soundEnabled) playRollSound(diceCount)
             }}
-            onFirstBoundaryImpact={throwStrength === 'explosao' ? triggerImpactExplosion : undefined}
+            onFirstWallImpact={throwStrength === 'explosao' ? triggerImpactExplosion : undefined}
             autoRoll={autoRollArm}
             diceColors={resolvedDiceColors}
             numberFont={diceNumberFont}
@@ -1299,14 +1339,9 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           />
           {/* Sobreposto à cena, não numa aba: é um controle que se mexe olhando a cena. */}
           <CameraModeSwitch />
-          {explosionKey && (
-            <div key={explosionKey} className="dice-impact-explosion" aria-hidden="true">
-              {/*
-               * A URL muda em toda batida. Alguns navegadores mantêm GIF/APNG em uma linha do
-               * tempo compartilhada pelo cache; remontar apenas o elemento podia fazê-lo voltar
-               * já parado no último quadro. O parâmetro força cada explosão a nascer no quadro 1.
-               */}
-              <img src={`${EXPLOSAO_PIXEL_ANIMACAO}?impact=${encodeURIComponent(explosionKey)}`} alt="" />
+          {impactExplosion && (
+            <div key={impactExplosion.key} className="dice-impact-explosion" aria-hidden="true">
+              <img src={impactExplosion.src} alt="" />
             </div>
           )}
           {overlay}

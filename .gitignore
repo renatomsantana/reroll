@@ -34,7 +34,6 @@ assimilação/
 # Artes de origem e prints soltos. As versões que entram no build já estão em `src` e `build`.
 png/
 noFilter.png
-src/renderer/src/assets/effects/explosao-pixel.gif
 
 # Anotações de trabalho e manuais escritos pro próprio uso. O `COMO-PUBLICAR-UPDATE.txt` em
 # especial descreve o fluxo de publicação com caminhos desta máquina.
