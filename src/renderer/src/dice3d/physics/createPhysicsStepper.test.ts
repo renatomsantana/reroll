@@ -45,4 +45,16 @@ describe('createPhysicsStepper', () => {
     expect(world.step).toHaveBeenCalledTimes(2)
     expect(simulated).toBeCloseTo(fixedDt * 2, 10)
   })
+
+  it('processa os contatos e o repouso entre passos, mesmo com cinco passos no mesmo quadro', () => {
+    const order: string[] = []
+    const world = { step: () => order.push('physics') } as unknown as RAPIER.World
+    const afterStep = vi.fn(() => order.push('contacts'))
+    const step = createPhysicsStepper(world, undefined, afterStep)
+    step(maxStepSeconds)
+    expect(order).toEqual(Array.from({ length: WORLD_CONFIG.maxStepsPerFrame }, () => ['physics', 'contacts']).flat())
+    expect(afterStep).toHaveBeenCalledWith(fixedDt)
+    step(0)
+    expect(afterStep).toHaveBeenCalledTimes(WORLD_CONFIG.maxStepsPerFrame)
+  })
 })

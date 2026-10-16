@@ -17,7 +17,11 @@ import { WORLD_CONFIG } from '../config/physicsConfig'
  * pode ficar bem maior que o tempo de física avançado, e o cronômetro de "parado" andaria rápido demais
  * em relação à física — ora declarando emperrado antes da hora, ora aceitando um resultado prematuro.
  */
-export function createPhysicsStepper(world: RAPIER.World, eventQueue?: RAPIER.EventQueue) {
+export function createPhysicsStepper(
+  world: RAPIER.World,
+  eventQueue?: RAPIER.EventQueue,
+  afterStep?: (simulatedSeconds: number) => void
+) {
   const fixedDt = 1 / WORLD_CONFIG.physicsStepsPerSecond
   let accumulator = 0
 
@@ -31,6 +35,9 @@ export function createPhysicsStepper(world: RAPIER.World, eventQueue?: RAPIER.Ev
       // conseguiria adivinhar o impacto pelo relógio ou pela posição do dado.
       if (eventQueue) world.step(eventQueue)
       else world.step()
+      // Colisões, restauração da gravidade e repouso têm que acompanhar CADA passo, inclusive
+      // em celulares que simulam vários passos antes de desenhar o próximo quadro.
+      afterStep?.(fixedDt)
       accumulator -= fixedDt
       steps += 1
     }

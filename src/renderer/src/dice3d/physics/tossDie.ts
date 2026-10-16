@@ -98,7 +98,7 @@ export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): Laun
   // pule o collider fino da parede entre dois passos da física. A gravidade continua ligada aqui,
   // porque sem torre o dado primeiro encosta no chão e então vai à parede.
   body.setGravityScale(1, true)
-  body.enableCcd(ricochet)
+  body.enableCcd(true)
 
   const oppositeAngle = launchAngle + Math.PI
   const oppositeWallRadius = regularPolygonRadiusAt(oppositeAngle, trayApothem(sides), sides, trayRotation(sides))

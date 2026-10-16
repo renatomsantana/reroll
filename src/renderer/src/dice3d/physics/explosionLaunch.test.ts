@@ -69,7 +69,7 @@ describe('lançamento Explosão', () => {
     expect(ricocheteou).toBe(true)
     expect(isInsideRegularPolygon(final.x, final.z, TRAY_CONFIG.apothem, TRAY_CONFIG.wallSegments, 0.5)).toBe(true)
     expect(final.y).toBeGreaterThan(-1)
-    expect(body.isCcdEnabled()).toBe(false)
+    expect(body.isCcdEnabled()).toBe(true)
     world.free()
   })
 })

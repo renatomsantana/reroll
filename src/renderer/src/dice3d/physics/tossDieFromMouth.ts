@@ -132,7 +132,8 @@ export function restaurarFisicaDoDado(body: RAPIER.RigidBody, basePhysics: DiceB
   body.setLinearDamping(basePhysics.linearDamping)
   body.setAngularDamping(basePhysics.angularDamping)
   body.setGravityScale(1, true)
-  body.enableCcd(false)
+  // O ricochete ainda pode devolver o dado rápido contra o piso fino ou outro dado.
+  body.enableCcd(true)
 }
 
 /**
@@ -211,7 +212,7 @@ export function tossDieFromMouth(body: RAPIER.RigidBody, options: MouthTossOptio
    * `DiceCanvasMulti` chama `restaurarFisicaDoDado`, religa a gravidade e ele cai na bandeja.
    */
   body.setGravityScale(ricochet ? 0 : 1, true)
-  body.enableCcd(ricochet)
+  body.enableCcd(true)
 
   // Mesma conta do arremesso normal: velocidade horizontal derivada da distância REAL até o slot, e
   // não um impulso fixo. Entre o slot mais próximo e o mais distante há vários unidades de diferença,

@@ -202,7 +202,7 @@ describe('lançamento pela boca da torre ao lado da bandeja', () => {
     expect(final.y).toBeGreaterThan(-1)
     expect(body.collider(0).restitution()).toBeCloseTo(definition.physics.restitution)
     expect(body.gravityScale()).toBe(1)
-    expect(body.isCcdEnabled()).toBe(false)
+    expect(body.isCcdEnabled()).toBe(true)
 
     world.free()
   })

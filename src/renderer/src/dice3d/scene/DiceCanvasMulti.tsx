@@ -36,12 +36,10 @@ import { createPhysicsWorld } from '../physics/createPhysicsWorld'
 import { createBoundaryColliders } from '../physics/createBoundaryColliders'
 import { createPhysicsStepper } from '../physics/createPhysicsStepper'
 import { syncMeshToBody } from '../physics/syncMeshToBody'
-import { createSettleTracker, type SettleTracker } from '../physics/createSettleTracker'
-import { applyNudge } from '../physics/applyNudge'
+import { createSettleTracker } from '../physics/createSettleTracker'
+import { advanceDieRoll, resetDieRoll, type RollingDie } from '../physics/advanceDieRoll'
 import { tossDie } from '../physics/tossDie'
 import {
-  amortecerDepoisDaExplosao,
-  EXPLOSION_FLIGHT_SPEED,
   restaurarFisicaDoDado,
   tossDieFromMouth,
   MOUTH_RELEASE_INTERVAL_MS,
@@ -50,12 +48,7 @@ import {
 } from '../physics/tossDieFromMouth'
 import { randomQuaternion } from '../utils/random'
 import { regularPolygonCircumradius } from '../physics/regularPolygon'
-import {
-  restoreWallCollisionIfInside,
-  parkedCollisionGroups,
-  diceEnteringCollisionGroups
-} from '../physics/collisionGroups'
-import { clampLinearVelocity } from '../physics/clampVelocity'
+import { parkedCollisionGroups } from '../physics/collisionGroups'
 import { computeSpawnSlots } from '../physics/computeSpawnSlots'
 import { readTopFace } from '../faceReading/readTopFace'
 import { orientacaoDeVitrine } from '../geometry/orientacaoDeVitrine'
@@ -63,7 +56,6 @@ import {
   MAX_SIMULTANEOUS_DICE,
   SPAWN_CONFIG,
   TRAY_CONFIG,
-  WORLD_CONFIG,
   resolveAmbiguousMargin
 } from '../config/physicsConfig'
 import { TIPOS_ASSIMILACAO } from '@renderer/experiments/assimilacao/d12'
@@ -266,11 +258,10 @@ export interface DiceCanvasMultiProps {
   cameraMode?: CameraMode
 }
 
-interface DieInstance {
+interface DieInstance extends RollingDie {
   sides: PhysicalDiceSides
   body: RAPIER.RigidBody
   mesh: THREE.Mesh
-  tracker: SettleTracker
   /**
    * `queued`: modo torre, esperando a vez de sair pela boca (mesh invisível, sem colisão — ver
    *   `parkTowerDie`).
@@ -853,6 +844,8 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
    * Só fica `true` no primeiro `roll()` explícito, ou já nasce assim com `autoRoll` (preset).
    */
   const armedRef = useRef(autoRoll ?? false)
+  /** A fila da torre usa o relógio da física, que também avança com a aba interna escondida. */
+  const physicsElapsedMsRef = useRef(0)
   /** Uma rolagem produz um som só, mesmo se vários dados acertarem o chão no mesmo passo. */
   const floorImpactReportedRef = useRef(false)
   /** Uma rolagem produz uma explosão só, na primeira parede atingida por qualquer dado. */
@@ -869,7 +862,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         diceRef.current.forEach((die, i) => {
           die.lastValue = null
           parkTowerDie(die)
-          die.releaseAtMs = sceneElapsedMsRef.current + i * MOUTH_RELEASE_INTERVAL_MS
+          die.releaseAtMs = physicsElapsedMsRef.current + i * MOUTH_RELEASE_INTERVAL_MS
         })
       } else {
         for (const die of diceRef.current) {
@@ -881,11 +874,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
               strength: throwStrengthRef.current,
               basePhysics: definition.physics
             }) ?? undefined
-          die.strongLaunchElapsedMs = 0
-          die.tracker.reset()
-          die.phase = 'rolling'
-          die.lastValue = null
-          die.enteringElapsedMs = 0
+          resetDieRoll(die)
         }
       }
       onResultRef.current?.(null)
@@ -1301,6 +1290,7 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
         value: die.lastValue as number
       }))
       const total = rolls.reduce((sum, r) => sum + r.value, 0)
+      armedRef.current = false
       onResultRef.current?.({ rolls, total })
     }
 
@@ -1318,20 +1308,15 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
     }
 
     function updateDie(die: DieInstance, simulatedSeconds: number) {
-      clampLinearVelocity(
-        die.body,
-        die.strongLaunchDirection ? die.strongLaunchDirection.speedCap : WORLD_CONFIG.maxLinearSpeed
-      )
-      syncMeshToBody(die.mesh, die.body)
-      updateDieDebug(die)
-
+      // Marcador de cancelamento após erro: os próximos dados do mesmo passo também param.
+      if (die.phase === 'done' && die.lastValue === null) return
       /**
        * Na fila da boca da torre: parado e invisível até a vez dele, e aí SAI — visível, com
        * colisão de volta e já rolando pra dentro do hexágono. Daí em diante é um dado de bandeja
        * como outro qualquer; ele nunca passa por dentro da torre.
        */
       if (die.phase === 'queued') {
-        if (die.releaseAtMs === undefined || sceneElapsedMsRef.current < die.releaseAtMs) return
+        if (die.releaseAtMs === undefined || physicsElapsedMsRef.current < die.releaseAtMs) return
         die.mesh.visible = true
         die.strongLaunchDirection =
           tossDieFromMouth(die.body, {
@@ -1343,59 +1328,23 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
             // enterrado nele até o meio (ver `MouthTossOptions.radius`).
             radius: DICE_REGISTRY[die.sides].definition.scale * DICE_REGISTRY[die.sides].definition.boundingRadius
           }) ?? undefined
-        die.strongLaunchElapsedMs = 0
-        die.tracker.reset()
-        die.phase = 'rolling'
-        die.enteringElapsedMs = 0
+        resetDieRoll(die)
         die.releaseAtMs = undefined
         return
       }
 
-      // Acumula o tempo simulado na fase "entrando" pro teto de `restoreWallCollisionIfInside`
-      // (ver `ENTRY_FORCE_PUSH_TIMEOUT_MS`). Zera assim que o dado sai dessa fase; sem efeito pros
-      // dados da torre, que nunca entram em `DICE_ENTERING_GROUPS`.
-      const isEntering =
-        die.body.numColliders() > 0 && die.body.collider(0).collisionGroups() === diceEnteringCollisionGroups()
-      if (isEntering) die.enteringElapsedMs += simulatedSeconds * 1000
-      restoreWallCollisionIfInside(die.body, die.enteringElapsedMs, traySides, simulatedSeconds * 1000)
-      if (die.body.numColliders() > 0 && die.body.collider(0).collisionGroups() !== diceEnteringCollisionGroups()) {
-        die.enteringElapsedMs = 0
-      }
-
-      if (die.strongLaunchDirection) {
-        die.strongLaunchElapsedMs = (die.strongLaunchElapsedMs ?? 0) + simulatedSeconds * 1000
-        const velocity = die.body.linvel()
-        const returningVelocity = velocity.x * die.strongLaunchDirection.x + velocity.z * die.strongLaunchDirection.z
-        const firstRicochetFinished = returningVelocity < -0.8
-        const ricochetTimedOut = die.strongLaunchElapsedMs > 2200
-        if (firstRicochetFinished || ricochetTimedOut) {
-          const basePhysics = DICE_REGISTRY[die.sides].definition.physics
-          if (die.strongLaunchDirection.speedCap === EXPLOSION_FLIGHT_SPEED) {
-            amortecerDepoisDaExplosao(die.body, basePhysics)
-          } else {
-            restaurarFisicaDoDado(die.body, basePhysics)
-          }
-          die.strongLaunchDirection = undefined
-          die.strongLaunchElapsedMs = 0
+      if (!world) return
+      const result = advanceDieRoll(die, { world, dice: diceRef.current, floorHandles: floorColliderHandles, traySides }, simulatedSeconds * 1000)
+      if (result === 'failed') {
+        // Uma falha irrecuperável libera o botão e permite tentar outra rolagem. Jamais inventa
+        // faces para fechar o total nem deixa "Rolando..." preso sem saída.
+        armedRef.current = false
+        for (const other of diceRef.current) {
+          other.phase = 'done'
+          other.lastValue = null
+          other.releaseAtMs = undefined
         }
-      }
-      if (die.phase !== 'rolling') return
-
-      const state = die.tracker.update(die.body, simulatedSeconds * 1000)
-      if (state === 'settled') {
-        const definition = DICE_REGISTRY[die.sides].definition
-        const reading = readTopFace(definition, die.body.rotation(), resolveAmbiguousMargin(definition))
-        if (reading.isAmbiguous) {
-          applyNudge(die.body)
-          die.tracker.reset()
-        } else {
-          die.phase = 'done'
-          die.lastValue = reading.value
-          maybeReportResult()
-        }
-      } else if (state === 'stuck') {
-        applyNudge(die.body)
-        die.tracker.reset()
+        onErrorRef.current?.(new Error(`O d${die.sides} não conseguiu assentar; tente rolar novamente.`))
       }
     }
 
@@ -1475,9 +1424,11 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
        * vinte dados) rodavam 165 vezes por segundo pra concluir que nada mudou.
        */
       if (rolando && stepPhysics) {
-        const simulatedSeconds = stepPhysics(deltaSeconds)
-        reportFirstImpacts()
-        for (const die of diceRef.current) updateDie(die, simulatedSeconds)
+        stepPhysics(deltaSeconds)
+        for (const die of diceRef.current) {
+          syncMeshToBody(die.mesh, die.body)
+          updateDieDebug(die)
+        }
       }
 
       /**
@@ -1703,7 +1654,13 @@ export const DiceCanvasMulti = forwardRef<DiceCanvasMultiHandle, DiceCanvasMulti
           }
         })
 
-        stepPhysics = createPhysicsStepper(world, impactEvents)
+        physicsElapsedMsRef.current = 0
+        stepPhysics = createPhysicsStepper(world, impactEvents, (simulatedSeconds) => {
+          physicsElapsedMsRef.current += simulatedSeconds * 1000
+          reportFirstImpacts()
+          for (const die of diceRef.current) updateDie(die, simulatedSeconds)
+          maybeReportResult()
+        })
       })
       .catch((error: unknown) => {
         console.error('Falha ao inicializar o Rapier (física 3D):', error)
