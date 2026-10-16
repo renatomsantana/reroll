@@ -8,6 +8,7 @@ import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMa
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
 import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 import { disposePreviewRenderer, previewPixelRatio, startPreviewLoop } from './previewLoop'
+import type { GameSystem } from '@renderer/experiments/assimilacao/enabled'
 import './StylePreview.css'
 
 /** Mesma conversão de `DiceRoller3D.tsx` — `buildVisual` espera a cor do corpo como hex numérico, não string CSS. Duplicada de propósito (uma linha, dois lugares), não vale uma abstração compartilhada só pra isso. */
@@ -31,6 +32,7 @@ const CAMERA_DIRECTION = new THREE.Vector3(0, 2.1, 3.2).normalize()
 const PREVIEW_TEXTURE_CACHE_LIMIT = 24
 
 interface StylePreviewProps {
+  system?: GameSystem
   /** Tipo de dado mostrado na preview — pedido do usuário pra ver CADA tipo com a cor dele, não sempre um d20 fixo (ver seleção em `StyleTab.tsx`). */
   sides: PhysicalDiceSides
   bodyColor: string
@@ -63,7 +65,7 @@ function corDeFundoOpaca(elemento: HTMLElement): THREE.Color {
   return new THREE.Color('#c0c0c0')
 }
 
-export function StylePreview({ sides, bodyColor, numberColor, numberFont = 'rounded', material, flor1, flor2 }: StylePreviewProps) {
+export function StylePreview({ system = 'padrao', sides, bodyColor, numberColor, numberFont = 'rounded', material, flor1, flor2 }: StylePreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const meshRef = useRef<THREE.Mesh | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -217,6 +219,7 @@ export function StylePreview({ sides, bodyColor, numberColor, numberFont = 'roun
       }
       const entry = DICE_REGISTRY[sides]
       const mesh = entry.buildVisual({
+        system,
         bodyColor: hexStringToNumber(bodyColor),
         numberColor,
         numberFont,
@@ -268,7 +271,7 @@ export function StylePreview({ sides, bodyColor, numberColor, numberFont = 'roun
     const timeoutId = window.setTimeout(rebuild, COLOR_UPDATE_DEBOUNCE_MS)
     return () => window.clearTimeout(timeoutId)
     // `geracaoDaCena` na lista é o que conserta a prévia vazia — ver o comentário da declaração.
-  }, [sides, bodyColor, numberColor, numberFont, material, flor1, flor2, geracaoDaCena])
+  }, [system, sides, bodyColor, numberColor, numberFont, material, flor1, flor2, geracaoDaCena])
 
   return <div ref={containerRef} className="style-preview" />
 }

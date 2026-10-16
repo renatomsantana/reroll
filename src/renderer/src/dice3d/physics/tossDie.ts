@@ -4,6 +4,15 @@ import { trayApothem, trayRotation } from '../geometry/trayShape'
 import { randomInRange, randomQuaternion } from '../utils/random'
 import { diceEnteringCollisionGroups } from './collisionGroups'
 import { regularPolygonRadiusAt } from './regularPolygon'
+import {
+  aplicarFisicaDoPrimeiroRicochete,
+  multiplicadoresDaForca,
+  restaurarFisicaDoDado,
+  velocidadeMaximaDoRicochete,
+  type DiceBasePhysics,
+  type LaunchDirection,
+  type ThrowStrength
+} from './tossDieFromMouth'
 
 export interface TossOptions {
   /** Slot de destino (padrão: centro da bandeja) — o dado nasce a `throwDistance` dali e é arremessado de volta em direção a ele. Usado pra espalhar vários dados em slots (Fase 9). */
@@ -13,6 +22,10 @@ export interface TossOptions {
    * de largada tem que acompanhar. Ver o comentário de `launchRadius` no corpo.
    */
   sides?: number
+  /** Intensidade do lançamento; Forte atravessa a bandeja e busca a parede oposta. */
+  strength?: ThrowStrength
+  /** Material original, usado para o ricochete temporário e sua restauração. */
+  basePhysics?: DiceBasePhysics
 }
 
 /**
@@ -27,12 +40,18 @@ export interface TossOptions {
  * chão (∝ √altura) o bastante pra, com a bandeja cheia, ocasionalmente arremessar um dado por cima da
  * parede na hora de POUSAR — o mesmo escape que este módulo evita, causado pela entrada.
  */
-export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): void {
+export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): LaunchDirection | null {
   const target = options.target ?? { x: 0, z: 0 }
   const sides = options.sides ?? TRAY_CONFIG.wallSegments
+  const selectedStrength = options.strength ?? 'normal'
+  const ricochet = selectedStrength === 'forte' || selectedStrength === 'explosao'
 
   if (body.numColliders() > 0) {
     body.collider(0).setCollisionGroups(diceEnteringCollisionGroups())
+    if (options.basePhysics) {
+      if (ricochet) aplicarFisicaDoPrimeiroRicochete(body, options.basePhysics, selectedStrength)
+      else restaurarFisicaDoDado(body, options.basePhysics)
+    }
   }
 
   // O ângulo de lançamento é sorteado em torno do ângulo do PRÓPRIO slot de destino (não
@@ -75,34 +94,51 @@ export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): void
 
   body.setLinvel({ x: 0, y: 0, z: 0 }, true)
   body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+  // A rajada atravessa a bandeja num único instante visual; CCD impede que a velocidade extrema
+  // pule o collider fino da parede entre dois passos da física. A gravidade continua ligada aqui,
+  // porque sem torre o dado primeiro encosta no chão e então vai à parede.
+  body.setGravityScale(1, true)
+  body.enableCcd(ricochet)
 
-  const towardTargetAngle = Math.atan2(target.z - z, target.x - x)
+  const oppositeAngle = launchAngle + Math.PI
+  const oppositeWallRadius = regularPolygonRadiusAt(oppositeAngle, trayApothem(sides), sides, trayRotation(sides))
+  const ricochetTarget = {
+    x: Math.cos(oppositeAngle) * (oppositeWallRadius - 0.15),
+    z: Math.sin(oppositeAngle) * (oppositeWallRadius - 0.15)
+  }
+  const effectiveTarget = ricochet ? ricochetTarget : target
+  const towardTargetAngle = Math.atan2(effectiveTarget.z - z, effectiveTarget.x - x)
   const impulseAngle =
-    towardTargetAngle + randomInRange([-SPAWN_CONFIG.throwAngleSpreadRad, SPAWN_CONFIG.throwAngleSpreadRad])
+    towardTargetAngle +
+    randomInRange(ricochet ? [-0.06, 0.06] : [-SPAWN_CONFIG.throwAngleSpreadRad, SPAWN_CONFIG.throwAngleSpreadRad])
 
   // Impulso horizontal calculado a partir da distância REAL até o slot (ver o comentário de
   // `flightDurationRange` em physicsConfig.ts) — nunca fixo, senão fica errado tanto pra
   // lançamentos próximos quanto distantes, já que o ponto de lançamento agora varia bem
   // mais (é sorteado ao redor do centro da bandeja, não mais perto do slot).
-  const distanceToTarget = Math.hypot(target.x - x, target.z - z)
+  const distanceToTarget = Math.hypot(effectiveTarget.x - x, effectiveTarget.z - z)
   const flightDuration = randomInRange(SPAWN_CONFIG.flightDurationRange)
-  const horizontalSpeed = Math.min(
-    Math.max(distanceToTarget / flightDuration, SPAWN_CONFIG.minHorizontalSpeed),
-    SPAWN_CONFIG.maxHorizontalSpeed
-  )
+  const strength = multiplicadoresDaForca(selectedStrength)
+  const baseHorizontalSpeed = ricochet
+    ? 10.25
+    : Math.min(
+        Math.max(distanceToTarget / flightDuration, SPAWN_CONFIG.minHorizontalSpeed),
+        SPAWN_CONFIG.maxHorizontalSpeed
+      )
+  const horizontalSpeed = baseHorizontalSpeed * strength.speed
 
   body.applyImpulse(
     {
       x: Math.cos(impulseAngle) * horizontalSpeed,
       // Componente pra cima: dá um pequeno arco de arremesso de verdade, em vez do dado só
       // deslizar rente ao chão desde o primeiro instante (ver `verticalImpulseRange`).
-      y: randomInRange(SPAWN_CONFIG.verticalImpulseRange),
+      y: ricochet ? 0.18 : randomInRange(SPAWN_CONFIG.verticalImpulseRange),
       z: Math.sin(impulseAngle) * horizontalSpeed
     },
     true
   )
 
-  const torqueStrength = randomInRange(SPAWN_CONFIG.torqueStrengthRange)
+  const torqueStrength = randomInRange(SPAWN_CONFIG.torqueStrengthRange) * strength.torque
   body.applyTorqueImpulse(
     {
       x: randomInRange([-torqueStrength, torqueStrength]),
@@ -111,4 +147,12 @@ export function tossDie(body: RAPIER.RigidBody, options: TossOptions = {}): void
     },
     true
   )
+
+  return ricochet
+    ? {
+        x: Math.cos(impulseAngle),
+        z: Math.sin(impulseAngle),
+        speedCap: velocidadeMaximaDoRicochete(selectedStrength)
+      }
+    : null
 }

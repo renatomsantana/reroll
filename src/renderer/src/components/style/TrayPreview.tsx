@@ -20,6 +20,8 @@ import {
 import { disposeScene } from '@renderer/dice3d/scene/disposeScene'
 import { setupDiceEnvironment } from '@renderer/dice3d/scene/createDiceEnvironment'
 import { disposePreviewRenderer, previewPixelRatio, startPreviewLoop } from './previewLoop'
+import { TIPOS_ASSIMILACAO } from '@renderer/experiments/assimilacao/d12'
+import type { GameSystem } from '@renderer/experiments/assimilacao/enabled'
 import './StylePreview.css'
 
 /** Mesma conversão de `StylePreview.tsx`/`DiceRoller3D.tsx` — os construtores da cena esperam hex numérico, não string CSS. */
@@ -39,6 +41,7 @@ const ROTATION_SPEED = 0.18
 const CAMERA_DIRECTION = new THREE.Vector3(0, 16, 23).normalize()
 
 interface TrayPreviewProps {
+  system?: GameSystem
   wallColor: string
   floorColor: string
   caseWallColor: string
@@ -67,11 +70,12 @@ interface TrayPreviewProps {
  * (`computeShelfPositions`) e apoiado na mesa (`TABLE_SURFACE_Y`), não no chão da bandeja. Sem os
  * dados dentro — a prévia é sobre a COR da caixa, e sete dados ali só disputariam atenção com ela.
  */
-function buildCase(stage: THREE.Group, wallColor: string, floorColor: string, z: number): ShelfCaseHandle {
+function buildCase(stage: THREE.Group, wallColor: string, floorColor: string, z: number, system: GameSystem): ShelfCaseHandle {
   const shelfCase = createShelfCaseMesh(
     z,
     hexStringToNumber(floorColor),
-    hexStringToNumber(wallColor)
+    hexStringToNumber(wallColor),
+    system === 'assimilacao' ? TIPOS_ASSIMILACAO : undefined
   )
   shelfCase.group.position.y = TABLE_SURFACE_Y
   stage.add(shelfCase.group)
@@ -199,6 +203,7 @@ export function frameCamera(camera: THREE.PerspectiveCamera, stage: THREE.Group)
  * interface. É por isso que esta prévia não precisa do debounce que a do dado usa.
  */
 export function TrayPreview({
+  system = 'padrao',
   wallColor,
   floorColor,
   caseWallColor,
@@ -273,7 +278,7 @@ export function TrayPreview({
      * bandeja e a presença da torre, porque a geometria das duas nasce na construção.
      */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trayShape, showTower, caseFocus])
+  }, [trayShape, showTower, caseFocus, system])
 
   /** Tudo o que a prévia precisa criar. Devolve a função que descarta. */
   function montarPrevia(container: HTMLDivElement): () => void {
@@ -326,7 +331,8 @@ export function TrayPreview({
       stage,
       caseWallColor,
       caseFloorColor,
-      caseFocus ? 0 : computeShelfPositions()[0].z
+      caseFocus ? 0 : computeShelfPositions()[0].z,
+      system
     )
 
     /**

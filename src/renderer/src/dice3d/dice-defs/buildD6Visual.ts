@@ -8,6 +8,8 @@ import { getCachedTexture, type DiceTextureCache } from '../materials/textureCac
 import { corDoCorpoDeResina, montarDadoDeResina, OPACIDADE_DO_CORPO_DE_RESINA } from '../materials/inclusaoDeResina'
 
 export interface D6VisualOptions {
+  facePainter?: (ctx: CanvasRenderingContext2D, value: number, size: number, color: string) => void
+  facePainterKey?: string
   bodyColor?: number
   numberColor?: string
   numberFont?: DiceNumberFontId
@@ -43,9 +45,13 @@ export function buildD6Visual(options: D6VisualOptions = {}): THREE.Mesh {
   // `BoxGeometry` já vêm na mesma ordem de `D6_DEFINITION.faces`, então a face de índice N
   // continua sendo a de valor `faces[N].value`, agora numa célula do atlas em vez de numa
   // textura própria.
-  const cacheKey = `atlas|d6|${numberColor}|${numberFont}|${bodyColorCss}|0.8|${opacidadeDoCorpo}`
+  const cacheKey = `atlas|d6|${numberColor}|${numberFont}|${bodyColorCss}|0.8|${opacidadeDoCorpo}|${options.facePainterKey ?? 'numbers'}`
   const map = getCachedTexture(options.textureCache, cacheKey, () =>
     createNumberAtlasTexture(D6_DEFINITION.faces.length, corDoCorpo, (ctx, faceIndex, cellPx) => {
+      if (options.facePainter) {
+        options.facePainter(ctx, D6_DEFINITION.faces[faceIndex].value, cellPx, numberColor)
+        return
+      }
       drawNumberGlyph(ctx, D6_DEFINITION.faces[faceIndex].value, cellPx, {
         numberColor,
         fontHeightFraction: 0.8,

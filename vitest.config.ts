@@ -12,6 +12,7 @@ export default defineConfig({
     }
   },
   test: {
+    setupFiles: ['./vitest.setup.mjs'],
     /**
      * `.tsx` junto: os testes de COMPONENTE e de gancho de React precisam de JSX, e sem esta
      * extensão eles simplesmente não eram coletados — o arquivo existia e nada rodava.

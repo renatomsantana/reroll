@@ -16,9 +16,12 @@ import { createPolyhedronBody } from '../physics/createPolyhedronBody'
 import type { DiceMaterialFinish } from '../materials/createDiceMaterial'
 import type { DiceTextureCache } from '../materials/textureCache'
 import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
+import { SISTEMAS_EXPERIMENTAIS_DISPONIVEIS, type GameSystem } from '@renderer/experiments/assimilacao/enabled'
+import { drawAssimilacaoFace } from '@renderer/experiments/assimilacao/drawFace'
 
 /** Formato comum aceito por `buildD4Visual`/`buildD6Visual`/`buildPolyhedronVisual` — cor do corpo (hex numérico) e cor do número (string CSS). */
 export interface DiceVisualOptions {
+  system?: GameSystem
   bodyColor?: number
   numberColor?: string
   numberFont?: DiceNumberFontId
@@ -50,7 +53,7 @@ export const DICE_REGISTRY: Record<PhysicalDiceSides, DiceTypeEntry> = {
   },
   6: {
     definition: D6_DEFINITION,
-    buildVisual: (options) => buildD6Visual(options),
+    buildVisual: (options) => buildD6Visual({ ...options, ...(SISTEMAS_EXPERIMENTAIS_DISPONIVEIS && options?.system === 'assimilacao' ? { facePainter: (ctx, value, size, color) => drawAssimilacaoFace(ctx, value, size, color, 6), facePainterKey: 'assimilacao-d6-v5' } : {}) }),
     createBody: (world) => createD6Body(world)
   },
   8: {
@@ -62,13 +65,16 @@ export const DICE_REGISTRY: Record<PhysicalDiceSides, DiceTypeEntry> = {
   10: {
     definition: D10_DEFINITION,
     buildVisual: (options) =>
-      buildPolyhedronVisual(D10_VERTICES, D10_FACE_INPUTS, { ...options, scale: D10_DEFINITION.scale }),
+      buildPolyhedronVisual(D10_VERTICES, D10_FACE_INPUTS, { ...options, scale: D10_DEFINITION.scale, ...(SISTEMAS_EXPERIMENTAIS_DISPONIVEIS && options?.system === 'assimilacao' ? { facePainter: (ctx, value, size, color) => drawAssimilacaoFace(ctx, value, size, color, 10), facePainterKey: 'assimilacao-d10-v5', faceContentRadius: 0.25 } : {}) }),
     createBody: (world) => createPolyhedronBody(world, D10_VERTICES, D10_DEFINITION)
   },
   12: {
     definition: D12_DEFINITION,
     buildVisual: (options) =>
-      buildPolyhedronVisual(D12_VERTICES, D12_FACE_INPUTS, { ...options, scale: D12_DEFINITION.scale }),
+      buildPolyhedronVisual(D12_VERTICES, D12_FACE_INPUTS, {
+        ...options, scale: D12_DEFINITION.scale,
+        ...(SISTEMAS_EXPERIMENTAIS_DISPONIVEIS && options?.system === 'assimilacao' ? { facePainter: drawAssimilacaoFace, facePainterKey: 'assimilacao-d12-v5', faceContentRadius: 0.38 } : {})
+      }),
     createBody: (world) => createPolyhedronBody(world, D12_VERTICES, D12_DEFINITION)
   },
   20: {

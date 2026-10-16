@@ -26,6 +26,7 @@ const VALORES_FECHADOS = {
   diceMaterial: ['matte', 'metallic', 'plastic', 'glass', 'resin'],
   diceNumberFont: DICE_NUMBER_FONT_IDS,
   launchMode: ['tray', 'tower', 'towerDecor'],
+  throwStrength: ['leve', 'normal', 'forte', 'explosao'],
   trayShape: [...TRAY_SHAPES],
   cameraMode: ['table', 'dice', 'free'],
   displayMode: ['3d', 'quick']

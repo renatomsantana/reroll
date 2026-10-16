@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type Dispatch, type SetStateAction } from 'react'
 import { useProfiles } from './ProfilesContext'
+import { contarPersonalizacaoDosDados, definirDadosPersonalizados } from '@renderer/analytics/usoDoSite'
 import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
 import type { TrayShape } from '@renderer/dice3d/geometry/trayShape'
 import { migrarPreferencias, sanearPreferencias } from './sanearSettings'
@@ -10,6 +11,9 @@ import type { DiceNumberFontId } from '@shared/types/diceNumberFont'
 import { CHAVES_DA_APARENCIA, type AparenciaDoPersonagem } from '@shared/types/aparencia'
 import { REROLL_WEB } from '@shared/buildTarget'
 import { COR_PADRAO_DA_FLOR_1, COR_PADRAO_DA_FLOR_2 } from '@renderer/dice3d/materials/florDeResina'
+import type { ThrowStrength } from '@renderer/dice3d/physics/tossDieFromMouth'
+
+import { SISTEMAS_EXPERIMENTAIS_DISPONIVEIS, SISTEMA_LOCAL_STORAGE_KEY, sistemaInicial, type GameSystem } from '@renderer/experiments/assimilacao/enabled'
 
 export type ThemeMode = 'day' | 'night'
 
@@ -259,6 +263,8 @@ interface Settings {
   appIconId: string
   /** Bandeja aberta (arremesso de fora) ou torre de castelo com rampa em espiral (`TOWER_CONFIG`). Estrutural — faz parte do `key` de remount em `DiceRoller3D.tsx`. */
   launchMode: LaunchMode
+  /** Intensidade da próxima rolagem física. */
+  throwStrength: ThrowStrength
   /**
    * FORMA da bandeja — triângulo, quadrado, hexágono ou círculo, pedido do usuário. Vive por
    * PERSONAGEM (está em `PROFILE_LOOK_KEYS`), como o resto da aparência: a mesa de cada um é a dele.
@@ -335,6 +341,7 @@ const DEFAULT_SETTINGS: Settings = {
   towerDoorColor: '#4a3520',
   appIconId: DEFAULT_APP_ICON_ID,
   launchMode: 'tray',
+  throwStrength: 'normal',
   trayShape: 'hexagon',
   // `table` como padrão: é o modo que mais parece com o que já existia (orbitar/aproximar em volta
   // da mesa) e o único que nunca tira a bandeja do enquadramento sozinho.
@@ -412,6 +419,8 @@ function loadLook(profileId: string): Partial<ProfileLook> | null {
 const PERSIST_DEBOUNCE_MS = 300
 
 interface SettingsContextValue extends Settings {
+  gameSystem: GameSystem
+  setGameSystem: (system: GameSystem) => void
   /** O tema EM VIGOR — já resolvido, nunca 'system'. É o que a interface inteira lê. */
   theme: ThemeMode
   setThemeSource: (source: ThemeSource) => void
@@ -441,6 +450,7 @@ interface SettingsContextValue extends Settings {
   setTowerDoorColor: (value: string) => void
   setAppIconId: (value: string) => void
   setLaunchMode: (value: LaunchMode) => void
+  setThrowStrength: (value: ThrowStrength) => void
   setTrayShape: (value: TrayShape) => void
   setCameraMode: (value: CameraMode) => void
   setDisplayMode: (value: DisplayMode) => void
@@ -516,8 +526,35 @@ function loadInitial(): Settings {
   return DEFAULT_SETTINGS
 }
 
+function atualizarDados(
+  atual: Settings,
+  patch: Partial<Settings>,
+  setSettings: Dispatch<SetStateAction<Settings>>
+): void {
+  const mudou = (Object.keys(patch) as (keyof Settings)[]).some(
+    (key) => JSON.stringify(atual[key]) !== JSON.stringify(patch[key])
+  )
+  if (!mudou) return
+  setSettings((previous) => ({ ...previous, ...patch }))
+  contarPersonalizacaoDosDados()
+}
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(loadInitial)
+  useEffect(() => {
+    const chaves: (keyof Settings)[] = [
+      'diceBodyColor', 'diceNumberColor', 'diceNumberFont', 'diceMaterial',
+      'diceColorOverrides', 'resinFlower1', 'resinFlower2'
+    ]
+    definirDadosPersonalizados(chaves.some(
+      (key) => JSON.stringify(settings[key]) !== JSON.stringify(DEFAULT_SETTINGS[key])
+    ))
+  }, [settings])
+  const [gameSystem, updateGameSystem] = useState<GameSystem>(() => {
+    let raw: string | null = null
+    try { raw = localStorage.getItem(SISTEMA_LOCAL_STORAGE_KEY) } catch { /* Navegador sem armazenamento. */ }
+    return sistemaInicial(raw, window.location.search)
+  })
   const { activeId } = useProfiles()
   /**
    * Guarda de qual perfil é a aparência que está em `settings` neste momento. Sem ela, o efeito de
@@ -612,6 +649,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const value = useMemo<SettingsContextValue>(
     () => ({
       ...settings,
+      gameSystem,
+      setGameSystem: (system) => {
+        if (!SISTEMAS_EXPERIMENTAIS_DISPONIVEIS || (system !== 'padrao' && system !== 'assimilacao')) return
+        updateGameSystem(system)
+        try { localStorage.setItem(SISTEMA_LOCAL_STORAGE_KEY, system) } catch { /* A escolha continua nesta sessão. */ }
+      },
       theme,
       setThemeSource: (themeSource) => setSettings((prev) => ({ ...prev, themeSource })),
       /**
@@ -634,25 +677,32 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (valido !== null) setSettings((prev) => ({ ...prev, volume: valido }))
       },
       setCompactMode: (compactMode) => setSettings((prev) => ({ ...prev, compactMode })),
-      setDiceBodyColor: (diceBodyColor) => setSettings((prev) => ({ ...prev, diceBodyColor })),
-      setDiceNumberColor: (diceNumberColor) =>
-        setSettings((prev) => ({ ...prev, diceNumberColor })),
-      setDiceNumberFont: (diceNumberFont) => setSettings((prev) => ({ ...prev, diceNumberFont })),
-      setDiceMaterial: (diceMaterial) =>
-        setSettings((prev) => ({ ...prev, diceMaterial: materialDisponivelNesteApp(diceMaterial) })),
-      setResinFlower1: (resinFlower1) => setSettings((prev) => ({ ...prev, resinFlower1 })),
-      setResinFlower2: (resinFlower2) => setSettings((prev) => ({ ...prev, resinFlower2 })),
-      setDiceColorOverride: (sides, bodyColor, numberColor) =>
+      setDiceBodyColor: (diceBodyColor) => atualizarDados(settings, { diceBodyColor }, setSettings),
+      setDiceNumberColor: (diceNumberColor) => atualizarDados(settings, { diceNumberColor }, setSettings),
+      setDiceNumberFont: (diceNumberFont) => atualizarDados(settings, { diceNumberFont }, setSettings),
+      setDiceMaterial: (diceMaterial) => atualizarDados(settings, {
+        diceMaterial: materialDisponivelNesteApp(diceMaterial)
+      }, setSettings),
+      setResinFlower1: (resinFlower1) => atualizarDados(settings, { resinFlower1 }, setSettings),
+      setResinFlower2: (resinFlower2) => atualizarDados(settings, { resinFlower2 }, setSettings),
+      setDiceColorOverride: (sides, bodyColor, numberColor) => {
+        const anterior = settings.diceColorOverrides[sides]
+        if (anterior?.bodyColor === bodyColor && anterior.numberColor === numberColor) return
         setSettings((prev) => ({
           ...prev,
           diceColorOverrides: { ...prev.diceColorOverrides, [sides]: { bodyColor, numberColor } }
-        })),
-      clearDiceColorOverride: (sides) =>
+        }))
+        contarPersonalizacaoDosDados()
+      },
+      clearDiceColorOverride: (sides) => {
+        if (!settings.diceColorOverrides[sides]) return
         setSettings((prev) => {
           const next = { ...prev.diceColorOverrides }
           delete next[sides]
           return { ...prev, diceColorOverrides: next }
-        }),
+        })
+        contarPersonalizacaoDosDados()
+      },
       setWallColor: (wallColor) => setSettings((prev) => ({ ...prev, wallColor })),
       setCaseWallColor: (caseWallColor) => setSettings((prev) => ({ ...prev, caseWallColor })),
       setBackgroundColor: (backgroundColor) => setSettings((prev) => ({ ...prev, backgroundColor })),
@@ -667,6 +717,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         void window.api.windowControls.setAppIcon(appIconId)
       },
       setLaunchMode: (launchMode) => setSettings((prev) => ({ ...prev, launchMode })),
+      setThrowStrength: (throwStrength) => setSettings((prev) => ({ ...prev, throwStrength })),
       setTrayShape: (trayShape) => setSettings((prev) => ({ ...prev, trayShape })),
       setCameraMode: (cameraMode) => setSettings((prev) => ({ ...prev, cameraMode })),
       setDisplayMode: (displayMode) => setSettings((prev) => ({ ...prev, displayMode })),
@@ -679,7 +730,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setCritVisualEnabled: (critVisualEnabled) => setSettings((prev) => ({ ...prev, critVisualEnabled })),
       setCritSoundEnabled: (critSoundEnabled) => setSettings((prev) => ({ ...prev, critSoundEnabled })),
       setPalettesVisible: (palettesVisible) => setSettings((prev) => ({ ...prev, palettesVisible })),
-      resetSettings: () => setSettings(DEFAULT_SETTINGS),
+      resetSettings: () => {
+        setSettings(DEFAULT_SETTINGS)
+        updateGameSystem('padrao')
+        if (SISTEMAS_EXPERIMENTAIS_DISPONIVEIS) {
+          try { localStorage.setItem(SISTEMA_LOCAL_STORAGE_KEY, 'padrao') } catch { /* Mantém o padrão nesta sessão. */ }
+        }
+      },
       aparenciaAtual: () => pickLook(settings),
       aplicarAparencia: (aparencia) =>
         setSettings((prev) => {
@@ -701,7 +758,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }),
     // `theme` junto: ele é derivado do tema do sistema, então muda sem `settings` mudar — o
     // Windows escurecendo às onze da noite não passa por `setSettings`.
-    [settings, theme]
+    [settings, theme, gameSystem]
   )
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>

@@ -63,6 +63,65 @@
   gap: 6px;
 }
 
+.settings-panel-choice-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.settings-panel-choice-row > button {
+  flex: 1 1 0;
+}
+
+/*
+ * O lançamento mais exagerado usa a linguagem do desenho do usuário: BOOM no centro e pequenos
+ * raios quadrados brancos ao redor. O SVG é só decoração; o botão continua sendo texto de verdade
+ * para teclado e leitor de tela.
+ */
+.settings-panel-throw-row {
+  padding-block: 5px;
+}
+
+.settings-panel-boom-button {
+  flex: 0 0 56px !important;
+  align-self: center;
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  min-width: 0;
+  min-height: 22px;
+  padding: 2px 5px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.settings-panel-boom-button.btn-selected:not(:disabled) {
+  padding: 3px 4px 1px 6px;
+}
+
+.settings-panel-boom-rays {
+  position: absolute;
+  z-index: -1;
+  inset: -7px -5px;
+  width: calc(100% + 10px);
+  height: calc(100% + 14px);
+  overflow: visible;
+  fill: #fff;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+  filter: drop-shadow(1px 1px 0 #000);
+}
+
+.settings-panel-boom-label {
+  position: relative;
+  z-index: 1;
+  letter-spacing: 0.5px;
+}
+
+.settings-panel-boom-button.btn-selected:not(:disabled) .settings-panel-boom-rays {
+  filter: drop-shadow(1px 1px 0 #000) drop-shadow(0 0 3px #fff);
+}
+
 /**
  * Uma fileira só, sempre. Os ícones tinham 36px fixos com 8px de espaço: sete deles somam 300px
  * contra os 288px úteis do painel (320px menos 16px de recuo de cada lado), então o último sobrava

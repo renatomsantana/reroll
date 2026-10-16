@@ -16,6 +16,8 @@ import {
   INTERRUPTOR_DE_SOM_NAS_PREFERENCIAS,
   SELETOR_DE_RESULTADO_NAS_PREFERENCIAS
 } from '@shared/liberacoes'
+import { SISTEMAS_EXPERIMENTAIS_DISPONIVEIS } from '@renderer/experiments/assimilacao/enabled'
+import type { ThrowStrength } from '@renderer/dice3d/physics/tossDieFromMouth'
 import './SettingsPanel.css'
 
 interface SettingsPanelProps {
@@ -44,6 +46,8 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
   }, [onClose])
 
   const {
+    gameSystem,
+    setGameSystem,
     theme,
     themeSource,
     fontId,
@@ -71,6 +75,8 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
     setAppIconId,
     setDebugMode,
     setResultPopupEnabled,
+    throwStrength,
+    setThrowStrength,
     resetSettings
   } = useSettings()
 
@@ -78,6 +84,49 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
     <div className="modal-overlay" onClick={onClose}>
       <Card ref={cardRef} className="settings-panel" onClick={(e) => e.stopPropagation()}>
         <h2 className="settings-panel-title">{t.settings.title}</h2>
+
+        {SISTEMAS_EXPERIMENTAIS_DISPONIVEIS && <label className="settings-panel-field settings-panel-field-column">
+          <span>Sistema</span>
+          <select aria-label="Sistema" value={gameSystem} onChange={e => setGameSystem(e.target.value === 'assimilacao' ? 'assimilacao' : 'padrao')}>
+            <option value="padrao">Padrão</option>
+            <option value="assimilacao">Assimilação</option>
+          </select>
+          <small className="settings-panel-hint">O sistema define os dados do estojo e a leitura dos resultados.</small>
+        </label>}
+
+        <div className="settings-panel-field settings-panel-field-column">
+          <span>Velocidade do arremesso</span>
+          <div className="settings-panel-choice-row settings-panel-throw-row" aria-label="Velocidade do arremesso">
+            {(['leve', 'normal', 'forte', 'explosao'] as ThrowStrength[]).map((strength) => (
+              <Button
+                key={strength}
+                className={strength === 'explosao' ? 'settings-panel-boom-button' : undefined}
+                selected={throwStrength === strength}
+                onClick={() => setThrowStrength(strength)}
+              >
+                {strength === 'leve'
+                  ? 'Leve'
+                  : strength === 'forte'
+                    ? 'Forte'
+                    : strength === 'explosao'
+                      ? (
+                          <>
+                            <svg
+                              className="settings-panel-boom-rays"
+                              viewBox="0 0 100 44"
+                              preserveAspectRatio="none"
+                              aria-hidden="true"
+                            >
+                              <path d="M48 0h4v7h-4zM19 3h5v4h-5zM24 7h5v4h-5zM76 3h5v4h-5zM71 7h5v4h-5zM0 14h7v4h5v4h6v5h-8v-4H5v-4H0zM100 14h-7v4h-5v4h-6v5h8v-4h5v-4h5zM19 37h5v4h-5zM24 33h5v4h-5zM76 37h5v4h-5zM71 33h5v4h-5zM48 37h4v7h-4z" />
+                            </svg>
+                            <span className="settings-panel-boom-label">boom</span>
+                          </>
+                        )
+                      : 'Normal'}
+              </Button>
+            ))}
+          </div>
+        </div>
 
         {/*
           O seletor de IDIOMA saiu daqui a pedido do usuário ("vamo remover inglês, depois botamo"):
@@ -167,7 +216,7 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           </span>
         </label>
 
-        <label className="settings-panel-field settings-panel-field-row">
+        {gameSystem !== 'assimilacao' && <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.compactMode}
           </span>
@@ -178,7 +227,7 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
               onChange={(e) => setCompactMode(e.target.checked)}
             />
           </label>
-        </label>
+        </label>}
 
         {/*
           COMO O RESULTADO APARECE — a bandeja 3D ou o número na hora (ver `DisplayMode`).
@@ -204,7 +253,7 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           </label>
         )}
 
-        <label className="settings-panel-field settings-panel-field-row">
+        {gameSystem !== 'assimilacao' && <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.resultPopup}
           </span>
@@ -215,7 +264,7 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
               onChange={(e) => setResultPopupEnabled(e.target.checked)}
             />
           </label>
-        </label>
+        </label>}
 
         {/* A linha copiada pro chat (spec §3.5) — negrito Markdown (guardado, ver `liberacoes.ts`) e o copiar automático. */}
         {COPIAR_COM_NEGRITO_NAS_PREFERENCIAS && (
@@ -227,14 +276,14 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           </label>
         )}
 
-        <label className="settings-panel-field settings-panel-field-row">
+        {gameSystem !== 'assimilacao' && <label className="settings-panel-field settings-panel-field-row">
           <span>
             {t.settings.autoCopy}
           </span>
           <label className="settings-panel-checkbox">
             <input type="checkbox" checked={autoCopyRolls} onChange={(e) => setAutoCopyRolls(e.target.checked)} />
           </label>
-        </label>
+        </label>}
 
         {/*
           Crítico e falha (spec §3.7): o clarão e o som, separados — a regra de QUAL dado é por
@@ -265,14 +314,14 @@ export function SettingsPanel({ onClose, onOpenHistory }: SettingsPanelProps) {
           que ABRE outra coisa em vez de mudar uma preferência, então separá-la das ações de baixo
           (restaurar/fechar) evita que pareça mais um botão de rodapé.
         */}
-        <div className="settings-panel-field">
+        {gameSystem !== 'assimilacao' && <div className="settings-panel-field">
           <span>
             {t.settings.history}
           </span>
           <Button variant="secondary" onClick={onOpenHistory}>
             {t.settings.historyOpen}
           </Button>
-        </div>
+        </div>}
 
         <div className="settings-panel-field settings-panel-field-column">
           <span>

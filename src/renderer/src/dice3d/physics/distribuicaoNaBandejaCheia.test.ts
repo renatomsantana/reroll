@@ -142,7 +142,20 @@ function rolarELer(world: RAPIER.World, dados: Dado[], sides: PhysicalDiceSides,
 
   // Se algum não assentou, o caso não vira amostra silenciosamente: a contenção é assunto de
   // `matrizDeRolagens.test.ts`, e uma amostra incompleta aqui esconderia o problema de lá.
-  expect(assentados, `só ${assentados} de ${dados.length} assentaram — amostra incompleta`).toBe(dados.length)
+  const pendentes = dados
+    .map((dado, indice) => ({ dado, indice }))
+    .filter(({ dado }) => !dado.assentado)
+    .map(({ dado, indice }) => {
+      const p = dado.body.translation()
+      const v = dado.body.linvel()
+      const w = dado.body.angvel()
+      return `#${indice} pos=(${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}) vel=(${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}) giro=(${w.x.toFixed(3)},${w.y.toFixed(3)},${w.z.toFixed(3)})`
+    })
+    .join('; ')
+  expect(
+    assentados,
+    `só ${assentados} de ${dados.length} assentaram — amostra incompleta${pendentes ? `: ${pendentes}` : ''}`
+  ).toBe(dados.length)
   return dados.map((dado) => dado.valor as number)
 }
 

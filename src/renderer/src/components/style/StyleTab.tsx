@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useSettings } from '@renderer/settings/SettingsContext'
+import { useSettings, type LaunchMode } from '@renderer/settings/SettingsContext'
 import { METAL_PRESETS } from '@renderer/settings/metalPresets'
 import { GEM_PRESETS } from '@renderer/settings/gemPresets'
 import { MATTE_PRESETS } from '@renderer/settings/mattePresets'
 import { TRAY_PRESETS } from '@renderer/settings/trayPresets'
 import type { MetalPreset } from '@renderer/settings/metalPresets'
+import { TIPOS_ASSIMILACAO } from '@renderer/experiments/assimilacao/d12'
 import { AVAILABLE_DICE_TYPES } from '@renderer/dice3d/dice-defs/registry'
 import type { DiceMaterialFinish } from '@renderer/dice3d/materials/createDiceMaterial'
 import type { PhysicalDiceSides } from '@shared/types/dice3d'
@@ -42,10 +43,16 @@ type SceneColorTarget =
   | 'floor'
   | 'caseWall'
   | 'caseFloor'
+  | 'towerStone'
+  | 'towerRoof'
+  | 'towerFlag'
+  | 'towerDoor'
   | 'background'
 
 const SCENE_TARGETS: SceneColorTarget[] = ['wall', 'floor']
 const CASE_TARGETS: SceneColorTarget[] = ['caseWall', 'caseFloor']
+const TOWER_TARGETS: SceneColorTarget[] = ['towerStone', 'towerRoof', 'towerFlag', 'towerDoor']
+const LAUNCH_MODES: LaunchMode[] = ['tray', 'tower', 'towerDecor']
 /**
  * Os alvos da torre ficam em GRUPO SEPARADO, e não emendados em `SCENE_TARGETS`: os dois escrevem no
  * MESMO `sceneTarget`, então a roda continua sendo uma só, editando quem estiver marcado em qualquer
@@ -85,6 +92,7 @@ export function StyleTab() {
   const t = useTranslation()
   const dialogo = useDialogo()
   const {
+    gameSystem,
     diceBodyColor,
     diceNumberColor,
     diceNumberFont,
@@ -96,8 +104,13 @@ export function StyleTab() {
     caseWallColor,
     floorColor,
     caseFloorColor,
+    towerStoneColor,
+    towerRoofColor,
+    towerFlagColor,
+    towerDoorColor,
     backgroundColor,
     trayShape,
+    launchMode,
     backgroundImage,
     palettesVisible,
     setDiceBodyColor,
@@ -112,8 +125,13 @@ export function StyleTab() {
     setCaseWallColor,
     setFloorColor,
     setCaseFloorColor,
+    setTowerStoneColor,
+    setTowerRoofColor,
+    setTowerFlagColor,
+    setTowerDoorColor,
     setBackgroundColor,
     setTrayShape,
+    setLaunchMode,
     setBackgroundImage,
     setPalettesVisible
   } = useSettings()
@@ -134,6 +152,7 @@ export function StyleTab() {
   const [diceTarget, setDiceTarget] = useState<DiceColorTarget>('body')
   const [sceneTarget, setSceneTarget] = useState<SceneColorTarget>('wall')
   const caseFocus = sceneTarget === 'caseWall' || sceneTarget === 'caseFloor'
+  const towerFocus = TOWER_TARGETS.includes(sceneTarget)
   /**
    * A TORRE aparece na prévia por dois motivos, e o segundo é o pedido do usuário ("consertar para
    * aparecer a preview da torre qnd pintarmos as cores"):
@@ -158,7 +177,7 @@ export function StyleTab() {
   useEffect(() => {
     if (diceMaterial !== 'resin' && (diceTarget === 'flower1' || diceTarget === 'flower2')) setDiceTarget('body')
   }, [diceMaterial, diceTarget])
-  const previewSides = selectedDiceType === 'default' ? 20 : selectedDiceType
+  const previewSides = selectedDiceType === 'default' ? (gameSystem === 'assimilacao' ? 6 : 20) : selectedDiceType
 
   /** Tipos que têm cor própria gravada — são eles que "não mudam" quando a cor padrão muda. */
   const tiposComCorPropria = Object.keys(diceColorOverrides).map(Number)
@@ -195,6 +214,10 @@ export function StyleTab() {
     floor: floorColor,
     caseWall: caseWallColor,
     caseFloor: caseFloorColor,
+    towerStone: towerStoneColor,
+    towerRoof: towerRoofColor,
+    towerFlag: towerFlagColor,
+    towerDoor: towerDoorColor,
     background: backgroundColor
   }
   const setSceneColors: Record<SceneColorTarget, (value: string) => void> = {
@@ -202,6 +225,10 @@ export function StyleTab() {
     floor: setFloorColor,
     caseWall: setCaseWallColor,
     caseFloor: setCaseFloorColor,
+    towerStone: setTowerStoneColor,
+    towerRoof: setTowerRoofColor,
+    towerFlag: setTowerFlagColor,
+    towerDoor: setTowerDoorColor,
     background: setBackgroundColor
   }
 
@@ -329,6 +356,7 @@ export function StyleTab() {
           {section === 'scene' ? (
             <>
               <TrayPreview
+                system={gameSystem}
                 wallColor={wallColor}
                 floorColor={floorColor}
                 caseWallColor={caseWallColor}
@@ -336,6 +364,11 @@ export function StyleTab() {
                 trayShape={trayShape}
                 caseFocus={caseFocus}
                 caseOpen={sceneTarget === 'caseFloor'}
+                showTower={launchMode !== 'tray' || towerFocus}
+                towerStoneColor={towerStoneColor}
+                towerRoofColor={towerRoofColor}
+                towerFlagColor={towerFlagColor}
+                towerDoorColor={towerDoorColor}
               />
               {/*
                 A legenda diz o que está montado ali — "Hexágono · Torre rolando" —, e não o nome da
@@ -343,9 +376,16 @@ export function StyleTab() {
                 lançamento, o nome da seção era a única coisa da tela que não respondia a nada.
               */}
               <p className="style-tab-preview-caption">
-                {caseFocus
-                  ? `${t.styleTab.targetsCase} · ${t.styleTab.colorTargets[sceneTarget]}`
-                  : t.styleTab.trayShapes[trayShape]}
+                {caseFocus ? (
+                  `${t.styleTab.targetsCase} · ${t.styleTab.colorTargets[sceneTarget]}`
+                ) : (
+                  <>
+                    {`${t.styleTab.trayShapes[trayShape]} · ${t.styleTab.launchModeOptions[launchMode].title}`}
+                    {towerFocus && launchMode === 'tray' && (
+                      <span className="style-tab-preview-note">{t.styleTab.towerForColorOnly}</span>
+                    )}
+                  </>
+                )}
               </p>
             </>
           ) : section === 'background' ? (
@@ -360,6 +400,7 @@ export function StyleTab() {
           ) : (
             <>
               <StylePreview
+                system={gameSystem}
                 sides={previewSides}
                 bodyColor={selectedBodyColor}
                 numberColor={selectedNumberColor}
@@ -418,6 +459,12 @@ export function StyleTab() {
                   {CASE_TARGETS.map((target) => renderSceneTarget(target))}
                 </div>
               </div>
+              <div className="style-tab-target-row">
+                <span className="style-tab-target-caption">{t.styleTab.targetsTower}</span>
+                <div className="style-tab-targets style-tab-targets-grid">
+                  {TOWER_TARGETS.map((target) => renderSceneTarget(target))}
+                </div>
+              </div>
             </div>
           ) : section === 'background' ? (
             <div className="style-tab-targets">
@@ -456,7 +503,7 @@ export function StyleTab() {
               <legend>{t.styleTab.perDieColor}</legend>
               <div className="style-tab-list" role="listbox" aria-label={t.styleTab.perDieColor}>
                 {renderDiceRow('default')}
-                {AVAILABLE_DICE_TYPES.map((sides) => renderDiceRow(sides))}
+                {(gameSystem === 'assimilacao' ? TIPOS_ASSIMILACAO : AVAILABLE_DICE_TYPES).map((sides) => renderDiceRow(sides))}
               </div>
               {selectedDiceType !== 'default' && selectedOverride && (
                 <Button variant="ghost" onClick={() => clearDiceColorOverride(selectedDiceType)}>
@@ -499,7 +546,7 @@ export function StyleTab() {
               </div>
             </fieldset>
 
-            <fieldset className="style-group">
+            {gameSystem !== 'assimilacao' && <fieldset className="style-group">
               <legend>{t.styleTab.numberFont}</legend>
               <div className="style-tab-grid-2">
                 {DICE_NUMBER_FONT_OPTIONS.map((font) => (
@@ -508,7 +555,7 @@ export function StyleTab() {
                   </Button>
                 ))}
               </div>
-            </fieldset>
+            </fieldset>}
 
             <fieldset className="style-group">
               <legend>{renderPalettesToggle(t.styleTab.palettes)}</legend>
@@ -558,6 +605,29 @@ export function StyleTab() {
 
         {section === 'scene' && (
           <>
+            <fieldset className="style-group">
+              <legend>{t.styleTab.launchMode}</legend>
+              <div className="style-tab-list style-tab-modes" role="listbox" aria-label={t.styleTab.launchMode}>
+                {LAUNCH_MODES.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="option"
+                    aria-selected={launchMode === mode}
+                    className={`style-tab-list-item style-tab-mode ${
+                      launchMode === mode ? 'style-tab-list-item-selected' : ''
+                    }`}
+                    onClick={() => setLaunchMode(mode)}
+                  >
+                    <span className="style-tab-mode-text">
+                      <span className="style-tab-mode-title">{t.styleTab.launchModeOptions[mode].title}</span>
+                      <span className="style-tab-mode-description">{t.styleTab.launchModeOptions[mode].description}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
             {/*
               O seletor de modo de lançamento VOLTOU, e desta vez a pedido explícito: "uma opção de
               escolher se quer que tenha a torre ou não, ou se quer que jogue por cima como é o

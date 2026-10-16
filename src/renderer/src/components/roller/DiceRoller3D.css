@@ -206,6 +206,27 @@
   position: relative;
 }
 
+/** Explosão retrô sincronizada com a primeira batida da rolagem; nunca intercepta cliques. */
+.dice-impact-explosion {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dice-impact-explosion img {
+  width: auto;
+  /* Aproximadamente a altura de um dado na cena + 3 cm de efeito ao redor. */
+  height: calc(3cm + 48px);
+  max-width: 88%;
+  max-height: 88%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
 .dice-result-popup {
   position: absolute;
   top: 8%;

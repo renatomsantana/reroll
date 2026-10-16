@@ -15,6 +15,8 @@ import { regularPolygonCircumradius } from './regularPolygon'
 export interface BoundaryColliders {
   /** Único piso físico da cena, usado para detectar a primeira batida. */
   floorHandles: Set<number>
+  /** Piso e paredes da bandeja: qualquer um deles pode ser o primeiro impacto visual da rolagem. */
+  boundaryHandles: Set<number>
 }
 
 export function createBoundaryColliders(
@@ -49,7 +51,7 @@ export function createBoundaryColliders(
     floorBody
   )
 
-  createRingWall(world, {
+  const wallColliders = createRingWall(world, {
     radius: apothem,
     segments: wallSegments,
     rotation: trayRotation(wallSegments),
@@ -58,5 +60,8 @@ export function createBoundaryColliders(
     groups: WALL_COLLISION_GROUPS
   })
 
-  return { floorHandles: new Set([floorCollider.handle]) }
+  return {
+    floorHandles: new Set([floorCollider.handle]),
+    boundaryHandles: new Set([floorCollider.handle, ...wallColliders.map((collider) => collider.handle)])
+  }
 }

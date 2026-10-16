@@ -42,6 +42,7 @@ import { UpdatePrompt } from '@renderer/components/chrome/UpdatePrompt'
 import { SplashScreen } from '@renderer/components/splash/SplashScreen'
 import { WebWelcomeScreen } from '@renderer/components/welcome/WebWelcomeScreen'
 import './App.css'
+import { contarTabuleiroAberto } from '@renderer/analytics/usoDoSite'
 
 /** Lista vazia e ESTÁVEL pra quando o HUD não está liberado: mesma referência a cada render. */
 const SEM_BARRAS: RecursoVital[] = []
@@ -58,7 +59,9 @@ function webWelcomeJaFoiVista(): boolean {
 }
 
 export default function App() {
-  const { soundEnabled, compactMode, launchMode, autoCopyRolls, copyMarkdown, critSoundEnabled, appIconId } = useSettings()
+  const { soundEnabled, gameSystem, compactMode: configuredCompactMode, launchMode, autoCopyRolls, copyMarkdown, critSoundEnabled, appIconId } = useSettings()
+  const assimilacao = gameSystem === 'assimilacao'
+  const compactMode = !assimilacao && configuredCompactMode
   const t = useTranslation()
   const dialogo = useDialogo()
   const profiles = useProfiles()
@@ -144,7 +147,7 @@ export default function App() {
   }, [compactMode, showSplash, quantidadeDeBarras, notas.loading])
 
   useEffect(() => {
-    if (showSplash) return
+    if (showSplash || assimilacao) return
     function handleKeyDown(e: KeyboardEvent) {
       if (!e.ctrlKey || e.key.toLowerCase() !== 'n') return
       if (compactMode || activeTab !== 'roll' || isCreating || editingPreset || settingsOpen || modalDasBarrasAberto) return
@@ -153,7 +156,11 @@ export default function App() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showSplash, compactMode, activeTab, isCreating, editingPreset, settingsOpen, modalDasBarrasAberto])
+  }, [showSplash, compactMode, activeTab, isCreating, editingPreset, settingsOpen, modalDasBarrasAberto, assimilacao])
+
+  useEffect(() => {
+    if (!showWebWelcome && !showSplash && !profiles.loading) contarTabuleiroAberto()
+  }, [showWebWelcome, showSplash, profiles.loading])
 
   function entrarNoTabuleiro() {
     try {
@@ -323,7 +330,7 @@ export default function App() {
   const isEditorOpen = isCreating || editingPreset !== null
 
   return (
-    <div className={`app-window ${compactMode ? 'app-window-compact' : ''}`}>
+    <div className={`app-window ${assimilacao ? 'app-window-assimilacao' : ''} ${compactMode ? 'app-window-compact' : ''}`}>
       <TitleBar onBackToWelcome={REROLL_WEB ? () => setShowWebWelcome(true) : undefined} />
       <Toolbar
         activeTab={activeTab}
@@ -379,6 +386,7 @@ export default function App() {
               */}
               <section className="app-section" style={{ flex: '1 0 auto', minHeight: 0 }}>
                 <DiceRoller3D
+                  key={gameSystem}
                   ref={roller3DRef}
                   onRoll={registrarRolagem}
                   onRollingChange={setIsAnyRollInProgress}
@@ -419,7 +427,7 @@ export default function App() {
                 />
               </section>
 
-              <section className="app-section">
+              {!assimilacao && <section className="app-section">
                 <PresetList
                   presets={presets}
                   onRoll={handlePresetRoll}
@@ -449,12 +457,12 @@ export default function App() {
                    */
                   rollDisabled={isAnyRollInProgress && launchMode === 'tower'}
                 />
-              </section>
+              </section>}
               </div>
 
               {activeTab === 'style' && (
                 <section className="app-section">
-                  <StyleTab />
+                  <StyleTab key={gameSystem} />
                 </section>
               )}
               {FICHA_LIBERADA && activeTab === 'sheet' && (

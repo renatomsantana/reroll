@@ -35,10 +35,10 @@ function angleDelta(a: number, b: number): number {
  * não uma aproximação). Rotação de cada segmento calculada com `THREE.Quaternion` em vez de
  * fórmula de trigonometria na mão, pra não arriscar um erro de sinal/eixo sutil.
  */
-export function createRingWall(world: RAPIER.World, options: RingWallOptions): void {
+export function createRingWall(world: RAPIER.World, options: RingWallOptions): RAPIER.Collider[] {
   const { radius, segments, bottomY, topY, groups, gate } = options
   const height = topY - bottomY
-  if (height <= 0) return
+  if (height <= 0) return []
   const halfHeight = height / 2
   const centerY = bottomY + halfHeight
   const halfThickness = 0.15
@@ -46,6 +46,7 @@ export function createRingWall(world: RAPIER.World, options: RingWallOptions): v
 
   const localZ = new THREE.Vector3(0, 0, 1)
   const rotation = new THREE.Quaternion()
+  const colliders: RAPIER.Collider[] = []
 
   for (let i = 0; i < segments; i++) {
     const angle = regularPolygonSegmentAngle(i, segments, options.rotation ?? 0)
@@ -56,12 +57,15 @@ export function createRingWall(world: RAPIER.World, options: RingWallOptions): v
     rotation.setFromUnitVectors(localZ, radialDir)
 
     const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed())
-    world.createCollider(
+    const collider = world.createCollider(
       RAPIER.ColliderDesc.cuboid(tangentialHalfWidth, halfHeight, halfThickness)
         .setTranslation(x, centerY, z)
         .setRotation(new RAPIER.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w))
         .setCollisionGroups(groups),
       body
     )
+    colliders.push(collider)
   }
+
+  return colliders
 }

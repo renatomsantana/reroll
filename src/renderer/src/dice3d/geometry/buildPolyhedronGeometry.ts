@@ -47,7 +47,7 @@ const NUMBER_GLYPH_SAFE_RADIUS = POLYHEDRON_NUMBER_FONT_HEIGHT_FRACTION * 0.6
  * ajustar pela caixa delimitadora, que sub-representa a área útil real de
  * formas não retangulares.
  */
-function computeFaceUVs(points: Vector3Tuple[], normal: Vector3Tuple): [number, number][] {
+function computeFaceUVs(points: Vector3Tuple[], normal: Vector3Tuple, contentRadius: number): [number, number][] {
   const uAxis = normalize(subtract(points[1], points[0]))
   const vAxis = normalize(cross(normal, uAxis))
   const projected = points.map((p): [number, number] => [dot(p, uAxis), dot(p, vAxis)])
@@ -67,7 +67,12 @@ function computeFaceUVs(points: Vector3Tuple[], normal: Vector3Tuple): [number, 
     safeRadius = Math.min(safeRadius, distance)
   }
 
-  const uvScale = NUMBER_GLYPH_SAFE_RADIUS / safeRadius
+  // Pinturas customizadas mantêm as pontas na própria célula do atlas.
+  // O mapeamento dos números conserva exatamente a escala anterior.
+  const maxOffset = Math.max(...projected.flatMap(([u, v]) => [Math.abs(u - centroidU), Math.abs(v - centroidV)]))
+  const uvScale = contentRadius === NUMBER_GLYPH_SAFE_RADIUS
+    ? contentRadius / safeRadius
+    : Math.min(contentRadius / safeRadius, 0.48 / maxOffset)
 
   return projected.map(([u, v]) => [
     0.5 + (u - centroidU) * uvScale,
@@ -86,7 +91,8 @@ function computeFaceUVs(points: Vector3Tuple[], normal: Vector3Tuple): [number, 
  */
 export function buildPolyhedronGeometry(
   vertices: Vector3Tuple[],
-  faceInputs: PolyhedronFaceInput[]
+  faceInputs: PolyhedronFaceInput[],
+  contentRadius = NUMBER_GLYPH_SAFE_RADIUS
 ): BuiltPolyhedron {
   const positions: number[] = []
   const uvs: number[] = []
@@ -98,7 +104,7 @@ export function buildPolyhedronGeometry(
   for (const faceInput of faceInputs) {
     const { orderedVertexIndices, normal } = orientFaceOutward(vertices, faceInput.vertexIndices)
     const facePoints = orderedVertexIndices.map((i) => vertices[i])
-    const faceUVs = computeFaceUVs(facePoints, normal)
+    const faceUVs = computeFaceUVs(facePoints, normal, contentRadius)
 
     const localBase = positions.length / 3
     for (let i = 0; i < facePoints.length; i++) {

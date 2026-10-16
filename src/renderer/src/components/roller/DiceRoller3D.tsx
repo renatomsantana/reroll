@@ -10,11 +10,7 @@ import {
 } from 'react'
 import type { DiceGroup, DiceGroupResult, ExplodeRule, KeepRule, RollResult } from '@shared/types/dice'
 import { totalMantido, valoresDosGrupos } from '@shared/dice/manterDados'
-import {
-  modificadorDoTexto,
-  textoDeModificadorAceito,
-  textoDoModificadorAjustado
-} from '@shared/dice/modificador'
+import { modificadorDoTexto, textoDeModificadorAceito, textoDoModificadorAjustado } from '@shared/dice/modificador'
 import { rolarFormula, rollExpression, rollWithMode } from '@renderer/domain/dice/diceEngine'
 import type { Formula } from '@shared/dice/formula'
 import {
@@ -38,6 +34,8 @@ import type { DisplayMode } from '@renderer/settings/SettingsContext'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { useSettings } from '@renderer/settings/SettingsContext'
 import { playRollSound } from '@renderer/audio/rollSound'
+import { playExplosionSound } from '@renderer/audio/explosionSound'
+import { EXPLOSAO_PIXEL_ANIMACAO } from '@renderer/assets/effects'
 import { teclaVeioDeDigitacao } from '@renderer/utils/isTyping'
 import { TRAY_SHAPE_SIDES } from '@renderer/dice3d/geometry/trayShape'
 import { Button } from '../common/Button'
@@ -49,6 +47,9 @@ import { tocarCritico, tocarFalha } from '@renderer/audio/efeitosDeCritico'
 import { CameraModeSwitch } from './CameraModeSwitch'
 import './DiceRoller3D.css'
 import { IconeReroll } from '@renderer/components/common/IconeReroll'
+import { AssimilacaoDesk } from '@renderer/experiments/assimilacao/AssimilacaoResult'
+import { TIPOS_ASSIMILACAO } from '@renderer/experiments/assimilacao/d12'
+import { contarRolagemConcluida } from '@renderer/analytics/usoDoSite'
 
 /** `buildD*Visual`/`buildPolyhedronVisual` esperam a cor do corpo como hex numérico (ex.: 0xf2ead6), não string CSS. */
 function hexStringToNumber(hex: string): number {
@@ -137,7 +138,11 @@ function groupRollsBySides(rolls: { sides: number; value: number }[]): DiceGroup
   }
   return order.map((sides) => {
     const values = bySides.get(sides) ?? []
-    return { sides, rolls: values, subtotal: values.reduce((sum, v) => sum + v, 0) }
+    return {
+      sides,
+      rolls: values,
+      subtotal: values.reduce((sum, v) => sum + v, 0)
+    }
   })
 }
 
@@ -176,7 +181,11 @@ export function gruposDaProximaOnda(cadeias: DadoEmCadeia[], regra: ExplodeRule 
  * estavam. Casar por posição funcionaria hoje e quebraria calado no dia em que a ordem mudasse, com
  * um d6 herdando a segunda queda de um d20.
  */
-export function encaixarOnda(cadeias: DadoEmCadeia[], onda: { sides: number; value: number }[], regra: ExplodeRule | undefined): void {
+export function encaixarOnda(
+  cadeias: DadoEmCadeia[],
+  onda: { sides: number; value: number }[],
+  regra: ExplodeRule | undefined
+): void {
   /**
    * UMA QUEDA POR DADO NESTA ONDA. Sem este conjunto há um defeito que o teste pegou e que não daria
    * erro nenhum em produção: um dado que recebe a face máxima de novo continua elegível, então o
@@ -252,12 +261,7 @@ export function comDadoAcrescentado(grupos: DiceGroup[], sides: number, teto: nu
  * impede a rolagem vazia é o botão de Rolar, que desliga sozinho (ver `semDados`). O teto é
  * conferido aqui dentro pelo mesmo motivo de `comDadoAcrescentado`.
  */
-export function comContagemAjustada(
-  grupos: DiceGroup[],
-  indice: number,
-  delta: number,
-  teto: number
-): DiceGroup[] {
+export function comContagemAjustada(grupos: DiceGroup[], indice: number, delta: number, teto: number): DiceGroup[] {
   const grupo = grupos[indice]
   if (!grupo) return grupos
   if (delta > 0 && totalDeDados(grupos) >= teto) return grupos
@@ -279,11 +283,20 @@ export function comContagemAjustada(
  * uma cena 3D precisa de espaço pra fazer sentido.
  */
 export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(function DiceRoller3D(
-  { onRoll, onRollingChange, shortcutsEnabled = true, onOpenHistory, explodeVisivel, regraDeCritico = REGRA_DE_CRITICO_PADRAO, overlay },
+  {
+    onRoll,
+    onRollingChange,
+    shortcutsEnabled = true,
+    onOpenHistory,
+    explodeVisivel,
+    regraDeCritico = REGRA_DE_CRITICO_PADRAO,
+    overlay
+  },
   ref
 ) {
   const t = useTranslation()
   const {
+    gameSystem,
     diceBodyColor,
     diceNumberColor,
     diceNumberFont,
@@ -296,6 +309,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     backgroundColor,
     floorColor,
     caseFloorColor,
+    towerStoneColor,
+    towerRoofColor,
+    towerFlagColor,
+    towerDoorColor,
     backgroundImage,
     trayShape,
     cameraMode,
@@ -303,17 +320,43 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     soundEnabled,
     resultPopupEnabled,
     displayMode,
+    launchMode,
     copyMarkdown,
     critVisualEnabled,
-    critSoundEnabled
+    critSoundEnabled,
+    throwStrength
   } = useSettings()
+  const assimilacao = gameSystem === 'assimilacao'
   const multiRef = useRef<DiceCanvasMultiHandle>(null)
+  /** Explosão de edição: uma por rolagem, removida 0,7s após a primeira batida. */
+  const [explosionKey, setExplosionKey] = useState<string | null>(null)
+  const explosionTimerRef = useRef<number | null>(null)
+
+  useEffect(
+    () => () => {
+      if (explosionTimerRef.current !== null) window.clearTimeout(explosionTimerRef.current)
+    },
+    []
+  )
+
+  function triggerImpactExplosion(): void {
+    setExplosionKey(`${performance.now()}`)
+    if (soundEnabled) playExplosionSound()
+    if (explosionTimerRef.current !== null) window.clearTimeout(explosionTimerRef.current)
+    explosionTimerRef.current = window.setTimeout(() => {
+      setExplosionKey(null)
+      explosionTimerRef.current = null
+    }, 700)
+  }
   /**
    * O CLARÃO de crítico/falha sobre a cena (spec §3.7) — 3,5 segundos, sem bloquear nada, some no
    * fim da animação CSS como o popup do total. `key` reinicia a animação num crítico seguido do
    * outro.
    */
-  const [efeitoDeCritico, setEfeitoDeCritico] = useState<{ key: string; tipo: 'critico' | 'falha' } | null>(null)
+  const [efeitoDeCritico, setEfeitoDeCritico] = useState<{
+    key: string
+    tipo: 'critico' | 'falha'
+  } | null>(null)
   /**
    * Cor do corpo/número resolvida POR TIPO de dado — mescla o override individual
    * (`diceColorOverrides`, editado na aba Estilo) com a cor global, sempre com uma entrada pra
@@ -332,7 +375,15 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     return result
   }, [diceColorOverrides, diceBodyColor, diceNumberColor])
 
-  const [groups, setGroups] = useState<DiceGroup[]>(DEFAULT_GROUPS)
+  const [groups, setGroups] = useState<DiceGroup[]>(
+    assimilacao
+      ? [
+          { sides: 6, count: 2 },
+          { sides: 10, count: 1 },
+          { sides: 12, count: 1 }
+        ]
+      : DEFAULT_GROUPS
+  )
   /**
    * Incrementado a cada rolagem de preset. Na torre ele continua no `key` de `DiceCanvasMulti` (ela
    * tem fila e parqueamento próprios); na BANDEJA saiu do `key` a pedido dele, porque remontar a cena
@@ -357,7 +408,17 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
    * representar "o usuário digitou o sinal e ainda não digitou o algarismo".
    */
   const [textoDoModificador, setTextoDoModificador] = useState('0')
-  const modifier = modificadorDoTexto(textoDoModificador)
+  const modifier = assimilacao ? 0 : modificadorDoTexto(textoDoModificador)
+  const [assimLimite, setAssimLimite] = useState(1)
+  const [assimTodos, setAssimTodos] = useState(false)
+  const [assimSimples, setAssimSimples] = useState(false)
+  const [assimNome, setAssimNome] = useState('')
+  const [assimTeste, setAssimTeste] = useState({
+    limite: 1,
+    todos: false,
+    simples: false,
+    nome: ''
+  })
   /**
    * Estojo de dados atrás da bandeja aberto ou fechado. A única forma de mexer nisso é clicando no
    * próprio estojo dentro da cena (`onCaseClick` abaixo): existia um botão na barra e ele pediu pra
@@ -413,7 +474,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
    * Num ref pelas mesmas razões do `keepRef` — quem a lê é o `handleMultiResult`, segundos depois. O
    * `null` fora dela é o que devolve o assentamento ao caminho de sempre.
    */
-  const sessaoDeFormulaRef = useRef<{ formula: Formula; faces: FaceColhida[] } | null>(null)
+  const sessaoDeFormulaRef = useRef<{
+    formula: Formula
+    faces: FaceColhida[]
+  } | null>(null)
 
   /** Começa uma rolagem do zero: nenhuma onda pendente, nenhuma cadeia herdada da anterior. */
   function limparCadeias(): void {
@@ -463,7 +527,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
     finalizeResult(resultado)
   }
   /** Popup do total sobre a bandeja/torre ao assentar os dados — some sozinho no fim da animação CSS (`onAnimationEnd`), não precisa de timer em JS. `key` força reinício da animação mesmo se o total se repetir entre uma rolagem e outra. */
-  const [resultPopup, setResultPopup] = useState<{ key: string; total: number } | null>(null)
+  const [resultPopup, setResultPopup] = useState<{
+    key: string
+    total: number
+  } | null>(null)
 
   // Avisa o pai sempre que `isRolling` muda, pra ele desabilitar as ações de preset enquanto uma
   // rolagem está em andamento. Num efeito separado, e não em cada `setIsRolling` espalhado pelo
@@ -534,13 +601,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
        */
       if (semFisica) {
         setIsRolling(false)
-        rolarSemFisica(
-          newGroups.length > 0 ? newGroups : DEFAULT_GROUPS,
-          newModifier,
-          keep,
-          explodeDoPreset,
-          'normal'
-        )
+        rolarSemFisica(newGroups.length > 0 ? newGroups : DEFAULT_GROUPS, newModifier, keep, explodeDoPreset, 'normal')
         return
       }
 
@@ -694,22 +755,26 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }
 
   function finalizeResult(bruto: RollResult) {
+    contarRolagemConcluida(bruto.id, semFisica ? 'tray' : launchMode, {
+      sistema: gameSystem,
+      resultado: bruto
+    })
     /**
      * As marcas de CRÍTICO/FALHA entram AQUI, no funil por onde toda rolagem terminada passa
      * (bandeja, torre, modo rápido, fórmula), pela regra do personagem. É o único lugar em que
      * a face natural ainda é a verdade fresca — depois, quem lê é o histórico e o chat.
      */
-    const result = comMarcasDeCritico(bruto, regraDeCritico)
+    const result = assimilacao ? bruto : comMarcasDeCritico(bruto, regraDeCritico)
     setLastResult(result)
     setIsRolling(false)
-    if (resultPopupEnabled) setResultPopup({ key: result.id, total: result.total })
-    if (result.critico || result.falha) {
+    if (resultPopupEnabled && !assimilacao) setResultPopup({ key: result.id, total: result.total })
+    if (!assimilacao && (result.critico || result.falha)) {
       // Crítico manda no empate (2d20 com um 20 e um 1): a festa vence o luto.
       const tipo = result.critico ? 'critico' : 'falha'
       if (critVisualEnabled) setEfeitoDeCritico({ key: result.id, tipo })
       if (soundEnabled && critSoundEnabled) (tipo === 'critico' ? tocarCritico : tocarFalha)()
     }
-    onRoll({ ...result, sourceName: sourceNameRef.current })
+    if (!assimilacao) onRoll({ ...result, sourceName: sourceNameRef.current })
     // Zerado assim que é consumido: a PRÓXIMA rolagem pode ser manual (botão "Rolar"), e sem isto
     // ela herdaria o nome do último preset clicado e apareceria no histórico como se fosse ele.
     sourceNameRef.current = undefined
@@ -771,7 +836,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
        * pra bandeja e caem de novo, que é o gesto que a mecânica descreve.
        */
       if (cadeiasRef.current.length === 0) {
-        cadeiasRef.current = result.rolls.map((queda) => ({ sides: queda.sides, faces: [queda.value] }))
+        cadeiasRef.current = result.rolls.map((queda) => ({
+          sides: queda.sides,
+          faces: [queda.value]
+        }))
       } else {
         encaixarOnda(cadeiasRef.current, result.rolls, regraExplosiva)
       }
@@ -837,12 +905,19 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
 
   function handleRollClick() {
     if (isRolling || semDadosRef.current) return
+    if (assimilacao)
+      setAssimTeste({
+        limite: Math.max(1, Math.min(assimLimite, currentDiceTotal)),
+        todos: assimTodos,
+        simples: assimSimples,
+        nome: assimNome
+      })
     // Rolagem MANUAL não tem nome de golpe. Limpa aqui também (e não só no `finalizeResult`) pro
     // caso de clicar "Rolar" antes de uma rolagem de preset chegar a assentar.
     sourceNameRef.current = undefined
     keepRef.current = undefined
     // A regra da rolagem em curso é a do interruptor NESTE instante; ver `explodeRef`.
-    explodeRef.current = explode ? { maxChain: MAX_EXPLOSOES_POR_DADO } : undefined
+    explodeRef.current = !assimilacao && explode ? { maxChain: MAX_EXPLOSOES_POR_DADO } : undefined
     limparCadeias()
     // Rolagem manual por cima de uma de fórmula: a sessão velha não pode capturar o assentamento.
     sessaoDeFormulaRef.current = null
@@ -891,7 +966,12 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
   }, [isRolling, shortcutsEnabled])
 
   return (
-    <div className="dice-roller-3d">
+    <div className={`dice-roller-3d ${assimilacao ? 'dice-roller-3d-assimilacao' : ''}`}>
+      {assimilacao && (
+        <p role="status" className="assimilacao-notice">
+          Assimilação <small>Teste local · d6, d10 e d12</small>
+        </p>
+      )}
       <div className="dice-roller-3d-controls">
         {/*
           Duas caixas de grupo em vez de três linhas soltas de botão: "Tipo de dado" é o que ENTRA
@@ -902,7 +982,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         <fieldset className="dice-roller-3d-group dice-roller-3d-group-dice">
           <legend>{t.roller.typeLabel}</legend>
           <div className="dice-roller-3d-types">
-            {DEFAULT_DICE_SIDES.map((sides) => {
+            {(assimilacao ? TIPOS_ASSIMILACAO : DEFAULT_DICE_SIDES).map((sides) => {
               const atCap = currentDiceTotal >= capForAddingSides(sides)
               return (
                 <Button
@@ -949,7 +1029,10 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                     <Button
                       variant="ghost"
                       onClick={() => adjustGroupCount(index, 1)}
-                      disabled={isRolling || currentDiceTotal >= (mode === 'normal' ? MAX_SIMULTANEOUS_DICE : ADVANTAGE_MAX_COUNT)}
+                      disabled={
+                        isRolling ||
+                        currentDiceTotal >= (mode === 'normal' ? MAX_SIMULTANEOUS_DICE : ADVANTAGE_MAX_COUNT)
+                      }
                       aria-label="+"
                       title={
                         currentDiceTotal >= (mode === 'normal' ? MAX_SIMULTANEOUS_DICE : ADVANTAGE_MAX_COUNT)
@@ -978,100 +1061,148 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
                 ))}
               </div>
 
-              <div className="dice-roller-3d-row">
-                {isSingleGroup && (
-                  <div className="dice-roller-3d-mode">
-                    {(['normal', 'advantage', 'disadvantage'] as const).map((m) => (
-                      <Button
-                        key={m}
-                        selected={mode === m}
-                        onClick={() => selectMode(m)}
-                        disabled={isRolling}
-                      >
-                        {t.roller.mode[m]}
-                      </Button>
-                    ))}
-                  </div>
-                )}
+              {assimilacao ? (
+                <div className="assimilacao-config">
+                  <label>
+                    Nome do teste
+                    <input
+                      value={assimNome}
+                      maxLength={100}
+                      disabled={isRolling}
+                      onChange={(e) => setAssimNome(e.target.value)}
+                      placeholder="Ex.: investigar o laboratório"
+                    />
+                  </label>
+                  <label>
+                    Dados mantidos
+                    <input
+                      type="number"
+                      min={1}
+                      max={Math.max(1, currentDiceTotal)}
+                      value={assimTodos ? currentDiceTotal : Math.min(assimLimite, Math.max(1, currentDiceTotal))}
+                      disabled={isRolling || assimTodos}
+                      onChange={(e) =>
+                        setAssimLimite(
+                          Math.max(1, Math.min(currentDiceTotal || 1, Math.floor(Number(e.target.value)) || 1))
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    Leitura do resultado
+                    <select
+                      value={assimSimples ? 'simples' : 'bruto'}
+                      disabled={isRolling || assimTodos}
+                      onChange={(e) => setAssimSimples(e.target.value === 'simples')}
+                    >
+                      <option value="bruto">Conflito / símbolos brutos</option>
+                      <option value="simples">Ação simples</option>
+                    </select>
+                  </label>
+                  <label className="assimilacao-all">
+                    <input
+                      type="checkbox"
+                      checked={assimTodos}
+                      disabled={isRolling}
+                      onChange={(e) => {
+                        setAssimTodos(e.target.checked)
+                        if (e.target.checked) setAssimSimples(false)
+                      }}
+                    />{' '}
+                    Manter todos (rolagem especial)
+                  </label>
+                </div>
+              ) : (
+                <div className="dice-roller-3d-row">
+                  {isSingleGroup && (
+                    <div className="dice-roller-3d-mode">
+                      {(['normal', 'advantage', 'disadvantage'] as const).map((m) => (
+                        <Button key={m} selected={mode === m} onClick={() => selectMode(m)} disabled={isRolling}>
+                          {t.roller.mode[m]}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
 
-                {/*
+                  {/*
                   Fora do `isSingleGroup`: explodir vale pra qualquer rolagem, inclusive misturando
                   tipos (2d6 + 1d20 com os dois explodindo é o normal em vários sistemas). É o que o
                   separa da vantagem, que só faz sentido com um tipo só.
 
                   E só com perfil de D&D (`explodeVisivel`) — ver o comentário da prop.
                 */}
-                {(explodeVisivel ?? true) && (
-                  <div className="dice-roller-3d-mode">
-                    <Button
-                      selected={explode}
-                      onClick={alternarExplosao}
-                      disabled={isRolling}
-                      title={t.roller.explodeHint}
-                    >
-                      <IconeReroll tamanho={14} className="dice-roller-3d-icone" />
-                      {t.roller.explode}
-                    </Button>
-                  </div>
-                )}
+                  {(explodeVisivel ?? true) && (
+                    <div className="dice-roller-3d-mode">
+                      <Button
+                        selected={explode}
+                        onClick={alternarExplosao}
+                        disabled={isRolling}
+                        title={t.roller.explodeHint}
+                      >
+                        <IconeReroll tamanho={14} className="dice-roller-3d-icone" />
+                        {t.roller.explode}
+                      </Button>
+                    </div>
+                  )}
 
-                {/*
+                  {/*
                   `div` e não `label`: o rótulo roubaria o clique dos botões pro campo de dentro
                   dele, e aí apertar "−" só focaria o texto. Mesmo motivo do seletor de fonte nas
                   Preferências.
                 */}
-                <div className="dice-roller-3d-modifier">
-                  <span>{t.roller.modifier}</span>
-                  {/*
+                  <div className="dice-roller-3d-modifier">
+                    <span>{t.roller.modifier}</span>
+                    {/*
                     MENOS e MAIS no lugar das setinhas do `type="number"`, a pedido do usuário. As
                     setas do navegador são minúsculas, empilhadas e não dizem o que fazem; e o campo
                     continua digitável, que é a outra metade do pedido.
                   */}
-                  <div className="dice-roller-3d-modifier-campo">
-                    <Button
-                      variant="ghost"
-                      className="dice-roller-3d-modifier-btn"
-                      aria-label={t.roller.modifierMinus}
-                      title={t.roller.modifierMinus}
-                      disabled={isRolling}
-                      onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, -1))}
-                    >
-                      −
-                    </Button>
-                    <input
-                      /**
-                       * `text`, e não `number`. O campo numérico do navegador não deixa guardar um
-                       * estado intermediário — o traço sozinho, ou o campo vazio —, e era isso que
-                       * impedia digitar modificador negativo.
-                       */
-                      type="text"
-                      inputMode="numeric"
-                      value={textoDoModificador}
-                      onChange={(e) => {
-                        const bruto = e.target.value.trim()
-                        if (textoDeModificadorAceito(bruto)) setTextoDoModificador(bruto)
-                      }}
-                      /**
-                       * Ao sair do campo, o texto é normalizado pelo número que ele vale: quem
-                       * deixou só um "-" ou o campo vazio vê "0" no lugar, em vez de um campo que
-                       * mostra uma coisa e vale outra.
-                       */
-                      onBlur={() => setTextoDoModificador(String(modifier))}
-                      aria-label={t.roller.modifier}
-                    />
-                    <Button
-                      variant="ghost"
-                      className="dice-roller-3d-modifier-btn"
-                      aria-label={t.roller.modifierPlus}
-                      title={t.roller.modifierPlus}
-                      disabled={isRolling}
-                      onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, 1))}
-                    >
-                      +
-                    </Button>
+                    <div className="dice-roller-3d-modifier-campo">
+                      <Button
+                        variant="ghost"
+                        className="dice-roller-3d-modifier-btn"
+                        aria-label={t.roller.modifierMinus}
+                        title={t.roller.modifierMinus}
+                        disabled={isRolling}
+                        onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, -1))}
+                      >
+                        −
+                      </Button>
+                      <input
+                        /**
+                         * `text`, e não `number`. O campo numérico do navegador não deixa guardar um
+                         * estado intermediário — o traço sozinho, ou o campo vazio —, e era isso que
+                         * impedia digitar modificador negativo.
+                         */
+                        type="text"
+                        inputMode="numeric"
+                        value={textoDoModificador}
+                        onChange={(e) => {
+                          const bruto = e.target.value.trim()
+                          if (textoDeModificadorAceito(bruto)) setTextoDoModificador(bruto)
+                        }}
+                        /**
+                         * Ao sair do campo, o texto é normalizado pelo número que ele vale: quem
+                         * deixou só um "-" ou o campo vazio vê "0" no lugar, em vez de um campo que
+                         * mostra uma coisa e vale outra.
+                         */
+                        onBlur={() => setTextoDoModificador(String(modifier))}
+                        aria-label={t.roller.modifier}
+                      />
+                      <Button
+                        variant="ghost"
+                        className="dice-roller-3d-modifier-btn"
+                        aria-label={t.roller.modifierPlus}
+                        title={t.roller.modifierPlus}
+                        disabled={isRolling}
+                        onClick={() => setTextoDoModificador((atual) => textoDoModificadorAjustado(atual, 1))}
+                      >
+                        +
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/*
@@ -1101,136 +1232,157 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
         */
         <div className="dice-roller-3d-quick">
           {!temWebgl && <p className="dice-roller-3d-quick-aviso">{t.roller.quickForced}</p>}
-          <span className="dice-roller-3d-quick-label">{t.roller.total}</span>
-          <span className="dice-roller-3d-quick-total">{lastResult ? lastResult.total : <>&nbsp;</>}</span>
-          {lastResult && <span className="dice-roller-3d-quick-expr">{lastResult.label}</span>}
+          {!assimilacao && (
+            <>
+              <span className="dice-roller-3d-quick-label">{t.roller.total}</span>
+              <span className="dice-roller-3d-quick-total">{lastResult ? lastResult.total : <>&nbsp;</>}</span>
+              {lastResult && <span className="dice-roller-3d-quick-expr">{lastResult.label}</span>}
+            </>
+          )}
           {/* O HUD (nome, barras, lápis) também aqui: sem isto o modo rápido ficava sem ele. */}
           {overlay}
         </div>
       ) : (
-      <div className="dice-roller-3d-canvas">
-        <DiceCanvasMulti
-          // `groups`/`canvasGroups` não entram no `key` no modo bandeja: trocar tipo ou quantidade
-          // resincroniza os dados no lugar (ver o efeito de resync em `DiceCanvasMulti.tsx`).
-          /**
-           * Só o modo de debug, o de lançamento e a FORMA remontam a cena. A forma entra porque
-           * parede física, chão e plataforma são construídos na montagem: trocar de hexágono pra
-           * círculo sem remontar deixaria o collider antigo contendo dados dentro de outro desenho.
-           *
-           * A torre remontava por completo a cada dado e a cada preset, de quando ela era o mecanismo
-           * antigo, com cena própria. Hoje os dois modos usam a mesma bandeja e o mesmo mundo físico,
-           * e o custo era alto: remontar refaz a cena (20ms), a torre com as texturas (20ms) e um
-           * `WebGLRenderer` novo (15ms), e o primeiro quadro recompila os shaders, num pico de 290ms.
-           * É o "fica meio lagado quando bota mais dados" que ele reportou.
-           */
-          key={`${debugMode}-${trayShape}`}
-          ref={multiRef}
-          groups={canvasGroups as { sides: PhysicalDiceSides; count: number }[]}
-          onResult={handleMultiResult}
-          onError={handleSceneError}
-          onFirstFloorImpact={(diceCount) => {
-            if (soundEnabled) playRollSound(diceCount)
-          }}
-          autoRoll={autoRollArm}
-          diceColors={resolvedDiceColors}
-          numberFont={diceNumberFont}
-          material={diceMaterial}
-          flor1={resinFlower1}
-          flor2={resinFlower2}
-          wallColor={hexStringToNumber(wallColor)}
-          backgroundColor={hexStringToNumber(backgroundColor)}
-          floorColor={hexStringToNumber(floorColor)}
-          caseWallColor={hexStringToNumber(caseWallColor)}
-          caseFloorColor={hexStringToNumber(caseFloorColor)}
-          backgroundImage={backgroundImage}
-          launchMode="tray"
-          traySides={TRAY_SHAPE_SIDES[trayShape]}
-          debugMode={debugMode}
-          caseOpen={caseOpen}
-          onCaseClick={() => setCaseOpen((open) => !open)}
-          bridgeOpen={bridgeOpen}
-          onBridgeClick={() => setBridgeOpen((aberta) => !aberta)}
-          // Fora do `key` acima de propósito: trocar o modo de câmera não remonta a cena.
-          cameraMode={cameraMode}
-        />
-        {/* Sobreposto à cena, não numa aba: é um controle que se mexe olhando a cena. */}
-        <CameraModeSwitch />
-        {overlay}
-        {resultPopup && (
-          <div
-            key={resultPopup.key}
-            className="dice-result-popup"
-            /*
+        <div className="dice-roller-3d-canvas">
+          <DiceCanvasMulti
+            diceSystem={gameSystem}
+            // `groups`/`canvasGroups` não entram no `key` no modo bandeja: trocar tipo ou quantidade
+            // resincroniza os dados no lugar (ver o efeito de resync em `DiceCanvasMulti.tsx`).
+            /**
+             * Só o modo de debug, o de lançamento e a FORMA remontam a cena. A forma entra porque
+             * parede física, chão e plataforma são construídos na montagem: trocar de hexágono pra
+             * círculo sem remontar deixaria o collider antigo contendo dados dentro de outro desenho.
+             *
+             * A torre remontava por completo a cada dado e a cada preset, de quando ela era o mecanismo
+             * antigo, com cena própria. Hoje os dois modos usam a mesma bandeja e o mesmo mundo físico,
+             * e o custo era alto: remontar refaz a cena (20ms), a torre com as texturas (20ms) e um
+             * `WebGLRenderer` novo (15ms), e o primeiro quadro recompila os shaders, num pico de 290ms.
+             * É o "fica meio lagado quando bota mais dados" que ele reportou.
+             */
+            key={`${gameSystem}-${debugMode}-${trayShape}-${launchMode}`}
+            ref={multiRef}
+            groups={canvasGroups as { sides: PhysicalDiceSides; count: number }[]}
+            onResult={handleMultiResult}
+            onError={handleSceneError}
+            onFirstFloorImpact={(diceCount) => {
+              if (soundEnabled) playRollSound(diceCount)
+            }}
+            onFirstBoundaryImpact={throwStrength === 'explosao' ? triggerImpactExplosion : undefined}
+            autoRoll={autoRollArm}
+            diceColors={resolvedDiceColors}
+            numberFont={diceNumberFont}
+            material={diceMaterial}
+            flor1={resinFlower1}
+            flor2={resinFlower2}
+            wallColor={hexStringToNumber(wallColor)}
+            backgroundColor={hexStringToNumber(backgroundColor)}
+            floorColor={hexStringToNumber(floorColor)}
+            caseWallColor={hexStringToNumber(caseWallColor)}
+            caseFloorColor={hexStringToNumber(caseFloorColor)}
+            towerColors={{
+              stone: hexStringToNumber(towerStoneColor),
+              roof: hexStringToNumber(towerRoofColor),
+              flag: hexStringToNumber(towerFlagColor),
+              door: hexStringToNumber(towerDoorColor)
+            }}
+            backgroundImage={backgroundImage}
+            launchMode={launchMode}
+            throwStrength={throwStrength}
+            traySides={TRAY_SHAPE_SIDES[trayShape]}
+            debugMode={debugMode}
+            caseOpen={caseOpen}
+            onCaseClick={() => setCaseOpen((open) => !open)}
+            bridgeOpen={bridgeOpen}
+            onBridgeClick={() => setBridgeOpen((aberta) => !aberta)}
+            // Fora do `key` acima de propósito: trocar o modo de câmera não remonta a cena.
+            cameraMode={cameraMode}
+          />
+          {/* Sobreposto à cena, não numa aba: é um controle que se mexe olhando a cena. */}
+          <CameraModeSwitch />
+          {explosionKey && (
+            <div key={explosionKey} className="dice-impact-explosion" aria-hidden="true">
+              {/*
+               * A URL muda em toda batida. Alguns navegadores mantêm GIF/APNG em uma linha do
+               * tempo compartilhada pelo cache; remontar apenas o elemento podia fazê-lo voltar
+               * já parado no último quadro. O parâmetro força cada explosão a nascer no quadro 1.
+               */}
+              <img src={`${EXPLOSAO_PIXEL_ANIMACAO}?impact=${encodeURIComponent(explosionKey)}`} alt="" />
+            </div>
+          )}
+          {overlay}
+          {resultPopup && (
+            <div
+              key={`resultado-${resultPopup.key}`}
+              className="dice-result-popup"
+              /*
               Só o ACENTO (borda e brilho) sai das cores da pessoa. O texto do painel é branco fixo
               — ver o comentário de `.dice-result-popup-label`: quando ele seguia a cor do dado,
               bastava um dado escuro pra a palavra "TOTAL" sumir no painel preto.
             */
-            style={{ '--popup-accent': wallColor } as CSSProperties}
-            onAnimationEnd={() => setResultPopup(null)}
-          >
-            <span className="dice-result-popup-label">{t.roller.total}</span>
-            <span className="dice-result-popup-value">{resultPopup.total}</span>
-          </div>
-        )}
-        {/*
+              style={{ '--popup-accent': wallColor } as CSSProperties}
+              onAnimationEnd={() => setResultPopup(null)}
+            >
+              <span className="dice-result-popup-label">{t.roller.total}</span>
+              <span className="dice-result-popup-value">{resultPopup.total}</span>
+            </div>
+          )}
+          {/*
           O clarão de crítico/falha (spec §3.7): painel no centro da cena com oito faíscas quadradas
           voando (crítico) ou o painel escuro tremendo (falha). 3,5 segundos, `pointer-events: none`
           — nunca segura o número nem a próxima rolagem.
         */}
-        {efeitoDeCritico && (
-          <div
-            key={efeitoDeCritico.key}
-            className={`dice-crit ${efeitoDeCritico.tipo === 'critico' ? 'dice-crit-critico' : 'dice-crit-falha'}`}
-            aria-hidden="true"
-            onAnimationEnd={(e) => {
-              if (e.target === e.currentTarget) setEfeitoDeCritico(null)
-            }}
-          >
-            {efeitoDeCritico.tipo === 'critico' &&
-              Array.from({ length: 8 }, (_, i) => (
-                <span key={i} className="dice-crit-faisca" style={{ '--angulo': `${i * 45}deg` } as CSSProperties} />
-              ))}
-            <span className="dice-crit-texto">
-              {efeitoDeCritico.tipo === 'critico' ? `⭐ ${t.roller.critical}` : `💀 ${t.roller.fumble}`}
-            </span>
-          </div>
-        )}
-      </div>
+          {efeitoDeCritico && (
+            <div
+              key={`critico-${efeitoDeCritico.key}`}
+              className={`dice-crit ${efeitoDeCritico.tipo === 'critico' ? 'dice-crit-critico' : 'dice-crit-falha'}`}
+              aria-hidden="true"
+              onAnimationEnd={(e) => {
+                if (e.target === e.currentTarget) setEfeitoDeCritico(null)
+              }}
+            >
+              {efeitoDeCritico.tipo === 'critico' &&
+                Array.from({ length: 8 }, (_, i) => (
+                  <span key={i} className="dice-crit-faisca" style={{ '--angulo': `${i * 45}deg` } as CSSProperties} />
+                ))}
+              <span className="dice-crit-texto">
+                {efeitoDeCritico.tipo === 'critico' ? `⭐ ${t.roller.critical}` : `💀 ${t.roller.fumble}`}
+              </span>
+            </div>
+          )}
+        </div>
       )}
 
       <div className="dice-roller-3d-result">
         {rollError && <span className="dice-roller-3d-error">{t.roller.rollError}</span>}
-        {!rollError && !lastResult && !isRolling && <span>{t.roller.resultEmpty}</span>}
-        {!rollError && isRolling && <span>{t.roller.rolling}</span>}
-        {!rollError && !isRolling && lastResult && (
+        {!assimilacao && !rollError && !lastResult && !isRolling && <span>{t.roller.resultEmpty}</span>}
+        {!assimilacao && !rollError && isRolling && <span>{t.roller.rolling}</span>}
+        {assimilacao && <AssimilacaoDesk result={lastResult} rolling={isRolling} {...assimTeste} />}
+        {!rollError && !isRolling && lastResult && !assimilacao && (
           <span>
             {t.roller.results}:{' '}
-            {lastResult.groups.flatMap((g) => g.rolls.map((value) => ({ sides: g.sides, value }))).map((roll, i) => {
-              const color = colorForDice(roll.sides)
-              return (
-                <span key={i}>
-                  {i > 0 && ' + '}
-                  <span
-                    className="dice-roll-value"
-                    style={{ background: color.bg, color: color.text }}
-                    title={`d${roll.sides}`}
-                  >
-                    <span>{roll.value}</span>
-                    <small className="dice-roll-type">d{roll.sides}</small>
+            {lastResult.groups
+              .flatMap((g) => g.rolls.map((value) => ({ sides: g.sides, value })))
+              .map((roll, i) => {
+                const color = colorForDice(roll.sides)
+                return (
+                  <span key={i}>
+                    {i > 0 && ' + '}
+                    <span
+                      className="dice-roll-value"
+                      style={{ background: color.bg, color: color.text }}
+                      title={`d${roll.sides}`}
+                    >
+                      <span>{roll.value}</span>
+                      <small className="dice-roll-type">d{roll.sides}</small>
+                    </span>
                   </span>
-                </span>
-              )
-            })}
-            {modifier !== 0 && (modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`)} |{' '}
-            {t.roller.total}: <strong>{lastResult.total}</strong>
+                )
+              })}
+            {modifier !== 0 && (modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`)} | {t.roller.total}:{' '}
+            <strong>{lastResult.total}</strong>
             <MarcaDeCritico result={lastResult} className="dice-roller-3d-marca" />
             {lastResult.advantageMode && (
-              <>
-                {' '}
-                {lastResult.advantageMode === 'advantage'
-                  ? t.roller.advantageSuffix
-                  : t.roller.disadvantageSuffix}
-              </>
+              <> {lastResult.advantageMode === 'advantage' ? t.roller.advantageSuffix : t.roller.disadvantageSuffix}</>
             )}
             {/* A linha pro chat da mesa (spec §3.5) — ver `linhaParaChat.ts`. */}
             <BotaoCopiar texto={() => linhaParaChat(lastResult, copyMarkdown, rotulosDoChat(t))} />
@@ -1241,7 +1393,7 @@ export const DiceRoller3D = forwardRef<DiceRoller3DHandle, DiceRoller3DProps>(fu
           nasceu ao lado do ROLAR e o usuário pediu "pequeno, do lado do resultado ali na soma".
           Fora dos condicionais de propósito: o histórico existe mesmo antes da primeira rolagem.
         */}
-        {onOpenHistory && (
+        {onOpenHistory && !assimilacao && (
           <Button className="dice-roller-3d-history-btn" onClick={onOpenHistory}>
             {t.roller.historyButton}
           </Button>

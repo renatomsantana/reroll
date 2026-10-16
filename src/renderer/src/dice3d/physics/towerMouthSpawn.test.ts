@@ -5,7 +5,13 @@ import { createPhysicsWorld } from './createPhysicsWorld'
 import { createBoundaryColliders } from './createBoundaryColliders'
 import { createSettleTracker, type SettleTracker } from './createSettleTracker'
 import { applyNudge } from './applyNudge'
-import { tossDieFromMouth, MOUTH_RELEASE_INTERVAL_MS } from './tossDieFromMouth'
+import {
+  restaurarFisicaDoDado,
+  tossDieFromMouth,
+  MOUTH_RELEASE_INTERVAL_MS,
+  STRONG_TOWER_FLIGHT_SPEED
+} from './tossDieFromMouth'
+import { tossDie } from './tossDie'
 import {
   diceEnteringCollisionGroups,
   parkedCollisionGroups,
@@ -141,6 +147,117 @@ describe('lançamento pela boca da torre ao lado da bandeja', () => {
     // A boca aponta pro centro.
     const paraOCentro = Math.hypot(layout.mouth.x + layout.mouthDirection.x, layout.mouth.z + layout.mouthDirection.z)
     expect(paraOCentro).toBeLessThan(distanciaDoCentro)
+  })
+
+  it('no Forte atravessa a bandeja, rebate na parede oposta e continua contido', () => {
+    const world = createPhysicsWorld()
+    createBoundaryColliders(world)
+    const definition = DICE_REGISTRY[20].definition
+    const body = DICE_REGISTRY[20].createBody(world)
+    const layout = computeTowerBesideLayout()
+    const radius = definition.scale * definition.boundingRadius
+
+    tossDieFromMouth(body, {
+      target: { x: 0, z: 0 },
+      radius,
+      strength: 'forte',
+      basePhysics: definition.physics
+    })
+    expect(Math.hypot(body.linvel().x, body.linvel().z)).toBeGreaterThan(20)
+    expect(body.isCcdEnabled()).toBe(true)
+
+    const dtMs = (1 / WORLD_CONFIG.physicsStepsPerSecond) * 1000
+    let entrandoMs = 0
+    let entrou = false
+    let ricocheteou = false
+    let menorAlturaAntesDaParede = Number.POSITIVE_INFINITY
+
+    for (let step = 0; step < 1200; step++) {
+      clampLinearVelocity(body, STRONG_TOWER_FLIGHT_SPEED)
+      world.step()
+
+      const entrando = body.collider(0).collisionGroups() === diceEnteringCollisionGroups()
+      if (entrando) entrandoMs += dtMs
+      restoreWallCollisionIfInside(body, entrandoMs)
+
+      const p = body.translation()
+      if (!ricocheteou) menorAlturaAntesDaParede = Math.min(menorAlturaAntesDaParede, p.y)
+      if (isInsideRegularPolygon(p.x, p.z, TRAY_CONFIG.apothem, TRAY_CONFIG.wallSegments, -radius)) {
+        entrou = true
+      }
+      const velocidade = body.linvel()
+      const naDirecaoDaBoca =
+        velocidade.x * layout.mouthDirection.x + velocidade.z * layout.mouthDirection.z
+      if (entrou && naDirecaoDaBoca < -1 && !ricocheteou) {
+        ricocheteou = true
+        restaurarFisicaDoDado(body, definition.physics)
+      }
+    }
+
+    const final = body.translation()
+    expect(entrou).toBe(true)
+    expect(ricocheteou).toBe(true)
+    expect(menorAlturaAntesDaParede).toBeGreaterThan(2)
+    expect(isInsideRegularPolygon(final.x, final.z, TRAY_CONFIG.apothem, TRAY_CONFIG.wallSegments, 0.5)).toBe(true)
+    expect(final.y).toBeGreaterThan(-1)
+    expect(body.collider(0).restitution()).toBeCloseTo(definition.physics.restitution)
+    expect(body.gravityScale()).toBe(1)
+    expect(body.isCcdEnabled()).toBe(false)
+
+    world.free()
+  })
+
+  it('no Forte sem torre cruza a bandeja, bate na parede oposta e volta à física normal', () => {
+    const world = createPhysicsWorld()
+    createBoundaryColliders(world)
+    const definition = DICE_REGISTRY[20].definition
+    const body = DICE_REGISTRY[20].createBody(world)
+    const radius = definition.scale * definition.boundingRadius
+    const direction = tossDie(body, {
+      target: { x: 0, z: 0 },
+      strength: 'forte',
+      basePhysics: definition.physics
+    })
+
+    expect(direction).not.toBeNull()
+    expect(Math.hypot(body.linvel().x, body.linvel().z)).toBeGreaterThan(12)
+
+    const dtMs = (1 / WORLD_CONFIG.physicsStepsPerSecond) * 1000
+    let entrandoMs = 0
+    let entrou = false
+    let ricocheteou = false
+
+    for (let step = 0; step < 1200; step++) {
+      clampLinearVelocity(body, WORLD_CONFIG.maxLinearSpeed)
+      world.step()
+
+      const entrando = body.collider(0).collisionGroups() === diceEnteringCollisionGroups()
+      if (entrando) entrandoMs += dtMs
+      restoreWallCollisionIfInside(body, entrandoMs)
+
+      const position = body.translation()
+      if (isInsideRegularPolygon(position.x, position.z, TRAY_CONFIG.apothem, TRAY_CONFIG.wallSegments, -radius)) {
+        entrou = true
+      }
+
+      if (direction) {
+        const velocity = body.linvel()
+        const projection = velocity.x * direction.x + velocity.z * direction.z
+        if (entrou && projection < -0.8 && !ricocheteou) {
+          ricocheteou = true
+          restaurarFisicaDoDado(body, definition.physics)
+        }
+      }
+    }
+
+    const final = body.translation()
+    expect(entrou).toBe(true)
+    expect(ricocheteou).toBe(true)
+    expect(body.collider(0).restitution()).toBeCloseTo(definition.physics.restitution)
+    expect(isInsideRegularPolygon(final.x, final.z, TRAY_CONFIG.apothem, TRAY_CONFIG.wallSegments, 0.5)).toBe(true)
+    expect(final.y).toBeGreaterThan(-1)
+
+    world.free()
   })
 
   /**
